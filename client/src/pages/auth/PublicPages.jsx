@@ -48,7 +48,6 @@ function AuthLayout({ children }) {
         <main className="w-full max-w-md justify-self-center rounded-lg border border-rule bg-white px-8 py-10 sm:px-10 lg:justify-self-end">
           <img src={logo} alt="Altus Financial Services Limited" className="mb-10 h-12 w-auto" />
           {children}
-          <p className="mt-10 border-t border-rule pt-4 text-xs text-muted">For staff use only.</p>
         </main>
       </div>
     </div>
