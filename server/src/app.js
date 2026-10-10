@@ -1,14 +1,24 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
+import session from 'express-session';
+import { rateLimit } from 'express-rate-limit';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { csrfProtection, loadCurrentUser, requireAuth } from './middleware/auth.js';
+import { KnexSessionStore } from './modules/auth/session-store.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { adminRoutes } from './modules/admin/index.js';
+import { profileRoutes } from './modules/profile/profile.routes.js';
+import { REPO_ROOT } from './config/env.js';
 
 /**
  * Build the Express application. Dependencies are passed in so tests can use the test
- * database and a silent logger.
+ * database, a silent logger and a stand-in for Microsoft's servers.
  */
-export function createApp({ config, db, logger }) {
+export function createApp({ config, db, logger, entra = null, sessionStore }) {
   const app = express();
   app.disable('x-powered-by');
   if (config.trustProxy) app.set('trust proxy', config.trustProxy);
@@ -41,14 +51,13 @@ export function createApp({ config, db, logger }) {
           'connect-src': ["'self'"],
           'frame-ancestors': ["'none'"],
           'form-action': ["'self'", 'https://login.microsoftonline.com'],
+          'upgrade-insecure-requests': config.isProduction ? [] : null,
         },
       },
       crossOriginEmbedderPolicy: false,
       hsts: config.isProduction ? { maxAge: 31536000, includeSubDomains: true } : false,
     }),
   );
-
-  app.use(express.json({ limit: '100kb' }));
 
   // Liveness and database reachability. Reports nothing about configuration or data.
   app.get('/api/health', async (req, res) => {
@@ -61,7 +70,53 @@ export function createApp({ config, db, logger }) {
     }
   });
 
+  // Small JSON bodies everywhere except the employee import, which parses its own (2 MB).
+  const smallJson = express.json({ limit: '100kb' });
+  app.use((req, res, next) =>
+    req.path.startsWith('/api/admin/employees/import/') ? next() : smallJson(req, res, next),
+  );
+
+  app.use(
+    '/api',
+    rateLimit({ windowMs: 15 * 60 * 1000, limit: 1000, standardHeaders: 'draft-7', legacyHeaders: false }),
+  );
+
+  app.use(
+    session({
+      name: config.session.cookieName,
+      secret: config.session.secret,
+      store: sessionStore ?? new KnexSessionStore(db),
+      resave: false,
+      saveUninitialized: false,
+      rolling: true, // each request extends the idle timeout
+      cookie: {
+        httpOnly: true,
+        secure: config.session.cookieSecure,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: config.session.idleMinutes * 60 * 1000,
+      },
+    }),
+  );
+  app.use(loadCurrentUser({ db, config }));
+
+  const deps = { db, config, logger, entra };
+  app.use('/api/auth', authRoutes(deps));
+
+  // Everything below needs a signed-in user and a CSRF token for changes.
+  app.use('/api', requireAuth, csrfProtection);
+  app.use('/api/me/profile', profileRoutes(deps));
+  app.use('/api/admin', adminRoutes(deps));
+
   app.use('/api', notFoundHandler);
+
+  // In production the built client is served by the API so both share one origin.
+  const clientDist = path.join(REPO_ROOT, 'client', 'dist');
+  if (config.isProduction && fs.existsSync(path.join(clientDist, 'index.html'))) {
+    app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
+    app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+  }
+
   app.use(errorHandler);
   return app;
 }

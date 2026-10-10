@@ -60,14 +60,14 @@ const schema = z.object({
   SESSION_SECRET: optionalString,
   SESSION_IDLE_MINUTES: intWithDefault(30),
   SESSION_ABSOLUTE_HOURS: intWithDefault(10),
+  // Sign-in attempts allowed per IP address per 15 minutes.
+  SIGN_IN_RATE_LIMIT: intWithDefault(30),
   COOKIE_SECURE: bool,
 
   ENTRA_TENANT_ID: optionalString,
   ENTRA_CLIENT_ID: optionalString,
   ENTRA_CLIENT_SECRET: optionalString,
   ENTRA_REDIRECT_URI: optionalString,
-
-  DEV_AUTH_ENABLED: bool,
 
   MAIL_TRANSPORT: z.enum(['graph', 'smtp', 'disabled']).default('disabled'),
   MAIL_SENDER_ADDRESS: optionalString,
@@ -113,18 +113,29 @@ export function buildConfig(env) {
     problems.push('DB_NAME ending in "_test" is reserved for NODE_ENV=test');
   }
 
+  const minSecret = isProd ? 32 : 16;
+  if (!e.SESSION_SECRET || e.SESSION_SECRET.length < minSecret) {
+    problems.push(
+      `SESSION_SECRET must be at least ${minSecret} characters${isProd ? ' in production' : ''} (generate one with: openssl rand -hex 32)`,
+    );
+  }
+
+  // Microsoft sign-in is the only way in. All four settings are needed together.
+  const entraKeys = ['ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET', 'ENTRA_REDIRECT_URI'];
+  const entraSet = entraKeys.filter((k) => e[k]);
   if (isProd) {
-    // Development-only features must be impossible to enable in production.
-    if (e.DEV_AUTH_ENABLED) {
-      problems.push('DEV_AUTH_ENABLED must not be set in production');
+    for (const key of entraKeys) if (!e[key]) problems.push(`${key} is required in production`);
+  } else if (entraSet.length > 0 && entraSet.length < entraKeys.length) {
+    for (const key of entraKeys) {
+      if (!e[key]) problems.push(`${key} is missing (Microsoft sign-in needs all four ENTRA_ settings)`);
     }
+  }
+  if (e.ENTRA_REDIRECT_URI && !/^https?:\/\//.test(e.ENTRA_REDIRECT_URI)) {
+    problems.push('ENTRA_REDIRECT_URI must be a full URL');
+  }
+
+  if (isProd) {
     if (!e.COOKIE_SECURE) problems.push('COOKIE_SECURE must be true in production');
-    if (!e.SESSION_SECRET || e.SESSION_SECRET.length < 32) {
-      problems.push('SESSION_SECRET must be at least 32 characters in production');
-    }
-    for (const key of ['ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET', 'ENTRA_REDIRECT_URI']) {
-      if (!e[key]) problems.push(`${key} is required in production`);
-    }
     if (!e.APP_BASE_URL.startsWith('https://')) problems.push('APP_BASE_URL must use https in production');
     if (!e.DOCUMENT_STORAGE_DIR) problems.push('DOCUMENT_STORAGE_DIR is required in production');
     if (e.MAIL_TRANSPORT === 'disabled') problems.push('MAIL_TRANSPORT must be configured in production');
@@ -165,6 +176,7 @@ export function buildConfig(env) {
       migrationUser: e.MIGRATION_DB_USER,
       migrationPassword: e.MIGRATION_DB_PASSWORD,
     }),
+    signInRateLimit: e.SIGN_IN_RATE_LIMIT,
     appBaseUrl: e.APP_BASE_URL,
     clientOrigin: e.CLIENT_ORIGIN,
     session: Object.freeze({
@@ -172,14 +184,16 @@ export function buildConfig(env) {
       idleMinutes: e.SESSION_IDLE_MINUTES,
       absoluteHours: e.SESSION_ABSOLUTE_HOURS,
       cookieSecure: e.COOKIE_SECURE,
+      // The __Host- prefix makes browsers refuse the cookie unless it is Secure, host-only and path=/.
+      cookieName: e.COOKIE_SECURE ? '__Host-altus.sid' : 'altus.sid',
     }),
     entra: Object.freeze({
       tenantId: e.ENTRA_TENANT_ID,
       clientId: e.ENTRA_CLIENT_ID,
       clientSecret: e.ENTRA_CLIENT_SECRET,
       redirectUri: e.ENTRA_REDIRECT_URI,
+      configured: entraKeys.every((k) => e[k]),
     }),
-    devAuthEnabled: !isProd && e.DEV_AUTH_ENABLED,
     mail: Object.freeze({
       transport: e.MAIL_TRANSPORT,
       sender: e.MAIL_SENDER_ADDRESS,

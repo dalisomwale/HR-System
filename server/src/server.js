@@ -2,12 +2,13 @@ import pino from 'pino';
 import { getConfig, ConfigError } from './config/env.js';
 import { getDb, closeDb } from './db/index.js';
 import { createApp } from './app.js';
+import { createEntraClient } from './modules/auth/entra.client.js';
 
 let config;
 try {
   config = getConfig();
 } catch (err) {
-  // Refuse to start on invalid configuration (including dev-only settings in production).
+  // Refuse to start on invalid configuration.
   console.error(err instanceof ConfigError ? err.message : err);
   process.exit(1);
 }
@@ -31,11 +32,14 @@ try {
   process.exit(1);
 }
 
-if (config.devAuthEnabled) {
-  logger.warn('Development sign-in adapter is enabled. This is refused in production.');
+const entra = config.entra.configured ? createEntraClient(config.entra) : null;
+if (!entra) {
+  logger.warn(
+    'Microsoft sign-in is not configured (ENTRA_TENANT_ID, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_REDIRECT_URI). Nobody can sign in until it is.',
+  );
 }
 
-const app = createApp({ config, db, logger });
+const app = createApp({ config, db, logger, entra });
 const server = app.listen(config.port, () => {
   logger.info({ port: config.port, env: config.env }, 'Altus Leave API listening');
 });

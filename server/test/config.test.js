@@ -38,12 +38,8 @@ describe('configuration guards', () => {
   it('accepts a complete production configuration', () => {
     const config = buildConfig(productionEnv);
     expect(config.isProduction).toBe(true);
-    expect(config.devAuthEnabled).toBe(false);
-  });
-
-  it('refuses to start in production with the development sign-in adapter enabled', () => {
-    const problems = problemsFor({ ...productionEnv, DEV_AUTH_ENABLED: 'true' });
-    expect(problems).toContain('DEV_AUTH_ENABLED must not be set in production');
+    expect(config.entra.configured).toBe(true);
+    expect(config.session.cookieName).toBe('__Host-altus.sid');
   });
 
   it('requires secure cookies, a strong session secret and Entra settings in production', () => {
@@ -56,7 +52,7 @@ describe('configuration guards', () => {
     expect(problems).toEqual(
       expect.arrayContaining([
         'COOKIE_SECURE must be true in production',
-        'SESSION_SECRET must be at least 32 characters in production',
+        expect.stringMatching(/^SESSION_SECRET must be at least 32 characters in production/),
         'ENTRA_CLIENT_SECRET is required in production',
       ]),
     );
@@ -85,14 +81,26 @@ describe('configuration guards', () => {
     );
   });
 
-  it('only enables the development sign-in adapter outside production', () => {
-    const dev = buildConfig({
+  it('needs all four Microsoft settings together, outside production too', () => {
+    const problems = problemsFor({
       ...productionEnv,
       NODE_ENV: 'development',
       DB_NAME: 'altus_leave_dev',
-      DEV_AUTH_ENABLED: 'true',
+      ENTRA_CLIENT_SECRET: '',
     });
-    expect(dev.devAuthEnabled).toBe(true);
+    expect(problems).toContain(
+      'ENTRA_CLIENT_SECRET is missing (Microsoft sign-in needs all four ENTRA_ settings)',
+    );
+  });
+
+  it('requires a session secret in every environment', () => {
+    const problems = problemsFor({
+      ...productionEnv,
+      NODE_ENV: 'development',
+      DB_NAME: 'x',
+      SESSION_SECRET: '',
+    });
+    expect(problems[0]).toMatch(/SESSION_SECRET must be at least 16 characters/);
   });
 
   it('rejects a malformed tenant ID', () => {

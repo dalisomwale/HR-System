@@ -23,10 +23,10 @@ describe('API foundation', () => {
     expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
   });
 
-  it('returns structured 404s for unknown API routes', async () => {
+  it('does not reveal which API routes exist to anonymous callers', async () => {
     const res = await request(app).get('/api/does-not-exist');
-    expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe('NOT_FOUND');
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('UNAUTHENTICATED');
   });
 
   it('returns 503 when the database is unreachable', async () => {
