@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -12,7 +13,9 @@ export const REPO_ROOT = path.resolve(here, '../../..');
  */
 export function loadEnvFile() {
   const fileName = process.env.ALTUS_ENV_FILE || (process.env.NODE_ENV === 'test' ? '.env.test' : '.env');
-  dotenv.config({ path: path.resolve(REPO_ROOT, fileName), quiet: true });
+  const filePath = path.resolve(REPO_ROOT, fileName);
+  dotenv.config({ path: filePath, quiet: true });
+  return { filePath, exists: fs.existsSync(filePath) };
 }
 
 const bool = z
@@ -191,8 +194,19 @@ export function buildConfig(env) {
 let cached;
 export function getConfig() {
   if (!cached) {
-    loadEnvFile();
-    cached = buildConfig(process.env);
+    const envFile = loadEnvFile();
+    try {
+      cached = buildConfig(process.env);
+    } catch (err) {
+      // Say where we looked, so a missing or misplaced env file is obvious.
+      if (err instanceof ConfigError && !envFile.exists) {
+        err.problems.unshift(
+          `No environment file found at ${envFile.filePath} (copy .env.example there and fill it in)`,
+        );
+        err.message = `Invalid configuration:\n  - ${err.problems.join('\n  - ')}`;
+      }
+      throw err;
+    }
   }
   return cached;
 }
