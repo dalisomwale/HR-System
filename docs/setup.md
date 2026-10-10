@@ -45,9 +45,9 @@ cp .env.example .env        # development
 cp .env.example .env.test   # tests
 ```
 
-Fill in at least: `NODE_ENV`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `APP_BASE_URL`, `CLIENT_ORIGIN`. In `.env.test` set `NODE_ENV=test` and point at the `_test` database. `ENTRA_TENANT_ID` is required before the administrator bootstrap.
+Fill in at least: `NODE_ENV`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `APP_BASE_URL` (`http://localhost:4000`), `CLIENT_ORIGIN` (`http://localhost:5173`) and `SESSION_SECRET` (`openssl rand -hex 32`). In `.env.test` set `NODE_ENV=test` and point at the `_test` database; it needs no session secret or Microsoft settings.
 
-`DEV_AUTH_ENABLED=true` turns on the development sign-in adapter (Phase 2). It is refused at startup when `NODE_ENV=production`.
+Microsoft sign-in is the only way in, so `.env` also needs the four `ENTRA_` values. [`entra-setup.md`](entra-setup.md) explains how to get them. Until they are set the system runs, but the sign-in page says sign-in is not available.
 
 ## 3. Install and migrate
 
@@ -80,11 +80,14 @@ The identity is linked to the tenant in `ENTRA_TENANT_ID`.
 ## 5. Run
 
 ```bash
-npm run dev --workspace server     # API on PORT (default 4000), restarts on change
-curl http://localhost:4000/api/health
+npm run dev
 ```
 
-The API refuses to start if the configuration is invalid or migrations are pending.
+This starts the API on port 4000 and the web app on port 5173. Open **http://localhost:5173** and select **Sign in with Microsoft**. Always use port 5173: it forwards `/api` to the API so the browser sees one address, which sign-in relies on.
+
+The API refuses to start if the configuration is invalid or migrations are pending. To run the two halves in separate terminals: `npm run dev --workspace server` and `npm run dev --workspace client`.
+
+After a `git pull`, run `npm install` and `npm run migrate` before `npm run dev`.
 
 ## 6. Tests
 

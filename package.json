@@ -2,9 +2,10 @@
   "name": "altus-leave",
   "private": true,
   "type": "module",
-  "description": "Altus Financial Services Limited — HR Leave Management System",
+  "description": "Altus Financial Services Limited \u2014 HR Leave Management System",
   "workspaces": [
-    "server"
+    "server",
+    "client"
   ],
   "engines": {
     "node": ">=20.11"
@@ -15,7 +16,9 @@
     "format:check": "prettier --check .",
     "test": "npm run test --workspace server",
     "migrate": "npm run migrate --workspace server",
-    "bootstrap:admin": "npm run bootstrap:admin --workspace server --"
+    "bootstrap:admin": "npm run bootstrap:admin --workspace server --",
+    "dev": "npm run dev --workspace server & npm run dev --workspace client",
+    "build": "npm run build --workspace client"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

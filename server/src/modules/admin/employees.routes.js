@@ -37,7 +37,7 @@ export function employeeRoutes({ db, config }) {
   router.get(
     '/',
     asyncHandler(async (req, res) => {
-      const { page, pageSize, offset } = pagination(req.query);
+      const { page, pageSize, offset } = pagination(req.query, { maxSize: 500 });
       const q = db('employees as e')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
         .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
@@ -56,6 +56,8 @@ export function employeeRoutes({ db, config }) {
       }
       if (['ACTIVE', 'INACTIVE'].includes(req.query.status)) q.where('e.status', req.query.status);
       if (req.query.departmentId) q.where('e.department_id', Number(req.query.departmentId) || 0);
+      if (req.query.linked === 'false') q.whereNull('l.id');
+      if (req.query.linked === 'true') q.whereNotNull('l.id');
 
       const { total } = await q.clone().count({ total: '*' }).first();
       const rows = await q

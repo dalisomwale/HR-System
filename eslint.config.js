@@ -18,6 +18,20 @@ export default [
     },
   },
   {
+    files: ['client/**/*.{js,jsx}'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      globals: { ...globals.browser },
+    },
+    rules: {
+      // JSX usage is not visible to the core rule without the React plugin.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }],
+      eqeqeq: ['error', 'always'],
+    },
+  },
+  {
     files: ['server/scripts/**/*.js'],
     rules: { 'no-console': 'off' },
   },
