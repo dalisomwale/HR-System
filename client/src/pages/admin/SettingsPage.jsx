@@ -15,7 +15,7 @@ import {
 
 const TITLES = {
   manager_scope: 'Who a manager can approve for',
-  no_manager_routing: 'Staff with no line manager',
+  no_manager_routing: 'Staff with no manager',
   resubmission_routing: 'After HR returns a request for correction',
   handover_signoff_by: 'Handover sign-off',
   weekend_holiday_substitution: 'Public holidays that fall on a weekend',
@@ -34,7 +34,7 @@ const HELP = {
   manager_scope:
     'Whether a manager approves only the people who report to them directly, or everyone below them.',
   no_manager_routing:
-    'Requests from someone with no line manager (for example the Executive Director). The routing is recorded on the request.',
+    'Requests from someone with no manager (for example the Executive Director). The routing is recorded on the request.',
   resubmission_routing: 'Where a corrected request goes after HR sends it back.',
   handover_signoff_by: 'The policy says handover notes are signed off by the Head of Department.',
   weekend_holiday_substitution:

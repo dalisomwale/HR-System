@@ -104,7 +104,7 @@ export default function AppShell() {
   }
 
   const roleText =
-    [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Line manager'] : [])].join(', ') ||
+    [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
     'Employee';
   const nav = (
     <>

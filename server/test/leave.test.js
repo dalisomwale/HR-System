@@ -210,7 +210,7 @@ describe('two-stage approval', () => {
     expect(res.status).toBe(409);
   });
 
-  it('only the line manager can act at the manager stage; nobody approves their own', async () => {
+  it('only the manager can act at the manager stage; nobody approves their own', async () => {
     const { id } = await submitted();
     expect((await as(emp).post(`/api/approvals/requests/${id}/manager`, { action: 'APPROVE' })).status).toBe(
       403,
@@ -252,14 +252,14 @@ describe('two-stage approval', () => {
     );
   });
 
-  it('sends requests from staff with no line manager straight to HR, and records why', async () => {
+  it('sends requests from staff with no manager straight to HR, and records why', async () => {
     const solo = await fixtureEmployee(db);
     await opening(solo.id, ids.ANNUAL, Y, 10);
     const s = await signIn(app, entra, { oid: solo.oid });
     const { body } = await as(s).post('/api/leave/requests', annual());
     expect(body.status).toBe('PENDING_HR_APPROVAL');
     const route = await db('approval_actions').where({ leave_request_id: body.id, action: 'ROUTE' }).first();
-    expect(route.comment).toMatch(/No active line manager/);
+    expect(route.comment).toMatch(/No active manager/);
   });
 
   it('deducts exactly once even when HR approves twice at the same moment', async () => {

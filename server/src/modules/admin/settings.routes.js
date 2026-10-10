@@ -23,13 +23,13 @@ export const EDITABLE_SETTINGS = {
   resubmission_routing: {
     schema: z.enum(['MANAGER_STAGE', 'HR_STAGE']),
     options: [
-      { value: 'MANAGER_STAGE', label: 'Back to the line manager' },
+      { value: 'MANAGER_STAGE', label: 'Back to the manager' },
       { value: 'HR_STAGE', label: 'Straight back to HR' },
     ],
   },
   handover_signoff_by: {
     schema: z.enum(['LINE_MANAGER']),
-    options: [{ value: 'LINE_MANAGER', label: 'Line manager, at the manager approval stage' }],
+    options: [{ value: 'LINE_MANAGER', label: 'Manager, at the manager approval stage' }],
   },
   weekend_holiday_substitution: {
     schema: z.enum(['UNCONFIRMED', 'MANUAL_ENTRY']),

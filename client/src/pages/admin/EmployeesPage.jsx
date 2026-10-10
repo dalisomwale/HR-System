@@ -54,7 +54,7 @@ export default function EmployeesPage() {
     <div>
       <PageHeader
         title="Employees"
-        description="Staff records, line managers, Microsoft account links and system roles."
+        description="Staff records, managers, Microsoft account links and system roles."
         actions={
           <>
             <ButtonLink to="/admin/import">
@@ -143,7 +143,7 @@ export default function EmployeesPage() {
                 <Th>Name</Th>
                 <Th>Employee no.</Th>
                 <Th>Department</Th>
-                <Th>Line manager</Th>
+                <Th>Manager</Th>
                 <Th>Microsoft account</Th>
                 <Th>Roles</Th>
                 <Th>Status</Th>

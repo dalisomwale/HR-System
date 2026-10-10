@@ -62,7 +62,7 @@ export async function up(knex) {
   await knex.raw(
     'ALTER TABLE employees ADD CONSTRAINT chk_emp_dates CHECK (employment_end_date IS NULL OR employment_end_date >= employment_start_date)',
   );
-  // "An employee cannot be their own line manager" cannot be a CHECK constraint because MySQL
+  // "An employee cannot be their own manager" cannot be a CHECK constraint because MySQL
   // forbids CHECK constraints that reference an AUTO_INCREMENT column. It is enforced in the
   // employee service (Phase 2), together with reporting-loop detection.
 

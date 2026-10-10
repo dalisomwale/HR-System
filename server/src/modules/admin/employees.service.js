@@ -68,7 +68,7 @@ export function mapEmployeeUniqueError(err) {
   return conflict('This record conflicts with an existing one.');
 }
 
-/** Check department, schedule and line manager, including reporting loops. */
+/** Check department, schedule and manager, including reporting loops. */
 export async function validateRelations(trx, { departmentId, lineManagerId, workScheduleId }, selfId = null) {
   if (departmentId) {
     const d = await trx('departments').where({ id: departmentId }).first('is_active');
@@ -80,10 +80,10 @@ export async function validateRelations(trx, { departmentId, lineManagerId, work
     if (!s || !s.is_active) throw badRequest('Working schedule not found or inactive.');
   }
   if (lineManagerId) {
-    if (selfId && lineManagerId === selfId) throw badRequest('An employee cannot be their own line manager.');
+    if (selfId && lineManagerId === selfId) throw badRequest('An employee cannot be their own manager.');
     const m = await trx('employees').where({ id: lineManagerId }).first('status');
-    if (!m) throw badRequest('Line manager not found.');
-    if (m.status !== 'ACTIVE') throw badRequest('The line manager must be an active employee.');
+    if (!m) throw badRequest('Manager not found.');
+    if (m.status !== 'ACTIVE') throw badRequest('The manager must be an active employee.');
     if (selfId) {
       // Walk up from the proposed manager; reaching this employee means a loop.
       let current = lineManagerId;
@@ -164,7 +164,7 @@ export async function deactivateEmployee(trx, id, { reason, endDate }, audit) {
     .count({ n: '*' })
     .first();
   if (Number(reports.n) > 0) {
-    throw conflict(`Assign a new line manager to this employee's ${reports.n} direct report(s) first.`);
+    throw conflict(`Assign a new manager to this employee's ${reports.n} direct report(s) first.`);
   }
   const roles = await trx('employee_roles as er')
     .join('roles as r', 'r.id', 'er.role_id')

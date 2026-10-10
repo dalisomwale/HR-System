@@ -26,7 +26,7 @@ const SETTINGS = [
   ['leave_year_start', { month: 1, day: 1 }, 'Leave year start (policy: 1 January to 31 December).', false],
   ['business_timezone', 'Africa/Lusaka', 'Timezone used for leave dates and scheduled jobs.', false],
   ['manager_scope', 'DIRECT_REPORTS', 'Which employees a manager may act on. Decision D2.', true],
-  ['no_manager_routing', 'HR_STAGE', 'Routing for employees with no line manager. Decision D3.', true],
+  ['no_manager_routing', 'HR_STAGE', 'Routing for employees with no manager. Decision D3.', true],
   [
     'resubmission_routing',
     'MANAGER_STAGE',

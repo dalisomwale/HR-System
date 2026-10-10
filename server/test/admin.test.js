@@ -159,7 +159,7 @@ describe('linking Microsoft accounts', () => {
 
 describe('employee import', () => {
   const header =
-    'employee_number,first_name,last_name,email,job_title,department_code,line_manager_employee_number,employment_start_date,employment_end_date';
+    'employee_number,first_name,last_name,email,job_title,department_code,manager_employee_number,employment_start_date,employment_end_date';
 
   it('previews errors without writing anything', async () => {
     const csv = [header, 'A1,Ann,One,a1@example.test,,NOPE,,2025-01-06,', 'A1,Ben,Two,,,,,2025-13-01,'].join(
@@ -171,6 +171,17 @@ describe('employee import', () => {
     expect(res.body.rows[0].errors.join(' ')).toMatch(/department_code NOPE/);
     expect(res.body.rows[1].errors.join(' ')).toMatch(/more than once/);
     expect((await db('employees').count({ n: '*' }).first()).n).toBe(1);
+  });
+
+  it('still accepts the older line_manager_employee_number column name', async () => {
+    const csv = [
+      header.replace('manager_employee_number', 'line_manager_employee_number'),
+      'L2,Ben,Two,,,,L1,2025-01-06,',
+      'L1,Ann,One,,,,,2024-03-01,',
+    ].join('\n');
+    const res = await post('/api/admin/employees/import/preview', { csv });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.validRows).toBe(2);
   });
 
   it('imports valid rows, including managers defined in the same file', async () => {

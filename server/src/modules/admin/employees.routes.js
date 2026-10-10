@@ -105,7 +105,7 @@ export function employeeRoutes({ db, config }) {
     }),
   );
 
-  // Lightweight list for pickers (line manager, etc.).
+  // Lightweight list for pickers (manager, etc.).
   router.get(
     '/options',
     asyncHandler(async (req, res) => {

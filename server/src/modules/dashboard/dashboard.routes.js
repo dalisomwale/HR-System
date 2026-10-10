@@ -232,7 +232,7 @@ export function dashboardRoutes({ db }) {
     '/manager',
     asyncHandler(async (req, res) => {
       const { user } = req;
-      if (!user.isManager && !user.isDelegate) throw forbidden('This dashboard is for line managers.');
+      if (!user.isManager && !user.isDelegate) throw forbidden('This dashboard is for managers.');
       const today = todayInLusaka();
       const horizon = addDays(today, 30);
 

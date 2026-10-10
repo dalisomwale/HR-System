@@ -17,7 +17,7 @@ export default function ApplyPage() {
     <div className="max-w-6xl">
       <PageHeader
         title="Apply for leave"
-        description="Your request goes to your line manager first, then to HR for final approval."
+        description="Your request goes to your manager first, then to HR for final approval."
       />
       <LeaveForm submitLabel="Submit request" onSubmit={submit} />
     </div>

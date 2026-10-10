@@ -100,7 +100,7 @@ export function HrApprovalsPage() {
     <div className="max-w-6xl space-y-6">
       <PageHeader
         title="HR approvals"
-        description="Final approval. Days are deducted from balances when HR approves. You cannot give final approval to your own leave or to a request you approved as line manager."
+        description="Final approval. Days are deducted from balances when HR approves. You cannot give final approval to your own leave or to a request you approved as manager."
       />
       {q.isPending ? (
         <Loading />
@@ -114,7 +114,7 @@ export function HrApprovalsPage() {
           <Block title="Cancellation requests" count={q.data.changes.length} empty="No cancellations waiting">
             <ChangeTable items={q.data.changes} />
           </Block>
-          <Block title="Still with line managers" count={q.data.withManagers.length} empty="None">
+          <Block title="Still with managers" count={q.data.withManagers.length} empty="None">
             <RequestTable items={q.data.withManagers} showEmployee />
           </Block>
         </>

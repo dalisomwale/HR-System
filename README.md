@@ -1,6 +1,6 @@
 # Altus Leave Management System
 
-HR leave management for Altus Financial Services Limited: employees apply for leave, line managers review, HR gives final approval. Backed by MySQL, with Microsoft Entra ID sign-in.
+HR leave management for Altus Financial Services Limited: employees apply for leave, managers review, HR gives final approval. Backed by MySQL, with Microsoft Entra ID sign-in.
 
 The full specification is in [`docs/project-brief.md`](docs/project-brief.md). It is delivered in seven phases.
 

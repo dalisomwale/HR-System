@@ -258,13 +258,13 @@ function EmployeeForm({ employee, isNew }) {
         </Field>
         <Field
           id="lineManagerId"
-          label="Line manager"
+          label="Manager"
           optional
           error={err('lineManagerId')}
           hint="Reviews this person’s leave first."
         >
           <Select id="lineManagerId" invalid={!!err('lineManagerId')} {...register('lineManagerId')}>
-            <option value="">No line manager</option>
+            <option value="">No manager</option>
             {people.data?.items
               .filter((p) => p.id !== employee?.id)
               .map((p) => (
@@ -414,7 +414,7 @@ function RolesPanel({ employee }) {
   return (
     <Section
       title="System roles"
-      description="Everyone can apply for leave. Line managers are set by the reporting line."
+      description="Everyone can apply for leave. Managers are set by the reporting line."
     >
       <fieldset className="space-y-2.5" disabled={employee.status !== 'ACTIVE'}>
         <legend className="sr-only">Roles</legend>

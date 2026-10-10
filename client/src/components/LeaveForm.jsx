@@ -278,7 +278,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
               optional={!type?.reasonRequired}
               error={err('reason')}
               className="sm:col-span-2"
-              hint="Seen by your line manager and HR. For sensitive leave types only HR sees it."
+              hint="Seen by your manager and HR. For sensitive leave types only HR sees it."
             >
               <Textarea id="reason" rows={3} invalid={!!err('reason')} {...register('reason')} />
             </Field>

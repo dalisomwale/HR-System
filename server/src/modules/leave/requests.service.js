@@ -375,7 +375,7 @@ export async function submitRequest(db, actor, input, audit) {
         actingAs: 'SYSTEM',
         from: 'PENDING_MANAGER_APPROVAL',
         to: status,
-        comment: 'No active line manager recorded; sent straight to HR (decision D3).',
+        comment: 'No active manager recorded; sent straight to HR (decision D3).',
       });
     }
     await writeAudit(trx, {
@@ -453,14 +453,14 @@ const decisionSchema = z.object({
 });
 export { decisionSchema };
 
-/** Line manager (or delegate) approves or rejects. Approval sends the request to HR. */
+/** Manager (or delegate) approves or rejects. Approval sends the request to HR. */
 export async function managerDecision(db, actor, requestId, input, audit) {
   return db.transaction(async (trx) => {
     const r = await lockRequest(trx, requestId, input.version);
     requireState(r, 'PENDING_MANAGER_APPROVAL');
     const authority = await managerAuthority(trx, actor, r);
     if (!authority)
-      throw forbidden('Only the employee’s line manager (or their delegate) can act on this request.');
+      throw forbidden('Only the employee’s manager (or their delegate) can act on this request.');
     if (input.action === 'RETURN')
       throw badRequest('Managers approve or reject; HR can return a request for correction.');
     if (input.action === 'REJECT' && !input.comment)
@@ -778,7 +778,7 @@ export async function changeManagerDecision(db, actor, changeId, input, audit) {
       ...r,
       assigned_manager_id: c.assigned_manager_id,
     });
-    if (!authority) throw forbidden('Only the employee’s line manager (or their delegate) can act on this.');
+    if (!authority) throw forbidden('Only the employee’s manager (or their delegate) can act on this.');
     if (input.action === 'RETURN') throw badRequest('Managers approve or reject.');
     if (input.action === 'REJECT' && !input.comment) throw badRequest('Give a reason for rejecting.');
     const to = input.action === 'APPROVE' ? 'PENDING_HR_APPROVAL' : 'REJECTED_BY_MANAGER';

@@ -22,7 +22,7 @@ export default function ProfilePage() {
               ['Employee number', p.employeeNumber],
               ['Job title', p.jobTitle],
               ['Department', p.department],
-              ['Line manager', p.lineManager],
+              ['Manager', p.lineManager],
               ['Work email', p.email],
               ['Start date', formatDate(p.employmentStartDate)],
               ['Working schedule', p.workSchedule],

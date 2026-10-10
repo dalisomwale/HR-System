@@ -21,7 +21,7 @@ const COLUMNS = [
   ['email', 'Work email. Used for notifications and to suggest sign-in links.'],
   ['job_title', ''],
   ['department_code', 'Must match a department code set up under Departments.'],
-  ['line_manager_employee_number', 'An existing employee or someone else in the same file.'],
+  ['manager_employee_number', 'An existing employee or someone else in the same file.'],
   ['employment_start_date', 'Required. YYYY-MM-DD.'],
   ['employment_end_date', 'YYYY-MM-DD, if known.'],
 ];

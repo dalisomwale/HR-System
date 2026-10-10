@@ -44,7 +44,7 @@ export async function up(knex) {
     t.integer('handover_contact_id').unsigned().nullable().references('id').inTable('employees');
     t.text('notice_shortfall_reason').nullable();
     t.enu('status', REQUEST_STATES).notNullable().defaultTo('DRAFT');
-    // Manager resolved at submission time; null when the employee has no line manager (decision D3).
+    // Manager resolved at submission time; null when the employee has no manager (decision D3).
     t.integer('assigned_manager_id').unsigned().nullable().references('id').inTable('employees');
     t.boolean('routed_without_manager').notNullable().defaultTo(false);
     t.boolean('is_overdue').notNullable().defaultTo(false);

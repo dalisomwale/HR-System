@@ -2,7 +2,7 @@ import { formatDate } from './format.js';
 
 export const STATUS_LABELS = {
   DRAFT: 'Draft',
-  PENDING_MANAGER_APPROVAL: 'With line manager',
+  PENDING_MANAGER_APPROVAL: 'With manager',
   PENDING_HR_APPROVAL: 'With HR',
   RETURNED_FOR_CORRECTION: 'Returned to you',
   APPROVED: 'Approved',
@@ -40,7 +40,7 @@ export const ACTION_LABELS = {
   ESCALATE: 'Escalated',
 };
 
-export const STAGE_LABELS = { EMPLOYEE: 'Employee', MANAGER: 'Line manager', HR: 'HR', SYSTEM: 'System' };
+export const STAGE_LABELS = { EMPLOYEE: 'Employee', MANAGER: 'Manager', HR: 'HR', SYSTEM: 'System' };
 
 export const days = (n) => `${Number(n)} ${Number(n) === 1 ? 'day' : 'days'}`;
 

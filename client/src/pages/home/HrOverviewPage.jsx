@@ -32,7 +32,7 @@ function Body({ d }) {
     <>
       <Stats>
         <Stat label="Waiting for HR" value={d.awaitingHr.length} to="/hr/approvals" />
-        <Stat label="With line managers" value={d.withManagers.length} to="/hr/approvals" />
+        <Stat label="With managers" value={d.withManagers.length} to="/hr/approvals" />
         <Stat label="Overdue" value={ex.overdue} tone="danger" />
         <Stat label="On leave today" value={d.onLeave.length} />
       </Stats>
@@ -43,14 +43,14 @@ function Body({ d }) {
             ok={ex.held.length === 0}
             title={
               ex.held.length
-                ? `${ex.held.length} ${ex.held.length === 1 ? 'request is' : 'requests are'} held: the line manager is no longer active`
+                ? `${ex.held.length} ${ex.held.length === 1 ? 'request is' : 'requests are'} held: the manager is no longer active`
                 : 'No requests held without an approver'
             }
           >
             {ex.held.length > 0 && <RequestList items={ex.held} showEmployee empty="" />}
             {ex.held.length > 0 && (
               <p className="mt-1 text-muted">
-                Update the employee’s line manager, or set up a delegation under Administration → Delegations.
+                Update the employee’s manager, or set up a delegation under Administration → Delegations.
               </p>
             )}
           </Exception>
@@ -119,11 +119,11 @@ function Body({ d }) {
             extra={(r) => <Waiting r={r} />}
           />
         </Section>
-        <Section title="With line managers">
+        <Section title="With managers">
           <RequestList
             items={d.withManagers}
             showEmployee
-            empty="Nothing is with line managers."
+            empty="Nothing is with managers."
             extra={(r) => <Waiting r={r} />}
           />
         </Section>

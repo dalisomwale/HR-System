@@ -56,8 +56,8 @@ export default function RequestPage() {
         <div className="mb-6">
           <Notice tone="ok" title="Request submitted.">
             {r.status === 'PENDING_HR_APPROVAL'
-              ? 'No active line manager is recorded for you, so it has gone straight to HR.'
-              : 'Your line manager has been asked to review it.'}
+              ? 'No active manager is recorded for you, so it has gone straight to HR.'
+              : 'Your manager has been asked to review it.'}
           </Notice>
         </div>
       )}
@@ -89,7 +89,7 @@ export default function RequestPage() {
                   ['Covering', r.handoverContact],
                   ['Handover notes', r.handoverNotes],
                   [
-                    'Line manager',
+                    'Manager',
                     r.routedWithoutManager ? 'None recorded – sent straight to HR' : r.assignedManager,
                   ],
                   ['Submitted', formatDateTime(r.submittedAt)],
@@ -369,7 +369,7 @@ function CancelPanel({ request: r }) {
       <p className="mb-3 text-sm text-muted">
         {r.started
           ? 'Your leave has started. Days are returned only if management recalled you (policy 2.8).'
-          : 'Cancelling needs your line manager’s and HR’s approval. The days are returned once approved.'}
+          : 'Cancelling needs your manager’s and HR’s approval. The days are returned once approved.'}
       </p>
       {error && (
         <div className="mb-3">

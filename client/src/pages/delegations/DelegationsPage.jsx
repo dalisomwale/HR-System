@@ -227,7 +227,7 @@ export function DelegationsPage() {
           ) : (
             q.data.received.length === 0 && (
               <EmptyState title="Nothing to show">
-                Delegation is for line managers. Nobody has asked you to cover their approvals.
+                Delegation is for managers. Nobody has asked you to cover their approvals.
               </EmptyState>
             )
           )}

@@ -8,7 +8,7 @@ Before writing any code, read Sections 1–3 and the Open Decisions register (Se
 
 ## 1. Project Overview
 
-Build a secure, production-grade HR Leave Management System for **Altus Financial Services Limited**. Employees submit leave requests; their line manager reviews them; HR gives final approval. The system is backed by a real MySQL database and real integrations. It is not a prototype or demonstration.
+Build a secure, production-grade HR Leave Management System for **Altus Financial Services Limited**. Employees submit leave requests; their manager reviews them; HR gives final approval. The system is backed by a real MySQL database and real integrations. It is not a prototype or demonstration.
 
 This is a **new repository** unless one is supplied. If files already exist, inspect them first and do not overwrite existing functionality without explaining why.
 
@@ -81,7 +81,7 @@ A person may hold more than one role (for example, an HR Officer is also an Empl
 - View own history and own approved-leave calendar.
 - Never see another employee's records.
 
-**Manager** (any employee who is the recorded line manager of at least one active employee)
+**Manager** (any employee who is the recorded manager of at least one active employee)
 - Act on requests from their **direct reports** (default; see D2).
 - See team requests, upcoming team absences, overlapping leave and handover status.
 - Approve or reject with comments.
@@ -94,7 +94,7 @@ A person may hold more than one role (for example, an HR Officer is also an Empl
 - View audit history for requests.
 
 **HR Administrator**
-- Create, update, activate and deactivate employee records; set employee number, department, job title, line manager, start date, end date and working schedule.
+- Create, update, activate and deactivate employee records; set employee number, department, job title, manager, start date, end date and working schedule.
 - Map Entra identities to employee records.
 - Assign roles.
 - Maintain leave types, policy versions, public holidays, working calendars, notification settings and overdue thresholds.
@@ -104,8 +104,8 @@ A person may hold more than one role (for example, an HR Officer is also an Empl
 ### Conflict-of-interest rules (enforced in the backend)
 - Nobody may act on their own request at any stage.
 - An HR Officer's own request must be finally approved by a different HR Officer.
-- If the line manager is also an HR Officer, they act only at the manager stage on that request; a different HR Officer performs the final stage.
-- If an employee has no line manager recorded (for example, the Executive Director), the request goes directly to `PENDING_HR_APPROVAL` and this routing is recorded in the audit trail (default; see D3).
+- If the manager is also an HR Officer, they act only at the manager stage on that request; a different HR Officer performs the final stage.
+- If an employee has no manager recorded (for example, the Executive Director), the request goes directly to `PENDING_HR_APPROVAL` and this routing is recorded in the audit trail (default; see D3).
 - If no eligible approver exists for a stage, the request is held and HR Administrators are alerted; it must never auto-advance.
 
 ### Delegation
@@ -123,8 +123,8 @@ Implement as a single server-side module. Every transition is validated against 
 | From | Action | Actor | To |
 |---|---|---|---|
 | DRAFT | submit | Employee | PENDING_MANAGER_APPROVAL (or PENDING_HR_APPROVAL if no manager) |
-| PENDING_MANAGER_APPROVAL | approve | Line manager / delegate | PENDING_HR_APPROVAL |
-| PENDING_MANAGER_APPROVAL | reject (reason required) | Line manager / delegate | REJECTED_BY_MANAGER |
+| PENDING_MANAGER_APPROVAL | approve | Manager / delegate | PENDING_HR_APPROVAL |
+| PENDING_MANAGER_APPROVAL | reject (reason required) | Manager / delegate | REJECTED_BY_MANAGER |
 | PENDING_MANAGER_APPROVAL | withdraw | Employee | WITHDRAWN |
 | PENDING_HR_APPROVAL | approve | HR Officer | APPROVED |
 | PENDING_HR_APPROVAL | reject (reason required) | HR Officer | REJECTED_BY_HR |
@@ -336,10 +336,10 @@ Use the default until confirmed. Record each in `docs/decisions.md` with its sta
 |---|---|---|
 | D1 | Are roles managed in the app database or by Entra app roles/groups? | App database |
 | D2 | Do managers approve direct reports only, or their whole reporting line? | Direct reports only |
-| D3 | Who approves leave for staff with no line manager (e.g. Executive Director)? | Skip to HR stage, audited |
+| D3 | Who approves leave for staff with no manager (e.g. Executive Director)? | Skip to HR stage, audited |
 | D4 | After HR returns a request for correction, does resubmission go back to the manager or straight to HR? | Back to the manager |
 | D5 | Is the two-week notice for annual leave a hard block or a warning? | Warning with mandatory reason |
-| D6 | Is the "Head of Department" who signs off handovers the line manager, or a separate role? | The line manager, at the manager stage |
+| D6 | Is the "Head of Department" who signs off handovers the manager, or a separate role? | The manager, at the manager stage |
 | D7 | Rule for public holidays falling on a weekend | HR confirms; configurable substitute-day rule |
 | D8 | Annual accrual: 2.3 days per month or 25 ÷ 12, and rounding | Accrual disabled until confirmed |
 | D9 | Policy provision on manager decisions not communicated within one week | Escalation only, never auto-approval |

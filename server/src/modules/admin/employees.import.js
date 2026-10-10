@@ -11,7 +11,7 @@ export const IMPORT_COLUMNS = [
   'job_title',
   'sex',
   'department_code',
-  'line_manager_employee_number',
+  'manager_employee_number',
   'employment_start_date',
   'employment_end_date',
 ];
@@ -29,7 +29,12 @@ export async function validateImport(db, csvText) {
   let records;
   try {
     records = parse(csvText, {
-      columns: (header) => header.map((h) => String(h).trim().toLowerCase()),
+      columns: (header) =>
+        header.map((h) => {
+          const name = String(h).trim().toLowerCase();
+          // Older templates called this column line_manager_employee_number.
+          return name === 'line_manager_employee_number' ? 'manager_employee_number' : name;
+        }),
       skip_empty_lines: true,
       trim: true,
       bom: true,
@@ -105,17 +110,17 @@ export async function validateImport(db, csvText) {
     }
 
     let manager = null;
-    if (raw.line_manager_employee_number) {
-      if (raw.line_manager_employee_number === raw.employee_number) {
-        errors.push('an employee cannot be their own line manager');
-      } else if (existingByNumber.has(raw.line_manager_employee_number)) {
-        const m = existingByNumber.get(raw.line_manager_employee_number);
-        if (m.status !== 'ACTIVE') errors.push('line manager is not an active employee');
+    if (raw.manager_employee_number) {
+      if (raw.manager_employee_number === raw.employee_number) {
+        errors.push('an employee cannot be their own manager');
+      } else if (existingByNumber.has(raw.manager_employee_number)) {
+        const m = existingByNumber.get(raw.manager_employee_number);
+        if (m.status !== 'ACTIVE') errors.push('manager is not an active employee');
         else manager = { existingId: m.id };
-      } else if (fileNumbers.has(raw.line_manager_employee_number)) {
-        manager = { inFile: raw.line_manager_employee_number };
+      } else if (fileNumbers.has(raw.manager_employee_number)) {
+        manager = { inFile: raw.manager_employee_number };
       } else {
-        errors.push(`line_manager_employee_number ${raw.line_manager_employee_number} not found`);
+        errors.push(`manager_employee_number ${raw.manager_employee_number} not found`);
       }
     }
 
