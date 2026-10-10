@@ -36,6 +36,13 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
         return id;
       },
       autoLogging: { ignore: (req) => req.url === '/api/health' },
+      // One short line per request: no headers, cookies or query values in the logs.
+      serializers: {
+        req: (req) => ({ id: req.id, method: req.method, path: (req.originalUrl ?? req.url)?.split('?')[0] }),
+        res: (res) => ({ status: res.statusCode }),
+      },
+      customSuccessMessage: (req, res, ms) =>
+        `${req.method} ${(req.originalUrl ?? req.url)?.split('?')[0]} ${res.statusCode} ${Math.round(ms)}ms`,
     }),
   );
 
