@@ -13,6 +13,9 @@
   --color-brand: #000080;
   --color-brand-strong: #000060;
   --color-brand-soft: #e8e8f4;
+  /* Accent colours from the logo artwork; used sparingly (today on the sign-in calendar). */
+  --color-accent-orange: #f38c1c;
+  --color-accent-green: #89b741;
 
   --color-ink: #1d2433;
   --color-muted: #5b6475;
