@@ -29,6 +29,25 @@ Documents on sick, maternity, family-responsibility and pregnancy-loss leave are
 
 A manager who will be away opens _Delegation_, names a colleague and the dates. During those dates the colleague sees the team's requests under _Team approvals_ and decides at the manager stage; the history records that they acted on the manager's behalf. HR still gives final approval. If a manager is away without having done this, an HR Administrator sets it up under _Administration → Delegations_. Either can revoke it.
 
+## Notifications and email
+
+Everyone has a bell in the header with their unread count, and a _Notifications_ page. Notifications and emails are written in the same database transaction as the step that causes them, so nothing is sent for a change that did not happen. Nobody is told about their own action.
+
+| Event                                                         | In the system                                                                        | Email                                                  |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Request submitted or resubmitted                              | Manager and delegates (or HR when there is no manager); confirmation to the employee | Manager and delegates (or HR)                          |
+| Manager approves                                              | Employee; all HR Officers                                                            | Employee; HR Officers                                  |
+| Manager rejects                                               | Employee                                                                             | Employee                                               |
+| HR approves, rejects or returns                               | Employee; manager (for information)                                                  | Employee                                               |
+| Request withdrawn                                             | Whoever was due to decide                                                            | No                                                     |
+| Cancellation or early return asked for, and each decision     | As for requests                                                                      | As for requests                                        |
+| Not decided within 3 working days (each stage)                | Manager, delegates, the manager's manager and HR; HR at the HR stage                 | Yes. Marked overdue; never approved automatically (D9) |
+| Leave started without a required document                     | Employee, once                                                                       | Yes                                                    |
+| Carried-forward days lapse within 30 days, and again within 7 | Employee                                                                             | Yes                                                    |
+| Someone signs in with Microsoft but is not linked             | HR Administrators, once a day per person                                             | Yes                                                    |
+
+Email is sent through Microsoft 365; setup is in [`email-setup.md`](email-setup.md). Escalations and reminders run once a day; emails are sent every 30 seconds. Both run inside the server unless `BACKGROUND_JOBS=off`.
+
 ## First-time setup for HR
 
 1. **Give yourself the HR Officer role** if you also need to approve leave or manage balances (Employees → your record → Roles). HR Administrator alone manages settings, not leave.

@@ -29,7 +29,7 @@ export function fakeEntra() {
   };
 }
 
-export function testApp(db) {
+export function testApp(db, env = {}) {
   const config = buildConfig({
     ...process.env,
     SIGN_IN_RATE_LIMIT: '100000', // tests sign in hundreds of times from one address
@@ -37,6 +37,7 @@ export function testApp(db) {
     ENTRA_CLIENT_ID: 'test-client',
     ENTRA_CLIENT_SECRET: 'test-secret',
     ENTRA_REDIRECT_URI: 'http://localhost:5173/api/auth/callback',
+    ...env,
   });
   const entra = fakeEntra();
   const sessionStore = new KnexSessionStore(db, { pruneIntervalMs: 0 });

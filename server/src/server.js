@@ -5,6 +5,8 @@ import { getConfig, ConfigError } from './config/env.js';
 import { getDb, closeDb } from './db/index.js';
 import { createApp } from './app.js';
 import { createEntraClient } from './modules/auth/entra.client.js';
+import { createGraphTransport } from './modules/notifications/graph-mail.js';
+import { startBackgroundJobs } from './modules/notifications/scheduler.js';
 
 // Outbound connections (Microsoft sign-in, email) on slow or IPv4-only networks:
 // try IPv4 addresses first and give each connection attempt time to complete.
@@ -52,8 +54,27 @@ const server = app.listen(config.port, () => {
   logger.info({ port: config.port, env: config.env }, 'Altus Leave API listening');
 });
 
+const transport =
+  config.mail.transport === 'graph'
+    ? createGraphTransport(
+        {
+          tenantId: config.mail.tenantId,
+          clientId: config.mail.graphClientId,
+          clientSecret: config.mail.graphClientSecret,
+          sender: config.mail.sender,
+        },
+        { logger },
+      )
+    : null;
+if (!transport)
+  logger.warn('Email is switched off (MAIL_TRANSPORT=disabled). In-system notifications still work.');
+const stopJobs = config.backgroundJobs ? startBackgroundJobs({ db, transport, logger }) : () => {};
+if (!config.backgroundJobs)
+  logger.warn('Background jobs are off (BACKGROUND_JOBS=off): no email sending or reminders.');
+
 async function shutdown(signal) {
   logger.info({ signal }, 'Shutting down');
+  stopJobs();
   server.close(async () => {
     await closeDb();
     process.exit(0);

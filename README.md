@@ -6,15 +6,15 @@ The full specification is in [`docs/project-brief.md`](docs/project-brief.md). I
 
 ## Status
 
-| Phase | Scope                                                                                     | Status                                                                  |
-| ----- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1     | Foundations: scaffold, configuration, schema, decisions register, administrator bootstrap | Done; policy extracted from the 29 May 2025 Leave Policy                |
-| 2     | Entra sign-in, sessions, role middleware, HR administration screens                       | Done; Microsoft sign-in verified against the Altus tenant (10 Oct 2026) |
-| 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Done; leave types await HR review; accrual off until HR confirms (D8)   |
-| 4     | Employee, Manager and HR portals                                                          | Done: dashboards, documents, delegation, Altus branding                 |
-| 5     | Notifications and email                                                                   | Not started                                                             |
-| 6     | Reports and exports                                                                       | Not started                                                             |
-| 7     | Hardening, end-to-end tests, deployment and recovery documentation                        | Not started                                                             |
+| Phase | Scope                                                                                     | Status                                                                             |
+| ----- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 1     | Foundations: scaffold, configuration, schema, decisions register, administrator bootstrap | Done; policy extracted from the 29 May 2025 Leave Policy                           |
+| 2     | Entra sign-in, sessions, role middleware, HR administration screens                       | Done; Microsoft sign-in verified against the Altus tenant (10 Oct 2026)            |
+| 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Done; leave types await HR review; accrual off until HR confirms (D8)              |
+| 4     | Employee, Manager and HR portals                                                          | Done: dashboards, documents, delegation, Altus branding                            |
+| 5     | Notifications and email                                                                   | Done; email tested with a stand-in for Microsoft, not yet against the Altus tenant |
+| 6     | Reports and exports                                                                       | Not started                                                                        |
+| 7     | Hardening, end-to-end tests, deployment and recovery documentation                        | Not started                                                                        |
 
 Nothing in this repository should be described as production-ready until Phase 7 is complete and the open decisions in [`docs/decisions.md`](docs/decisions.md) are confirmed.
 
@@ -32,6 +32,7 @@ npm run dev        # then open http://localhost:5173
 
 - [Setup](docs/setup.md)
 - [Microsoft Entra ID setup](docs/entra-setup.md)
+- [Email setup](docs/email-setup.md)
 - [Architecture](docs/architecture.md)
 - [Decisions register](docs/decisions.md)
 - [Policy extraction](docs/policy-extraction.md)

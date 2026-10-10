@@ -103,10 +103,16 @@ function Body({ d }) {
             ok={ex.failedEmails === 0}
             title={
               ex.failedEmails
-                ? `${ex.failedEmails} emails failed to send`
-                : 'No failed emails (email sending is added in Phase 5)'
+                ? `${ex.failedEmails} ${ex.failedEmails === 1 ? 'email' : 'emails'} could not be sent`
+                : 'No failed emails'
             }
-          />
+          >
+            {ex.failedEmails > 0 && isAdmin && (
+              <Link to="/admin/emails?status=PROBLEMS" className="text-brand underline">
+                Review and resend
+              </Link>
+            )}
+          </Exception>
         </ul>
       </Section>
 

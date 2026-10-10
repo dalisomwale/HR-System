@@ -1,5 +1,6 @@
 import { todayInLusaka } from '../../utils/dates.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { notify, hrAdministrators } from '../notifications/notify.service.js';
 
 /**
  * Decide whether validated Entra claims may sign in, and record the outcome.
@@ -21,6 +22,33 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
   return db.transaction(async (trx) => {
     const link = await trx('identity_links').where({ tenant_id: tid, object_id: oid }).first();
     if (!link) {
+      // HR Administrators hear about a new person once a day at most, however often they retry.
+      const recent = await trx('audit_log')
+        .where({ action: 'SIGN_IN_NOT_CONFIGURED', entity_type: 'identity', entity_id: oid })
+        .andWhere('created_at', '>', trx.raw('NOW() - INTERVAL 1 DAY'))
+        .first('id');
+      if (!recent) {
+        await notify(trx, {
+          recipients: await hrAdministrators(trx),
+          event: 'ACCESS_NOT_CONFIGURED',
+          title: `Sign-in waiting to be linked: ${name ?? email ?? 'unknown person'}`,
+          body: 'Someone signed in with Microsoft but is not linked to an employee record yet.',
+          link: '/admin/sign-in-requests',
+          entityType: 'identity',
+          email: {
+            subject: 'Sign-in waiting to be linked',
+            heading: 'Sign-in waiting to be linked',
+            intro:
+              'Someone signed in to the leave system with their Microsoft account, but it is not linked to an employee record yet.',
+            rows: [
+              ['Name', name ?? 'Not given'],
+              ['Email', email ?? 'Not given'],
+            ],
+            action:
+              'Link the account to their employee record under Sign-in requests, or ignore it if it is not expected.',
+          },
+        });
+      }
       // Recorded so HR Administrators can link this person from the pending sign-ins list.
       await writeAudit(trx, {
         ...base,

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { leaveRequestEvent, changeRequestEvent } from '../notifications/leave-events.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../utils/errors.js';
 import { isoDate, optionalId, optionalText } from '../../utils/validation.js';
 import { todayInLusaka } from '../../utils/dates.js';
@@ -392,6 +393,7 @@ export async function submitRequest(db, actor, input, audit) {
         status,
       },
     });
+    await leaveRequestEvent(trx, 'SUBMITTED', id, { actorId: actor.id });
     return { id, reference, status, chargeableDays: ev.calc.chargeableDays };
   });
 }
@@ -468,7 +470,7 @@ export async function managerDecision(db, actor, requestId, input, audit) {
     const to = input.action === 'APPROVE' ? 'PENDING_HR_APPROVAL' : 'REJECTED_BY_MANAGER';
     await trx('leave_requests')
       .where({ id: r.id })
-      .update({ status: to, manager_decided_at: trx.fn.now(), version: r.version + 1 });
+      .update({ status: to, manager_decided_at: trx.fn.now(), is_overdue: false, version: r.version + 1 });
     await recordAction(trx, {
       requestId: r.id,
       stage: 'MANAGER',
@@ -486,6 +488,9 @@ export async function managerDecision(db, actor, requestId, input, audit) {
       entityId: r.id,
       before: { status: r.status },
       after: { status: to, comment: input.comment ?? null },
+    });
+    await leaveRequestEvent(trx, input.action === 'APPROVE' ? 'MANAGER_APPROVED' : 'MANAGER_REJECTED', r.id, {
+      actorId: actor.id,
     });
     return { id: r.id, status: to };
   });
@@ -562,7 +567,7 @@ export async function hrDecision(db, actor, requestId, input, audit) {
 
     await trx('leave_requests')
       .where({ id: r.id })
-      .update({ status: to, hr_decided_at: trx.fn.now(), version: r.version + 1 });
+      .update({ status: to, hr_decided_at: trx.fn.now(), is_overdue: false, version: r.version + 1 });
     await recordAction(trx, {
       requestId: r.id,
       stage: 'HR',
@@ -583,6 +588,14 @@ export async function hrDecision(db, actor, requestId, input, audit) {
       before: { status: r.status },
       after: { status: to, comment: input.comment ?? null },
     });
+    await leaveRequestEvent(
+      trx,
+      { APPROVE: 'HR_APPROVED', REJECT: 'HR_REJECTED', RETURN: 'HR_RETURNED' }[input.action],
+      r.id,
+      {
+        actorId: actor.id,
+      },
+    );
     return { id: r.id, status: to };
   });
 }
@@ -595,7 +608,7 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
     requireState(r, ...PENDING_STATES);
     await trx('leave_requests')
       .where({ id: r.id })
-      .update({ status: 'WITHDRAWN', version: r.version + 1 });
+      .update({ status: 'WITHDRAWN', is_overdue: false, version: r.version + 1 });
     await recordAction(trx, {
       requestId: r.id,
       stage: 'EMPLOYEE',
@@ -613,6 +626,12 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
       entityId: r.id,
       before: { status: r.status },
     });
+    if (r.status !== 'RETURNED_FOR_CORRECTION') {
+      await leaveRequestEvent(trx, 'WITHDRAWN', r.id, {
+        actorId: actor.id,
+        previousManagerId: r.status === 'PENDING_MANAGER_APPROVAL' ? r.assigned_manager_id : null,
+      });
+    }
     return { id: r.id, status: 'WITHDRAWN' };
   });
 }
@@ -652,6 +671,8 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
         routed_without_manager: !managerId,
         manager_decided_at: null,
         hr_decided_at: null,
+        is_overdue: false,
+        submitted_at: trx.fn.now(),
         version: r.version + 1,
       });
     await trx('leave_request_days').where({ leave_request_id: r.id }).del();
@@ -679,6 +700,7 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
         status: to,
       },
     });
+    await leaveRequestEvent(trx, 'RESUBMITTED', r.id, { actorId: actor.id });
     return { id: r.id, status: to };
   });
 }
@@ -756,6 +778,7 @@ export async function requestCancellation(db, actor, requestId, input, audit) {
       entityId: r.id,
       after: { changeRequest: reference, reasonType: input.reasonType, daysToReverse: effect.daysToReverse },
     });
+    await changeRequestEvent(trx, 'SUBMITTED', id, { actorId: actor.id });
     return { id, reference, status, daysToReverse: effect.daysToReverse };
   });
 }
@@ -802,6 +825,14 @@ export async function changeManagerDecision(db, actor, changeId, input, audit) {
       entityId: c.id,
       after: { status: to },
     });
+    await changeRequestEvent(
+      trx,
+      input.action === 'APPROVE' ? 'MANAGER_APPROVED' : 'MANAGER_REJECTED',
+      c.id,
+      {
+        actorId: actor.id,
+      },
+    );
     return { id: c.id, status: to };
   });
 }
@@ -890,6 +921,9 @@ export async function changeHrDecision(db, actor, changeId, input, audit) {
       entityType: 'change_request',
       entityId: c.id,
       after: { status: to, ...result },
+    });
+    await changeRequestEvent(trx, input.action === 'APPROVE' ? 'HR_APPROVED' : 'HR_REJECTED', c.id, {
+      actorId: actor.id,
     });
     return { id: c.id, status: to, ...result };
   });

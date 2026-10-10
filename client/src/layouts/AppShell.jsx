@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import logo from '../assets/brand/altus-logo.png';
 import {
+  Bell,
+  Mail,
   House,
   LayoutGrid,
   UserCheck,
@@ -55,6 +57,7 @@ const ADMIN = [
   { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
   { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
   { to: '/admin/settings', label: 'Workflow settings', icon: Settings2 },
+  { to: '/admin/emails', label: 'Emails', icon: Mail },
   { to: '/admin/audit', label: 'Audit log', icon: History },
 ];
 
@@ -145,6 +148,7 @@ export default function AppShell() {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-4">
+            <NotificationBell />
             <div className="hidden text-right leading-tight sm:block">
               <p className="text-sm font-medium">{fullName(user)}</p>
               <p className="text-xs text-muted">{roleText}</p>
@@ -214,5 +218,30 @@ function AccrualNotice() {
         before running monthly accrual.
       </Notice>
     </div>
+  );
+}
+
+/** Unread count, refreshed every minute and when the window regains focus. */
+function NotificationBell() {
+  const q = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => api.get('/api/notifications/unread-count'),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const n = q.data?.unread ?? 0;
+  return (
+    <Link
+      to="/notifications"
+      className="relative rounded-sm p-1.5 text-ink hover:bg-canvas"
+      aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}
+    >
+      <Bell className="size-5" aria-hidden />
+      {n > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 font-semibold text-white">
+          {n > 99 ? '99+' : n}
+        </span>
+      )}
+    </Link>
   );
 }

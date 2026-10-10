@@ -16,6 +16,8 @@ import { leaveRoutes, approvalRoutes, hrRoutes } from './modules/leave/leave.rou
 import { delegationRoutes } from './modules/delegations/delegations.routes.js';
 import { documentRoutes } from './modules/documents/documents.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
+import { notificationRoutes } from './modules/notifications/notifications.routes.js';
+import { configureNotifications } from './modules/notifications/notify.service.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -26,6 +28,11 @@ import { REPO_ROOT } from './config/env.js';
 export function createApp({ config, db, logger, entra = null, sessionStore }) {
   const app = express();
   app.disable('x-powered-by');
+  // Links in emails open the client: the API's own address in production, Vite in development.
+  configureNotifications({
+    emailEnabled: config.mail.transport !== 'disabled',
+    appUrl: config.isProduction ? config.appBaseUrl : config.clientOrigin,
+  });
   if (config.trustProxy) app.set('trust proxy', config.trustProxy);
 
   app.use(
@@ -125,6 +132,7 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/delegations', delegationRoutes(deps));
   app.use('/api/documents', documentRoutes(deps));
   app.use('/api/dashboard', dashboardRoutes(deps));
+  app.use('/api/notifications', notificationRoutes(deps));
 
   app.use('/api', notFoundHandler);
 

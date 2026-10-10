@@ -6,6 +6,7 @@ import { holidayRoutes, scheduleRoutes } from './calendar.routes.js';
 import { settingsRoutes, auditRoutes } from './settings.routes.js';
 import { leaveTypeRoutes, jobRoutes } from './leave-types.routes.js';
 import { adminDelegationRoutes } from '../delegations/delegations.routes.js';
+import { adminEmailRoutes } from '../notifications/notifications.routes.js';
 
 /** HR Administration API. Every route requires the HR_ADMIN role. */
 export function adminRoutes(deps) {
@@ -20,5 +21,6 @@ export function adminRoutes(deps) {
   router.use('/leave-types', leaveTypeRoutes(deps));
   router.use('/jobs', jobRoutes(deps));
   router.use('/delegations', adminDelegationRoutes(deps));
+  router.use('/emails', adminEmailRoutes(deps));
   return router;
 }

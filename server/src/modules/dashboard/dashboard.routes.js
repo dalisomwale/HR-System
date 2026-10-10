@@ -3,7 +3,8 @@ import { requireRole } from '../../middleware/auth.js';
 import { asyncHandler } from '../../utils/validation.js';
 import { forbidden } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
-import { addDays, eachDate, weekdayKey } from '../leave/calendar.js';
+import { addDays, eachDate } from '../leave/calendar.js';
+import { workingCalendar, stageSince } from '../leave/working-days.js';
 import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 
@@ -60,29 +61,6 @@ function item(r) {
     status: r.status,
   };
 }
-
-/** Working days elapsed after `fromIso` up to and including `toIso` (company schedule, holidays excluded). */
-async function workingCalendar(db, fromIso, toIso) {
-  const schedule = await db('work_schedules').where({ is_company_default: true }).first();
-  const holidays = new Set(
-    await db('public_holidays').whereBetween('holiday_date', [fromIso, toIso]).pluck('holiday_date'),
-  );
-  return (since) => {
-    let n = 0;
-    for (const d of eachDate(addDays(since, 1), toIso)) {
-      if (Number(schedule?.[`${weekdayKey(d)}_fraction`] ?? 0) > 0 && !holidays.has(d)) n += 1;
-    }
-    return n;
-  };
-}
-
-const stageSince = (r) => {
-  const t =
-    r.status === 'PENDING_HR_APPROVAL' && r.manager_decided_at && r.manager_decided_at > r.submitted_at
-      ? r.manager_decided_at
-      : r.submitted_at;
-  return t ? todayInLusaka(new Date(t)) : null;
-};
 
 async function withAge(db, rows, today, thresholdKey) {
   if (!rows.length) return [];

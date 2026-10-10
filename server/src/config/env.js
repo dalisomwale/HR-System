@@ -69,14 +69,15 @@ const schema = z.object({
   ENTRA_CLIENT_SECRET: optionalString,
   ENTRA_REDIRECT_URI: optionalString,
 
-  MAIL_TRANSPORT: z.enum(['graph', 'smtp', 'disabled']).default('disabled'),
+  MAIL_TRANSPORT: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.enum(['graph', 'disabled']).default('disabled'),
+  ),
+  // Email sending and daily reminders run inside the API process unless switched off.
+  BACKGROUND_JOBS: z.enum(['on', 'off', '']).optional(),
   MAIL_SENDER_ADDRESS: optionalString,
   GRAPH_MAIL_CLIENT_ID: optionalString,
   GRAPH_MAIL_CLIENT_SECRET: optionalString,
-  SMTP_HOST: optionalString,
-  SMTP_PORT: intWithDefault(587),
-  SMTP_USER: optionalString,
-  SMTP_PASSWORD: optionalString,
 
   DOCUMENT_STORAGE_DIR: optionalString,
   DOCUMENT_MAX_BYTES: intWithDefault(5 * 1024 * 1024),
@@ -147,13 +148,13 @@ export function buildConfig(env, { forTool = false } = {}) {
     problems.push('ENTRA_TENANT_ID must be a GUID');
   }
   if (e.MAIL_TRANSPORT === 'graph') {
-    for (const key of ['MAIL_SENDER_ADDRESS', 'GRAPH_MAIL_CLIENT_ID', 'GRAPH_MAIL_CLIENT_SECRET']) {
+    for (const key of [
+      'ENTRA_TENANT_ID',
+      'MAIL_SENDER_ADDRESS',
+      'GRAPH_MAIL_CLIENT_ID',
+      'GRAPH_MAIL_CLIENT_SECRET',
+    ]) {
       if (!e[key]) problems.push(`${key} is required when MAIL_TRANSPORT=graph`);
-    }
-  }
-  if (e.MAIL_TRANSPORT === 'smtp') {
-    for (const key of ['MAIL_SENDER_ADDRESS', 'SMTP_HOST']) {
-      if (!e[key]) problems.push(`${key} is required when MAIL_TRANSPORT=smtp`);
     }
   }
 
@@ -199,7 +200,11 @@ export function buildConfig(env, { forTool = false } = {}) {
     mail: Object.freeze({
       transport: e.MAIL_TRANSPORT,
       sender: e.MAIL_SENDER_ADDRESS,
+      graphClientId: e.GRAPH_MAIL_CLIENT_ID,
+      graphClientSecret: e.GRAPH_MAIL_CLIENT_SECRET,
+      tenantId: e.ENTRA_TENANT_ID,
     }),
+    backgroundJobs: (e.BACKGROUND_JOBS || (e.NODE_ENV === 'test' ? 'off' : 'on')) === 'on',
     documents: Object.freeze({
       storageDir: e.DOCUMENT_STORAGE_DIR,
       maxBytes: e.DOCUMENT_MAX_BYTES,

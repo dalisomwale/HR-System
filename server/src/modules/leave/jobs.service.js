@@ -21,7 +21,7 @@ const round = (n, mode) => {
  * Record a job run once per period. A second run for the same period is skipped, and the
  * ledger's unique keys make double posting impossible even if two runs overlap.
  */
-async function runOnce(db, jobName, periodKey, fn, audit) {
+export async function runOnce(db, jobName, periodKey, fn, audit) {
   try {
     await db('scheduled_job_runs').insert({ job_name: jobName, period_key: periodKey, status: 'RUNNING' });
   } catch (err) {

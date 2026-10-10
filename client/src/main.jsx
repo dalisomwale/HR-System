@@ -25,6 +25,8 @@ import HomePage from './pages/home/HomePage.jsx';
 import TeamPage from './pages/home/TeamPage.jsx';
 import HrOverviewPage from './pages/home/HrOverviewPage.jsx';
 import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/DelegationsPage.jsx';
+import NotificationsPage from './pages/notifications/NotificationsPage.jsx';
+import EmailsPage from './pages/admin/EmailsPage.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +71,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="team" element={<TeamPage />} />
             <Route path="hr" element={hr(<HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
@@ -87,6 +90,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="settings" element={admin(<SettingsPage />)} />
               <Route path="leave-types" element={admin(<LeaveTypesPage />)} />
               <Route path="delegations" element={admin(<AdminDelegationsPage />)} />
+              <Route path="emails" element={admin(<EmailsPage />)} />
               <Route path="audit" element={admin(<AuditPage />)} />
             </Route>
             <Route path="*" element={<NotFound />} />
