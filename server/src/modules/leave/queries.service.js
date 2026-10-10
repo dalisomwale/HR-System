@@ -3,6 +3,7 @@ import { todayInLusaka } from '../../utils/dates.js';
 import { managerAuthority } from './requests.service.js';
 import { PENDING_STATES } from './balance.service.js';
 import { getSetting } from './policy.service.js';
+import { listDocuments } from '../documents/documents.routes.js';
 
 const name = (f, l) => (f ? `${f} ${l}` : null);
 
@@ -93,6 +94,11 @@ export async function requestDetail(db, viewer, id) {
     ? await db('employees').where({ id: r.handover_contact_id }).first('first_name', 'last_name')
     : null;
 
+  const policy = await db('leave_policy_versions')
+    .where({ id: r.policy_version_id })
+    .first('document_required', 'document_description');
+  const documents = await listDocuments(db, id, seesConfidential);
+
   const approvedAsManager = actions.some(
     (a) => a.stage === 'MANAGER' && a.action === 'APPROVE' && a.actor_id === viewer.id,
   );
@@ -114,6 +120,10 @@ export async function requestDetail(db, viewer, id) {
     calendarDays: r.calendar_days,
     assignedManager: manager ? name(manager.first_name, manager.last_name) : null,
     days: days.map((d) => ({ ...d, charged: Number(d.charged) })),
+    documents,
+    documentRequirement: policy?.document_required
+      ? { description: policy.document_description, provided: documents.length > 0 }
+      : null,
     history: actions.map((a) => ({
       at: a.created_at,
       stage: a.stage,
@@ -152,6 +162,9 @@ export async function requestDetail(db, viewer, id) {
       hrDecide: isHr && !isOwner && !approvedAsManager && r.status === 'PENDING_HR_APPROVAL',
       changeManagerDecide: Boolean(authority) && openChange?.status === 'PENDING_MANAGER_APPROVAL',
       changeHrDecide: isHr && !isOwner && openChange?.status === 'PENDING_HR_APPROVAL',
+      uploadDocument:
+        (isOwner || isHr) &&
+        !['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'].includes(r.status),
     },
     started: today >= r.start_date,
   };

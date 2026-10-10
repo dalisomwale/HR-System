@@ -1,0 +1,462 @@
+import { Router } from 'express';
+import { requireRole } from '../../middleware/auth.js';
+import { asyncHandler } from '../../utils/validation.js';
+import { forbidden } from '../../utils/errors.js';
+import { todayInLusaka } from '../../utils/dates.js';
+import { addDays, eachDate, weekdayKey } from '../leave/calendar.js';
+import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
+import { getSetting } from '../leave/policy.service.js';
+
+/*
+ * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
+ * Lists are capped so a dashboard stays a summary; the full lists live on their own pages.
+ */
+
+const name = (f, l) => (f ? `${f} ${l}` : null);
+const LIST = 8;
+
+function requestsQuery(db) {
+  return db('leave_requests as r')
+    .join('employees as e', 'e.id', 'r.employee_id')
+    .join('leave_types as t', 't.id', 'r.leave_type_id')
+    .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .select(
+      'r.id',
+      'r.reference',
+      'r.employee_id',
+      'r.start_date',
+      'r.end_date',
+      'r.start_portion',
+      'r.end_portion',
+      'r.chargeable_days',
+      'r.status',
+      'r.submitted_at',
+      'r.manager_decided_at',
+      'r.assigned_manager_id',
+      'r.handover_contact_id',
+      'r.handover_notes',
+      'r.policy_version_id',
+      'e.first_name',
+      'e.last_name',
+      'e.employee_number',
+      'd.name as dept_name',
+      't.name as type_name',
+      't.is_confidential',
+    );
+}
+
+/** Request summary. Reasons and documents are never included; approvers see the leave type. */
+function item(r) {
+  return {
+    id: r.id,
+    reference: r.reference,
+    employee: { id: r.employee_id, name: name(r.first_name, r.last_name), department: r.dept_name ?? null },
+    leaveType: r.type_name,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    startPortion: r.start_portion,
+    endPortion: r.end_portion,
+    chargeableDays: Number(r.chargeable_days),
+    status: r.status,
+  };
+}
+
+/** Working days elapsed after `fromIso` up to and including `toIso` (company schedule, holidays excluded). */
+async function workingCalendar(db, fromIso, toIso) {
+  const schedule = await db('work_schedules').where({ is_company_default: true }).first();
+  const holidays = new Set(
+    await db('public_holidays').whereBetween('holiday_date', [fromIso, toIso]).pluck('holiday_date'),
+  );
+  return (since) => {
+    let n = 0;
+    for (const d of eachDate(addDays(since, 1), toIso)) {
+      if (Number(schedule?.[`${weekdayKey(d)}_fraction`] ?? 0) > 0 && !holidays.has(d)) n += 1;
+    }
+    return n;
+  };
+}
+
+const stageSince = (r) => {
+  const t =
+    r.status === 'PENDING_HR_APPROVAL' && r.manager_decided_at && r.manager_decided_at > r.submitted_at
+      ? r.manager_decided_at
+      : r.submitted_at;
+  return t ? todayInLusaka(new Date(t)) : null;
+};
+
+async function withAge(db, rows, today, thresholdKey) {
+  if (!rows.length) return [];
+  const earliest = rows.map(stageSince).filter(Boolean).sort()[0] ?? today;
+  const age = await workingCalendar(db, earliest, today);
+  const threshold = Number(await getSetting(db, thresholdKey, 3));
+  return rows.map((r) => {
+    const since = stageSince(r);
+    const days = since ? age(since) : 0;
+    return { ...item(r), waitingSince: since, workingDaysWaiting: days, overdue: days > threshold };
+  });
+}
+
+/** Team members a manager sees: direct reports, or the whole reporting line if configured (D2). */
+async function teamOf(db, managerId) {
+  const scope = await getSetting(db, 'manager_scope', 'DIRECT_REPORTS');
+  const ids = [];
+  let frontier = [managerId];
+  const seen = new Set(frontier);
+  while (frontier.length) {
+    const next = await db('employees')
+      .whereIn('line_manager_id', frontier)
+      .where({ status: 'ACTIVE' })
+      .pluck('id');
+    frontier = next.filter((id) => !seen.has(id));
+    frontier.forEach((id) => seen.add(id));
+    ids.push(...frontier);
+    if (scope !== 'REPORTING_LINE') break;
+  }
+  return ids;
+}
+
+/** Days in a window when two or more of the given people are off (approved or pending). */
+function overlaps(rows, from, to) {
+  const byDay = new Map();
+  for (const r of rows) {
+    const s = r.start_date > from ? r.start_date : from;
+    const e = r.end_date < to ? r.end_date : to;
+    for (const d of eachDate(s, e)) {
+      if (!byDay.has(d)) byDay.set(d, new Map());
+      byDay.get(d).set(r.employee_id, name(r.first_name, r.last_name));
+    }
+  }
+  // Merge consecutive days with the same group of people into one period.
+  const periods = [];
+  for (const d of [...byDay.keys()].sort()) {
+    const people = byDay.get(d);
+    if (people.size < 2) continue;
+    const key = [...people.keys()].sort().join(',');
+    const last = periods[periods.length - 1];
+    if (last && last.key === key && addDays(last.endDate, 1) === d) last.endDate = d;
+    else periods.push({ key, startDate: d, endDate: d, people: [...people.values()].sort() });
+  }
+  return periods.map(({ key: _k, ...p }) => p);
+}
+
+async function documentsMissing(db, requestIds) {
+  if (!requestIds.length) return new Set();
+  const rows = await db('leave_requests as r')
+    .join('leave_policy_versions as p', 'p.id', 'r.policy_version_id')
+    .leftJoin('documents as d', function joinDocs() {
+      this.on('d.leave_request_id', 'r.id').andOnNull('d.deleted_at');
+    })
+    .whereIn('r.id', requestIds)
+    .where('p.document_required', true)
+    .groupBy('r.id')
+    .havingRaw('COUNT(d.id) = 0')
+    .pluck('r.id');
+  return new Set(rows);
+}
+
+export function dashboardRoutes({ db }) {
+  const router = Router();
+
+  // ---------------------------------------------------------------------------------------
+  router.get(
+    '/employee',
+    asyncHandler(async (req, res) => {
+      const me = req.user.id;
+      const today = todayInLusaka();
+      const year = Number(today.slice(0, 4));
+      const balances = await employeeBalances(db, me, year);
+
+      const pending = await requestsQuery(db)
+        .where('r.employee_id', me)
+        .whereIn('r.status', PENDING_STATES)
+        .orderBy('r.start_date');
+      const upcoming = await requestsQuery(db)
+        .where('r.employee_id', me)
+        .where('r.status', 'APPROVED')
+        .andWhere('r.end_date', '>=', today)
+        .orderBy('r.start_date')
+        .limit(LIST);
+      const decisions = await db('approval_actions as a')
+        .join('leave_requests as r', 'r.id', 'a.leave_request_id')
+        .join('leave_types as t', 't.id', 'r.leave_type_id')
+        .leftJoin('employees as e', 'e.id', 'a.actor_id')
+        .where('r.employee_id', me)
+        .whereIn('a.action', ['APPROVE', 'REJECT', 'RETURN'])
+        .orderBy('a.id', 'desc')
+        .limit(5)
+        .select('a.*', 'r.reference', 't.name as type_name', 'e.first_name', 'e.last_name');
+
+      const missing = await documentsMissing(
+        db,
+        [...pending, ...upcoming].map((r) => r.id),
+      );
+      const actions = [
+        ...pending
+          .filter((r) => r.status === 'RETURNED_FOR_CORRECTION')
+          .map((r) => ({
+            kind: 'RESUBMIT',
+            requestId: r.id,
+            text: `${r.reference}: HR returned this request. Correct it and resubmit.`,
+          })),
+        ...[...pending, ...upcoming]
+          .filter((r) => missing.has(r.id))
+          .map((r) => ({
+            kind: 'DOCUMENT',
+            requestId: r.id,
+            text: `${r.reference}: upload the supporting document for your ${r.type_name.toLowerCase()}.`,
+          })),
+      ];
+
+      res.json({
+        year,
+        balances,
+        pending: pending.map((r) => item(r)),
+        upcoming: upcoming.map((r) => item(r)),
+        recentDecisions: decisions.map((a) => ({
+          requestId: a.leave_request_id,
+          reference: a.reference,
+          leaveType: a.type_name,
+          action: a.action,
+          stage: a.stage,
+          by: name(a.first_name, a.last_name) ?? 'System',
+          at: a.created_at,
+          comment: a.comment,
+        })),
+        actions,
+      });
+    }),
+  );
+
+  // ---------------------------------------------------------------------------------------
+  router.get(
+    '/manager',
+    asyncHandler(async (req, res) => {
+      const { user } = req;
+      if (!user.isManager && !user.isDelegate) throw forbidden('This dashboard is for line managers.');
+      const today = todayInLusaka();
+      const horizon = addDays(today, 30);
+
+      const delegators = await db('delegations')
+        .where({ delegate_id: user.id })
+        .whereNull('revoked_at')
+        .andWhere('start_date', '<=', today)
+        .andWhere('end_date', '>=', today)
+        .pluck('delegator_id');
+      const approvers = [user.id, ...delegators];
+      if ((await getSetting(db, 'manager_scope', 'DIRECT_REPORTS')) === 'REPORTING_LINE') {
+        approvers.push(...(await teamOf(db, user.id)));
+      }
+      const awaiting = await requestsQuery(db)
+        .where('r.status', 'PENDING_MANAGER_APPROVAL')
+        .whereIn('r.assigned_manager_id', approvers)
+        .whereNot('r.employee_id', user.id)
+        .orderBy('r.submitted_at');
+      const awaitingChanges = await db('change_requests')
+        .where({ status: 'PENDING_MANAGER_APPROVAL' })
+        .whereIn('assigned_manager_id', approvers)
+        .count({ n: '*' })
+        .first();
+
+      const team = await teamOf(db, user.id);
+      const teamRequests = team.length
+        ? await requestsQuery(db)
+            .whereIn('r.employee_id', team)
+            .whereIn('r.status', ['APPROVED', 'PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL'])
+            .andWhere('r.start_date', '<=', horizon)
+            .andWhere('r.end_date', '>=', today)
+            .orderBy('r.start_date')
+        : [];
+      const onLeave = teamRequests.filter(
+        (r) => r.status === 'APPROVED' && r.start_date <= today && r.end_date >= today,
+      );
+      const upcoming = teamRequests.filter((r) => r.start_date > today);
+      const handovers = teamRequests.filter(
+        (r) => r.status === 'APPROVED' && r.start_date > today && !r.handover_contact_id,
+      );
+
+      res.json({
+        teamSize: team.length,
+        awaiting: await withAge(db, awaiting, today, 'overdue_manager_working_days'),
+        awaitingChanges: Number(awaitingChanges.n),
+        onLeave: onLeave.map((r) => item(r)),
+        upcoming: upcoming.map((r) => item(r)),
+        overlaps: overlaps(teamRequests, today, horizon),
+        handoversOutstanding: handovers.map((r) => ({
+          ...item(r),
+          hasNotes: Boolean(r.handover_notes),
+        })),
+        coveringFor: delegators.length
+          ? (await db('employees').whereIn('id', delegators).select('first_name', 'last_name')).map((e) =>
+              name(e.first_name, e.last_name),
+            )
+          : [],
+      });
+    }),
+  );
+
+  // ---------------------------------------------------------------------------------------
+  router.get(
+    '/hr',
+    requireRole('HR_OFFICER'),
+    asyncHandler(async (req, res) => {
+      const today = todayInLusaka();
+      const year = Number(today.slice(0, 4));
+
+      const atHr = await requestsQuery(db).where('r.status', 'PENDING_HR_APPROVAL').orderBy('r.submitted_at');
+      const withManagers = await requestsQuery(db)
+        .select('m.status as manager_status', 'm.first_name as m_first', 'm.last_name as m_last')
+        .leftJoin('employees as m', 'm.id', 'r.assigned_manager_id')
+        .where('r.status', 'PENDING_MANAGER_APPROVAL')
+        .orderBy('r.submitted_at');
+      const hrAged = await withAge(db, atHr, today, 'overdue_hr_working_days');
+      const mgrAged = (await withAge(db, withManagers, today, 'overdue_manager_working_days')).map(
+        (x, i) => ({
+          ...x,
+          manager: name(withManagers[i].m_first, withManagers[i].m_last),
+        }),
+      );
+      // Held: waiting for a manager who can no longer act.
+      const held = withManagers
+        .map((r, i) => ({ r, aged: mgrAged[i] }))
+        .filter(({ r }) => !r.assigned_manager_id || r.manager_status !== 'ACTIVE')
+        .map(({ aged }) => aged);
+
+      const unconfirmedTypes = await db('leave_types as t')
+        .join('leave_policy_versions as p', function latest() {
+          this.on('p.leave_type_id', 't.id').andOnNull('p.effective_to');
+        })
+        .where((w) => w.where('t.is_active', false).orWhere('p.requires_hr_confirmation', true))
+        .select('t.name', 't.is_active', 'p.requires_hr_confirmation');
+      const accrualUnconfirmed = await db('leave_types as t')
+        .join('leave_policy_versions as p', function latest() {
+          this.on('p.leave_type_id', 't.id').andOnNull('p.effective_to');
+        })
+        .where('p.consumes_balance', true)
+        .whereNot('p.accrual_method', 'NONE')
+        .where('p.accrual_confirmed', false)
+        .pluck('t.name');
+      const unconfirmedSettings = await db('system_settings')
+        .where({ requires_hr_confirmation: true })
+        .pluck('setting_key');
+      const failedEmails = await db('email_outbox')
+        .whereIn('status', ['FAILED', 'DEAD'])
+        .count({ n: '*' })
+        .first();
+
+      const openIds = await db('leave_requests')
+        .whereIn('status', ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'APPROVED'])
+        .andWhere('end_date', '>=', addDays(today, -30))
+        .pluck('id');
+      const missingIds = [...(await documentsMissing(db, openIds))];
+      const missingDocs = missingIds.length
+        ? await requestsQuery(db).whereIn('r.id', missingIds).orderBy('r.start_date').limit(LIST)
+        : [];
+
+      const onLeave = await requestsQuery(db)
+        .where('r.status', 'APPROVED')
+        .andWhere('r.start_date', '<=', today)
+        .andWhere('r.end_date', '>=', today)
+        .orderBy('e.last_name');
+
+      // Utilisation: annual-leave days approved this year per department, against headcount.
+      const annual = await db('leave_types').where({ code: 'ANNUAL' }).first('id');
+      const heads = await db('employees as e')
+        .leftJoin('departments as d', 'd.id', 'e.department_id')
+        .where('e.status', 'ACTIVE')
+        .groupBy('d.id', 'd.name')
+        .select('d.id', 'd.name')
+        .count({ n: '*' });
+      const taken = annual
+        ? await db('leave_request_days as x')
+            .join('leave_requests as r', 'r.id', 'x.leave_request_id')
+            .join('employees as e', 'e.id', 'r.employee_id')
+            .where({ 'r.status': 'APPROVED', 'r.leave_type_id': annual.id })
+            .whereBetween('x.leave_date', [`${year}-01-01`, `${year}-12-31`])
+            .groupBy('e.department_id')
+            .select('e.department_id')
+            .sum({ days: 'x.charged' })
+        : [];
+      const takenBy = new Map(taken.map((t) => [t.department_id ?? null, Number(t.days)]));
+      const utilisation = heads
+        .map((h) => {
+          const days = Math.round((takenBy.get(h.id ?? null) ?? 0) * 100) / 100;
+          return {
+            department: h.name ?? 'No department',
+            headcount: Number(h.n),
+            annualDaysApproved: days,
+            perPerson: Number(h.n) ? Math.round((days / Number(h.n)) * 10) / 10 : 0,
+          };
+        })
+        .sort((a, b) => a.department.localeCompare(b.department));
+
+      // Carry-forward still unused before this year's expiry date.
+      let carryForward = { expiry: null, items: [] };
+      if (annual) {
+        const p = await db('leave_policy_versions')
+          .where({ leave_type_id: annual.id })
+          .andWhere('effective_from', '<=', today)
+          .andWhere((w) => w.whereNull('effective_to').orWhere('effective_to', '>=', today))
+          .first('carry_forward_expiry_month', 'carry_forward_expiry_day');
+        if (p?.carry_forward_expiry_month) {
+          const expiry = `${year}-${String(p.carry_forward_expiry_month).padStart(2, '0')}-${String(p.carry_forward_expiry_day).padStart(2, '0')}`;
+          if (today <= expiry) {
+            const rows = await db('balance_ledger as l')
+              .join('employees as e', 'e.id', 'l.employee_id')
+              .where({
+                'l.leave_type_id': annual.id,
+                'l.leave_year': year,
+                'l.entry_type': 'CARRY_FORWARD_IN',
+              })
+              .groupBy('l.employee_id', 'e.first_name', 'e.last_name')
+              .select('l.employee_id', 'e.first_name', 'e.last_name')
+              .sum({ carried: 'l.amount' });
+            const items = [];
+            for (const r of rows) {
+              const used = await db('leave_request_days as x')
+                .join('leave_requests as q', 'q.id', 'x.leave_request_id')
+                .where({
+                  'q.employee_id': r.employee_id,
+                  'q.leave_type_id': annual.id,
+                  'q.status': 'APPROVED',
+                })
+                .whereBetween('x.leave_date', [`${year}-01-01`, expiry])
+                .sum({ d: 'x.charged' })
+                .first();
+              const left = Math.round(Math.max(0, Number(r.carried) - Number(used.d ?? 0)) * 100) / 100;
+              if (left > 0)
+                items.push({
+                  employeeId: r.employee_id,
+                  name: name(r.first_name, r.last_name),
+                  carried: Number(r.carried),
+                  unused: left,
+                });
+            }
+            carryForward = { expiry, items: items.sort((a, b) => b.unused - a.unused) };
+          }
+        }
+      }
+
+      res.json({
+        awaitingHr: hrAged,
+        withManagers: mgrAged,
+        exceptions: {
+          overdue: [...hrAged, ...mgrAged].filter((r) => r.overdue).length,
+          held,
+          unconfirmedTypes: unconfirmedTypes.map((t) => ({
+            name: t.name,
+            reason: !t.is_active ? 'Inactive – awaiting review' : 'Rules not confirmed',
+          })),
+          accrualUnconfirmed,
+          unconfirmedSettings,
+          failedEmails: Number(failedEmails.n),
+          missingDocuments: { count: missingIds.length, items: missingDocs.map((r) => item(r)) },
+        },
+        onLeave: onLeave.map((r) => item(r)),
+        utilisation: { year, rows: utilisation },
+        carryForward,
+      });
+    }),
+  );
+
+  return router;
+}

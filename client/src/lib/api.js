@@ -18,10 +18,13 @@ export class ApiError extends Error {
   }
 }
 
-async function request(method, path, body, { idempotencyKey } = {}) {
+async function request(method, path, body, { idempotencyKey, file } = {}) {
   const headers = { Accept: 'application/json' };
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (file) {
+    headers['Content-Type'] = 'application/octet-stream';
+    headers['X-File-Name'] = encodeURIComponent(file.name);
+  } else if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (method !== 'GET' && csrfToken) headers['X-CSRF-Token'] = csrfToken;
   let res;
   try {
@@ -29,7 +32,7 @@ async function request(method, path, body, { idempotencyKey } = {}) {
       method,
       headers,
       credentials: 'same-origin',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: file ?? (body === undefined ? undefined : JSON.stringify(body)),
     });
   } catch {
     throw new ApiError(0, { error: { message: 'The server could not be reached. Check your connection.' } });
@@ -68,6 +71,8 @@ export const api = {
   put: (p, b = {}) => request('PUT', p, b),
   patch: (p, b = {}) => request('PATCH', p, b),
   del: (p) => request('DELETE', p),
+  /** Send a file as the request body; the server checks its type from its content. */
+  upload: (p, file) => request('POST', p, undefined, { file }),
 };
 
 /** Build a query string, leaving out empty values. */

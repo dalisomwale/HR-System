@@ -13,6 +13,9 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { adminRoutes } from './modules/admin/index.js';
 import { profileRoutes } from './modules/profile/profile.routes.js';
 import { leaveRoutes, approvalRoutes, hrRoutes } from './modules/leave/leave.routes.js';
+import { delegationRoutes } from './modules/delegations/delegations.routes.js';
+import { documentRoutes } from './modules/documents/documents.routes.js';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -119,6 +122,9 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/leave', leaveRoutes(deps));
   app.use('/api/approvals', approvalRoutes(deps));
   app.use('/api/hr', hrRoutes(deps));
+  app.use('/api/delegations', delegationRoutes(deps));
+  app.use('/api/documents', documentRoutes(deps));
+  app.use('/api/dashboard', dashboardRoutes(deps));
 
   app.use('/api', notFoundHandler);
 

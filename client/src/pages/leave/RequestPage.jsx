@@ -27,6 +27,7 @@ import {
   Textarea,
 } from '../../components/ui.jsx';
 import { LeaveForm } from '../../components/LeaveForm.jsx';
+import DocumentsPanel from '../../components/DocumentsPanel.jsx';
 
 export default function RequestPage() {
   const { id } = useParams();
@@ -95,6 +96,7 @@ export default function RequestPage() {
                 ]}
               />
             </Section>
+            <DocumentsPanel request={r} />
             <History items={r.history} />
             {r.changes.length > 0 && <Changes items={r.changes} />}
             <DayBreakdown items={r.days} />
@@ -208,6 +210,12 @@ function DecisionPanel({ request: r, stage }) {
       }
     >
       <div className="space-y-3">
+        {isHr && r.documentRequirement && !r.documentRequirement.provided && (
+          <Notice tone="pending">
+            The policy asks for {r.documentRequirement.description ?? 'a supporting document'}, and none has
+            been uploaded. Check before approving, or return the request.
+          </Notice>
+        )}
         <Field
           id={`comment-${stage}`}
           label="Comment"

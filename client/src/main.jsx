@@ -21,6 +21,10 @@ import MyLeavePage from './pages/leave/MyLeavePage.jsx';
 import ApplyPage from './pages/leave/ApplyPage.jsx';
 import RequestPage from './pages/leave/RequestPage.jsx';
 import { ManagerApprovalsPage, HrApprovalsPage } from './pages/approvals/ApprovalsPages.jsx';
+import HomePage from './pages/home/HomePage.jsx';
+import TeamPage from './pages/home/TeamPage.jsx';
+import HrOverviewPage from './pages/home/HrOverviewPage.jsx';
+import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/DelegationsPage.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,8 +41,8 @@ function NotFound() {
       <h1 className="text-xl font-semibold">Page not found</h1>
       <p className="mt-2 text-sm text-muted">
         The address may be mistyped, or the page has moved.{' '}
-        <Link to="/" className="text-brand underline">
-          Go to My leave
+        <Link to="/home" className="text-brand underline">
+          Go to the home page
         </Link>
       </p>
     </div>
@@ -60,7 +64,11 @@ createRoot(document.getElementById('root')).render(
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/leave" replace />} />
+            <Route index element={<Navigate to="/home" replace />} />
+            <Route path="home" element={<HomePage />} />
+            <Route path="team" element={<TeamPage />} />
+            <Route path="hr" element={hr(<HrOverviewPage />)} />
+            <Route path="delegation" element={<DelegationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
@@ -78,6 +86,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="schedules" element={admin(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />
               <Route path="leave-types" element={admin(<LeaveTypesPage />)} />
+              <Route path="delegations" element={admin(<AdminDelegationsPage />)} />
               <Route path="audit" element={admin(<AuditPage />)} />
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -1,3 +1,4 @@
+import { todayInLusaka } from '../../utils/dates.js';
 import { writeAudit } from '../audit/audit.service.js';
 
 /**
@@ -79,6 +80,14 @@ export async function loadUser(db, employeeId) {
     .where({ line_manager_id: employeeId, status: 'ACTIVE' })
     .count({ n: '*' })
     .first();
+  const today = todayInLusaka();
+  const covering = await db('delegations')
+    .where({ delegate_id: employeeId })
+    .whereNull('revoked_at')
+    .andWhere('start_date', '<=', today)
+    .andWhere('end_date', '>=', today)
+    .count({ n: '*' })
+    .first();
 
   return {
     id: employee.id,
@@ -90,5 +99,6 @@ export async function loadUser(db, employeeId) {
     department: employee.department_name,
     roles,
     isManager: Number(reports.n) > 0,
+    isDelegate: Number(covering.n) > 0,
   };
 }

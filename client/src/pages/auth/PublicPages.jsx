@@ -3,12 +3,13 @@ import { Navigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api.js';
 import { useMe } from '../../lib/auth.jsx';
 import { Notice, Loading } from '../../components/ui.jsx';
+import logo from '../../assets/brand/altus-logo.png';
 
 function PublicFrame({ children }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="bg-brand px-6 py-4 text-white">
-        <span className="text-[17px] font-semibold tracking-[0.01em]">Altus Financial Services</span>
+      <header className="border-t-[3px] border-b border-t-brand border-b-rule bg-white px-6 py-3">
+        <img src={logo} alt="Altus Financial Services Limited" className="h-10 w-auto" />
       </header>
       <main className="flex flex-1 items-start justify-center px-4 pt-16 pb-10">
         <div className="w-full max-w-md rounded-md border border-rule bg-white p-8">{children}</div>

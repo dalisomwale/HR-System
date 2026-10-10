@@ -4,15 +4,15 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens. --color-brand is a stand-in navy until the exact value is taken from the
- * official Altus logo (docs/decisions.md, D17); change it here and nowhere else.
+ * Design tokens. --color-brand is the Altus navy given by the project owner (docs/decisions.md,
+ * D17); change it here and nowhere else. The logo itself is supplied artwork and is not recoloured.
  */
 @theme {
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
 
-  --color-brand: #1b2f5b;
-  --color-brand-strong: #13223f;
-  --color-brand-soft: #e8edf6;
+  --color-brand: #000080;
+  --color-brand-strong: #000060;
+  --color-brand-soft: #e8e8f4;
 
   --color-ink: #1d2433;
   --color-muted: #5b6475;

@@ -47,6 +47,8 @@ cp .env.example .env.test   # tests
 
 Fill in at least: `NODE_ENV`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `APP_BASE_URL` (`http://localhost:4000`), `CLIENT_ORIGIN` (`http://localhost:5173`) and `SESSION_SECRET` (`openssl rand -hex 32`). In `.env.test` set `NODE_ENV=test` and point at the `_test` database; it needs no session secret or Microsoft settings.
 
+Supporting documents are stored in `storage/documents` inside the project when `DOCUMENT_STORAGE_DIR` is empty (that folder is not in git). In production set `DOCUMENT_STORAGE_DIR` to a private folder outside the web root that is included in backups.
+
 Microsoft sign-in is the only way in, so `.env` also needs the four `ENTRA_` values. [`entra-setup.md`](entra-setup.md) explains how to get them. Until they are set the system runs, but the sign-in page says sign-in is not available.
 
 ## 3. Install and migrate
