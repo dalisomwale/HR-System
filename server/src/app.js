@@ -18,6 +18,7 @@ import { documentRoutes } from './modules/documents/documents.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
 import { configureNotifications } from './modules/notifications/notify.service.js';
+import { reportRoutes } from './modules/reports/reports.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -133,6 +134,7 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/documents', documentRoutes(deps));
   app.use('/api/dashboard', dashboardRoutes(deps));
   app.use('/api/notifications', notificationRoutes(deps));
+  app.use('/api/reports', reportRoutes(deps));
 
   app.use('/api', notFoundHandler);
 

@@ -48,6 +48,27 @@ Everyone has a bell in the header with their unread count, and a _Notifications_
 
 Email is sent through Microsoft 365; setup is in [`email-setup.md`](email-setup.md). Escalations and reminders run once a day; emails are sent every 30 seconds. Both run inside the server unless `BACKGROUND_JOBS=off`.
 
+## Reports
+
+_Reports_ is in the HR menu for HR Officers, and in the Manager menu for managers and their delegates. Managers see only their own team; HR sees everyone. Each report can be filtered (period or year, employee, department, leave type, status) and exported to Excel or CSV. Every export is recorded in the audit log with its filters and row count. CSV cells that a spreadsheet would read as a formula (starting with `=`, `+`, `-`, `@`) are prefixed with `'`.
+
+| Report                                               | Who          |
+| ---------------------------------------------------- | ------------ |
+| Leave requests                                       | HR, managers |
+| Requests by status                                   | HR, managers |
+| Leave taken by employee                              | HR, managers |
+| Utilisation by department                            | HR           |
+| Current balances (annual leave)                      | HR, managers |
+| Upcoming absences (default next 30 days)             | HR, managers |
+| Carry-forward and expiry                             | HR           |
+| Ledger transactions and adjustments                  | HR           |
+| Approval activity (by manager and HR Officer)        | HR           |
+| Outstanding and overdue requests                     | HR, managers |
+| Leave over a date range (days inside the range only) | HR, managers |
+| Not yet taken 10 consecutive annual-leave days (D37) | HR, managers |
+
+The screen shows the first 500 rows; exports include up to 50,000.
+
 ## First-time setup for HR
 
 1. **Give yourself the HR Officer role** if you also need to approve leave or manage balances (Employees → your record → Roles). HR Administrator alone manages settings, not leave.

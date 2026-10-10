@@ -27,6 +27,7 @@ import HrOverviewPage from './pages/home/HrOverviewPage.jsx';
 import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/DelegationsPage.jsx';
 import NotificationsPage from './pages/notifications/NotificationsPage.jsx';
 import EmailsPage from './pages/admin/EmailsPage.jsx';
+import ReportsPage from './pages/reports/ReportsPage.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +73,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="hr" element={hr(<HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />

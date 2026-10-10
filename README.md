@@ -13,7 +13,7 @@ The full specification is in [`docs/project-brief.md`](docs/project-brief.md). I
 | 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Done; leave types await HR review; accrual off until HR confirms (D8)              |
 | 4     | Employee, Manager and HR portals                                                          | Done: dashboards, documents, delegation, Altus branding                            |
 | 5     | Notifications and email                                                                   | Done; email tested with a stand-in for Microsoft, not yet against the Altus tenant |
-| 6     | Reports and exports                                                                       | Not started                                                                        |
+| 6     | Reports and exports                                                                       | Done: 12 reports, Excel and CSV exports, audited                                   |
 | 7     | Hardening, end-to-end tests, deployment and recovery documentation                        | Not started                                                                        |
 
 Nothing in this repository should be described as production-ready until Phase 7 is complete and the open decisions in [`docs/decisions.md`](docs/decisions.md) are confirmed.

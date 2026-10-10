@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import logo from '../assets/brand/altus-logo.png';
 import {
   Bell,
+  FileBarChart,
   Mail,
   House,
   LayoutGrid,
@@ -46,7 +47,9 @@ const MANAGER = [
 const HR = [
   { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true },
   { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck },
+  { to: '/reports', label: 'Reports', icon: FileBarChart },
 ];
+const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
 const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
   { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
@@ -112,7 +115,13 @@ export default function AppShell() {
   const nav = (
     <>
       <NavGroup title="My work" items={MY_WORK} onNavigate={() => setMenuOpen(false)} />
-      {user.isManager && <NavGroup title="Manager" items={MANAGER} onNavigate={() => setMenuOpen(false)} />}
+      {(user.isManager || user.isDelegate) && (
+        <NavGroup
+          title="Manager"
+          items={hasRole(user, 'HR_OFFICER') ? MANAGER : [...MANAGER, REPORTS]}
+          onNavigate={() => setMenuOpen(false)}
+        />
+      )}
       {hasRole(user, 'HR_OFFICER') && (
         <NavGroup title="HR" items={HR} onNavigate={() => setMenuOpen(false)} />
       )}

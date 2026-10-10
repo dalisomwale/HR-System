@@ -85,3 +85,27 @@ export function qs(params) {
 
 /** A fresh key for one user action, so a repeated click or retry is not applied twice. */
 export const newActionKey = () => crypto.randomUUID().replace(/-/g, '');
+
+/** Download a file from the API, reporting the server's message if it refuses. */
+export async function downloadFile(path) {
+  let res;
+  try {
+    res = await fetch(path, { credentials: 'same-origin' });
+  } catch {
+    throw new ApiError(0, { error: { message: 'The server could not be reached. Check your connection.' } });
+  }
+  if (!res.ok) {
+    const data = safeJson(await res.text());
+    throw new ApiError(res.status, data);
+  }
+  const blob = await res.blob();
+  const name = /filename="([^"]+)"/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'export';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
