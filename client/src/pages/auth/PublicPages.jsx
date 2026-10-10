@@ -6,71 +6,9 @@ import { Notice, Loading } from '../../components/ui.jsx';
 import logo from '../../assets/brand/altus-logo.png';
 
 /*
- * Pages seen before sign-in. Left: the task (sign in, or what happened). Right, on wide screens:
- * this month's calendar in Lusaka time with today marked, and the route a request takes.
- * Nothing on these pages is decorative data: the calendar is the real current month.
+ * Pages seen before sign-in. On wide screens a navy field, cut at the angle of the "A" in the
+ * Altus logo, carries the name and the three steps a request takes; the white panel holds the task.
  */
-
-function lusakaToday() {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Africa/Lusaka',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-    })
-      .formatToParts(new Date())
-      .map((p) => [p.type, Number(p.value)]),
-  );
-  return { y: parts.year, m: parts.month, d: parts.day };
-}
-
-function MonthCalendar() {
-  const { y, m, d } = lusakaToday();
-  const first = new Date(Date.UTC(y, m - 1, 1));
-  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const lead = (first.getUTCDay() + 6) % 7; // Monday first
-  const cells = [...Array(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-  const monthName = new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: 'UTC' }).format(first);
-  const weekday = (day) => (lead + day - 1) % 7; // 0 = Monday
-
-  return (
-    <figure aria-label={`${monthName} ${y}. Today is ${d} ${monthName}.`} className="w-full max-w-[30rem]">
-      <figcaption className="flex items-baseline gap-4">
-        <span className="text-[clamp(3rem,5.5vw,4.75rem)] leading-none font-semibold tracking-[-0.03em] text-white">
-          {monthName}
-        </span>
-        <span className="text-2xl font-normal text-white/50 tabular-nums">{y}</span>
-      </figcaption>
-      <div className="mt-8 grid grid-cols-7 gap-y-1 text-center" aria-hidden>
-        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((w, i) => (
-          <span key={i} className={`pb-2 text-xs font-medium ${i > 4 ? 'text-white/35' : 'text-white/60'}`}>
-            {w}
-          </span>
-        ))}
-        {cells.map((day, i) =>
-          day === null ? (
-            <span key={`x${i}`} />
-          ) : (
-            <span key={day} className="flex justify-center">
-              <span
-                className={`flex size-10 items-center justify-center rounded-full text-lg tabular-nums ${
-                  day === d
-                    ? 'bg-accent-orange font-semibold text-brand'
-                    : weekday(day) > 4
-                      ? 'text-white/35'
-                      : 'text-white/85'
-                }`}
-              >
-                {day}
-              </span>
-            </span>
-          ),
-        )}
-      </div>
-    </figure>
-  );
-}
 
 const ROUTE = [
   [
@@ -83,36 +21,38 @@ const ROUTE = [
 
 function AuthLayout({ children }) {
   return (
-    <div className="grid min-h-screen bg-white lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-      <div className="flex flex-col border-t-[3px] border-t-brand px-6 py-8 sm:px-12 lg:border-t-0 lg:px-16 lg:py-12">
-        <img src={logo} alt="Altus Financial Services Limited" className="h-11 w-auto self-start" />
-        <main className="flex flex-1 items-center py-12">
-          <div className="w-full max-w-sm">{children}</div>
-        </main>
-        <p className="text-xs text-muted">Altus Financial Services Limited. For staff use only.</p>
-      </div>
-
-      <aside className="hidden flex-col bg-brand px-16 py-12 lg:flex">
-        <div className="flex flex-1 items-center">
-          <MonthCalendar />
+    <div className="relative min-h-screen overflow-hidden border-t-4 border-brand bg-canvas lg:border-t-0">
+      <div
+        aria-hidden
+        className="absolute inset-0 hidden bg-brand lg:block"
+        style={{ clipPath: 'polygon(0 0, 58% 0, 38% 100%, 0 100%)' }}
+      />
+      <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-2 lg:px-12">
+        <div className="hidden text-white lg:block">
+          <p className="text-[clamp(2.5rem,4.5vw,3.75rem)] leading-[1.02] font-semibold tracking-[-0.03em]">
+            Leave
+            <br />
+            Management
+          </p>
+          <ol className="mt-10 max-w-[18rem] space-y-4">
+            {ROUTE.map(([title], i) => (
+              <li key={title} className="flex items-center gap-3">
+                <span aria-hidden className="text-sm font-semibold text-accent-orange tabular-nums">
+                  0{i + 1}
+                </span>
+                <span className="text-[15px]">{title}</span>
+              </li>
+            ))}
+          </ol>
         </div>
-        <ol className="grid max-w-[44rem] gap-6 border-t border-white/15 pt-8 xl:grid-cols-3">
-          {ROUTE.map(([title, text], i) => (
-            <li key={title} className="flex gap-3 xl:block">
-              <span
-                aria-hidden
-                className="flex size-6 shrink-0 items-center justify-center rounded-full border border-white/40 text-xs font-medium text-white xl:mb-3"
-              >
-                {i + 1}
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-white">{title}</span>
-                <span className="mt-1 block text-[13px] leading-relaxed text-white/65">{text}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </aside>
+        <main className="w-full max-w-md justify-self-center rounded-lg border border-rule bg-white px-8 py-10 sm:px-10 lg:justify-self-end">
+          <img src={logo} alt="Altus Financial Services Limited" className="mb-10 h-12 w-auto" />
+          {children}
+          <p className="mt-10 border-t border-rule pt-4 text-xs text-muted">
+            Altus Financial Services Limited. For staff use only.
+          </p>
+        </main>
+      </div>
     </div>
   );
 }
