@@ -10,13 +10,13 @@
 Development and tests use separate databases and separate MySQL accounts. The test database name must end in `_test`; the application refuses any other combination.
 
 ```sql
-CREATE DATABASE altus_leave_dev  CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-CREATE DATABASE altus_leave_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE hr_system  CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE hr_system_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
-CREATE USER 'altus_dev'@'localhost'  IDENTIFIED BY '<choose a password>';
-CREATE USER 'altus_test'@'localhost' IDENTIFIED BY '<choose a password>';
-GRANT ALL ON altus_leave_dev.*  TO 'altus_dev'@'localhost';
-GRANT ALL ON altus_leave_test.* TO 'altus_test'@'localhost';
+CREATE USER 'hr_system'@'localhost'  IDENTIFIED BY '<choose a password>';
+CREATE USER 'hr_system_test'@'localhost' IDENTIFIED BY '<choose a password>';
+GRANT ALL ON hr_system.*  TO 'hr_system'@'localhost';
+GRANT ALL ON hr_system_test.* TO 'hr_system_test'@'localhost';
 ```
 
 ### Trigger permission
