@@ -1,8 +1,16 @@
+import dns from 'node:dns';
+import net from 'node:net';
 import pino from 'pino';
 import { getConfig, ConfigError } from './config/env.js';
 import { getDb, closeDb } from './db/index.js';
 import { createApp } from './app.js';
 import { createEntraClient } from './modules/auth/entra.client.js';
+
+// Outbound connections (Microsoft sign-in, email) on slow or IPv4-only networks:
+// try IPv4 addresses first and give each connection attempt time to complete.
+// Node's default of 250 ms per address times out on high-latency links.
+dns.setDefaultResultOrder('ipv4first');
+net.setDefaultAutoSelectFamilyAttemptTimeout(3000);
 
 let config;
 try {

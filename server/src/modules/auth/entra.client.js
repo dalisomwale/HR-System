@@ -1,4 +1,7 @@
-import { Issuer, generators } from 'openid-client';
+import { Issuer, custom, generators } from 'openid-client';
+
+// openid-client's default HTTP timeout is 3.5 s; allow for slower links to Microsoft.
+custom.setHttpOptionsDefaults({ timeout: 15000 });
 
 /**
  * Microsoft Entra ID (OpenID Connect) client for the authorisation-code flow with PKCE.
