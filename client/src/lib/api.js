@@ -36,6 +36,15 @@ async function request(method, path, body) {
   const text = await res.text();
   const data = text ? safeJson(text) : null;
   if (!res.ok) {
+    // 502/503/504 without our JSON error body means the API itself is not answering.
+    if ([502, 503, 504].includes(res.status) && !data?.error) {
+      throw new ApiError(res.status, {
+        error: {
+          message:
+            'The leave system server is not running or not reachable. If you are running it locally, check the terminal for errors.',
+        },
+      });
+    }
     if (res.status === 401 && !path.startsWith('/api/auth/')) {
       window.location.assign('/sign-in?error=session_ended');
     }

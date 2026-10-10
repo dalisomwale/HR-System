@@ -28,7 +28,7 @@ const { values } = parseArgs({
 
 let exitCode = 0;
 try {
-  const config = getConfig();
+  const config = getConfig({ forTool: true });
   const { employeeId } = await bootstrapAdmin(
     getDb(),
     {

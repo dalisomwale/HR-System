@@ -103,6 +103,11 @@ describe('configuration guards', () => {
     expect(problems[0]).toMatch(/SESSION_SECRET must be at least 16 characters/);
   });
 
+  it('lets command-line tools run without a session secret', () => {
+    const env = { ...productionEnv, NODE_ENV: 'development', DB_NAME: 'x', SESSION_SECRET: '' };
+    expect(() => buildConfig(env, { forTool: true })).not.toThrow();
+  });
+
   it('rejects a malformed tenant ID', () => {
     expect(problemsFor({ ...productionEnv, ENTRA_TENANT_ID: 'altus' })).toContain(
       'ENTRA_TENANT_ID must be a GUID',

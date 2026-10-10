@@ -93,8 +93,10 @@ export class ConfigError extends Error {
 /**
  * Validate an environment object and return a frozen config.
  * Pure function: it never reads process.env itself, so it can be tested directly.
+ * Command-line tools (migrations, bootstrap) pass { forTool: true }: they never create
+ * sessions, so they do not need SESSION_SECRET.
  */
-export function buildConfig(env) {
+export function buildConfig(env, { forTool = false } = {}) {
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     throw new ConfigError(parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`));
@@ -114,7 +116,7 @@ export function buildConfig(env) {
   }
 
   const minSecret = isProd ? 32 : 16;
-  if (!e.SESSION_SECRET || e.SESSION_SECRET.length < minSecret) {
+  if (!forTool && (!e.SESSION_SECRET || e.SESSION_SECRET.length < minSecret)) {
     problems.push(
       `SESSION_SECRET must be at least ${minSecret} characters${isProd ? ' in production' : ''} (generate one with: openssl rand -hex 32)`,
     );
@@ -206,11 +208,11 @@ export function buildConfig(env) {
 }
 
 let cached;
-export function getConfig() {
+export function getConfig({ forTool = false } = {}) {
   if (!cached) {
     const envFile = loadEnvFile();
     try {
-      cached = buildConfig(process.env);
+      cached = buildConfig(process.env, { forTool });
     } catch (err) {
       // Say where we looked, so a missing or misplaced env file is obvious.
       if (err instanceof ConfigError && !envFile.exists) {
