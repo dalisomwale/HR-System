@@ -19,6 +19,16 @@ GRANT ALL ON hr_system.*  TO 'hr_system'@'localhost';
 GRANT ALL ON hr_system_test.* TO 'hr_system_test'@'localhost';
 ```
 
+### Ubuntu: do not connect the app as root
+
+On Ubuntu, MySQL's `root` account usually authenticates through the operating system socket (`sudo mysql`). That works in a terminal but the application, which connects over TCP with a password, is refused with `Access denied for user 'root'@'localhost'`. Use the dedicated account above instead, and set `DB_HOST=127.0.0.1` in `.env` and `.env.test`.
+
+Check the account before running migrations:
+
+```bash
+mysql -u hr_system -p -h 127.0.0.1 -e "SELECT 1"
+```
+
 ### Trigger permission
 
 Migration `006` creates triggers that make the balance ledger, audit log and approval history append-only. With binary logging on (the MySQL 8 default), creating triggers needs either:
