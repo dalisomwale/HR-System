@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import {
+  CalendarCheck,
+  CalendarPlus,
+  ClipboardCheck,
+  ListChecks,
+  ShieldCheck,
   CalendarDays,
   Building2,
   Clock,
@@ -18,12 +23,19 @@ import { api } from '../lib/api.js';
 import { useMe, hasRole } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
-const MY_WORK = [{ to: '/profile', label: 'My profile', icon: UserRound }];
+const MY_WORK = [
+  { to: '/leave', label: 'My leave', icon: CalendarCheck, end: true },
+  { to: '/leave/apply', label: 'Apply for leave', icon: CalendarPlus },
+  { to: '/profile', label: 'My profile', icon: UserRound },
+];
+const MANAGER = [{ to: '/approvals', label: 'Team approvals', icon: ClipboardCheck }];
+const HR = [{ to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck }];
 const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
   { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/import', label: 'Import employees', icon: FileUp },
   { to: '/admin/departments', label: 'Departments', icon: Building2 },
+  { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks },
   { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
   { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
   { to: '/admin/settings', label: 'Workflow settings', icon: Settings2 },
@@ -35,10 +47,11 @@ function NavGroup({ title, items, onNavigate }) {
     <div className="mb-6">
       <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
       <ul>
-        {items.map(({ to, label, icon: Icon }) => (
+        {items.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}
+              end={end}
               onClick={onNavigate}
               className={({ isActive }) =>
                 [
@@ -78,6 +91,10 @@ export default function AppShell() {
   const nav = (
     <>
       <NavGroup title="My work" items={MY_WORK} onNavigate={() => setMenuOpen(false)} />
+      {user.isManager && <NavGroup title="Manager" items={MANAGER} onNavigate={() => setMenuOpen(false)} />}
+      {hasRole(user, 'HR_OFFICER') && (
+        <NavGroup title="HR" items={HR} onNavigate={() => setMenuOpen(false)} />
+      )}
       {hasRole(user, 'HR_ADMIN') && (
         <NavGroup title="Administration" items={ADMIN} onNavigate={() => setMenuOpen(false)} />
       )}

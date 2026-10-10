@@ -8,9 +8,9 @@ The full specification is in [`docs/project-brief.md`](docs/project-brief.md). I
 
 | Phase | Scope                                                                                     | Status                                                                  |
 | ----- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1     | Foundations: scaffold, configuration, schema, decisions register, administrator bootstrap | Done, except the policy extraction (awaiting the policy document)       |
+| 1     | Foundations: scaffold, configuration, schema, decisions register, administrator bootstrap | Done; policy extracted from the 29 May 2025 Leave Policy                |
 | 2     | Entra sign-in, sessions, role middleware, HR administration screens                       | Done; Microsoft sign-in verified against the Altus tenant (10 Oct 2026) |
-| 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Not started                                                             |
+| 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Done; leave types await HR review; accrual off until HR confirms (D8)   |
 | 4     | Employee, Manager and HR portals                                                          | Not started                                                             |
 | 5     | Notifications and email                                                                   | Not started                                                             |
 | 6     | Reports and exports                                                                       | Not started                                                             |
@@ -35,3 +35,4 @@ npm run dev        # then open http://localhost:5173
 - [Architecture](docs/architecture.md)
 - [Decisions register](docs/decisions.md)
 - [Policy extraction](docs/policy-extraction.md)
+- [Leave workflow and first-time setup](docs/leave.md)

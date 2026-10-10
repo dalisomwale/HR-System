@@ -18,8 +18,9 @@ export class ApiError extends Error {
   }
 }
 
-async function request(method, path, body) {
+async function request(method, path, body, { idempotencyKey } = {}) {
   const headers = { Accept: 'application/json' };
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (method !== 'GET' && csrfToken) headers['X-CSRF-Token'] = csrfToken;
   let res;
@@ -63,7 +64,7 @@ function safeJson(text) {
 
 export const api = {
   get: (p) => request('GET', p),
-  post: (p, b = {}) => request('POST', p, b),
+  post: (p, b = {}, opts) => request('POST', p, b, opts),
   put: (p, b = {}) => request('PUT', p, b),
   patch: (p, b = {}) => request('PATCH', p, b),
   del: (p) => request('DELETE', p),
@@ -76,3 +77,6 @@ export function qs(params) {
   const out = s.toString();
   return out ? `?${out}` : '';
 }
+
+/** A fresh key for one user action, so a repeated click or retry is not applied twice. */
+export const newActionKey = () => crypto.randomUUID().replace(/-/g, '');

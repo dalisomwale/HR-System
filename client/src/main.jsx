@@ -16,6 +16,11 @@ import HolidaysPage from './pages/admin/HolidaysPage.jsx';
 import SchedulesPage from './pages/admin/SchedulesPage.jsx';
 import SettingsPage from './pages/admin/SettingsPage.jsx';
 import AuditPage from './pages/admin/AuditPage.jsx';
+import LeaveTypesPage from './pages/admin/LeaveTypesPage.jsx';
+import MyLeavePage from './pages/leave/MyLeavePage.jsx';
+import ApplyPage from './pages/leave/ApplyPage.jsx';
+import RequestPage from './pages/leave/RequestPage.jsx';
+import { ManagerApprovalsPage, HrApprovalsPage } from './pages/approvals/ApprovalsPages.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +29,7 @@ const queryClient = new QueryClient({
 });
 
 const admin = (el) => <RequireRole role="HR_ADMIN">{el}</RequireRole>;
+const hr = (el) => <RequireRole role="HR_OFFICER">{el}</RequireRole>;
 
 function NotFound() {
   return (
@@ -32,7 +38,7 @@ function NotFound() {
       <p className="mt-2 text-sm text-muted">
         The address may be mistyped, or the page has moved.{' '}
         <Link to="/" className="text-brand underline">
-          Go to your profile
+          Go to My leave
         </Link>
       </p>
     </div>
@@ -54,8 +60,13 @@ createRoot(document.getElementById('root')).render(
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/profile" replace />} />
+            <Route index element={<Navigate to="/leave" replace />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="leave" element={<MyLeavePage />} />
+            <Route path="leave/apply" element={<ApplyPage />} />
+            <Route path="leave/requests/:id" element={<RequestPage />} />
+            <Route path="approvals" element={<ManagerApprovalsPage />} />
+            <Route path="hr/approvals" element={hr(<HrApprovalsPage />)} />
             <Route path="admin">
               <Route index element={<Navigate to="/admin/employees" replace />} />
               <Route path="employees" element={admin(<EmployeesPage />)} />
@@ -66,6 +77,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="holidays" element={admin(<HolidaysPage />)} />
               <Route path="schedules" element={admin(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />
+              <Route path="leave-types" element={admin(<LeaveTypesPage />)} />
               <Route path="audit" element={admin(<AuditPage />)} />
             </Route>
             <Route path="*" element={<NotFound />} />

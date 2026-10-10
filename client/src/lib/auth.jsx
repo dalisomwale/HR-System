@@ -45,8 +45,8 @@ export function RequireRole({ role, children }) {
       <div className="max-w-xl">
         <h1 className="text-xl font-semibold">You don’t have access to this page</h1>
         <p className="mt-2 text-sm text-muted">
-          It is available to HR Administrators. If you need access, ask an HR Administrator to grant you the
-          role.
+          It is available to {role === 'HR_OFFICER' ? 'HR Officers' : 'HR Administrators'}. If you need
+          access, ask an HR Administrator to grant you the role.
         </p>
       </div>
     );

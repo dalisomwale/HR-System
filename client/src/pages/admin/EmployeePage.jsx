@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { useMe } from '../../lib/auth.jsx';
+import EmployeeBalances from './EmployeeBalances.jsx';
 import { formatDate, formatDateTime, ROLE_LABELS } from '../../lib/format.js';
 import {
   Badge,
@@ -28,6 +29,7 @@ const FIELDS = [
   'lastName',
   'email',
   'jobTitle',
+  'sex',
   'departmentId',
   'lineManagerId',
   'workScheduleId',
@@ -54,6 +56,7 @@ const toPayload = (values, only) => {
 
 export default function EmployeePage() {
   const { id } = useParams();
+  const { data: me } = useMe();
   const isNew = id === 'new';
   const employee = useQuery({
     queryKey: ['employee', id],
@@ -109,6 +112,17 @@ export default function EmployeePage() {
           </div>
         )}
       </div>
+      {!isNew && (
+        <div className="mt-6">
+          {me.roles.includes('HR_OFFICER') ? (
+            <EmployeeBalances employeeId={e.id} />
+          ) : (
+            <Notice tone="neutral" title="Leave balances">
+              Balances and adjustments are managed by HR Officers. Add the HR Officer role to see them here.
+            </Notice>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -218,6 +232,19 @@ function EmployeeForm({ employee, isNew }) {
         </Field>
         <Field id="jobTitle" label="Job title" optional error={err('jobTitle')} className="sm:col-span-2">
           <Input id="jobTitle" invalid={!!err('jobTitle')} {...register('jobTitle')} />
+        </Field>
+        <Field
+          id="sex"
+          label="Sex"
+          optional
+          error={err('sex')}
+          hint="Used only for maternity, paternity and Mother’s Day leave eligibility."
+        >
+          <Select id="sex" invalid={!!err('sex')} {...register('sex')}>
+            <option value="">Not recorded</option>
+            <option value="FEMALE">Female</option>
+            <option value="MALE">Male</option>
+          </Select>
         </Field>
         <Field id="departmentId" label="Department" optional error={err('departmentId')}>
           <Select id="departmentId" invalid={!!err('departmentId')} {...register('departmentId')}>
