@@ -9,7 +9,7 @@ The full specification is in [`docs/project-brief.md`](docs/project-brief.md). I
 | Phase | Scope                                                                                     | Status                                                                  |
 | ----- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | 1     | Foundations: scaffold, configuration, schema, decisions register, administrator bootstrap | Done, except the policy extraction (awaiting the policy document)       |
-| 2     | Entra sign-in, sessions, role middleware, HR administration screens                       | Built and tested; Microsoft sign-in awaiting the Altus app registration |
+| 2     | Entra sign-in, sessions, role middleware, HR administration screens                       | Done; Microsoft sign-in verified against the Altus tenant (10 Oct 2026) |
 | 3     | Leave engine: working days, ledger, accrual, validation, state machine                    | Not started                                                             |
 | 4     | Employee, Manager and HR portals                                                          | Not started                                                             |
 | 5     | Notifications and email                                                                   | Not started                                                             |
