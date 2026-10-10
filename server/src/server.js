@@ -40,7 +40,7 @@ try {
   process.exit(1);
 }
 
-const entra = config.entra.configured ? createEntraClient(config.entra) : null;
+const entra = config.entra.configured ? createEntraClient(config.entra, { logger }) : null;
 if (!entra) {
   logger.warn(
     'Microsoft sign-in is not configured (ENTRA_TENANT_ID, ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_REDIRECT_URI). Nobody can sign in until it is.',

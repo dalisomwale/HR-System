@@ -1,7 +1,14 @@
 import { Issuer, custom, generators } from 'openid-client';
+import { createResilientLookup, retryOnConnectFailure } from '../../utils/resilient-lookup.js';
 
-// openid-client's default HTTP timeout is 3.5 s; allow for slower links to Microsoft.
-custom.setHttpOptionsDefaults({ timeout: 15000 });
+// Calls to Microsoft must survive slow links and DNS that answers intermittently:
+// a longer HTTP timeout (default 3.5 s), and a DNS lookup that falls back to the last
+// good address for login.microsoftonline.com if the resolver briefly fails.
+let onDnsFallback = () => {};
+custom.setHttpOptionsDefaults({
+  timeout: 15000,
+  lookup: createResilientLookup({ onFallback: (host, err) => onDnsFallback(host, err) }),
+});
 
 /**
  * Microsoft Entra ID (OpenID Connect) client for the authorisation-code flow with PKCE.
@@ -10,12 +17,18 @@ custom.setHttpOptionsDefaults({ timeout: 15000 });
  * issuer (which is tenant-specific, so other tenants are rejected), audience, expiry,
  * nonce and state.
  */
-export function createEntraClient(entra) {
+export function createEntraClient(entra, { logger } = {}) {
+  if (logger) {
+    onDnsFallback = (host, err) =>
+      logger.warn({ host, code: err.code }, 'DNS lookup failed; using the last known address');
+  }
   let clientPromise;
 
   async function client() {
     if (!clientPromise) {
-      clientPromise = Issuer.discover(`https://login.microsoftonline.com/${entra.tenantId}/v2.0`)
+      clientPromise = retryOnConnectFailure(() =>
+        Issuer.discover(`https://login.microsoftonline.com/${entra.tenantId}/v2.0`),
+      )
         .then(
           (issuer) =>
             new issuer.Client({
@@ -57,11 +70,15 @@ export function createEntraClient(entra) {
     async completeSignIn(req, checks) {
       const c = await client();
       const params = c.callbackParams(req);
-      const tokenSet = await c.callback(entra.redirectUri, params, {
-        state: checks.state,
-        nonce: checks.nonce,
-        code_verifier: checks.codeVerifier,
-      });
+      // Retried only when the request never reached Microsoft (DNS or connection failure),
+      // so the single-use authorisation code is never sent twice.
+      const tokenSet = await retryOnConnectFailure(() =>
+        c.callback(entra.redirectUri, params, {
+          state: checks.state,
+          nonce: checks.nonce,
+          code_verifier: checks.codeVerifier,
+        }),
+      );
       return tokenSet.claims();
     },
 
