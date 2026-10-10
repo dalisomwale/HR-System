@@ -4,6 +4,7 @@ import { departmentRoutes } from './departments.routes.js';
 import { employeeRoutes } from './employees.routes.js';
 import { holidayRoutes, scheduleRoutes } from './calendar.routes.js';
 import { settingsRoutes, auditRoutes } from './settings.routes.js';
+import { leaveTypeRoutes, jobRoutes } from './leave-types.routes.js';
 
 /** HR Administration API. Every route requires the HR_ADMIN role. */
 export function adminRoutes(deps) {
@@ -15,5 +16,7 @@ export function adminRoutes(deps) {
   router.use('/work-schedules', scheduleRoutes(deps));
   router.use('/settings', settingsRoutes(deps));
   router.use('/audit', auditRoutes(deps));
+  router.use('/leave-types', leaveTypeRoutes(deps));
+  router.use('/jobs', jobRoutes(deps));
   return router;
 }

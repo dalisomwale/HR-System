@@ -9,7 +9,23 @@ const CONFIG_TABLES = new Set([
   'roles',
   'system_settings',
   'work_schedules',
+  'leave_types',
+  'leave_policy_versions',
 ]);
+
+// Leave types installed by migration 009 from the Altus policy.
+const POLICY_TYPES = [
+  'ANNUAL',
+  'SICK',
+  'MOTHERS_DAY',
+  'COMPASSIONATE',
+  'FAMILY_RESPONSIBILITY',
+  'STUDY',
+  'MATERNITY',
+  'PREGNANCY_LOSS',
+  'PATERNITY',
+  'UNPAID',
+];
 
 export function createTestDb() {
   const config = getConfig();
@@ -32,6 +48,15 @@ export async function resetData(db) {
     for (const { name } of rows) {
       if (!CONFIG_TABLES.has(name)) await trx.raw('TRUNCATE TABLE ??', [name]);
     }
+    // Undo test changes to the policy configuration: extra types, extra versions, activation.
+    const extra = await trx('leave_types').whereNotIn('code', POLICY_TYPES).pluck('id');
+    if (extra.length) {
+      await trx('leave_policy_versions').whereIn('leave_type_id', extra).del();
+      await trx('leave_types').whereIn('id', extra).del();
+    }
+    await trx('leave_policy_versions').where('version_no', '>', 1).del();
+    await trx('leave_policy_versions').update({ effective_to: null });
+    await trx('leave_types').update({ is_active: false });
     await trx.raw('SET FOREIGN_KEY_CHECKS = 1');
   });
 }

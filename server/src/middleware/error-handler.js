@@ -21,7 +21,12 @@ export function errorHandler(err, req, res, _next) {
   }
   if (err instanceof AppError) {
     return res.status(err.status).json({
-      error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) },
+      error: {
+        code: err.code,
+        message: err.message,
+        ...(err.fields ? { fields: err.fields } : {}),
+        ...(err.details ? { details: err.details } : {}),
+      },
     });
   }
   if (err?.type === 'entity.parse.failed') {

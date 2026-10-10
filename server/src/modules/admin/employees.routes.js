@@ -189,6 +189,7 @@ export function employeeRoutes({ db, config }) {
         lastName: e.last_name,
         email: e.email,
         jobTitle: e.job_title,
+        sex: e.sex,
         departmentId: e.department_id,
         department: e.department_name,
         lineManagerId: e.line_manager_id,

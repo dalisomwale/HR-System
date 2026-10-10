@@ -12,6 +12,8 @@ import { KnexSessionStore } from './modules/auth/session-store.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { adminRoutes } from './modules/admin/index.js';
 import { profileRoutes } from './modules/profile/profile.routes.js';
+import { leaveRoutes, approvalRoutes, hrRoutes } from './modules/leave/leave.routes.js';
+import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
 /**
@@ -111,9 +113,12 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/auth', authRoutes(deps));
 
   // Everything below needs a signed-in user and a CSRF token for changes.
-  app.use('/api', requireAuth, csrfProtection);
+  app.use('/api', requireAuth, csrfProtection, idempotency({ db }));
   app.use('/api/me/profile', profileRoutes(deps));
   app.use('/api/admin', adminRoutes(deps));
+  app.use('/api/leave', leaveRoutes(deps));
+  app.use('/api/approvals', approvalRoutes(deps));
+  app.use('/api/hr', hrRoutes(deps));
 
   app.use('/api', notFoundHandler);
 

@@ -9,6 +9,7 @@ export const IMPORT_COLUMNS = [
   'last_name',
   'email',
   'job_title',
+  'sex',
   'department_code',
   'line_manager_employee_number',
   'employment_start_date',
@@ -68,12 +69,16 @@ export async function validateImport(db, csvText) {
         errors.push(`${k} starts with a formula character`);
       }
     }
+    const sexRaw = raw.sex.toUpperCase();
+    const sex = { F: 'FEMALE', FEMALE: 'FEMALE', M: 'MALE', MALE: 'MALE', '': null }[sexRaw];
+    if (sex === undefined) errors.push('sex must be F, M, Female, Male or blank');
     const parsed = createEmployeeSchema.safeParse({
       employeeNumber: raw.employee_number,
       firstName: raw.first_name,
       lastName: raw.last_name,
       email: raw.email || null,
       jobTitle: raw.job_title || null,
+      sex: sex ?? null,
       employmentStartDate: raw.employment_start_date,
       employmentEndDate: raw.employment_end_date || null,
     });

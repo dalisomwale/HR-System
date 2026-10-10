@@ -20,6 +20,12 @@ const baseFields = {
     .or(z.literal('').transform(() => null))
     .transform((v) => v || null),
   jobTitle: optionalText(120),
+  // Used only for maternity, paternity and Mother's Day eligibility (decision D20).
+  sex: z
+    .enum(['FEMALE', 'MALE'])
+    .nullish()
+    .or(z.literal('').transform(() => null))
+    .transform((v) => v ?? null),
   departmentId: optionalId,
   lineManagerId: optionalId,
   workScheduleId: optionalId,
@@ -41,6 +47,7 @@ const COLUMN = {
   lastName: 'last_name',
   email: 'email',
   jobTitle: 'job_title',
+  sex: 'sex',
   departmentId: 'department_id',
   lineManagerId: 'line_manager_id',
   workScheduleId: 'work_schedule_id',

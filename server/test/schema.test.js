@@ -63,17 +63,14 @@ describe('schema', () => {
   it('installs required configuration only, with no business records', async () => {
     const roles = await db('roles').pluck('code');
     expect(roles.sort()).toEqual(['HR_ADMIN', 'HR_OFFICER']);
-    for (const table of [
-      'employees',
-      'departments',
-      'leave_types',
-      'leave_requests',
-      'public_holidays',
-      'balance_ledger',
-    ]) {
+    for (const table of ['employees', 'departments', 'leave_requests', 'public_holidays', 'balance_ledger']) {
       const { n } = await db(table).count({ n: '*' }).first();
       expect(Number(n), table).toBe(0);
     }
+    // Leave types from the policy are installed inactive, for HR to review and activate.
+    const types = await db('leave_types').select('code', 'is_active');
+    expect(types).toHaveLength(10);
+    expect(types.every((t) => !t.is_active)).toBe(true);
     const unconfirmed = await db('system_settings')
       .where({ requires_hr_confirmation: true })
       .pluck('setting_key');
