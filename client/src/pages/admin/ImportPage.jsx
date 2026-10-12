@@ -22,7 +22,7 @@ const COLUMNS = [
   ['job_title', ''],
   ['department_name', 'For example Credit. A new name with a new code creates the department.'],
   ['department_code', 'For example CRD. An existing code must match its department name.'],
-  ['manager_employee_name', 'First and last name of an active employee or someone else in the same file.'],
+  ['manager_employee_name', 'First and last name of someone you report to.'],
   ['employment_start_date', 'Required. YYYY-MM-DD.'],
 ];
 
