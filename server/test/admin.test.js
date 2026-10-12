@@ -199,6 +199,54 @@ describe('employee import', () => {
     expect(ben.line_manager_id).toBe(ann.id);
   });
 
+  const NEW_HEADER =
+    'employee_number,first_name,last_name,email,job_title,department name,department_code,manager_employee_name,employment_start_date';
+
+  it('creates new departments and finds managers by name', async () => {
+    await post('/api/admin/departments', { code: 'CRD', name: 'Credit' });
+    const csv = [
+      NEW_HEADER,
+      'N1,Ann,One,,Head of Sales,Sales,SLS,,2024-03-01',
+      'N2,Ben,Two,,Sales Officer,Sales,SLS,Ann One,2025-01-06',
+      'N3,Cara,Three,,Credit Officer,credit,CRD,ann  one,2025-02-03',
+    ].join('\n');
+    const preview = await post('/api/admin/employees/import/preview', { csv });
+    expect(preview.status, JSON.stringify(preview.body)).toBe(200);
+    expect(preview.body.validRows).toBe(3);
+    expect(preview.body.newDepartments).toEqual([{ code: 'SLS', name: 'Sales' }]);
+
+    const res = await post('/api/admin/employees/import/commit', { csv });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({ imported: 3, departmentsCreated: 1 });
+    const sales = await db('departments').where({ code: 'SLS' }).first();
+    const [ann, ben, cara] = await Promise.all(
+      ['N1', 'N2', 'N3'].map((n) => db('employees').where({ employee_number: n }).first()),
+    );
+    expect(ben).toMatchObject({ department_id: sales.id, line_manager_id: ann.id });
+    expect(cara.line_manager_id).toBe(ann.id);
+  });
+
+  it('explains department and manager-name problems', async () => {
+    await post('/api/admin/departments', { code: 'CRD', name: 'Credit' });
+    await fixtureEmployee(db, { first_name: 'Sam', last_name: 'Same' });
+    await fixtureEmployee(db, { first_name: 'Sam', last_name: 'Same' });
+    const csv = [
+      NEW_HEADER,
+      'P1,Ann,One,,,Finance,CRD,,2024-03-01',
+      'P2,Ben,Two,,,,NEW,,2024-03-01',
+      'P3,Cara,Three,,,Nowhere,,,2024-03-01',
+      'P4,Dan,Four,,,,,Sam Same,2024-03-01',
+      'P5,Eve,Five,,,,,Nobody Here,2024-03-01',
+    ].join('\n');
+    const res = await post('/api/admin/employees/import/preview', { csv });
+    const errs = res.body.rows.map((r) => r.errors.join(' '));
+    expect(errs[0]).toMatch(/CRD is Credit, not Finance/);
+    expect(errs[1]).toMatch(/add department_name to create it/);
+    expect(errs[2]).toMatch(/add department_code to create it/);
+    expect(errs[3]).toMatch(/more than one person/);
+    expect(errs[4]).toMatch(/not found/);
+  });
+
   it('refuses the whole file if any row is invalid', async () => {
     const csv = [header, 'D1,Ann,One,,,,,2025-01-06,', 'D2,Ben,,,,,,2025-01-06,'].join('\n');
     const res = await post('/api/admin/employees/import/commit', { csv });

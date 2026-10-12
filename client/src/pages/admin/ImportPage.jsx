@@ -18,12 +18,12 @@ const COLUMNS = [
   ['employee_number', 'Required. Must be unique.'],
   ['first_name', 'Required.'],
   ['last_name', 'Required.'],
-  ['email', 'Work email. Used for notifications and to suggest sign-in links.'],
+  ['email', 'Work email.'],
   ['job_title', ''],
-  ['department_code', 'Must match a department code set up under Departments.'],
-  ['manager_employee_number', 'An existing employee or someone else in the same file.'],
+  ['department_name', 'For example Credit. A new name with a new code creates the department.'],
+  ['department_code', 'For example CRD. An existing code must match its department name.'],
+  ['manager_employee_name', 'First and last name of an active employee or someone else in the same file.'],
   ['employment_start_date', 'Required. YYYY-MM-DD.'],
-  ['employment_end_date', 'YYYY-MM-DD, if known.'],
 ];
 
 export default function ImportPage() {
@@ -38,6 +38,7 @@ export default function ImportPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       qc.invalidateQueries({ queryKey: ['employee-options'] });
+      qc.invalidateQueries({ queryKey: ['departments'] });
     },
   });
 
@@ -105,7 +106,14 @@ export default function ImportPage() {
         </Section>
 
         {commit.isSuccess ? (
-          <Notice tone="ok" title={`${commit.data.imported} employees imported.`}>
+          <Notice
+            tone="ok"
+            title={`${commit.data.imported} employees imported${
+              commit.data.departmentsCreated
+                ? `, ${commit.data.departmentsCreated} new ${commit.data.departmentsCreated === 1 ? 'department' : 'departments'}`
+                : ''
+            }.`}
+          >
             Next, link their Microsoft accounts: ask them to sign in once, then use Sign-in requests.{' '}
             <ButtonLink to="/admin/sign-in-requests" variant="ghost" className="h-auto px-1">
               Open sign-in requests
@@ -135,6 +143,13 @@ export default function ImportPage() {
               {commit.isError && (
                 <div className="mb-4">
                   <Notice tone="danger">{commit.error.message}</Notice>
+                </div>
+              )}
+              {ready && result.newDepartments?.length > 0 && (
+                <div className="mb-4">
+                  <Notice tone="neutral" title="New departments will be created">
+                    {result.newDepartments.map((d) => `${d.name} (${d.code})`).join(', ')}
+                  </Notice>
                 </div>
               )}
               <Table>

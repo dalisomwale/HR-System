@@ -72,7 +72,7 @@ The screen shows the first 500 rows; exports include up to 50,000.
 ## First-time setup for HR
 
 1. **Give yourself the HR Officer role** if you also need to approve leave or manage balances (Employees → your record → Roles). HR Administrator alone manages settings, not leave.
-2. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record, or the `sex` column in CSV import: F, M, Female or Male).
+2. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record. Files made from the older import template may still include a `sex` column: F, M, Female or Male).
 3. **Review leave types** (Administration → Leave types). All ten were created from the policy as _inactive_. Check each one's rules against the policy; use _Change rules_ to correct anything, then _Review done – activate_. Activating records who confirmed the rules and when.
 4. **Opening balances**: on each employee's record, under _Leave balances_, record an _Opening balance_ for annual leave with a reason. Every entry is kept in the ledger and audited.
 5. **Accrual stays off** until HR confirms the rule: the policy says both 25 days a year and 2.3 days a month (27.6). Set the method and tick _Accrual rule confirmed by HR_ in _Change rules_ for annual leave, then run _Monthly accrual_ under _Balance jobs_.
