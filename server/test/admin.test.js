@@ -215,6 +215,10 @@ describe('companies in the group', () => {
     expect((await post('/api/admin/companies', { code: 'afs', name: 'Other' })).status).toBe(409);
     const list = await admin.agent.get('/api/admin/companies');
     expect(list.body.items).toEqual([expect.objectContaining({ code: 'AFS', activeEmployees: 0 })]);
+    // The signed-in administrator has no company yet, so the "No company set" filter is offered.
+    expect(list.body.employeesWithoutCompany).toBe(true);
+    await db('employees').update({ company_id: list.body.items[0].id });
+    expect((await admin.agent.get('/api/admin/companies')).body.employeesWithoutCompany).toBe(false);
     expect(await db('audit_log').where({ action: 'COMPANY_CREATED' })).toHaveLength(1);
   });
 

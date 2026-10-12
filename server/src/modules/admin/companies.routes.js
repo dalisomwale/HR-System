@@ -51,7 +51,13 @@ export function companyRoutes({ db }) {
         .andWhere('status', 'ACTIVE')
         .count({ n: '*' })
         .first();
-      res.json({ items: rows.map(toDto), activeWithoutCompany: Number(unassigned.n) });
+      const anyUnassigned = await db('employees').whereNull('company_id').first('id');
+      res.json({
+        items: rows.map(toDto),
+        activeWithoutCompany: Number(unassigned.n),
+        // Any status: the Employees filter "No company set" is offered only when this is true.
+        employeesWithoutCompany: Boolean(anyUnassigned),
+      });
     }),
   );
 

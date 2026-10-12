@@ -176,7 +176,9 @@ export default function DepartmentsPage() {
                       {c.name}
                     </option>
                   ))}
-                  <option value="none">No company set</option>
+                  {(list.data.items.some((d) => !d.companyId) || companyFilter === 'none') && (
+                    <option value="none">No company set</option>
+                  )}
                 </Select>
               </Field>
             </div>

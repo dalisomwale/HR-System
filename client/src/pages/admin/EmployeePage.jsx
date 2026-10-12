@@ -130,6 +130,7 @@ function useInvalidateEmployee(id) {
     qc.invalidateQueries({ queryKey: ['employee', String(id)] });
     qc.invalidateQueries({ queryKey: ['employees'] });
     qc.invalidateQueries({ queryKey: ['employee-options'] });
+    qc.invalidateQueries({ queryKey: ['companies'] });
     qc.invalidateQueries({ queryKey: ['me'] });
   };
 }

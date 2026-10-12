@@ -112,7 +112,9 @@ export default function EmployeesPage() {
               {c.name}
             </option>
           ))}
-          <option value="none">No company set</option>
+          {(companies.data?.employeesWithoutCompany || filters.companyId === 'none') && (
+            <option value="none">No company set</option>
+          )}
         </Select>
         <Select
           aria-label="Department"
