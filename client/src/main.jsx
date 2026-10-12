@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, Link } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles.css';
-import { RequireAuth, RequireRole } from './lib/auth.jsx';
+import { GROUP_VIEW_ROLES, RequireAuth, RequireRole } from './lib/auth.jsx';
 import AppShell from './layouts/AppShell.jsx';
 import { SignInPage, AccessNotConfiguredPage, SignedOutPage } from './pages/auth/PublicPages.jsx';
 import ProfilePage from './pages/employee/ProfilePage.jsx';
@@ -39,6 +39,7 @@ const queryClient = new QueryClient({
 
 const admin = (el) => <RequireRole role="HR_ADMIN">{el}</RequireRole>;
 const hr = (el) => <RequireRole role="HR_OFFICER">{el}</RequireRole>;
+const group = (el) => <RequireRole role={GROUP_VIEW_ROLES}>{el}</RequireRole>;
 
 function NotFound() {
   return (
@@ -72,7 +73,7 @@ createRoot(document.getElementById('root')).render(
             <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<HomePage />} />
             <Route path="team" element={<TeamPage />} />
-            <Route path="hr" element={hr(<HrOverviewPage />)} />
+            <Route path="hr" element={group(<HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="reports" element={<ReportsPage />} />

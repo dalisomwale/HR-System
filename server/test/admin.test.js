@@ -91,7 +91,7 @@ describe('employees', () => {
 });
 
 describe('roles', () => {
-  it('never removes the last active HR Administrator', async () => {
+  it('never removes the last active System Administrator', async () => {
     const res = await put(`/api/admin/employees/${admin.id}/roles`, { roles: ['HR_OFFICER'] });
     expect(res.status).toBe(409);
   });
@@ -132,7 +132,7 @@ describe('roles page', () => {
     expect(await db('audit_log').where({ action: 'ROLES_CHANGED' })).toHaveLength(2);
   });
 
-  it('refuses to remove the last HR Administrator and unknown roles', async () => {
+  it('refuses to remove the last System Administrator and unknown roles', async () => {
     const res = await admin.agent
       .delete(`/api/admin/roles/HR_ADMIN/holders/${admin.id}`)
       .set('X-CSRF-Token', admin.csrf);

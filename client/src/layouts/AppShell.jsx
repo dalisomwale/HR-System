@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { useMe, hasRole } from '../lib/auth.jsx';
+import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
 const MY_WORK = [
@@ -51,6 +51,7 @@ const HR = [
   { to: '/reports', label: 'Reports', icon: FileBarChart },
 ];
 const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
+const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
 const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
   { to: '/admin/roles', label: 'Roles', icon: KeyRound },
@@ -115,9 +116,12 @@ export default function AppShell() {
   });
   const counts = { unread: unread.data?.unread ?? 0 };
 
-  // An HR Administrator holds every right, so that title alone is shown.
+  // A System Administrator holds every right, so that title alone is shown.
   const roleText = hasRole(user, 'HR_ADMIN')
-    ? ROLE_LABELS.HR_ADMIN
+    ? [
+        ...user.roles.filter((r) => r.endsWith('_DIRECTOR')).map((r) => ROLE_LABELS[r]),
+        ROLE_LABELS.HR_ADMIN,
+      ].join(', ')
     : [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
       'Employee';
   const nav = (
@@ -126,12 +130,15 @@ export default function AppShell() {
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
           title="Manager"
-          items={hasRole(user, 'HR_OFFICER') ? MANAGER : [...MANAGER, REPORTS]}
+          items={seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]}
           onNavigate={() => setMenuOpen(false)}
         />
       )}
       {hasRole(user, 'HR_OFFICER') && (
         <NavGroup title="HR" items={HR} onNavigate={() => setMenuOpen(false)} />
+      )}
+      {!hasRole(user, 'HR_OFFICER') && seesWholeGroup(user) && (
+        <NavGroup title="Directors" items={DIRECTORS} onNavigate={() => setMenuOpen(false)} />
       )}
       {hasRole(user, 'HR_ADMIN') && (
         <NavGroup title="Administration" items={ADMIN} onNavigate={() => setMenuOpen(false)} />

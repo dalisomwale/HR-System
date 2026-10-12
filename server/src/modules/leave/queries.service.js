@@ -1,4 +1,5 @@
 import { notFound } from '../../utils/errors.js';
+import { seesWholeGroup } from '../../middleware/auth.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { managerAuthority } from './requests.service.js';
 import { PENDING_STATES } from './balance.service.js';
@@ -62,7 +63,11 @@ export async function requestDetail(db, viewer, id) {
   const isHr = viewer.roles.includes('HR_OFFICER');
   const authority = await managerAuthority(db, viewer, r);
   const wasManager = r.assigned_manager_id === viewer.id;
-  if (!isOwner && !isHr && !authority && !wasManager) throw notFound('Leave request not found.');
+  // Directors see every request but, like managers, not confidential details.
+  const isDirector = seesWholeGroup(viewer);
+  if (!isOwner && !isHr && !isDirector && !authority && !wasManager) {
+    throw notFound('Leave request not found.');
+  }
   const seesConfidential = isOwner || isHr || !r.type_confidential;
 
   const days = await db('leave_request_days as d')

@@ -4,7 +4,7 @@ import { revokeEmployeeSessions } from '../auth/session-store.js';
 import { conflict, notFound, badRequest } from '../../utils/errors.js';
 import { GUID_RE, isoDate, optionalId, optionalText, requiredText } from '../../utils/validation.js';
 
-export const ASSIGNABLE_ROLES = ['HR_OFFICER', 'HR_ADMIN'];
+export const ASSIGNABLE_ROLES = ['HR_OFFICER', 'HR_ADMIN', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
 
 const baseFields = {
   employeeNumber: requiredText(30),
@@ -207,7 +207,7 @@ export async function deactivateEmployee(trx, id, { reason, endDate }, audit) {
     .where('er.employee_id', id)
     .pluck('r.code');
   if (roles.includes('HR_ADMIN') && (await activeAdminCount(trx, id)) === 0) {
-    throw conflict('This is the only active HR Administrator. Grant the role to someone else first.');
+    throw conflict('This is the only active System Administrator. Grant the role to someone else first.');
   }
   await trx('employees')
     .where({ id })
@@ -307,7 +307,7 @@ export async function setRoles(trx, id, roles, audit) {
     !roles.includes('HR_ADMIN') &&
     (await activeAdminCount(trx, id)) === 0
   ) {
-    throw conflict('This is the only active HR Administrator. Grant the role to someone else first.');
+    throw conflict('This is the only active System Administrator. Grant the role to someone else first.');
   }
   const roleRows = await trx('roles').whereIn('code', ASSIGNABLE_ROLES).select('id', 'code');
   const idOf = Object.fromEntries(roleRows.map((r) => [r.code, r.id]));

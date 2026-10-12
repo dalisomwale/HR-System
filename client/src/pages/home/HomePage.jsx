@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { useMe } from '../../lib/auth.jsx';
+import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { ACTION_LABELS, STAGE_LABELS } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
@@ -27,7 +27,7 @@ export default function HomePage() {
           </ButtonLink>
         }
       />
-      {(me.isManager || me.isDelegate || me.roles.includes('HR_OFFICER')) && <RoleLinks me={me} />}
+      {(me.isManager || me.isDelegate || seesWholeGroup(me)) && <RoleLinks me={me} />}
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -47,9 +47,9 @@ function RoleLinks({ me }) {
           Team overview
         </Link>
       )}
-      {me.roles.includes('HR_OFFICER') && (
+      {seesWholeGroup(me) && (
         <Link to="/hr" className="rounded-md border border-rule bg-white px-3 py-2 hover:border-muted">
-          HR overview
+          {me.roles.includes('HR_OFFICER') ? 'HR overview' : 'Group overview'}
         </Link>
       )}
     </div>

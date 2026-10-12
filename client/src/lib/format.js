@@ -24,6 +24,11 @@ export function formatDateTime(value) {
   return Number.isNaN(d.getTime()) ? String(value) : dateTimeFmt.format(d);
 }
 
-export const ROLE_LABELS = { HR_OFFICER: 'HR Officer', HR_ADMIN: 'HR Administrator' };
+export const ROLE_LABELS = {
+  HR_OFFICER: 'HR Officer',
+  HR_ADMIN: 'System Administrator',
+  EXECUTIVE_DIRECTOR: 'Executive Director',
+  MANAGING_DIRECTOR: 'Managing Director',
+};
 
 export const fullName = (p) => [p?.firstName, p?.lastName].filter(Boolean).join(' ');

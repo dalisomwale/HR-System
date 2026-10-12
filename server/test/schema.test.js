@@ -63,7 +63,7 @@ describe('schema', () => {
 
   it('installs required configuration only, with no business records', async () => {
     const roles = await db('roles').pluck('code');
-    expect(roles.sort()).toEqual(['HR_ADMIN', 'HR_OFFICER']);
+    expect(roles.sort()).toEqual(['EXECUTIVE_DIRECTOR', 'HR_ADMIN', 'HR_OFFICER', 'MANAGING_DIRECTOR']);
     for (const table of ['employees', 'departments', 'leave_requests', 'public_holidays', 'balance_ledger']) {
       const { n } = await db(table).count({ n: '*' }).first();
       expect(Number(n), table).toBe(0);

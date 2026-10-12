@@ -42,7 +42,7 @@ describe('bootstrap-admin', () => {
     expect(audit[0].actor_type).toBe('CLI');
   });
 
-  it('refuses to run once an HR Administrator exists', async () => {
+  it('refuses to run once a System Administrator exists', async () => {
     await bootstrapAdmin(db, input, { tenantId: TENANT });
     await expect(
       bootstrapAdmin(

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { forbidden, notFound } from '../../utils/errors.js';
+import { seesWholeGroup } from '../../middleware/auth.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { isoDate } from '../../utils/validation.js';
 import { addDays, daysBetween, eachDate, weekdayKey } from '../leave/calendar.js';
@@ -60,7 +61,7 @@ export const filterSchema = z.object({
 
 /** Who the viewer may report on. */
 export async function reportScope(db, user) {
-  if (user.roles.includes('HR_OFFICER')) return { level: 'HR', ids: null };
+  if (seesWholeGroup(user)) return { level: 'HR', ids: null };
   if (!user.isManager && !user.isDelegate) throw forbidden('Reports are for managers and HR.');
   const today = todayInLusaka();
   const delegators = await db('delegations')

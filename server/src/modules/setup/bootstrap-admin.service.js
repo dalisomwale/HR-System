@@ -31,8 +31,8 @@ export class BootstrapError extends Error {
 }
 
 /**
- * Create the first HR Administrator: their employee record, Entra identity link and role.
- * Refuses to run once any HR Administrator exists, so it cannot be used to add or take over
+ * Create the first System Administrator: their employee record, Entra identity link and role.
+ * Refuses to run once any System Administrator exists, so it cannot be used to add or take over
  * administrator access later. Everything happens in one transaction with audit entries.
  */
 export async function bootstrapAdmin(db, rawInput, { tenantId }) {
@@ -59,7 +59,7 @@ export async function bootstrapAdmin(db, rawInput, { tenantId }) {
     const existingAdmins = await trx('employee_roles').where({ role_id: role.id }).count({ n: '*' }).first();
     if (Number(existingAdmins.n) > 0) {
       throw new BootstrapError(
-        'An HR Administrator already exists. Further administrators must be granted from within the application.',
+        'A System Administrator already exists. Further administrators must be granted from within the application.',
       );
     }
 

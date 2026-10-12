@@ -22,7 +22,7 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
   return db.transaction(async (trx) => {
     const link = await trx('identity_links').where({ tenant_id: tid, object_id: oid }).first();
     if (!link) {
-      // HR Administrators hear about a new person once a day at most, however often they retry.
+      // System Administrators hear about a new person once a day at most, however often they retry.
       const recent = await trx('audit_log')
         .where({ action: 'SIGN_IN_NOT_CONFIGURED', entity_type: 'identity', entity_id: oid })
         .andWhere('created_at', '>', trx.raw('NOW() - INTERVAL 1 DAY'))
@@ -49,7 +49,7 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
           },
         });
       }
-      // Recorded so HR Administrators can link this person from the pending sign-ins list.
+      // Recorded so System Administrators can link this person from the pending sign-ins list.
       await writeAudit(trx, {
         ...base,
         action: 'SIGN_IN_NOT_CONFIGURED',
@@ -106,7 +106,7 @@ export async function loadUser(db, employeeId) {
     .join('roles as r', 'r.id', 'er.role_id')
     .where('er.employee_id', employeeId)
     .pluck('r.code');
-  // An HR Administrator has every right in the system, including the HR Officer's.
+  // A System Administrator has every right in the system, including the HR Officer's.
   const roles = assigned.includes('HR_ADMIN') ? [...new Set([...assigned, 'HR_OFFICER'])] : assigned;
   const reports = await db('employees')
     .where({ line_manager_id: employeeId, status: 'ACTIVE' })

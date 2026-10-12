@@ -49,7 +49,7 @@ SESSION_SECRET=<output of: openssl rand -hex 32>
 
 All four `ENTRA_` values are needed together; the server refuses to start with only some of them.
 
-## 7. Create the first HR Administrator
+## 7. Create the first System Administrator
 
 Find your own **Object ID**: Entra admin centre → Users → your account → _Object ID_. Then:
 
@@ -62,7 +62,7 @@ npm run bootstrap:admin -- \
   --start-date <YYYY-MM-DD> --job-title "<your job title>"
 ```
 
-This works only once, while no HR Administrator exists. Everyone else is added inside the application.
+This works only once, while no System Administrator exists. Everyone else is added inside the application.
 
 ## 8. Linking everyone else
 

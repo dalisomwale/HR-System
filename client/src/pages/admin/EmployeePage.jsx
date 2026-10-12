@@ -436,7 +436,9 @@ function RolesPanel({ employee }) {
         <legend className="sr-only">Roles</legend>
         {[
           ['HR_OFFICER', 'Gives final approval and manages leave balances.'],
-          ['HR_ADMIN', 'Manages employees, roles, calendars and settings.'],
+          ['HR_ADMIN', 'Every right in the system, including settings and roles.'],
+          ['EXECUTIVE_DIRECTOR', 'Sees leave across the group and every report. Cannot approve.'],
+          ['MANAGING_DIRECTOR', 'Sees leave across the group and every report. Cannot approve.'],
         ].map(([code, help]) => (
           <label key={code} className="flex gap-2.5 text-sm">
             <input

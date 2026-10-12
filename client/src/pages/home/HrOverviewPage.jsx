@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
-import { useMe } from '../../lib/auth.jsx';
+import { hasRole, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import { LoadError, Loading, PageHeader, Section, Select, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
@@ -14,10 +14,11 @@ export default function HrOverviewPage() {
     queryFn: () => api.get(`/api/dashboard/hr${companyId ? `?companyId=${companyId}` : ''}`),
   });
   const companies = q.data?.companies ?? [];
+  const { data: me } = useMe();
   return (
     <div className="max-w-6xl space-y-6">
       <PageHeader
-        title="HR overview"
+        title={hasRole(me, 'HR_OFFICER') ? 'HR overview' : 'Group overview'}
         actions={
           companies.length > 0 && (
             <Select
@@ -52,14 +53,16 @@ export default function HrOverviewPage() {
 function Body({ d }) {
   const { data: me } = useMe();
   const isAdmin = me.roles.includes('HR_ADMIN');
+  // Directors see the same figures but do not approve, so the approval queue is not linked.
+  const approvals = me.roles.includes('HR_OFFICER') ? '/hr/approvals' : undefined;
   const ex = d.exceptions;
   const configIssues =
     ex.unconfirmedTypes.length + ex.accrualUnconfirmed.length + ex.unconfirmedSettings.length;
   return (
     <>
       <Stats>
-        <Stat label="Waiting for HR" value={d.awaitingHr.length} to="/hr/approvals" />
-        <Stat label="With managers" value={d.withManagers.length} to="/hr/approvals" />
+        <Stat label="Waiting for HR" value={d.awaitingHr.length} to={approvals} />
+        <Stat label="With managers" value={d.withManagers.length} to={approvals} />
         <Stat label="Overdue" value={ex.overdue} tone="danger" />
         <Stat label="On leave today" value={d.onLeave.length} />
       </Stats>

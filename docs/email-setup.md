@@ -53,7 +53,7 @@ GRAPH_MAIL_CLIENT_SECRET=<secret value from step 2>
 
 ## 5. Test
 
-Sign in as an HR Administrator → Administration → Emails → **Send me a test email**. Your employee record needs a work email. Within a minute the status should read **Accepted by Microsoft**. If it shows a failure, the error from Microsoft is shown next to it, for example:
+Sign in as a System Administrator → Administration → Emails → **Send me a test email**. Your employee record needs a work email. Within a minute the status should read **Accepted by Microsoft**. If it shows a failure, the error from Microsoft is shown next to it, for example:
 
 | Error                     | Usual cause                                                        |
 | ------------------------- | ------------------------------------------------------------------ |
@@ -68,7 +68,7 @@ Sign in as an HR Administrator → Administration → Emails → **Send me a tes
 - **Sending**: being handed to Microsoft right now.
 - **Accepted by Microsoft**: Graph accepted the message. The system cannot see whether it reached the inbox, so it never says "delivered".
 - **Failed – will retry**: tried again after 1, 5, 15, 60 and 240 minutes.
-- **Failed – gave up**: stopped after the configured number of attempts (`email_max_attempts`, default 5). An HR Administrator can resend it from the Emails page.
+- **Failed – gave up**: stopped after the configured number of attempts (`email_max_attempts`, default 5). A System Administrator can resend it from the Emails page.
 
 ## What emails contain
 

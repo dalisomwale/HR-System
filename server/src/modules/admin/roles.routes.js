@@ -6,7 +6,7 @@ import { badRequest, notFound } from '../../utils/errors.js';
 import { ASSIGNABLE_ROLES, mapEmployeeUniqueError, setRoles, updateEmployee } from './employees.service.js';
 
 /*
- * Roles in one place. HR Officer and HR Administrator are granted roles; "Manager" is not a
+ * Roles in one place. HR Officer and System Administrator are granted roles; "Manager" is not a
  * stored role: anyone with direct reports is a manager, so making someone a manager means giving
  * them direct reports.
  */

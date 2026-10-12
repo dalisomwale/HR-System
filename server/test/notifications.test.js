@@ -156,7 +156,7 @@ describe('workflow notifications', () => {
     expect(await db('notifications').count({ n: '*' }).first()).toEqual({ n: 0 });
   });
 
-  it('tells HR Administrators once about a sign-in that is not linked', async () => {
+  it('tells System Administrators once about a sign-in that is not linked', async () => {
     for (let i = 0; i < 2; i += 1) {
       await signIn(app, entra, {
         oid: '99999999-0000-0000-0000-000000000001',
@@ -212,7 +212,7 @@ describe('email outbox', () => {
     expect(rows.every((r) => r.status === 'ACCEPTED' && r.provider_message_id && r.accepted_at)).toBe(true);
   });
 
-  it('retries with a delay, gives up after the limit, and HR Administrators can resend', async () => {
+  it('retries with a delay, gives up after the limit, and System Administrators can resend', async () => {
     await submitAnnual();
     await db('system_settings').where({ setting_key: 'email_max_attempts' }).update({ value: '2' });
     const failing = fake(true);

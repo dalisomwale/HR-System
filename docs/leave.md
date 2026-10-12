@@ -17,7 +17,7 @@ Until the employee or HR acts, a pending request can be withdrawn by the employe
 - **Team overview** (managers and delegates): requests waiting for review with working days waited and overdue flags, who is on leave today, the next 30 days, days when two or more people are off, and approved leave with no cover named.
 - **HR overview** (HR Officers): the HR and manager queues with age, exceptions (requests held because the manager is no longer active, missing documents, policy settings not yet confirmed, failed emails once email is added), who is on leave, annual leave taken by department, and carried-forward days about to lapse.
 
-HR Administrators also see a notice on every page while the annual-leave accrual rule is unconfirmed.
+System Administrators also see a notice on every page while the annual-leave accrual rule is unconfirmed.
 
 ## Supporting documents
 
@@ -27,7 +27,7 @@ Documents on sick, maternity, family-responsibility and pregnancy-loss leave are
 
 ## Delegation
 
-A manager who will be away opens _Delegation_, names a colleague and the dates. During those dates the colleague sees the team's requests under _Team approvals_ and decides at the manager stage; the history records that they acted on the manager's behalf. HR still gives final approval. If a manager is away without having done this, an HR Administrator sets it up under _Administration → Delegations_. Either can revoke it.
+A manager who will be away opens _Delegation_, names a colleague and the dates. During those dates the colleague sees the team's requests under _Team approvals_ and decides at the manager stage; the history records that they acted on the manager's behalf. HR still gives final approval. If a manager is away without having done this, a System Administrator sets it up under _Administration → Delegations_. Either can revoke it.
 
 ## Notifications and email
 
@@ -44,7 +44,7 @@ Everyone has a bell in the header with their unread count, and a _Notifications_
 | Not decided within 3 working days (each stage)                | Manager, delegates, the manager's manager and HR; HR at the HR stage                 | Yes. Marked overdue; never approved automatically (D9) |
 | Leave started without a required document                     | Employee, once                                                                       | Yes                                                    |
 | Carried-forward days lapse within 30 days, and again within 7 | Employee                                                                             | Yes                                                    |
-| Someone signs in with Microsoft but is not linked             | HR Administrators, once a day per person                                             | Yes                                                    |
+| Someone signs in with Microsoft but is not linked             | System Administrators, once a day per person                                         | Yes                                                    |
 
 Email is sent through Microsoft 365; setup is in [`email-setup.md`](email-setup.md). Escalations and reminders run once a day; emails are sent every 30 seconds. Both run inside the server unless `BACKGROUND_JOBS=off`.
 
@@ -83,7 +83,7 @@ Managers can be in any company in the group: a manager in one company can approv
 ## First-time setup for HR
 
 1. **Add the group's companies** (Administration → Companies), then give each existing department its company (Departments → Edit) and each employee theirs. Companies → _Show them_ lists active staff with no company yet. Importing a staff file creates any companies it names.
-2. **Assign roles** under Administration → Roles. HR Administrators have every right, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings. Manager is not a separate role: anyone with direct reports is a manager, and the same page lets you choose who reports to whom. The last active HR Administrator cannot be removed.
+2. **Assign roles** under Administration → Roles. System Administrators have every right, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings. Executive Directors and Managing Directors see leave across the whole group (Group overview, request details and every report) but cannot approve or change anything. Manager is not a separate role: anyone with direct reports is a manager, and the same page lets you choose who reports to whom. The last active System Administrator cannot be removed.
 3. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record. Files made from the older import template may still include a `sex` column: F, M, Female or Male).
 4. **Review leave types** (Administration → Leave types). All ten were created from the policy as _inactive_. Check each one's rules against the policy; use _Change rules_ to correct anything, then _Review done – activate_. Activating records who confirmed the rules and when.
 5. **Opening balances**: on each employee's record, under _Leave balances_, record an _Opening balance_ for annual leave with a reason. Every entry is kept in the ledger and audited.
@@ -103,17 +103,17 @@ Each job records a run per period and posts ledger entries with unique keys, so 
 
 All routes need a signed-in session; changes need the `X-CSRF-Token` header and accept an optional `Idempotency-Key`.
 
-| Route                                                               | Who                 | Purpose                                              |
-| ------------------------------------------------------------------- | ------------------- | ---------------------------------------------------- |
-| `GET /api/leave/types`                                              | everyone            | Active leave types and whether the user may use them |
-| `GET /api/leave/balances?year=`                                     | everyone            | Own balances and allowances                          |
-| `POST /api/leave/requests/preview`                                  | everyone            | Calculate and check without saving                   |
-| `POST /api/leave/requests`                                          | everyone            | Submit                                               |
-| `GET /api/leave/requests[/:id]`                                     | everyone            | Own requests; detail if allowed to see it            |
-| `POST /api/leave/requests/:id/withdraw` · `/resubmit` · `/cancel`   | owner               | Employee actions                                     |
-| `GET /api/approvals/manager`                                        | managers, delegates | Manager queue                                        |
-| `POST /api/approvals/requests/:id/manager` · `/changes/:id/manager` | manager, delegate   | Decide                                               |
-| `GET /api/approvals/hr`                                             | HR Officer          | HR queue                                             |
-| `POST /api/approvals/requests/:id/hr` · `/changes/:id/hr`           | HR Officer          | Final decision                                       |
-| `GET /api/hr/employees/:id/balances` · `POST /api/hr/balances`      | HR Officer          | Balances, ledger, adjustments                        |
-| `/api/admin/leave-types`, `/api/admin/jobs`                         | HR Administrator    | Leave type rules and jobs                            |
+| Route                                                               | Who                  | Purpose                                              |
+| ------------------------------------------------------------------- | -------------------- | ---------------------------------------------------- |
+| `GET /api/leave/types`                                              | everyone             | Active leave types and whether the user may use them |
+| `GET /api/leave/balances?year=`                                     | everyone             | Own balances and allowances                          |
+| `POST /api/leave/requests/preview`                                  | everyone             | Calculate and check without saving                   |
+| `POST /api/leave/requests`                                          | everyone             | Submit                                               |
+| `GET /api/leave/requests[/:id]`                                     | everyone             | Own requests; detail if allowed to see it            |
+| `POST /api/leave/requests/:id/withdraw` · `/resubmit` · `/cancel`   | owner                | Employee actions                                     |
+| `GET /api/approvals/manager`                                        | managers, delegates  | Manager queue                                        |
+| `POST /api/approvals/requests/:id/manager` · `/changes/:id/manager` | manager, delegate    | Decide                                               |
+| `GET /api/approvals/hr`                                             | HR Officer           | HR queue                                             |
+| `POST /api/approvals/requests/:id/hr` · `/changes/:id/hr`           | HR Officer           | Final decision                                       |
+| `GET /api/hr/employees/:id/balances` · `POST /api/hr/balances`      | HR Officer           | Balances, ledger, adjustments                        |
+| `/api/admin/leave-types`, `/api/admin/jobs`                         | System Administrator | Leave type rules and jobs                            |

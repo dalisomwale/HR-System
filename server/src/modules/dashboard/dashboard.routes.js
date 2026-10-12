@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireRole } from '../../middleware/auth.js';
+import { GROUP_VIEW_ROLES, requireRole } from '../../middleware/auth.js';
 import { asyncHandler } from '../../utils/validation.js';
 import { forbidden } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
@@ -284,7 +284,7 @@ export function dashboardRoutes({ db }) {
   // ---------------------------------------------------------------------------------------
   router.get(
     '/hr',
-    requireRole('HR_OFFICER'),
+    requireRole(...GROUP_VIEW_ROLES),
     asyncHandler(async (req, res) => {
       const today = todayInLusaka();
       const year = Number(today.slice(0, 4));

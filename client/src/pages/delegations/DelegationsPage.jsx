@@ -229,7 +229,7 @@ export function DelegationsPage() {
   );
 }
 
-/** HR Administrators: all current delegations, and set one up for an absent manager. */
+/** System Administrators: all current delegations, and set one up for an absent manager. */
 export function AdminDelegationsPage() {
   const [scope, setScope] = useState('current');
   const q = useQuery({

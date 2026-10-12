@@ -58,11 +58,11 @@ npm install
 npm run migrate
 ```
 
-Migrations create the schema and required configuration only: two roles (HR Officer, HR Administrator), system settings with documented defaults, and the company default working week (Monday to Friday). They create no companies, employees, departments, leave types, holidays or balances.
+Migrations create the schema and required configuration only: two roles (HR Officer, System Administrator), system settings with documented defaults, and the company default working week (Monday to Friday). They create no companies, employees, departments, leave types, holidays or balances.
 
 ## 4. First administrator
 
-The first HR Administrator is created from the command line. The command runs only while no HR Administrator exists; all later role grants happen inside the application and are audited.
+The first System Administrator is created from the command line. The command runs only while no System Administrator exists; all later role grants happen inside the application and are audited.
 
 You need the person's Entra **object ID** (Entra admin centre → Users → the user → Object ID).
 

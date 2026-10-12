@@ -65,7 +65,7 @@ export function notificationRoutes({ db }) {
   return router;
 }
 
-/** HR Administrators: the email outbox, honest statuses, resend and a test message. */
+/** System Administrators: the email outbox, honest statuses, resend and a test message. */
 export function adminEmailRoutes({ db, config }) {
   const router = Router();
   router.use(requireRole('HR_ADMIN'));

@@ -9,6 +9,7 @@ import { asyncHandler, idParam } from '../../utils/validation.js';
 import { AppError, badRequest, conflict, notFound } from '../../utils/errors.js';
 import { REPO_ROOT } from '../../config/env.js';
 import { managerAuthority } from '../leave/requests.service.js';
+import { seesWholeGroup } from '../../middleware/auth.js';
 
 const MAX_PER_REQUEST = 10;
 const CLOSED_STATES = ['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'];
@@ -60,7 +61,11 @@ async function access(db, viewer, requestId) {
   const isHr = viewer.roles.includes('HR_OFFICER');
   const authority = await managerAuthority(db, viewer, r);
   const wasManager = r.assigned_manager_id === viewer.id;
-  if (!isOwner && !isHr && !authority && !wasManager) throw notFound('Leave request not found.');
+  const isDirector = seesWholeGroup(viewer);
+  if (!isOwner && !isHr && !isDirector && !authority && !wasManager) {
+    throw notFound('Leave request not found.');
+  }
+  // Directors, like managers, never see medical documents.
   return { r, isOwner, isHr, seesMedical: isOwner || isHr };
 }
 

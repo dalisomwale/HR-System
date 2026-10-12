@@ -7,7 +7,7 @@ import { badRequest, conflict, notFound } from '../../utils/errors.js';
 
 const int = (min, max) => z.number().int().min(min).max(max);
 
-/** Settings HR Administrators may change, with the values each accepts. Others are read-only. */
+/** Settings System Administrators may change, with the values each accepts. Others are read-only. */
 export const EDITABLE_SETTINGS = {
   manager_scope: {
     schema: z.enum(['DIRECT_REPORTS', 'REPORTING_LINE']),

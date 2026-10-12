@@ -161,7 +161,7 @@ describe('approval delegation', () => {
     ).toBe(400);
   });
 
-  it('lets an HR Administrator set one up for an absent manager and revoke it', async () => {
+  it('lets a System Administrator set one up for an absent manager and revoke it', async () => {
     const res = await as(admin).post('/api/admin/delegations', {
       delegatorId: mgr.id,
       delegateId: cover.id,
@@ -238,7 +238,7 @@ describe('supporting documents', () => {
   });
 });
 
-describe('HR Administrator rights', () => {
+describe('System Administrator rights', () => {
   it('has every HR Officer right and the manager pages, but still cannot approve their own leave', async () => {
     const me = await admin.agent.get('/api/auth/me');
     expect(me.body.user.roles).toEqual(expect.arrayContaining(['HR_ADMIN', 'HR_OFFICER']));
@@ -305,5 +305,53 @@ describe('dashboards', () => {
     await db('employees').where({ id: mgr.id }).update({ status: 'INACTIVE' });
     res = await as(hr).get('/api/dashboard/hr');
     expect(res.body.exceptions.held.map((h) => h.id)).toEqual([r.id]);
+  });
+});
+
+describe('directors', () => {
+  for (const role of ['EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR']) {
+    it(`${role} sees leave across the group but cannot approve or administer`, async () => {
+      const director = await login(await fixtureEmployee(db, { roles: [role], first_name: 'Dina' }));
+      const sick = await sickRequest();
+
+      const me = await as(director).get('/api/auth/me');
+      expect(me.body.user.roles).toEqual([role]);
+      expect((await as(director).get('/api/dashboard/hr')).status).toBe(200);
+      const reports = await as(director).get('/api/reports');
+      expect(reports.body.scope).toBe('HR');
+      expect(reports.body.items).toHaveLength(13);
+
+      // Request detail is visible; the confidential reason of sick leave is not.
+      const detail = await as(director).get(`/api/leave/requests/${sick.id}`);
+      expect(detail.status).toBe(200);
+      expect(detail.body.reason).toBeNull();
+      expect((await as(director).get(`/api/documents/requests/${sick.id}`)).status).toBe(200);
+
+      expect(
+        (await as(director).post(`/api/approvals/requests/${sick.id}/manager`, { action: 'APPROVE' })).status,
+      ).toBe(403);
+      expect((await as(director).post(`/api/hr/requests/${sick.id}/hr`, { action: 'APPROVE' })).status).toBe(
+        403,
+      );
+      expect((await as(director).get(`/api/hr/employees/${emp.id}/balances`)).status).toBe(403);
+      expect((await as(director).get('/api/admin/employees')).status).toBe(403);
+    });
+  }
+
+  it('can be granted from the Roles page, and the administrator is called System Administrator', async () => {
+    const roles = await as(admin).get('/api/admin/roles');
+    expect(roles.body.roles.map((r) => r.name)).toEqual([
+      'HR Officer',
+      'System Administrator',
+      'Executive Director',
+      'Managing Director',
+    ]);
+    const res = await as(admin).post('/api/admin/roles/MANAGING_DIRECTOR/holders', { employeeId: other.id });
+    expect(res.status).toBe(201);
+    const s = await login({
+      id: other.id,
+      oid: `00000000-0000-0000-0000-${String(other.id).padStart(12, '0')}`,
+    });
+    expect((await as(s).get('/api/auth/me')).body.user.roles).toEqual(['MANAGING_DIRECTOR']);
   });
 });

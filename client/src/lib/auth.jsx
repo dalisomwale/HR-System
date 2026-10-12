@@ -40,13 +40,15 @@ export function RequireAuth({ children }) {
 /** Hides a page the user's roles do not allow. The server enforces the same rule. */
 export function RequireRole({ role, children }) {
   const me = useMe();
-  if (!me.data?.roles.includes(role)) {
+  const allowed = Array.isArray(role) ? role : [role];
+  if (!allowed.some((r) => me.data?.roles.includes(r))) {
+    const who = { HR_OFFICER: 'HR Officers', HR_ADMIN: 'System Administrators' };
     return (
       <div className="max-w-xl">
         <h1 className="text-xl font-semibold">You don’t have access to this page</h1>
         <p className="mt-2 text-sm text-muted">
-          It is available to {role === 'HR_OFFICER' ? 'HR Officers' : 'HR Administrators'}. If you need
-          access, ask an HR Administrator to grant you the role.
+          It is available to {who[allowed[0]] ?? 'HR Officers and directors'}. If you need access, ask a
+          System Administrator to grant you the role.
         </p>
       </div>
     );
@@ -55,3 +57,7 @@ export function RequireRole({ role, children }) {
 }
 
 export const hasRole = (user, role) => Boolean(user?.roles?.includes(role));
+
+/** Roles that see leave across the whole group. Directors can look but not approve. */
+export const GROUP_VIEW_ROLES = ['HR_OFFICER', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
+export const seesWholeGroup = (user) => GROUP_VIEW_ROLES.some((r) => hasRole(user, r));
