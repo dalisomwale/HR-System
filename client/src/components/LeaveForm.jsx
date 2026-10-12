@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { FileText, Paperclip, X } from 'lucide-react';
 import { api, newActionKey } from '../lib/api.js';
 import { formatDate } from '../lib/format.js';
 import { days } from '../lib/leave.js';
@@ -74,7 +75,8 @@ function useDebounced(value, ms) {
 /**
  * Leave request form with a live calculation from the server. The server repeats every check
  * on submit; the preview only helps the employee see the result before sending.
- * `onSubmit(payload, idempotencyKey)` should send the request and throw ApiError on failure.
+ * `onSubmit(payload, idempotencyKey, files)` should send the request (then upload `files`) and
+ * throw ApiError if the request itself is refused.
  */
 export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, onCancel }) {
   const types = useQuery({ queryKey: ['leave-types'], queryFn: () => api.get('/api/leave/types') });
@@ -93,6 +95,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
     formState: { errors, isSubmitting },
   } = useForm({ defaultValues: { ...BLANK, ...initial } });
   const [message, setMessage] = useState(null);
+  const [files, setFiles] = useState([]);
   const actionKey = useRef(newActionKey());
 
   const ready = types.isSuccess && colleagues.isSuccess;
@@ -138,7 +141,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
   const send = async (v) => {
     setMessage(null);
     try {
-      await onSubmit(toLeavePayload(v), actionKey.current);
+      await onSubmit(toLeavePayload(v), actionKey.current, files);
     } catch (err) {
       // A definite refusal means the same key may be reused safely with corrected input,
       // but a new key avoids a "different body" refusal from the server.
@@ -317,6 +320,10 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
               />
             </Field>
 
+            <div className="sm:col-span-2">
+              <AttachmentPicker files={files} onChange={setFiles} type={type} />
+            </div>
+
             {message && (
               <div className="sm:col-span-2">
                 <Notice tone="danger">{message}</Notice>
@@ -420,5 +427,90 @@ function PreviewPanel({ canPreview, preview }) {
         </div>
       )}
     </Section>
+  );
+}
+
+const MAX_FILES = 10;
+const MAX_MB = 5;
+const OK_TYPES = /\.(pdf|jpe?g|png)$/i;
+const size = (n) =>
+  n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+
+/**
+ * Files chosen while applying. They are uploaded straight after the request is created; the
+ * server checks each file's real type and size again.
+ */
+function AttachmentPicker({ files, onChange, type }) {
+  const input = useRef(null);
+  const [problem, setProblem] = useState(null);
+
+  const add = (list) => {
+    setProblem(null);
+    const next = [...files];
+    for (const f of list) {
+      if (!OK_TYPES.test(f.name)) {
+        setProblem(`${f.name}: only PDF, JPEG and PNG files can be uploaded.`);
+        continue;
+      }
+      if (f.size > MAX_MB * 1024 * 1024) {
+        setProblem(`${f.name} is larger than ${MAX_MB} MB.`);
+        continue;
+      }
+      if (next.some((x) => x.name === f.name && x.size === f.size)) continue;
+      if (next.length >= MAX_FILES) {
+        setProblem(`You can attach up to ${MAX_FILES} files.`);
+        break;
+      }
+      next.push(f);
+    }
+    onChange(next);
+    if (input.current) input.current.value = '';
+  };
+
+  return (
+    <div className="rounded-md border border-rule p-4">
+      <p className="text-sm font-medium">
+        Supporting documents
+        {!type?.documentRequired && <span className="ml-1 font-normal text-muted">(optional)</span>}
+      </p>
+      <p className="mt-1 text-xs text-muted">
+        {type?.documentRequired
+          ? `Required: ${type.documentDescription ?? 'a supporting document'}. If you do not have it yet, you can upload it later from the request page.`
+          : 'For example a medical certificate or a letter. PDF, JPEG or PNG, up to 5 MB each.'}
+      </p>
+      {files.length > 0 && (
+        <ul className="mt-3 divide-y divide-rule rounded-md border border-rule">
+          {files.map((f, i) => (
+            <li key={`${f.name}-${f.size}`} className="flex items-center gap-3 px-3 py-2 text-sm">
+              <FileText className="size-4 shrink-0 text-muted" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{f.name}</span>
+              <span className="text-xs text-muted">{size(f.size)}</span>
+              <button
+                type="button"
+                className="rounded-sm p-1 text-muted hover:bg-canvas hover:text-danger"
+                aria-label={`Remove ${f.name}`}
+                onClick={() => onChange(files.filter((_, j) => j !== i))}
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {problem && <p className="mt-2 text-xs text-danger">{problem}</p>}
+      <input
+        ref={input}
+        type="file"
+        multiple
+        accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => add([...(e.target.files ?? [])])}
+      />
+      <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
+        <Paperclip className="size-4" aria-hidden /> {files.length ? 'Add another file' : 'Attach files'}
+      </Button>
+    </div>
   );
 }

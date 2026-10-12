@@ -21,7 +21,7 @@ HR Administrators also see a notice on every page while the annual-leave accrual
 
 ## Supporting documents
 
-On a request, the employee or HR can upload PDF, JPEG or PNG files up to 5 MB. The type is checked from the file's content, not its name. Files are stored under random names outside the web root and downloaded only through the system, which checks permission every time and records each download in the audit log.
+The employee can attach files while applying (they are uploaded as soon as the request is created), and the employee or HR can add more on the request page afterwards. PDF, JPEG or PNG, up to 5 MB each, at most 10 per request. The type is checked from the file's content, not its name. Files are stored under random names outside the web root and downloaded only through the system, which checks permission every time and records each download in the audit log.
 
 Documents on sick, maternity, family-responsibility and pregnancy-loss leave are medical: the manager sees only that a document was provided. If the policy requires a document and none is uploaded, the employee sees it as an action, HR sees a warning before approving, and the HR overview lists it (D31).
 

@@ -58,7 +58,23 @@ export default function RequestPage() {
             {r.status === 'PENDING_HR_APPROVAL'
               ? 'No active manager is recorded for you, so it has gone straight to HR.'
               : 'Your manager has been asked to review it.'}
+            {location.state.uploaded > 0 &&
+              ` ${location.state.uploaded} ${location.state.uploaded === 1 ? 'document was' : 'documents were'} attached.`}
           </Notice>
+          {location.state.uploadFailed?.length > 0 && (
+            <div className="mt-3">
+              <Notice tone="danger" title="Some documents could not be attached">
+                <ul className="list-disc pl-4">
+                  {location.state.uploadFailed.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+                <p className="mt-1">
+                  Your request was still submitted. Upload them again under Supporting documents.
+                </p>
+              </Notice>
+            </div>
+          )}
         </div>
       )}
 
@@ -431,12 +447,16 @@ function ResubmitForm({ request: r, onDone }) {
     handoverContactId: r.handoverContactId ? String(r.handoverContactId) : '',
     noticeShortfallReason: r.noticeShortfallReason ?? '',
   }));
-  const submit = async (payload, idempotencyKey) => {
+  const submit = async (payload, idempotencyKey, files = []) => {
     await api.post(
       `/api/leave/requests/${r.id}/resubmit`,
       { ...payload, version: r.version },
       { idempotencyKey },
     );
+    // Files that fail here can be uploaded again from the Supporting documents panel.
+    for (const file of files) {
+      await api.upload(`/api/documents/requests/${r.id}`, file).catch(() => {});
+    }
     refresh();
     onDone();
   };
