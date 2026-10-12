@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireRole } from '../../middleware/auth.js';
 import { companyRoutes } from './companies.routes.js';
+import { roleRoutes } from './roles.routes.js';
 import { departmentRoutes } from './departments.routes.js';
 import { employeeRoutes } from './employees.routes.js';
 import { holidayRoutes, scheduleRoutes } from './calendar.routes.js';
@@ -13,6 +14,7 @@ import { adminEmailRoutes } from '../notifications/notifications.routes.js';
 export function adminRoutes(deps) {
   const router = Router();
   router.use(requireRole('HR_ADMIN'));
+  router.use('/roles', roleRoutes(deps));
   router.use('/companies', companyRoutes(deps));
   router.use('/departments', departmentRoutes(deps));
   router.use('/employees', employeeRoutes(deps));

@@ -83,7 +83,7 @@ Managers can be in any company in the group: a manager in one company can approv
 ## First-time setup for HR
 
 1. **Add the group's companies** (Administration → Companies), then give each existing department its company (Departments → Edit) and each employee theirs. Companies → _Show them_ lists active staff with no company yet. Importing a staff file creates any companies it names.
-2. **HR Administrators have every right**, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings.
+2. **Assign roles** under Administration → Roles. HR Administrators have every right, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings. Manager is not a separate role: anyone with direct reports is a manager, and the same page lets you choose who reports to whom. The last active HR Administrator cannot be removed.
 3. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record. Files made from the older import template may still include a `sex` column: F, M, Female or Male).
 4. **Review leave types** (Administration → Leave types). All ten were created from the policy as _inactive_. Check each one's rules against the policy; use _Change rules_ to correct anything, then _Review done – activate_. Activating records who confirmed the rules and when.
 5. **Opening balances**: on each employee's record, under _Leave balances_, record an _Opening balance_ for annual leave with a reason. Every entry is kept in the ledger and audited.

@@ -17,6 +17,7 @@ import {
   CalendarDays,
   Building2,
   Landmark,
+  KeyRound,
   Clock,
   FileUp,
   History,
@@ -52,6 +53,7 @@ const HR = [
 const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
 const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
+  { to: '/admin/roles', label: 'Roles', icon: KeyRound },
   { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/import', label: 'Import employees', icon: FileUp },
   { to: '/admin/companies', label: 'Companies', icon: Landmark },

@@ -112,6 +112,56 @@ describe('roles', () => {
   });
 });
 
+describe('roles page', () => {
+  it('lists holders and grants and removes a role', async () => {
+    const id = (await post('/api/admin/employees', newEmployee({ firstName: 'Bwalya' }))).body.id;
+    expect((await post('/api/admin/roles/HR_OFFICER/holders', { employeeId: id })).status).toBe(201);
+    // Granting twice changes nothing.
+    expect((await post('/api/admin/roles/hr_officer/holders', { employeeId: id })).status).toBe(201);
+    let list = await admin.agent.get('/api/admin/roles');
+    const officers = list.body.roles.find((r) => r.code === 'HR_OFFICER').holders;
+    expect(officers.map((h) => h.id)).toEqual([id]);
+    expect(list.body.roles.find((r) => r.code === 'HR_ADMIN').holders.map((h) => h.id)).toEqual([admin.id]);
+
+    const del = await admin.agent
+      .delete(`/api/admin/roles/HR_OFFICER/holders/${id}`)
+      .set('X-CSRF-Token', admin.csrf);
+    expect(del.status).toBe(200);
+    list = await admin.agent.get('/api/admin/roles');
+    expect(list.body.roles.find((r) => r.code === 'HR_OFFICER').holders).toEqual([]);
+    expect(await db('audit_log').where({ action: 'ROLES_CHANGED' })).toHaveLength(2);
+  });
+
+  it('refuses to remove the last HR Administrator and unknown roles', async () => {
+    const res = await admin.agent
+      .delete(`/api/admin/roles/HR_ADMIN/holders/${admin.id}`)
+      .set('X-CSRF-Token', admin.csrf);
+    expect(res.status).toBe(409);
+    expect((await post('/api/admin/roles/SUPERUSER/holders', { employeeId: admin.id })).status).toBe(404);
+  });
+
+  it('makes someone a manager by giving them direct reports, refusing loops', async () => {
+    const m = (await post('/api/admin/employees', newEmployee({ firstName: 'Mwila' }))).body.id;
+    const a = (await post('/api/admin/employees', newEmployee())).body.id;
+    const b = (await post('/api/admin/employees', newEmployee())).body.id;
+    const res = await post('/api/admin/roles/manager/reports', { managerId: m, employeeIds: [a, b] });
+    expect(res.status).toBe(201);
+    const list = await admin.agent.get('/api/admin/roles');
+    const mgr = list.body.managers.find((x) => x.id === m);
+    expect(mgr.reports.map((r) => r.id).sort()).toEqual([a, b].sort());
+
+    const loop = await post('/api/admin/roles/manager/reports', { managerId: a, employeeIds: [m] });
+    expect(loop.status).toBe(400);
+    expect(loop.body.error.message).toMatch(/reporting loop/);
+
+    const off = await admin.agent
+      .delete(`/api/admin/roles/manager/reports/${a}`)
+      .set('X-CSRF-Token', admin.csrf);
+    expect(off.status).toBe(200);
+    expect((await db('employees').where({ id: a }).first()).line_manager_id).toBeNull();
+  });
+});
+
 describe('linking Microsoft accounts', () => {
   it('lists a refused sign-in and lets HR link it, after which the person can sign in', async () => {
     const oid = '33333333-3333-3333-3333-333333333333';
