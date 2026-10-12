@@ -172,13 +172,16 @@ export default function AppShell() {
         </div>
       </header>
 
-      <div className="flex">
-        <nav
-          aria-label="Main"
-          className="sticky top-[60px] hidden h-[calc(100vh-60px)] w-60 shrink-0 overflow-y-auto border-r border-rule bg-white pt-5 md:block"
-        >
-          {nav}
-        </nav>
+      <div className="flex min-h-[calc(100vh-60px)]">
+        {/* The white column runs the full page height; the menu inside stays in view while scrolling. */}
+        <div className="hidden w-60 shrink-0 border-r border-rule bg-white md:block">
+          <nav
+            aria-label="Main"
+            className="sticky top-[60px] max-h-[calc(100vh-60px)] overflow-y-auto pt-5 pb-5"
+          >
+            {nav}
+          </nav>
+        </div>
         {menuOpen && (
           <nav
             aria-label="Main"
