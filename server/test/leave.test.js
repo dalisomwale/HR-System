@@ -157,12 +157,14 @@ describe('calculating and validating a request', () => {
     const s = await signIn(app, entra, { oid: her.oid });
     const first = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
+      handoverNotes: 'Covered.',
       startDate: '2027-03-01',
       endDate: '2027-03-01',
     });
     expect(first.status).toBe(201);
     const second = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
+      handoverNotes: 'Covered.',
       startDate: '2027-03-15',
       endDate: '2027-03-15',
     });
@@ -170,15 +172,24 @@ describe('calculating and validating a request', () => {
     expect(second.body.error.fields[0].message).toMatch(/1 days in a calendar month/);
     const nextMonth = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
+      handoverNotes: 'Covered.',
       startDate: '2027-04-01',
       endDate: '2027-04-01',
     });
     expect(nextMonth.status).toBe(201);
   });
 
-  it('requires handover notes for annual leave', async () => {
+  it('requires handover notes for every leave type', async () => {
     const res = await as(emp).post('/api/leave/requests', annual({ handoverNotes: '' }));
     expect(res.body.error.fields.map((f) => f.path)).toContain('handoverNotes');
+    const sick = await as(emp).post('/api/leave/requests', {
+      leaveTypeId: ids.SICK,
+      startDate: addDays(todayInLusaka(), -2),
+      endDate: addDays(todayInLusaka(), -1),
+      handoverNotes: '   ',
+    });
+    expect(sick.status).toBe(400);
+    expect(sick.body.error.fields.map((f) => f.path)).toContain('handoverNotes');
   });
 });
 
@@ -361,6 +372,7 @@ describe('who can see a request', () => {
   it('hides requests from unrelated staff and confidential reasons from managers', async () => {
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
+      handoverNotes: 'Covered.',
       startDate: addDays(todayInLusaka(), -2),
       endDate: addDays(todayInLusaka(), -1),
       reason: 'Diagnosis details',

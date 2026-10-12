@@ -134,7 +134,8 @@ export async function evaluateRequest(
 
     if (policy.extraRules.reasonRequired && !input.reason)
       errors.push(err('reason', 'Give a reason for this request.'));
-    if (policy.handoverRequired && !input.handoverNotes) {
+    // Handover notes are required for every leave type (project owner, 12 Oct 2026; D43).
+    if (!input.handoverNotes) {
       errors.push(err('handoverNotes', 'Add handover notes: what needs covering and who will cover it.'));
     }
     if (input.handoverContactId && input.handoverContactId === employee.id) {

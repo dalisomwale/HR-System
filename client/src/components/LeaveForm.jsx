@@ -301,7 +301,6 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
             <Field
               id="handoverNotes"
               label="Handover notes"
-              optional={!type?.handoverRequired}
               error={err('handoverNotes')}
               className="sm:col-span-2"
             >
@@ -309,7 +308,10 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
                 id="handoverNotes"
                 rows={3}
                 invalid={!!err('handoverNotes')}
-                {...register('handoverNotes')}
+                {...register('handoverNotes', {
+                  validate: (v) =>
+                    !!v?.trim() || 'Add handover notes: what needs covering and who will cover it.',
+                })}
               />
             </Field>
 

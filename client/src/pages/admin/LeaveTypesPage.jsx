@@ -330,7 +330,6 @@ function PolicyForm({ type: t, onDone }) {
         {check('isPaid', 'Paid leave')}
         {check('allowHalfDay', 'Half days allowed')}
         {check('allowBackdate', 'Back-dating allowed')}
-        {check('handoverRequired', 'Handover notes required')}
         {check('documentRequired', 'Supporting document required')}
         {p.consumesBalance && check('accrualConfirmed', 'Accrual rule confirmed by HR')}
       </div>

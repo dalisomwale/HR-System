@@ -103,6 +103,7 @@ describe('workflow notifications', () => {
   it('never names a confidential leave type or includes the reason in an email', async () => {
     await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
+      handoverNotes: 'Covered.',
       startDate: '2027-03-01',
       endDate: '2027-03-02',
       reason: 'Private medical detail',
@@ -275,6 +276,7 @@ describe('reminders and escalation', () => {
     const start = todayInLusaka();
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
+      handoverNotes: 'Covered.',
       startDate: start,
       endDate: addDays(start, 1),
       reason: 'Unwell',

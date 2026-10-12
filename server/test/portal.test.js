@@ -96,6 +96,7 @@ async function annualRequest() {
 async function sickRequest(startDate = '2027-03-01', endDate = '2027-03-02') {
   const res = await as(emp).post('/api/leave/requests', {
     leaveTypeId: ids.SICK,
+    handoverNotes: 'Covered.',
     startDate,
     endDate,
     reason: 'Unwell',
