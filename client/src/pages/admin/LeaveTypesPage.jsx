@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import { PERIOD_LABELS, days } from '../../lib/leave.js';
@@ -31,39 +31,106 @@ const ACCRUAL = {
 const NOTICE = { NONE: 'Not enforced', WARN_WITH_REASON: 'Warn and ask for a reason', BLOCK: 'Block' };
 
 export default function LeaveTypesPage() {
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-leave-types'], queryFn: () => api.get('/api/admin/leave-types') });
+  const [editingId, setEditingId] = useState(null);
+  const toggle = useMutation({
+    mutationFn: (t) => api.post(`/api/admin/leave-types/${t.id}/${t.isActive ? 'deactivate' : 'activate'}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-leave-types'] });
+      qc.invalidateQueries({ queryKey: ['leave-types'] });
+      qc.invalidateQueries({ queryKey: ['balances'] });
+    },
+  });
+  const editing = q.data?.items.find((t) => t.id === editingId);
+
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="max-w-5xl">
       <PageHeader title="Leave types" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-6">
           <AccrualNotice items={q.data.items} />
-          {q.data.items.map((t) => (
-            <LeaveTypeCard key={t.id} type={t} />
-          ))}
+          {editing?.current && (
+            <RulesSection key={editing.id} type={editing} onClose={() => setEditingId(null)} />
+          )}
+          {toggle.isError && <Notice tone="danger">{toggle.error.message}</Notice>}
+          <Table>
+            <thead>
+              <tr>
+                <Th>Name</Th>
+                <Th>Allowance</Th>
+                <Th>Counted in</Th>
+                <Th>Status</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {q.data.items.map((t) => (
+                <tr key={t.id}>
+                  <Td>
+                    <span className="font-medium">{t.name}</span>
+                    {t.current?.sourceReference && (
+                      <p className="text-xs text-muted">Policy {t.current.sourceReference}</p>
+                    )}
+                  </Td>
+                  <Td>{t.current ? allowance(t.current) : 'No policy recorded'}</Td>
+                  <Td>{t.current?.dayBasis === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days'}</Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-1">
+                      {t.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
+                      {t.current?.requiresHrConfirmation && <Badge tone="pending">Awaiting review</Badge>}
+                      {t.isConfidential && <Badge tone="brand">Confidential</Badge>}
+                    </div>
+                  </Td>
+                  <Td className="text-right whitespace-nowrap">
+                    {t.current && (
+                      <Button
+                        variant="ghost"
+                        className="h-7 px-2"
+                        onClick={() => setEditingId(t.id === editingId ? null : t.id)}
+                      >
+                        {t.id === editingId ? 'Close' : 'Rules'}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      className="h-7 px-2"
+                      busy={toggle.isPending && toggle.variables?.id === t.id}
+                      onClick={() => toggle.mutate(t)}
+                    >
+                      {t.isActive ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+          <JobsSection />
         </div>
       )}
-      <JobsSection />
     </div>
   );
+}
+
+function allowance(p) {
+  if (p.consumesBalance) return `${p.entitlementDays != null ? days(p.entitlementDays) : 'Not set'} a year`;
+  if (p.entitlementDays == null) return 'No fixed allowance';
+  const period =
+    PERIOD_LABELS[p.entitlementPeriod] ?? (p.entitlementPeriod === 'PER_OCCASION' ? 'per occasion' : '');
+  return `${days(p.entitlementDays)} ${period}`;
 }
 
 function summary(p) {
   const rows = [
     ['Paid', p.isPaid ? 'Yes' : 'No'],
     ['Counted in', p.dayBasis === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days'],
-    [
-      'Allowance',
-      p.consumesBalance
-        ? `Balance: ${p.entitlementDays != null ? days(p.entitlementDays) : 'not set'} per year`
-        : p.entitlementDays != null
-          ? `${days(p.entitlementDays)} ${PERIOD_LABELS[p.entitlementPeriod] ?? (p.entitlementPeriod === 'PER_OCCASION' ? 'per occasion' : '')}`
-          : 'No fixed allowance',
-    ],
+    ['Allowance', p.consumesBalance ? `Balance: ${allowance(p)}` : allowance(p)],
   ];
   if (p.consumesBalance) {
     rows.push([
@@ -98,63 +165,31 @@ function summary(p) {
   return rows;
 }
 
-function LeaveTypeCard({ type: t }) {
-  const qc = useQueryClient();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [editing, setEditing] = useState(false);
+/** The chosen type's rules, shown above the table the way Companies shows its edit form. */
+function RulesSection({ type: t, onClose }) {
+  const [changing, setChanging] = useState(false);
   const p = t.current;
-
-  const toggle = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.post(`/api/admin/leave-types/${t.id}/${t.isActive ? 'deactivate' : 'activate'}`);
-      qc.invalidateQueries({ queryKey: ['admin-leave-types'] });
-      qc.invalidateQueries({ queryKey: ['leave-types'] });
-      qc.invalidateQueries({ queryKey: ['balances'] });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   return (
     <Section
-      title={
-        <span className="flex flex-wrap items-center gap-2">
-          {t.name}
-          {t.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
-          {p?.requiresHrConfirmation && <Badge tone="pending">Awaiting HR review</Badge>}
-          {t.isConfidential && <Badge tone="brand">Confidential</Badge>}
-        </span>
-      }
-      description={
-        p
-          ? `Version ${p.versionNo}, in force from ${formatDate(p.effectiveFrom)}${p.sourceReference ? ` · ${p.sourceReference}` : ''}`
-          : 'No policy recorded'
-      }
+      title={`${t.name} rules`}
+      description={`Version ${p.versionNo}, in force from ${formatDate(p.effectiveFrom)}${p.sourceReference ? ` · policy ${p.sourceReference}` : ''}`}
       actions={
-        p && (
-          <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setEditing((e) => !e)}>
-              {editing ? 'Close' : 'Change rules'}
+        <div className="flex gap-2">
+          {!changing && (
+            <Button variant="secondary" onClick={() => setChanging(true)}>
+              Change rules
             </Button>
-            <Button variant={t.isActive ? 'danger' : 'primary'} busy={busy} onClick={toggle}>
-              {t.isActive ? 'Deactivate' : 'Review done – activate'}
-            </Button>
-          </div>
-        )
+          )}
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       }
     >
       {t.description && <p className="mb-3 text-sm text-muted">{t.description}</p>}
-      {error && (
-        <div className="mb-3">
-          <Notice tone="danger">{error}</Notice>
-        </div>
-      )}
-      {p && (
+      {changing ? (
+        <PolicyForm type={t} onDone={() => setChanging(false)} />
+      ) : (
         <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
           {summary(p).map(([k, v]) => (
             <div key={k} className="contents">
@@ -164,7 +199,6 @@ function LeaveTypeCard({ type: t }) {
           ))}
         </dl>
       )}
-      {editing && p && <PolicyForm type={t} onDone={() => setEditing(false)} />}
       {t.versions.length > 1 && (
         <p className="mt-3 text-xs text-muted">
           Earlier versions:{' '}
@@ -266,11 +300,7 @@ function PolicyForm({ type: t, onDone }) {
   );
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      noValidate
-      className="mt-4 grid gap-4 border-t border-rule pt-4 sm:grid-cols-3"
-    >
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-3">
       <p className="text-sm text-muted sm:col-span-3">
         New rules apply to requests starting on or after the date you choose. Requests already made keep the
         rules they were made under.
@@ -365,6 +395,7 @@ const JOB_LABELS = {
   MONTHLY_ACCRUAL: 'Monthly accrual',
   CARRY_FORWARD: 'Year-end carry forward',
   CARRY_FORWARD_EXPIRY: 'Carry-forward expiry',
+  DAILY_REMINDERS: 'Daily reminders',
 };
 
 function JobsSection() {
@@ -511,7 +542,7 @@ function AccrualNotice({ items }) {
       tone="pending"
       title={`Accrual is off until the ${names.join(', ').toLowerCase()} rule is confirmed.`}
     >
-      Choose the rule under Change rules and tick “Accrual rule confirmed by HR”.
+      Open Rules, choose Change rules and tick “Accrual rule confirmed by HR”.
     </Notice>
   );
 }
