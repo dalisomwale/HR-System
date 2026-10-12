@@ -12,10 +12,7 @@ export default function TeamPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="Team overview"
-        description="Your direct reports' leave over the next 30 days, and what is waiting for you. Reasons and medical documents stay with HR."
-      />
+      <PageHeader title="Team overview" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -32,9 +29,7 @@ function Body({ d }) {
   return (
     <>
       {d.coveringFor.length > 0 && (
-        <Notice tone="neutral" title={`You are covering approvals for ${d.coveringFor.join(', ')}.`}>
-          Their team’s requests appear in your approvals until the delegation ends.
-        </Notice>
+        <Notice tone="neutral" title={`You are covering approvals for ${d.coveringFor.join(', ')}.`} />
       )}
       <Stats>
         <Stat label="Waiting for you" value={d.awaiting.length + d.awaitingChanges} to="/approvals" />
@@ -45,7 +40,6 @@ function Body({ d }) {
 
       <Section
         title="Waiting for your review"
-        description="Oldest first."
         actions={
           <Link to="/approvals" className="text-sm text-brand hover:underline">
             All approvals
@@ -72,13 +66,13 @@ function Body({ d }) {
         <Section title="On leave today">
           <RequestList items={d.onLeave} showEmployee empty="Nobody in your team is on leave today." />
         </Section>
-        <Section title="Coming up in the next 30 days" description="Approved and still pending.">
+        <Section title="Coming up in the next 30 days">
           <RequestList items={d.upcoming} showEmployee empty="No leave planned in the next 30 days." />
         </Section>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Overlapping absences" description="Days when two or more of your team are off.">
+        <Section title="Overlapping absences">
           {d.overlaps.length === 0 ? (
             <p className="text-sm text-muted">No overlaps in the next 30 days.</p>
           ) : (
@@ -95,7 +89,7 @@ function Body({ d }) {
             </ul>
           )}
         </Section>
-        <Section title="Cover not arranged" description="Approved upcoming leave with nobody named to cover.">
+        <Section title="Cover not arranged">
           <RequestList
             items={d.handoversOutstanding}
             showEmployee

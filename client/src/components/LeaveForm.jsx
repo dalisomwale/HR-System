@@ -191,13 +191,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
             )}
 
             {type?.eventRequired && (
-              <Field
-                id="eventDate"
-                label="Date of birth"
-                error={err('eventDate')}
-                className="sm:col-span-2"
-                hint="The leave must start on or after this date."
-              >
+              <Field id="eventDate" label="Date of birth" error={err('eventDate')} className="sm:col-span-2">
                 <Input
                   id="eventDate"
                   type="date"
@@ -281,7 +275,6 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
               optional={!type?.reasonRequired}
               error={err('reason')}
               className="sm:col-span-2"
-              hint="Seen by your manager and HR. For sensitive leave types only HR sees it."
             >
               <Textarea id="reason" rows={3} invalid={!!err('reason')} {...register('reason')} />
             </Field>
@@ -423,7 +416,6 @@ function PreviewPanel({ canPreview, preview }) {
               </ul>
             </Notice>
           )}
-          {p.ok && <Notice tone="ok">Ready to submit.</Notice>}
         </div>
       )}
     </Section>
@@ -476,7 +468,7 @@ function AttachmentPicker({ files, onChange, type }) {
       <p className="mt-1 text-xs text-muted">
         {type?.documentRequired
           ? `Required: ${type.documentDescription ?? 'a supporting document'}. If you do not have it yet, you can upload it later from the request page.`
-          : 'For example a medical certificate or a letter. PDF, JPEG or PNG, up to 5 MB each.'}
+          : 'PDF, JPEG or PNG, up to 5 MB each.'}
       </p>
       {files.length > 0 && (
         <ul className="mt-3 divide-y divide-rule rounded-md border border-rule">

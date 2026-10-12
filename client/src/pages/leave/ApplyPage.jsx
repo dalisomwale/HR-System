@@ -28,10 +28,7 @@ export default function ApplyPage() {
   };
   return (
     <div className="max-w-6xl">
-      <PageHeader
-        title="Apply for leave"
-        description="Your request goes to your manager first, then to HR for final approval."
-      />
+      <PageHeader title="Apply for leave" />
       <LeaveForm submitLabel="Submit request" onSubmit={submit} />
     </div>
   );

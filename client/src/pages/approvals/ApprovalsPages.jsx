@@ -72,10 +72,7 @@ export function ManagerApprovalsPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="Team approvals"
-        description="Leave requests from people who report to you, and from anyone you are covering for as a delegate. Approved requests go on to HR."
-      />
+      <PageHeader title="Team approvals" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -98,10 +95,7 @@ export function HrApprovalsPage() {
   const q = useQuery({ queryKey: ['approvals', 'hr'], queryFn: () => api.get('/api/approvals/hr') });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="HR approvals"
-        description="Final approval. Days are deducted from balances when HR approves. You cannot give final approval to your own leave or to a request you approved as manager."
-      />
+      <PageHeader title="HR approvals" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (

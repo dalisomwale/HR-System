@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { Notice } from '../components/ui.jsx';
 import { useMe, hasRole } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
@@ -191,41 +190,9 @@ export default function AppShell() {
           </nav>
         )}
         <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-8">
-          {hasRole(user, 'HR_ADMIN') && <AccrualNotice />}
           <Outlet />
         </main>
       </div>
-    </div>
-  );
-}
-
-/** Persistent notice for HR Administrators while an accrual rule is unconfirmed (brief s.9). */
-function AccrualNotice() {
-  const q = useQuery({
-    queryKey: ['admin-leave-types'],
-    queryFn: () => api.get('/api/admin/leave-types'),
-    staleTime: 60_000,
-  });
-  const names =
-    q.data?.items
-      .filter(
-        (t) =>
-          t.current?.consumesBalance && t.current.accrualMethod !== 'NONE' && !t.current.accrualConfirmed,
-      )
-      .map((t) => t.name) ?? [];
-  if (!names.length) return null;
-  return (
-    <div className="mb-6 max-w-6xl">
-      <Notice
-        tone="pending"
-        title={`Accrual is off: the ${names.join(', ').toLowerCase()} rule is not confirmed.`}
-      >
-        The policy states both 25 days a year and 2.3 days a month. Confirm the rule under{' '}
-        <Link to="/admin/leave-types" className="underline">
-          Leave types
-        </Link>{' '}
-        before running monthly accrual.
-      </Notice>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default function HrOverviewPage() {
   const q = useQuery({ queryKey: ['dashboard', 'hr'], queryFn: () => api.get('/api/dashboard/hr') });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="HR overview" description="Company-wide leave: queues, exceptions and who is away." />
+      <PageHeader title="HR overview" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -117,7 +117,7 @@ function Body({ d }) {
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Waiting for final approval" description="Oldest first.">
+        <Section title="Waiting for final approval">
           <RequestList
             items={d.awaitingHr}
             showEmployee
@@ -140,10 +140,7 @@ function Body({ d }) {
       </Section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Section
-          title={`Annual leave taken by department, ${d.utilisation.year}`}
-          description="Approved annual-leave days in the year, against current headcount."
-        >
+        <Section title={`Annual leave taken by department, ${d.utilisation.year}`}>
           {d.utilisation.rows.length === 0 ? (
             <p className="text-sm text-muted">No active employees.</p>
           ) : (

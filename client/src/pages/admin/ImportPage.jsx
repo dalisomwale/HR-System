@@ -58,7 +58,6 @@ export default function ImportPage() {
     <div className="max-w-5xl">
       <PageHeader
         title="Import employees"
-        description="Add your staff list from a CSV file. Nothing is saved until every row is valid and you confirm."
         actions={
           <a
             href="/api/admin/employees/import/template"

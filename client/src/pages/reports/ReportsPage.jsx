@@ -42,7 +42,7 @@ export default function ReportsPage() {
 
   if (list.isPending) return <Loading />;
   if (list.isError) return <LoadError error={list.error} onRetry={() => list.refetch()} />;
-  const { items, options, scope } = list.data;
+  const { items, options } = list.data;
   const report = items.find((r) => r.id === selected) ?? items[0];
 
   const choose = (id) => setParams({ report: id });
@@ -53,14 +53,7 @@ export default function ReportsPage() {
 
   return (
     <div className="max-w-7xl">
-      <PageHeader
-        title="Reports"
-        description={
-          scope === 'HR'
-            ? 'Company-wide reports. Times are Lusaka time. Exports are recorded in the audit log.'
-            : 'Reports on the people you manage. Times are Lusaka time. Exports are recorded in the audit log.'
-        }
-      />
+      <PageHeader title="Reports" />
       <div className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label="Reports" className="self-start rounded-md border border-rule bg-white py-2">
           <ul>
@@ -276,12 +269,6 @@ function ReportView({ report, options, applied, onApply }) {
                 ))}
               </tbody>
             </Table>
-          )}
-          {report.id === 'ten-days' && (
-            <Notice tone="neutral">
-              Counts working days. Whether the policy's “10 consecutive days” means working or calendar days
-              is for HR to confirm (decision D37).
-            </Notice>
           )}
         </>
       )}

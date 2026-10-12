@@ -57,10 +57,7 @@ export default function AuditPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Audit log"
-        description="Every sign-in and every change made in the system, newest first. Entries cannot be edited or deleted."
-      />
+      <PageHeader title="Audit log" />
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <Field id="aAction" label="Event">
           <Select

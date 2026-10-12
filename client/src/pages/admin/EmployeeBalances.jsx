@@ -41,7 +41,6 @@ export default function EmployeeBalances({ employeeId }) {
   return (
     <Section
       title="Leave balances"
-      description="Every change is a ledger entry with a reason; entries are never edited or deleted."
       actions={
         <Select
           aria-label="Year"

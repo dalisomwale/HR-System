@@ -376,7 +376,7 @@ export async function submitRequest(db, actor, input, audit) {
         actingAs: 'SYSTEM',
         from: 'PENDING_MANAGER_APPROVAL',
         to: status,
-        comment: 'No active manager recorded; sent straight to HR (decision D3).',
+        comment: 'No active manager recorded; sent straight to HR.',
       });
     }
     await writeAudit(trx, {
@@ -465,8 +465,7 @@ export async function managerDecision(db, actor, requestId, input, audit) {
       throw forbidden('Only the employee’s manager (or their delegate) can act on this request.');
     if (input.action === 'RETURN')
       throw badRequest('Managers approve or reject; HR can return a request for correction.');
-    if (input.action === 'REJECT' && !input.comment)
-      throw badRequest('Give a reason for rejecting (policy 1.3.2(c)).');
+    if (input.action === 'REJECT' && !input.comment) throw badRequest('Give a reason for rejecting.');
     const to = input.action === 'APPROVE' ? 'PENDING_HR_APPROVAL' : 'REJECTED_BY_MANAGER';
     await trx('leave_requests')
       .where({ id: r.id })

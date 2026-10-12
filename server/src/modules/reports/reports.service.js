@@ -726,7 +726,7 @@ export const REPORTS = [
     id: 'ten-days',
     title: 'Not yet taken 10 consecutive annual-leave days',
     description:
-      'The policy (2.3) asks everyone to take at least 10 consecutive working days of annual leave each year. Weekends and public holidays inside a block do not break it.',
+      'People whose longest block of annual leave this year is under 10 consecutive working days. Weekends and public holidays inside a block do not break it.',
     levels: ['HR', 'MANAGER'],
     filters: ['year', 'employee', 'department'],
     columns: [

@@ -79,11 +79,7 @@ export default function EmployeePage() {
       </Link>
       <PageHeader
         title={isNew ? 'Add employee' : `${e.firstName} ${e.lastName}`}
-        description={
-          isNew
-            ? 'Create the record first; link their Microsoft account and give roles afterwards.'
-            : e.jobTitle
-        }
+        description={isNew ? undefined : e.jobTitle}
         actions={
           !isNew && (e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>)
         }
@@ -221,13 +217,7 @@ function EmployeeForm({ employee, isNew }) {
         <Field id="employeeNumber" label="Employee number" error={err('employeeNumber')}>
           <Input id="employeeNumber" invalid={!!err('employeeNumber')} {...register('employeeNumber', req)} />
         </Field>
-        <Field
-          id="email"
-          label="Work email"
-          optional
-          error={err('email')}
-          hint="Used for notifications, not for sign-in."
-        >
+        <Field id="email" label="Work email" optional error={err('email')}>
           <Input id="email" type="email" invalid={!!err('email')} {...register('email')} />
         </Field>
         <Field id="jobTitle" label="Job title" optional error={err('jobTitle')} className="sm:col-span-2">
@@ -256,13 +246,7 @@ function EmployeeForm({ employee, isNew }) {
             ))}
           </Select>
         </Field>
-        <Field
-          id="lineManagerId"
-          label="Manager"
-          optional
-          error={err('lineManagerId')}
-          hint="Reviews this person’s leave first."
-        >
+        <Field id="lineManagerId" label="Manager" optional error={err('lineManagerId')}>
           <Select id="lineManagerId" invalid={!!err('lineManagerId')} {...register('lineManagerId')}>
             <option value="">No manager</option>
             {people.data?.items
@@ -340,7 +324,7 @@ function IdentityPanel({ employee }) {
   const id = employee.identity;
 
   return (
-    <Section title="Microsoft account" description="How this person signs in.">
+    <Section title="Microsoft account">
       {id ? (
         <div className="space-y-3 text-sm">
           <Badge tone="ok">Linked</Badge>
@@ -412,10 +396,7 @@ function RolesPanel({ employee }) {
   const toggle = (r) => setRoles((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]));
 
   return (
-    <Section
-      title="System roles"
-      description="Everyone can apply for leave. Managers are set by the reporting line."
-    >
+    <Section title="System roles">
       <fieldset className="space-y-2.5" disabled={employee.status !== 'ACTIVE'}>
         <legend className="sr-only">Roles</legend>
         {[

@@ -34,16 +34,14 @@ export default function LeaveTypesPage() {
   const q = useQuery({ queryKey: ['admin-leave-types'], queryFn: () => api.get('/api/admin/leave-types') });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="Leave types"
-        description="Set up from the Altus Group Leave Policy (29 May 2025). Each type stays unavailable to employees until HR has checked its rules and activated it. Changing a rule creates a new version from a date; past versions are kept."
-      />
+      <PageHeader title="Leave types" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <div className="space-y-4">
+          <AccrualNotice items={q.data.items} />
           {q.data.items.map((t) => (
             <LeaveTypeCard key={t.id} type={t} />
           ))}
@@ -339,13 +337,7 @@ function PolicyForm({ type: t, onDone }) {
       <Field id={`${t.id}-documentDescription`} label="Document needed" optional className="sm:col-span-3">
         <Input id={`${t.id}-documentDescription`} {...register('documentDescription')} />
       </Field>
-      <Field
-        id={`${t.id}-note`}
-        label="Why is this changing?"
-        error={err('note')}
-        className="sm:col-span-3"
-        hint="Recorded in the audit log, for example the policy clause or HR decision."
-      >
+      <Field id={`${t.id}-note`} label="Why is this changing?" error={err('note')} className="sm:col-span-3">
         <Textarea
           id={`${t.id}-note`}
           rows={2}
@@ -404,17 +396,10 @@ function JobsSection() {
   };
 
   return (
-    <Section
-      title="Balance jobs"
-      description="Run these by hand until automatic scheduling is switched on. Each job runs once per period; running it again does not post twice."
-    >
+    <Section title="Balance jobs">
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Field
-            id="accrual-period"
-            label="Monthly accrual for"
-            hint="Refused until HR confirms the accrual rule."
-          >
+          <Field id="accrual-period" label="Monthly accrual for">
             <Input
               id="accrual-period"
               type="month"
@@ -431,11 +416,7 @@ function JobsSection() {
           </Button>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Field
-            id="cf-year"
-            label="Leave year ending"
-            hint="Carry forward moves up to the limit into the next year; expiry removes what is unused by the deadline."
-          >
+          <Field id="cf-year" label="Leave year ending">
             <Input
               id="cf-year"
               className="w-32"
@@ -516,4 +497,22 @@ function describe(summary) {
     .filter(([, v]) => typeof v !== 'object')
     .map(([k, v]) => `${k.replace(/([A-Z])/g, ' $1').toLowerCase()}: ${v}`)
     .join(', ');
+}
+
+/** Shown while a balance accrual rule is unconfirmed; accrual will not run until it is. */
+function AccrualNotice({ items }) {
+  const names = items
+    .filter(
+      (t) => t.current?.consumesBalance && t.current.accrualMethod !== 'NONE' && !t.current.accrualConfirmed,
+    )
+    .map((t) => t.name);
+  if (!names.length) return null;
+  return (
+    <Notice
+      tone="pending"
+      title={`Accrual is off until the ${names.join(', ').toLowerCase()} rule is confirmed.`}
+    >
+      Choose the rule under Change rules and tick “Accrual rule confirmed by HR”.
+    </Notice>
+  );
 }

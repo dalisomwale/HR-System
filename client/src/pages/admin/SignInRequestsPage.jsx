@@ -28,10 +28,7 @@ export default function SignInRequestsPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader
-        title="Sign-in requests"
-        description="People who signed in with Microsoft in the last 30 days but are not linked to an employee record. Link each one to the right person."
-      />
+      <PageHeader title="Sign-in requests" />
       {pending.isPending ? (
         <Loading />
       ) : pending.isError ? (

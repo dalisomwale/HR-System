@@ -52,10 +52,7 @@ export default function SchedulesPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader
-        title="Working schedules"
-        description="Which days count as working days, used when counting leave in working days. Employees follow the company default unless given another schedule."
-      />
+      <PageHeader title="Working schedules" />
       <div className="grid gap-6">
         {list.isPending ? (
           <Loading />

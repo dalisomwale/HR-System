@@ -33,20 +33,17 @@ const TITLES = {
 const HELP = {
   manager_scope:
     'Whether a manager approves only the people who report to them directly, or everyone below them.',
-  no_manager_routing:
-    'Requests from someone with no manager (for example the Executive Director). The routing is recorded on the request.',
+  no_manager_routing: 'Requests from someone with no manager, for example the Executive Director.',
   resubmission_routing: 'Where a corrected request goes after HR sends it back.',
   handover_signoff_by: 'The policy says handover notes are signed off by the Head of Department.',
   weekend_holiday_substitution:
     'When a public holiday falls on a weekend, any substitute day is added under Public holidays.',
   overdue_manager_working_days: 'After this, the request is flagged as overdue for the manager.',
   overdue_hr_working_days: 'After this, the request is flagged as overdue for HR.',
-  uncommunicated_decision_escalation_days:
-    'The policy covers manager decisions not given within a week. The system escalates to HR; it never approves leave automatically.',
+  uncommunicated_decision_escalation_days: 'Undecided requests are escalated, never approved automatically.',
   leave_reservations_enabled: 'If yes, days in a pending request are held so they cannot be requested twice.',
   email_max_attempts: 'How many times an email is retried before it is reported as failed.',
-  idempotency_ttl_hours:
-    'How long the system remembers a submitted action, so a double-click or retry cannot repeat it.',
+  idempotency_ttl_hours: 'How long a submitted action is remembered so a double-click cannot repeat it.',
 };
 
 const MONTHS = [
@@ -80,18 +77,14 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl">
-      <PageHeader
-        title="Workflow settings"
-        description="How requests are routed and when they become overdue. Defaults come from the project decisions register until HR confirms them."
-      />
+      <PageHeader title="Workflow settings" />
       {toConfirm.length > 0 && (
         <div className="mb-8">
           <Notice
             tone="pending"
             title={`${toConfirm.length} setting${toConfirm.length === 1 ? '' : 's'} need HR confirmation`}
           >
-            Each one is using a documented default. Check it against the leave policy, change it if needed,
-            and confirm.
+            Check each against the leave policy and confirm.
           </Notice>
           <SettingsList items={toConfirm} />
         </div>

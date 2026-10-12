@@ -147,12 +147,7 @@ function DelegationForm({ people, admin }) {
           </Select>
         </Field>
       )}
-      <Field
-        id="delegateId"
-        label="Who will cover approvals?"
-        error={err('delegateId')}
-        hint="They can approve or reject leave for the manager’s team, but never their own."
-      >
+      <Field id="delegateId" label="Who will cover approvals?" error={err('delegateId')}>
         <Select id="delegateId" invalid={!!err('delegateId')} {...register('delegateId', req)}>
           <option value="">Choose…</option>
           {people.map((p) => (
@@ -196,10 +191,7 @@ export function DelegationsPage() {
   });
   return (
     <div className="max-w-5xl space-y-6">
-      <PageHeader
-        title="Delegation"
-        description="When you are away, name someone to approve or reject your team’s leave in your place. HR still gives final approval."
-      />
+      <PageHeader title="Delegation" />
       {q.isPending || people.isPending ? (
         <Loading />
       ) : q.isError || people.isError ? (
@@ -250,10 +242,7 @@ export function AdminDelegationsPage() {
   });
   return (
     <div className="max-w-5xl space-y-6">
-      <PageHeader
-        title="Delegations"
-        description="Who is covering manager approvals. Set one up when a manager is away without having done it themselves."
-      />
+      <PageHeader title="Delegations" />
       <Section title="Set up a delegation">
         {people.isPending ? (
           <Loading />

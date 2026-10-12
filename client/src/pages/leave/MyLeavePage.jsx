@@ -27,7 +27,6 @@ export default function MyLeavePage() {
     <div className="max-w-6xl space-y-6">
       <PageHeader
         title="My leave"
-        description="Your balances and requests."
         actions={
           <>
             <Select

@@ -59,7 +59,6 @@ export default function EmailsPage() {
     <div className="max-w-6xl space-y-6">
       <PageHeader
         title="Emails"
-        description="Every email the system has queued. “Accepted” means Microsoft accepted the message; the system cannot see whether it reached the inbox."
         actions={
           d?.transport === 'graph' && (
             <Button
@@ -79,10 +78,7 @@ export default function EmailsPage() {
         }
       />
       {d && d.transport !== 'graph' && (
-        <Notice tone="pending" title="Email is switched off on this server.">
-          In-system notifications still work. To send email, set MAIL_TRANSPORT=graph and the mail settings
-          described in docs/email-setup.md, then restart.
-        </Notice>
+        <Notice tone="pending" title="Email is switched off on this server." />
       )}
       {d?.transport === 'graph' && (
         <p className="text-sm text-muted">

@@ -217,14 +217,7 @@ function DecisionPanel({ request: r, stage }) {
     });
   };
   return (
-    <Section
-      title={isHr ? 'HR decision' : 'Your decision'}
-      description={
-        isHr
-          ? 'Approval is final and deducts the days from the balance.'
-          : 'If you approve, the request goes to HR for final approval.'
-      }
-    >
+    <Section title={isHr ? 'HR decision' : 'Your decision'}>
       <div className="space-y-3">
         {isHr && r.documentRequirement && !r.documentRequirement.provided && (
           <Notice tone="pending">
@@ -334,9 +327,6 @@ function WithdrawPanel({ request: r }) {
   const [confirming, setConfirming] = useState(false);
   return (
     <Section title="Withdraw">
-      <p className="mb-3 text-sm text-muted">
-        Withdraw this request if you no longer need the leave. Nothing is deducted.
-      </p>
       {error && (
         <div className="mb-3">
           <Notice tone="danger">{error}</Notice>
@@ -384,7 +374,7 @@ function CancelPanel({ request: r }) {
     <Section title={r.started ? 'Return early' : 'Cancel approved leave'}>
       <p className="mb-3 text-sm text-muted">
         {r.started
-          ? 'Your leave has started. Days are returned only if management recalled you (policy 2.8).'
+          ? 'Your leave has started. Days are returned only if management recalled you.'
           : 'Cancelling needs your manager’s and HR’s approval. The days are returned once approved.'}
       </p>
       {error && (

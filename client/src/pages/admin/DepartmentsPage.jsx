@@ -50,7 +50,7 @@ export default function DepartmentsPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader title="Departments" description="Used to group staff and report leave by department." />
+      <PageHeader title="Departments" />
       <div className="grid gap-6">
         <Section title={editingId ? 'Edit department' : 'Add a department'}>
           <form

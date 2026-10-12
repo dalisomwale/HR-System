@@ -54,7 +54,6 @@ export default function HolidaysPage() {
     <div className="max-w-5xl">
       <PageHeader
         title="Public holidays"
-        description="Gazetted public holidays in Zambia, including days declared at short notice. Used when counting leave in working days."
         actions={
           <Select
             aria-label="Year"
