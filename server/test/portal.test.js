@@ -331,9 +331,9 @@ describe('directors', () => {
       expect(
         (await as(director).post(`/api/approvals/requests/${sick.id}/manager`, { action: 'APPROVE' })).status,
       ).toBe(403);
-      expect((await as(director).post(`/api/approvals/requests/${sick.id}/hr`, { action: 'APPROVE' })).status).toBe(
-        403,
-      );
+      expect(
+        (await as(director).post(`/api/approvals/requests/${sick.id}/hr`, { action: 'APPROVE' })).status,
+      ).toBe(403);
       expect((await as(director).get(`/api/hr/employees/${emp.id}/balances`)).status).toBe(403);
       expect((await as(director).get('/api/admin/employees')).status).toBe(403);
     });
