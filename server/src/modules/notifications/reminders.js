@@ -93,7 +93,10 @@ export async function escalateOverdue(db, today = todayInLusaka()) {
           rows: [
             ['Reference', r.reference],
             ['Employee', who],
-            ['Leave type', r.is_confidential ? 'Leave (details in the system)' : r.type_name],
+            [
+              'Leave type',
+              r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name,
+            ],
             [
               'Dates',
               r.start_date === r.end_date ? day(r.start_date) : `${day(r.start_date)} to ${day(r.end_date)}`,
@@ -149,7 +152,10 @@ export async function remindDocumentsDue(db, today = todayInLusaka()) {
           intro: 'Your leave needs a supporting document, and none has been uploaded yet.',
           rows: [
             ['Reference', r.reference],
-            ['Leave type', r.is_confidential ? 'Leave (details in the system)' : r.type_name],
+            [
+              'Leave type',
+              r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name,
+            ],
             [
               'Dates',
               r.start_date === r.end_date ? day(r.start_date) : `${day(r.start_date)} to ${day(r.end_date)}`,

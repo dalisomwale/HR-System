@@ -61,8 +61,12 @@ async function access(db, viewer, requestId) {
   const isHr = viewer.roles.includes('HR_OFFICER');
   const authority = await managerAuthority(db, viewer, r);
   const wasManager = r.assigned_manager_id === viewer.id;
+  const isTeamManager =
+    r.is_sensitive &&
+    (await db('employees').where({ id: r.employee_id }).first('line_manager_id'))?.line_manager_id ===
+      viewer.id;
   const isDirector = seesWholeGroup(viewer);
-  if (!isOwner && !isHr && !isDirector && !authority && !wasManager) {
+  if (!isOwner && !isHr && !isDirector && !authority && !wasManager && !isTeamManager) {
     throw notFound('Leave request not found.');
   }
   // Directors, like managers, never see medical documents.
@@ -172,7 +176,8 @@ export function documentRoutes({ db, config, logger }) {
             mime_type: mime,
             size_bytes: buf.length,
             sha256,
-            is_medical: Boolean(r.is_confidential),
+            // HR-only: confidential leave types and requests the employee marked sensitive.
+            is_medical: Boolean(r.is_confidential || r.is_sensitive),
           });
           await writeAudit(trx, {
             ...auditContext(req),

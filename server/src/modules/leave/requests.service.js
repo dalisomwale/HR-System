@@ -30,6 +30,8 @@ export const requestInputSchema = z.object({
   noticeShortfallReason: optionalText(1000),
   eventDate: isoDate.nullish().or(z.literal('').transform(() => null)),
   multipleBirth: z.boolean().default(false),
+  // Sensitive: skip the manager and go straight to HR; reason and documents are HR-only (D44).
+  sensitive: z.boolean().default(false),
 });
 
 const err = (field, message) => ({ field, message });
@@ -335,7 +337,8 @@ export async function submitRequest(db, actor, input, audit) {
     const ev = await evaluateRequest(trx, employee, input);
     if (ev.errors.length) throw new RequestInvalid(ev);
 
-    const managerId = await resolveManager(trx, employee);
+    const sensitive = Boolean(input.sensitive);
+    const managerId = sensitive ? null : await resolveManager(trx, employee);
     const status = managerId ? 'PENDING_MANAGER_APPROVAL' : 'PENDING_HR_APPROVAL';
     const [id] = await trx('leave_requests').insert({
       employee_id: employee.id,
@@ -350,12 +353,13 @@ export async function submitRequest(db, actor, input, audit) {
       chargeable_days: ev.calc.chargeableDays,
       calendar_days: ev.calc.calendarDays,
       reason: input.reason,
+      is_sensitive: sensitive,
       handover_notes: input.handoverNotes,
       handover_contact_id: input.handoverContactId,
       notice_shortfall_reason: input.noticeShortfallReason,
       status,
       assigned_manager_id: managerId,
-      routed_without_manager: !managerId,
+      routed_without_manager: !managerId && !sensitive,
       submitted_at: trx.fn.now(),
     });
     const reference = `LR-${input.startDate.slice(0, 4)}-${String(id).padStart(6, '0')}`;
@@ -377,7 +381,9 @@ export async function submitRequest(db, actor, input, audit) {
         actingAs: 'SYSTEM',
         from: 'PENDING_MANAGER_APPROVAL',
         to: status,
-        comment: 'No active manager recorded; sent straight to HR.',
+        comment: sensitive
+          ? 'Marked sensitive by the employee; sent straight to HR.'
+          : 'No active manager recorded; sent straight to HR.',
       });
     }
     await writeAudit(trx, {
@@ -392,6 +398,7 @@ export async function submitRequest(db, actor, input, audit) {
         endDate: input.endDate,
         days: ev.calc.chargeableDays,
         status,
+        sensitive,
       },
     });
     await leaveRequestEvent(trx, 'SUBMITTED', id, { actorId: actor.id });
@@ -648,7 +655,9 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
     if (ev.errors.length) throw new RequestInvalid(ev);
 
     const routing = await getSetting(trx, 'resubmission_routing', 'MANAGER_STAGE');
-    const managerId = await resolveManager(trx, employee);
+    // Once sensitive, a request stays sensitive; it can also be marked sensitive on resubmission.
+    const sensitive = Boolean(r.is_sensitive || input.sensitive);
+    const managerId = sensitive ? null : await resolveManager(trx, employee);
     const to = routing === 'HR_STAGE' || !managerId ? 'PENDING_HR_APPROVAL' : 'PENDING_MANAGER_APPROVAL';
     await trx('leave_requests')
       .where({ id: r.id })
@@ -666,15 +675,19 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
         handover_notes: values.handoverNotes,
         handover_contact_id: values.handoverContactId,
         notice_shortfall_reason: values.noticeShortfallReason,
+        is_sensitive: sensitive,
         status: to,
         assigned_manager_id: managerId,
-        routed_without_manager: !managerId,
+        routed_without_manager: !managerId && !sensitive,
         manager_decided_at: null,
         hr_decided_at: null,
         is_overdue: false,
         submitted_at: trx.fn.now(),
         version: r.version + 1,
       });
+    if (sensitive && !r.is_sensitive) {
+      await trx('documents').where({ leave_request_id: r.id }).update({ is_medical: true });
+    }
     await trx('leave_request_days').where({ leave_request_id: r.id }).del();
     await insertDays(trx, r.id, ev.calc);
     await recordAction(trx, {
@@ -747,7 +760,8 @@ export async function requestCancellation(db, actor, requestId, input, audit) {
     if (open) throw conflict('A cancellation for this leave is already waiting for approval.');
     const effect = await cancellationEffect(trx, r, input.reasonType, todayInLusaka());
     const employee = await trx('employees').where({ id: r.employee_id }).first();
-    const managerId = await resolveManager(trx, employee);
+    // Cancelling sensitive leave also goes straight to HR.
+    const managerId = r.is_sensitive ? null : await resolveManager(trx, employee);
     const status = managerId ? 'PENDING_MANAGER_APPROVAL' : 'PENDING_HR_APPROVAL';
     const [id] = await trx('change_requests').insert({
       leave_request_id: r.id,
@@ -758,7 +772,7 @@ export async function requestCancellation(db, actor, requestId, input, audit) {
       status,
       requested_by: actor.id,
       assigned_manager_id: managerId,
-      routed_without_manager: !managerId,
+      routed_without_manager: !managerId && !r.is_sensitive,
     });
     const reference = `CR-${r.start_date.slice(0, 4)}-${String(id).padStart(6, '0')}`;
     await trx('change_requests').where({ id }).update({ reference });

@@ -55,9 +55,11 @@ export default function RequestPage() {
       {location.state?.submitted && (
         <div className="mb-6">
           <Notice tone="ok" title="Request submitted.">
-            {r.status === 'PENDING_HR_APPROVAL'
-              ? 'No active manager is recorded for you, so it has gone straight to HR.'
-              : 'Your manager has been asked to review it.'}
+            {r.status === 'PENDING_HR_APPROVAL' && r.sensitive
+              ? 'You marked it sensitive, so it has gone straight to HR.'
+              : r.status === 'PENDING_HR_APPROVAL'
+                ? 'No active manager is recorded for you, so it has gone straight to HR.'
+                : 'Your manager has been asked to review it.'}
             {location.state.uploaded > 0 &&
               ` ${location.state.uploaded} ${location.state.uploaded === 1 ? 'document was' : 'documents were'} attached.`}
           </Notice>
@@ -106,7 +108,11 @@ export default function RequestPage() {
                   ['Handover notes', r.handoverNotes],
                   [
                     'Manager',
-                    r.routedWithoutManager ? 'None recorded – sent straight to HR' : r.assignedManager,
+                    r.sensitive
+                      ? 'Marked sensitive – sent straight to HR'
+                      : r.routedWithoutManager
+                        ? 'None recorded – sent straight to HR'
+                        : r.assignedManager,
                   ],
                   ['Submitted', formatDateTime(r.submittedAt)],
                 ]}
@@ -436,6 +442,7 @@ function ResubmitForm({ request: r, onDone }) {
     handoverNotes: r.handoverNotes ?? '',
     handoverContactId: r.handoverContactId ? String(r.handoverContactId) : '',
     noticeShortfallReason: r.noticeShortfallReason ?? '',
+    sensitive: r.sensitive,
   }));
   const submit = async (payload, idempotencyKey, files = []) => {
     await api.post(

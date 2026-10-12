@@ -30,6 +30,7 @@ export const LEAVE_FIELDS = [
   'handoverNotes',
   'handoverContactId',
   'noticeShortfallReason',
+  'sensitive',
 ];
 
 const BLANK = {
@@ -44,6 +45,7 @@ const BLANK = {
   handoverNotes: '',
   handoverContactId: '',
   noticeShortfallReason: '',
+  sensitive: false,
 };
 
 export function toLeavePayload(v) {
@@ -60,6 +62,7 @@ export function toLeavePayload(v) {
     handoverNotes: text(v.handoverNotes),
     handoverContactId: v.handoverContactId ? Number(v.handoverContactId) : null,
     noticeShortfallReason: text(v.noticeShortfallReason),
+    sensitive: Boolean(v.sensitive),
   };
 }
 
@@ -316,7 +319,14 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
             </Field>
 
             <div className="sm:col-span-2">
-              <AttachmentPicker files={files} onChange={setFiles} type={type} />
+              <AttachmentPicker
+                files={files}
+                onChange={setFiles}
+                type={type}
+                sensitiveField={register('sensitive')}
+                sensitive={Boolean(values.sensitive)}
+                lockSensitive={Boolean(initial?.sensitive)}
+              />
             </div>
 
             {message && (
@@ -434,7 +444,7 @@ const size = (n) =>
  * Files chosen while applying. They are uploaded straight after the request is created; the
  * server checks each file's real type and size again.
  */
-function AttachmentPicker({ files, onChange, type }) {
+function AttachmentPicker({ files, onChange, type, sensitiveField, sensitive, lockSensitive }) {
   const input = useRef(null);
   const [problem, setProblem] = useState(null);
 
@@ -505,6 +515,22 @@ function AttachmentPicker({ files, onChange, type }) {
       <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
         <Paperclip className="size-4" aria-hidden /> {files.length ? 'Add another file' : 'Attach files'}
       </Button>
+      <label className="mt-4 flex items-start gap-2.5 border-t border-rule pt-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 size-4 accent-brand"
+          disabled={lockSensitive}
+          {...sensitiveField}
+        />
+        <span>
+          <span className="font-medium">Sensitive</span>
+          <span className="block text-xs text-muted">
+            {sensitive
+              ? 'Goes straight to HR, not your manager. Only you and HR see the reason and documents.'
+              : 'Tick to send this request straight to HR instead of your manager.'}
+          </span>
+        </span>
+      </label>
     </div>
   );
 }

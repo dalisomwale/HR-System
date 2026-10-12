@@ -331,7 +331,7 @@ describe('directors', () => {
       expect(
         (await as(director).post(`/api/approvals/requests/${sick.id}/manager`, { action: 'APPROVE' })).status,
       ).toBe(403);
-      expect((await as(director).post(`/api/hr/requests/${sick.id}/hr`, { action: 'APPROVE' })).status).toBe(
+      expect((await as(director).post(`/api/approvals/requests/${sick.id}/hr`, { action: 'APPROVE' })).status).toBe(
         403,
       );
       expect((await as(director).get(`/api/hr/employees/${emp.id}/balances`)).status).toBe(403);
@@ -354,5 +354,60 @@ describe('directors', () => {
       oid: `00000000-0000-0000-0000-${String(other.id).padStart(12, '0')}`,
     });
     expect((await as(s).get('/api/auth/me')).body.user.roles).toEqual(['MANAGING_DIRECTOR']);
+  });
+});
+
+describe('sensitive requests', () => {
+  it('go straight to HR, and the manager never sees the reason or documents', async () => {
+    const res = await as(emp).post('/api/leave/requests', {
+      leaveTypeId: ids.ANNUAL,
+      startDate: '2027-03-01',
+      endDate: '2027-03-05',
+      handoverNotes: 'Covered.',
+      reason: 'Private family matter',
+      sensitive: true,
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body.status).toBe('PENDING_HR_APPROVAL');
+    const row = await db('leave_requests').where({ id: res.body.id }).first();
+    expect(row).toMatchObject({ is_sensitive: 1, assigned_manager_id: null, routed_without_manager: 0 });
+
+    // No approval task for the manager, and they cannot act at the manager stage.
+    const mgrNotes = await db('notifications').where({ recipient_id: mgr.id });
+    expect(mgrNotes).toHaveLength(0);
+    expect(
+      (await as(mgr).post(`/api/approvals/requests/${res.body.id}/manager`, { action: 'APPROVE' })).status,
+    ).not.toBe(200);
+    expect((await as(hr).get('/api/dashboard/hr')).body.awaitingHr.map((r) => r.id)).toContain(res.body.id);
+
+    const up = await as(emp).upload(`/api/documents/requests/${res.body.id}`, PDF, 'letter.pdf');
+    expect(up.status).toBe(201);
+
+    // The employee's manager can see that the leave exists, not why.
+    const mgrView = await as(mgr).get(`/api/leave/requests/${res.body.id}`);
+    expect(mgrView.status).toBe(200);
+    expect(mgrView.body).toMatchObject({ sensitive: true, reason: null });
+    expect(mgrView.body.documents[0]).toMatchObject({ restricted: true, name: null });
+    expect((await as(mgr).get(`/api/documents/${up.body.id}/download`)).status).toBe(404);
+    expect((await as(other).get(`/api/leave/requests/${res.body.id}`)).status).toBe(404);
+
+    const hrView = await as(hr).get(`/api/leave/requests/${res.body.id}`);
+    expect(hrView.body.reason).toBe('Private family matter');
+    expect((await as(hr).get(`/api/documents/${up.body.id}/download`)).status).toBe(200);
+
+    // HR approves; a later cancellation also goes straight to HR.
+    const ok = await as(hr).post(`/api/approvals/requests/${res.body.id}/hr`, { action: 'APPROVE' });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    const cancel = await as(emp).post(`/api/leave/requests/${res.body.id}/cancel`, {
+      reasonType: 'PLANS_CHANGED',
+      reason: 'No longer needed',
+    });
+    expect(cancel.status, JSON.stringify(cancel.body)).toBe(201);
+    expect(cancel.body.status).toBe('PENDING_HR_APPROVAL');
+  });
+
+  it('a request that is not ticked still goes to the manager', async () => {
+    const r = await annualRequest();
+    expect(r.status).toBe('PENDING_MANAGER_APPROVAL');
   });
 });

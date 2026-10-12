@@ -26,7 +26,8 @@ async function loadRequest(trx, id) {
 }
 
 /** Emails leave the system, so a confidential leave type is never named in one. */
-const emailType = (r) => (r.is_confidential ? 'Leave (details in the system)' : r.type_name);
+const emailType = (r) =>
+  r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name;
 const rows = (r, status) => [
   ['Reference', r.reference],
   ['Employee', `${r.first_name} ${r.last_name}`],

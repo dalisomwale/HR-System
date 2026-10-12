@@ -80,7 +80,7 @@ export default function DocumentsPanel({ request: r }) {
                 )}
                 <div className="min-w-0 flex-1">
                   {d.restricted ? (
-                    <p>Medical document provided (visible to HR only)</p>
+                    <p>Confidential document provided (visible to HR only)</p>
                   ) : (
                     <a
                       href={`/api/documents/${d.id}/download`}

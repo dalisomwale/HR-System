@@ -27,6 +27,7 @@ function requestSummary(r) {
     status: r.status,
     submittedAt: r.submitted_at,
     isOverdue: Boolean(r.is_overdue),
+    sensitive: Boolean(r.is_sensitive),
     routedWithoutManager: Boolean(r.routed_without_manager),
     version: r.version,
   };
@@ -42,6 +43,7 @@ function baseRequestQuery(db) {
       'e.first_name as emp_first',
       'e.last_name as emp_last',
       'e.employee_number as emp_number',
+      'e.line_manager_id as emp_manager_id',
       'd.name as dept_name',
       't.code as type_code',
       't.name as type_name',
@@ -65,10 +67,13 @@ export async function requestDetail(db, viewer, id) {
   const wasManager = r.assigned_manager_id === viewer.id;
   // Directors see every request but, like managers, not confidential details.
   const isDirector = seesWholeGroup(viewer);
-  if (!isOwner && !isHr && !isDirector && !authority && !wasManager) {
+  // A sensitive request skips the manager, but the employee's manager can still see that it
+  // exists (dates and type, for planning cover), never its reason or documents.
+  const isTeamManager = r.is_sensitive && r.emp_manager_id === viewer.id;
+  if (!isOwner && !isHr && !isDirector && !authority && !wasManager && !isTeamManager) {
     throw notFound('Leave request not found.');
   }
-  const seesConfidential = isOwner || isHr || !r.type_confidential;
+  const seesConfidential = isOwner || isHr || (!r.type_confidential && !r.is_sensitive);
 
   const days = await db('leave_request_days as d')
     .leftJoin('public_holidays as h', 'h.id', 'd.public_holiday_id')
