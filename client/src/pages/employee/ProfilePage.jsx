@@ -1,7 +1,17 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { LogOut } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { formatDate, ROLE_LABELS } from '../../lib/format.js';
-import { Details, LoadError, Loading, PageHeader, Section } from '../../components/ui.jsx';
+import {
+  Button,
+  ConfirmDialog,
+  Details,
+  LoadError,
+  Loading,
+  PageHeader,
+  Section,
+} from '../../components/ui.jsx';
 
 export default function ProfilePage() {
   const q = useQuery({ queryKey: ['profile'], queryFn: () => api.get('/api/me/profile') });
@@ -42,7 +52,39 @@ export default function ProfilePage() {
             </ul>
           </Section>
         )}
+        <SignOut />
       </div>
+    </div>
+  );
+}
+
+function SignOut() {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      const { logoutUrl } = await api.post('/api/auth/logout');
+      window.location.assign(logoutUrl);
+    } catch {
+      window.location.assign('/signed-out');
+    }
+  };
+  return (
+    <div>
+      <Button variant="secondary" onClick={() => setAsking(true)}>
+        <LogOut className="size-4" aria-hidden /> Sign out
+      </Button>
+      <ConfirmDialog
+        open={asking}
+        title="Sign out?"
+        confirmLabel="Sign out"
+        busy={busy}
+        onConfirm={signOut}
+        onCancel={() => setAsking(false)}
+      >
+        You will need to sign in with Microsoft again to come back.
+      </ConfirmDialog>
     </div>
   );
 }

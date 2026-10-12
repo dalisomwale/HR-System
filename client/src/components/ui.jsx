@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -286,3 +286,50 @@ export function applyServerErrors(err, setError, fieldNames) {
   return err?.fields?.length ? unmatched : err?.message;
 }
 const capitalise = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+/**
+ * Confirmation dialog on the native <dialog> element: focus is trapped while open, Escape and
+ * the Cancel button close it, and focus returns to the button that opened it.
+ */
+export function ConfirmDialog({
+  open,
+  title,
+  children,
+  confirmLabel,
+  onConfirm,
+  onCancel,
+  busy,
+  tone = 'primary',
+}) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onCancel();
+      }}
+      aria-labelledby="confirm-title"
+      className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-lg border border-rule bg-white p-6 text-ink backdrop:bg-ink/40"
+    >
+      <h2 id="confirm-title" className="text-lg font-semibold">
+        {title}
+      </h2>
+      {children && <div className="mt-2 text-sm text-muted">{children}</div>}
+      <div className="mt-6 flex justify-end gap-2">
+        <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
+          Cancel
+        </Button>
+        <Button variant={tone} busy={busy} onClick={onConfirm}>
+          {confirmLabel}
+        </Button>
+      </div>
+    </dialog>
+  );
+}

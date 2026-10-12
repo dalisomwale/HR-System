@@ -19,7 +19,6 @@ import {
   Clock,
   FileUp,
   History,
-  LogOut,
   Menu,
   Settings2,
   UserRound,
@@ -36,6 +35,7 @@ const MY_WORK = [
   { to: '/home', label: 'Home', icon: House },
   { to: '/leave', label: 'My leave', icon: CalendarCheck, end: true },
   { to: '/leave/apply', label: 'Apply for leave', icon: CalendarPlus },
+  { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
   { to: '/profile', label: 'My profile', icon: UserRound },
 ];
 const MANAGER = [
@@ -63,12 +63,12 @@ const ADMIN = [
   { to: '/admin/audit', label: 'Audit log', icon: History },
 ];
 
-function NavGroup({ title, items, onNavigate }) {
+function NavGroup({ title, items, onNavigate, counts = {} }) {
   return (
     <div className="mb-6">
       <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
       <ul>
-        {items.map(({ to, label, icon: Icon, end }) => (
+        {items.map(({ to, label, icon: Icon, end, count }) => (
           <li key={to}>
             <NavLink
               to={to}
@@ -85,6 +85,12 @@ function NavGroup({ title, items, onNavigate }) {
             >
               <Icon className="size-4 shrink-0" aria-hidden />
               {label}
+              {count && counts[count] > 0 && (
+                <span className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white">
+                  {counts[count] > 99 ? '99+' : counts[count]}
+                  <span className="sr-only"> unread</span>
+                </span>
+              )}
             </NavLink>
           </li>
         ))}
@@ -96,24 +102,21 @@ function NavGroup({ title, items, onNavigate }) {
 export default function AppShell() {
   const { data: user } = useMe();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function signOut() {
-    setSigningOut(true);
-    try {
-      const { logoutUrl } = await api.post('/api/auth/logout');
-      window.location.assign(logoutUrl);
-    } catch {
-      window.location.assign('/signed-out');
-    }
-  }
+  // Unread notifications, refreshed every minute and when the window regains focus.
+  const unread = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => api.get('/api/notifications/unread-count'),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  });
+  const counts = { unread: unread.data?.unread ?? 0 };
 
   const roleText =
     [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
     'Employee';
   const nav = (
     <>
-      <NavGroup title="My work" items={MY_WORK} onNavigate={() => setMenuOpen(false)} />
+      <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
       {(user.isManager || user.isDelegate) && (
         <NavGroup
           title="Manager"
@@ -142,12 +145,15 @@ export default function AppShell() {
         <div className="flex h-14 items-center gap-4 px-4">
           <button
             type="button"
-            className="-ml-1 rounded-sm p-1 text-ink md:hidden"
+            className="relative -ml-1 rounded-sm p-1 text-ink md:hidden"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
           >
             {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            {!menuOpen && counts.unread > 0 && (
+              <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-danger" />
+            )}
           </button>
           <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="Altus Financial Services Limited" className="h-8 w-auto sm:h-10" />
@@ -155,22 +161,14 @@ export default function AppShell() {
               Leave Management
             </span>
           </Link>
-          <div className="ml-auto flex items-center gap-4">
-            <NotificationBell />
-            <div className="hidden text-right leading-tight sm:block">
-              <p className="text-sm font-medium">{fullName(user)}</p>
-              <p className="text-xs text-muted">{roleText}</p>
-            </div>
-            <button
-              type="button"
-              onClick={signOut}
-              disabled={signingOut}
-              className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-sm text-ink hover:bg-canvas"
-            >
-              <LogOut className="size-4" aria-hidden />
-              Sign out
-            </button>
-          </div>
+          <Link
+            to="/profile"
+            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
+            aria-label={`${fullName(user)}, ${roleText}. My profile`}
+          >
+            <p className="text-sm font-medium">{fullName(user)}</p>
+            <p className="hidden text-xs text-muted sm:block">{roleText}</p>
+          </Link>
         </div>
       </header>
 
@@ -194,30 +192,5 @@ export default function AppShell() {
         </main>
       </div>
     </div>
-  );
-}
-
-/** Unread count, refreshed every minute and when the window regains focus. */
-function NotificationBell() {
-  const q = useQuery({
-    queryKey: ['unread-count'],
-    queryFn: () => api.get('/api/notifications/unread-count'),
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-  });
-  const n = q.data?.unread ?? 0;
-  return (
-    <Link
-      to="/notifications"
-      className="relative rounded-sm p-1.5 text-ink hover:bg-canvas"
-      aria-label={n ? `Notifications, ${n} unread` : 'Notifications'}
-    >
-      <Bell className="size-5" aria-hidden />
-      {n > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] leading-4 font-semibold text-white">
-          {n > 99 ? '99+' : n}
-        </span>
-      )}
-    </Link>
   );
 }
