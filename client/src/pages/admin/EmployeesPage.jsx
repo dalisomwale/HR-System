@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router';
 import { Plus, Search, FileUp } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
+import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import { ROLE_LABELS } from '../../lib/format.js';
 import {
   Badge,
@@ -123,11 +124,7 @@ export default function EmployeesPage() {
           onChange={(e) => update({ departmentId: e.target.value })}
         >
           <option value="">All departments</option>
-          {departmentChoices.map((d) => (
-            <option key={d.id} value={d.id}>
-              {filters.companyId || !d.company ? d.name : `${d.name} (${d.company})`}
-            </option>
-          ))}
+          <DepartmentOptions departments={departmentChoices} />
         </Select>
       </form>
 

@@ -22,6 +22,7 @@ import {
   Textarea,
   applyServerErrors,
 } from '../../components/ui.jsx';
+import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 
 const FIELDS = [
   'employeeNumber',
@@ -198,6 +199,7 @@ function EmployeeForm({ employee, isNew }) {
         (!companyId || String(d.companyId) === String(companyId)),
     ) ?? [];
   const companyField = register('companyId', req);
+  const departmentField = register('departmentId');
 
   if (!lookupsReady) {
     const failed = [departments, companies, people, schedules].find((q) => q.isError);
@@ -260,13 +262,21 @@ function EmployeeForm({ employee, isNew }) {
           </Select>
         </Field>
         <Field id="departmentId" label="Department" optional error={err('departmentId')}>
-          <Select id="departmentId" invalid={!!err('departmentId')} {...register('departmentId')}>
+          <Select
+            id="departmentId"
+            invalid={!!err('departmentId')}
+            {...departmentField}
+            onChange={(ev) => {
+              departmentField.onChange(ev);
+              // A department belongs to one company, so choosing it also sets the company.
+              const dept = departments.data.items.find((d) => String(d.id) === ev.target.value);
+              if (dept?.companyId && String(dept.companyId) !== String(watch('companyId'))) {
+                setValue('companyId', String(dept.companyId), { shouldDirty: true, shouldValidate: true });
+              }
+            }}
+          >
             <option value="">No department</option>
-            {activeDepartments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
+            <DepartmentOptions departments={activeDepartments} />
           </Select>
         </Field>
         <Field id="lineManagerId" label="Manager" optional error={err('lineManagerId')}>

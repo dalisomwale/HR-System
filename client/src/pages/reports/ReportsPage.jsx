@@ -18,6 +18,7 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
+import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 
 const thisYear = new Date().getFullYear();
 const FILTER_KEYS = [
@@ -148,13 +149,11 @@ function Filters({ report, options, applied, onApply }) {
         <Field id="departmentId" label="Department">
           <Select id="departmentId" value={v.departmentId} onChange={set('departmentId')}>
             <option value="">All departments</option>
-            {options.departments
-              .filter((d) => !v.companyId || String(d.companyId) === v.companyId)
-              .map((d) => (
-                <option key={d.id} value={d.id}>
-                  {v.companyId || !d.company ? d.name : `${d.name} (${d.company})`}
-                </option>
-              ))}
+            <DepartmentOptions
+              departments={options.departments.filter(
+                (d) => !v.companyId || String(d.companyId) === v.companyId,
+              )}
+            />
           </Select>
         </Field>
       )}
