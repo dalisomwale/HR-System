@@ -11,6 +11,7 @@ import EmployeesPage from './pages/admin/EmployeesPage.jsx';
 import EmployeePage from './pages/admin/EmployeePage.jsx';
 import SignInRequestsPage from './pages/admin/SignInRequestsPage.jsx';
 import ImportPage from './pages/admin/ImportPage.jsx';
+import LeaveTypePage from './pages/admin/LeaveTypePage.jsx';
 import RolesPage from './pages/admin/RolesPage.jsx';
 import CompaniesPage from './pages/admin/CompaniesPage.jsx';
 import DepartmentsPage from './pages/admin/DepartmentsPage.jsx';
@@ -96,6 +97,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="schedules" element={admin(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />
               <Route path="leave-types" element={admin(<LeaveTypesPage />)} />
+              <Route path="leave-types/:id" element={admin(<LeaveTypePage />)} />
               <Route path="delegations" element={admin(<AdminDelegationsPage />)} />
               <Route path="emails" element={admin(<EmailsPage />)} />
               <Route path="audit" element={admin(<AuditPage />)} />

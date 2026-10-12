@@ -467,6 +467,25 @@ describe('leave types and balance jobs', () => {
     expect(await db('balance_ledger').where({ entry_type: 'ACCRUAL', employee_id: empId })).toHaveLength(1);
   });
 
+  it('shows one leave type in full: versions with why they changed, usage and history', async () => {
+    await as(admin).post(`/api/admin/leave-types/${ids.ANNUAL}/policy`, {
+      effectiveFrom: '2026-01-01',
+      accrualMethod: 'ENTITLEMENT_DIV_12',
+      accrualConfirmed: true,
+      note: 'HR confirmed 25 days a year, accrued monthly.',
+    });
+    const res = await as(admin).get(`/api/admin/leave-types/${ids.ANNUAL}`);
+    expect(res.status).toBe(200);
+    expect(res.body.current.versionNo).toBe(2);
+    expect(res.body.versions.map((v) => v.versionNo)).toEqual([2, 1]);
+    expect(res.body.versions[0]).toMatchObject({ note: 'HR confirmed 25 days a year, accrued monthly.' });
+    expect(res.body.versions[0].confirmedBy).toBeTruthy();
+    expect(res.body.usage).toMatchObject({ pending: 0, approved: 0, onLeaveToday: 0 });
+    expect(res.body.history[0]).toMatchObject({ action: 'Rules changed' });
+    expect((await as(admin).get('/api/admin/leave-types/999999')).status).toBe(404);
+    expect((await as(emp).get(`/api/admin/leave-types/${ids.ANNUAL}`)).status).toBe(403);
+  });
+
   it('activating a leave type records HR confirmation', async () => {
     await db('leave_types').where({ id: ids.SICK }).update({ is_active: false });
     const res = await as(admin).post(`/api/admin/leave-types/${ids.SICK}/activate`);

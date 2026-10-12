@@ -5,6 +5,7 @@ import { auditContext } from '../../middleware/auth.js';
 import { asyncHandler, idParam, isoDate, optionalText } from '../../utils/validation.js';
 import { badRequest, conflict, notFound } from '../../utils/errors.js';
 import { addDays } from '../leave/calendar.js';
+import { todayInLusaka } from '../../utils/dates.js';
 import { toPolicy } from '../leave/policy.service.js';
 import { runMonthlyAccrual, runCarryForward, runCarryForwardExpiry } from '../leave/jobs.service.js';
 
@@ -90,6 +91,115 @@ export function leaveTypeRoutes({ db }) {
     asyncHandler(async (req, res) => {
       const types = await db('leave_types').orderBy('display_order');
       res.json({ items: await Promise.all(types.map((t) => typeWithPolicy(db, t))) });
+    }),
+  );
+
+  // One leave type in full: rules, every version with who confirmed it and why it changed,
+  // how it is being used this year, and its change history.
+  router.get(
+    '/:id',
+    asyncHandler(async (req, res) => {
+      const id = idParam(req);
+      const t = await db('leave_types').where({ id }).first();
+      if (!t) throw notFound('Leave type not found.');
+      const base = await typeWithPolicy(db, t);
+      const name = (f, l) => (f ? `${f} ${l}` : null);
+      const json = (v) => (typeof v === 'string' ? JSON.parse(v) : v);
+
+      const versions = await db('leave_policy_versions as v')
+        .leftJoin('employees as c', 'c.id', 'v.confirmed_by')
+        .where('v.leave_type_id', id)
+        .orderBy('v.version_no', 'desc')
+        .select(
+          'v.version_no',
+          'v.effective_from',
+          'v.effective_to',
+          'v.confirmed_at',
+          'v.requires_hr_confirmation',
+          'v.source_reference',
+          'c.first_name',
+          'c.last_name',
+        );
+      const history = await db('audit_log as a')
+        .leftJoin('employees as e', 'e.id', 'a.actor_employee_id')
+        .where({ 'a.entity_type': 'leave_type', 'a.entity_id': String(id) })
+        .orderBy('a.id', 'desc')
+        .limit(50)
+        .select('a.action', 'a.after_data', 'a.created_at', 'e.first_name', 'e.last_name');
+      const notes = new Map(
+        history
+          .filter((h) => h.action === 'LEAVE_POLICY_CHANGED')
+          .map((h) => json(h.after_data))
+          .filter((a) => a?.versionNo)
+          .map((a) => [a.versionNo, a.note ?? null]),
+      );
+
+      const today = todayInLusaka();
+      const year = Number(today.slice(0, 4));
+      const inYear = (q) =>
+        q
+          .where('r.leave_type_id', id)
+          .andWhere('r.start_date', '<=', `${year}-12-31`)
+          .andWhere('r.end_date', '>=', `${year}-01-01`);
+      const pending = await inYear(db('leave_requests as r'))
+        .whereIn('r.status', ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL'])
+        .count({ n: '*' })
+        .first();
+      const approved = await inYear(db('leave_requests as r'))
+        .where('r.status', 'APPROVED')
+        .count({ n: '*' })
+        .first();
+      const days = await db('leave_request_days as x')
+        .join('leave_requests as r', 'r.id', 'x.leave_request_id')
+        .where({ 'r.leave_type_id': id, 'r.status': 'APPROVED' })
+        .whereBetween('x.leave_date', [`${year}-01-01`, `${year}-12-31`])
+        .sum({ d: 'x.charged' })
+        .first();
+      const onLeave = await db('leave_requests')
+        .where({ leave_type_id: id, status: 'APPROVED' })
+        .andWhere('start_date', '<=', today)
+        .andWhere('end_date', '>=', today)
+        .countDistinct({ n: 'employee_id' })
+        .first();
+
+      const LABEL = {
+        LEAVE_TYPE_ACTIVATED: 'Activated',
+        LEAVE_TYPE_DEACTIVATED: 'Deactivated',
+        LEAVE_POLICY_CHANGED: 'Rules changed',
+      };
+      res.json({
+        ...base,
+        versions: versions.map((v) => ({
+          versionNo: v.version_no,
+          effectiveFrom: v.effective_from,
+          effectiveTo: v.effective_to,
+          sourceReference: v.source_reference,
+          awaitingReview: Boolean(v.requires_hr_confirmation),
+          confirmedAt: v.confirmed_at,
+          confirmedBy: name(v.first_name, v.last_name),
+          note: notes.get(v.version_no) ?? null,
+        })),
+        usage: {
+          year,
+          pending: Number(pending.n),
+          approved: Number(approved.n),
+          approvedDays: Math.round(Number(days.d ?? 0) * 100) / 100,
+          onLeaveToday: Number(onLeave.n),
+        },
+        history: history.map((h) => {
+          const after = json(h.after_data) ?? {};
+          return {
+            action: LABEL[h.action] ?? h.action,
+            at: h.created_at,
+            by: name(h.first_name, h.last_name) ?? 'System',
+            detail:
+              h.action === 'LEAVE_POLICY_CHANGED'
+                ? `Version ${after.versionNo} from ${after.effectiveFrom}`
+                : null,
+            note: after.note ?? null,
+          };
+        }),
+      });
     }),
   );
 

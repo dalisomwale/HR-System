@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
-import { formatDate, formatDateTime } from '../../lib/format.js';
-import { PERIOD_LABELS, days } from '../../lib/leave.js';
+import { formatDateTime } from '../../lib/format.js';
 import {
   Badge,
   Button,
+  ButtonLink,
   Field,
   Input,
   LoadError,
@@ -14,26 +14,15 @@ import {
   Notice,
   PageHeader,
   Section,
-  Select,
   Table,
   Td,
-  Textarea,
   Th,
-  applyServerErrors,
 } from '../../components/ui.jsx';
-
-const ACCRUAL = {
-  NONE: 'No accrual',
-  ANNUAL_GRANT: 'Granted at the start of the year',
-  FIXED_MONTHLY: 'Fixed amount each month',
-  ENTITLEMENT_DIV_12: 'Entitlement ÷ 12 each month',
-};
-const NOTICE = { NONE: 'Not enforced', WARN_WITH_REASON: 'Warn and ask for a reason', BLOCK: 'Block' };
+import { allowance } from './leave-type-rules.jsx';
 
 export default function LeaveTypesPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['admin-leave-types'], queryFn: () => api.get('/api/admin/leave-types') });
-  const [editingId, setEditingId] = useState(null);
   const toggle = useMutation({
     mutationFn: (t) => api.post(`/api/admin/leave-types/${t.id}/${t.isActive ? 'deactivate' : 'activate'}`),
     onSuccess: () => {
@@ -42,7 +31,6 @@ export default function LeaveTypesPage() {
       qc.invalidateQueries({ queryKey: ['balances'] });
     },
   });
-  const editing = q.data?.items.find((t) => t.id === editingId);
 
   return (
     <div className="max-w-5xl">
@@ -54,9 +42,6 @@ export default function LeaveTypesPage() {
       ) : (
         <div className="grid gap-6">
           <AccrualNotice items={q.data.items} />
-          {editing?.current && (
-            <RulesSection key={editing.id} type={editing} onClose={() => setEditingId(null)} />
-          )}
           {toggle.isError && <Notice tone="danger">{toggle.error.message}</Notice>}
           <Table>
             <thead>
@@ -74,7 +59,12 @@ export default function LeaveTypesPage() {
               {q.data.items.map((t) => (
                 <tr key={t.id}>
                   <Td>
-                    <span className="font-medium">{t.name}</span>
+                    <Link
+                      to={`/admin/leave-types/${t.id}`}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      {t.name}
+                    </Link>
                     {t.current?.sourceReference && (
                       <p className="text-xs text-muted">Policy {t.current.sourceReference}</p>
                     )}
@@ -89,15 +79,9 @@ export default function LeaveTypesPage() {
                     </div>
                   </Td>
                   <Td className="text-right whitespace-nowrap">
-                    {t.current && (
-                      <Button
-                        variant="ghost"
-                        className="h-7 px-2"
-                        onClick={() => setEditingId(t.id === editingId ? null : t.id)}
-                      >
-                        {t.id === editingId ? 'Close' : 'Rules'}
-                      </Button>
-                    )}
+                    <ButtonLink to={`/admin/leave-types/${t.id}`} variant="ghost" className="h-7 px-2">
+                      View
+                    </ButtonLink>
                     <Button
                       variant="ghost"
                       className="h-7 px-2"
@@ -115,279 +99,6 @@ export default function LeaveTypesPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function allowance(p) {
-  if (p.consumesBalance) return `${p.entitlementDays != null ? days(p.entitlementDays) : 'Not set'} a year`;
-  if (p.entitlementDays == null) return 'No fixed allowance';
-  const period =
-    PERIOD_LABELS[p.entitlementPeriod] ?? (p.entitlementPeriod === 'PER_OCCASION' ? 'per occasion' : '');
-  return `${days(p.entitlementDays)} ${period}`;
-}
-
-function summary(p) {
-  const rows = [
-    ['Paid', p.isPaid ? 'Yes' : 'No'],
-    ['Counted in', p.dayBasis === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days'],
-    ['Allowance', p.consumesBalance ? `Balance: ${allowance(p)}` : allowance(p)],
-  ];
-  if (p.consumesBalance) {
-    rows.push([
-      'Accrual',
-      `${ACCRUAL[p.accrualMethod]}${p.accrualMethod === 'FIXED_MONTHLY' ? ` (${p.accrualMonthlyAmount})` : ''}${
-        p.accrualMethod !== 'NONE' && !p.accrualConfirmed ? ' – not confirmed, will not run' : ''
-      }`,
-    ]);
-    rows.push([
-      'Carry forward',
-      p.carryForwardMaxDays != null
-        ? `Up to ${days(p.carryForwardMaxDays)}${p.carryForwardExpiryMonth ? `, use by ${p.carryForwardExpiryDay}/${p.carryForwardExpiryMonth}` : ''}`
-        : 'None',
-    ]);
-  }
-  if (p.maxSingleDurationDays != null) rows.push(['Longest request', days(p.maxSingleDurationDays)]);
-  if (p.minServiceMonths) rows.push(['Service needed', `${p.minServiceMonths} months`]);
-  rows.push([
-    'Notice',
-    p.minNoticeDays ? `${p.minNoticeDays} days (${NOTICE[p.noticeEnforcement]})` : 'None',
-  ]);
-  rows.push(['Half days', p.allowHalfDay ? 'Allowed' : 'Not allowed']);
-  rows.push([
-    'Back-dating',
-    p.allowBackdate
-      ? `Allowed${p.backdateMaxDays != null ? `, up to ${p.backdateMaxDays} days` : ''}`
-      : 'Not allowed',
-  ]);
-  if (p.documentRequired) rows.push(['Document', p.documentDescription ?? 'Required']);
-  if (p.extraRules?.eligibleSex)
-    rows.push(['Eligible', p.extraRules.eligibleSex === 'FEMALE' ? 'Female employees' : 'Male employees']);
-  return rows;
-}
-
-/** The chosen type's rules, shown above the table the way Companies shows its edit form. */
-function RulesSection({ type: t, onClose }) {
-  const [changing, setChanging] = useState(false);
-  const p = t.current;
-  return (
-    <Section
-      title={`${t.name} rules`}
-      description={`Version ${p.versionNo}, in force from ${formatDate(p.effectiveFrom)}${p.sourceReference ? ` · policy ${p.sourceReference}` : ''}`}
-      actions={
-        <div className="flex gap-2">
-          {!changing && (
-            <Button variant="secondary" onClick={() => setChanging(true)}>
-              Change rules
-            </Button>
-          )}
-          <Button variant="ghost" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      }
-    >
-      {t.description && <p className="mb-3 text-sm text-muted">{t.description}</p>}
-      {changing ? (
-        <PolicyForm type={t} onDone={() => setChanging(false)} />
-      ) : (
-        <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-[10rem_1fr]">
-          {summary(p).map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-muted">{k}</dt>
-              <dd>{v}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      {t.versions.length > 1 && (
-        <p className="mt-3 text-xs text-muted">
-          Earlier versions:{' '}
-          {t.versions
-            .slice(1)
-            .map((v) => `v${v.versionNo} ${formatDate(v.effectiveFrom)}–${formatDate(v.effectiveTo)}`)
-            .join('; ')}
-        </p>
-      )}
-    </Section>
-  );
-}
-
-const NUMBER_FIELDS = [
-  'entitlementDays',
-  'accrualMonthlyAmount',
-  'carryForwardMaxDays',
-  'backdateMaxDays',
-  'minNoticeDays',
-  'maxSingleDurationDays',
-  'minServiceMonths',
-];
-const BOOL_FIELDS = [
-  'isPaid',
-  'accrualConfirmed',
-  'allowHalfDay',
-  'allowBackdate',
-  'handoverRequired',
-  'documentRequired',
-];
-const ALL = [
-  ...NUMBER_FIELDS,
-  ...BOOL_FIELDS,
-  'dayBasis',
-  'accrualMethod',
-  'accrualRounding',
-  'noticeEnforcement',
-  'documentDescription',
-];
-
-function tomorrow() {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
-function PolicyForm({ type: t, onDone }) {
-  const qc = useQueryClient();
-  const p = t.current;
-  const defaults = {
-    effectiveFrom: tomorrow(),
-    note: '',
-    ...Object.fromEntries(
-      ALL.map((k) => [k, BOOL_FIELDS.includes(k) ? Boolean(p[k]) : p[k] == null ? '' : String(p[k])]),
-    ),
-  };
-  const {
-    register,
-    handleSubmit,
-    setError,
-    watch,
-    formState: { errors, dirtyFields, isSubmitting },
-  } = useForm({ defaultValues: defaults });
-  const [message, setMessage] = useState(null);
-
-  const onSubmit = async (v) => {
-    setMessage(null);
-    const body = { effectiveFrom: v.effectiveFrom, note: v.note };
-    for (const k of ALL) {
-      if (!dirtyFields[k]) continue;
-      if (NUMBER_FIELDS.includes(k)) body[k] = v[k] === '' ? null : Number(v[k]);
-      else if (k === 'documentDescription') body[k] = v[k] || null;
-      else body[k] = v[k];
-    }
-    if (Object.keys(body).length === 2) {
-      setMessage('Change at least one rule.');
-      return;
-    }
-    try {
-      await api.post(`/api/admin/leave-types/${t.id}/policy`, body);
-      qc.invalidateQueries({ queryKey: ['admin-leave-types'] });
-      qc.invalidateQueries({ queryKey: ['leave-types'] });
-      onDone();
-    } catch (err) {
-      const left = applyServerErrors(err, setError, [...ALL, 'effectiveFrom', 'note']);
-      if (left) setMessage(left);
-    }
-  };
-  const err = (f) => errors[f]?.message;
-  const num = (name, label, hint) => (
-    <Field id={`${t.id}-${name}`} label={label} hint={hint} optional error={err(name)}>
-      <Input id={`${t.id}-${name}`} inputMode="decimal" invalid={!!err(name)} {...register(name)} />
-    </Field>
-  );
-  const check = (name, label) => (
-    <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" className="size-4" {...register(name)} /> {label}
-    </label>
-  );
-
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-3">
-      <p className="text-sm text-muted sm:col-span-3">
-        New rules apply to requests starting on or after the date you choose. Requests already made keep the
-        rules they were made under.
-      </p>
-      <Field id={`${t.id}-effectiveFrom`} label="Rules apply from" error={err('effectiveFrom')}>
-        <Input
-          id={`${t.id}-effectiveFrom`}
-          type="date"
-          invalid={!!err('effectiveFrom')}
-          {...register('effectiveFrom', { required: 'Required' })}
-        />
-      </Field>
-      <Field id={`${t.id}-dayBasis`} label="Counted in">
-        <Select id={`${t.id}-dayBasis`} {...register('dayBasis')}>
-          <option value="WORKING_DAYS">Working days</option>
-          <option value="CALENDAR_DAYS">Calendar days</option>
-        </Select>
-      </Field>
-      {num('entitlementDays', 'Allowance (days)')}
-      {num('maxSingleDurationDays', 'Longest single request (days)')}
-      {p.consumesBalance && (
-        <>
-          <Field id={`${t.id}-accrualMethod`} label="Accrual">
-            <Select id={`${t.id}-accrualMethod`} {...register('accrualMethod')}>
-              {Object.entries(ACCRUAL).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          {watch('accrualMethod') === 'FIXED_MONTHLY' && num('accrualMonthlyAmount', 'Days per month')}
-          <Field id={`${t.id}-accrualRounding`} label="Accrual rounding">
-            <Select id={`${t.id}-accrualRounding`} {...register('accrualRounding')}>
-              <option value="NONE">None</option>
-              <option value="NEAREST_HALF">Nearest half day</option>
-              <option value="NEAREST_TENTH">Nearest tenth</option>
-              <option value="DOWN_HALF">Down to half day</option>
-            </Select>
-          </Field>
-          {num('carryForwardMaxDays', 'Carry forward limit (days)')}
-        </>
-      )}
-      {num('minNoticeDays', 'Notice (days)')}
-      <Field id={`${t.id}-noticeEnforcement`} label="If notice is short">
-        <Select id={`${t.id}-noticeEnforcement`} {...register('noticeEnforcement')}>
-          {Object.entries(NOTICE).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      {num('minServiceMonths', 'Months of service needed')}
-      {num('backdateMaxDays', 'Back-dating limit (days)')}
-      <div className="grid content-start gap-2 sm:col-span-3 sm:grid-cols-3">
-        {check('isPaid', 'Paid leave')}
-        {check('allowHalfDay', 'Half days allowed')}
-        {check('allowBackdate', 'Back-dating allowed')}
-        {check('documentRequired', 'Supporting document required')}
-        {p.consumesBalance && check('accrualConfirmed', 'Accrual rule confirmed by HR')}
-      </div>
-      <Field id={`${t.id}-documentDescription`} label="Document needed" optional className="sm:col-span-3">
-        <Input id={`${t.id}-documentDescription`} {...register('documentDescription')} />
-      </Field>
-      <Field id={`${t.id}-note`} label="Why is this changing?" error={err('note')} className="sm:col-span-3">
-        <Textarea
-          id={`${t.id}-note`}
-          rows={2}
-          invalid={!!err('note')}
-          {...register('note', { required: 'Required' })}
-        />
-      </Field>
-      {message && (
-        <div className="sm:col-span-3">
-          <Notice tone="danger">{message}</Notice>
-        </div>
-      )}
-      <div className="flex gap-2 sm:col-span-3">
-        <Button type="submit" busy={isSubmitting}>
-          Save new version
-        </Button>
-        <Button variant="secondary" onClick={onDone}>
-          Cancel
-        </Button>
-      </div>
-    </form>
   );
 }
 
@@ -542,7 +253,7 @@ function AccrualNotice({ items }) {
       tone="pending"
       title={`Accrual is off until the ${names.join(', ').toLowerCase()} rule is confirmed.`}
     >
-      Open Rules, choose Change rules and tick “Accrual rule confirmed by HR”.
+      Open the leave type, choose Change rules and tick “Accrual rule confirmed by HR”.
     </Notice>
   );
 }
