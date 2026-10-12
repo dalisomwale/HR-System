@@ -20,7 +20,7 @@ export default function HomePage() {
     <div className="max-w-6xl space-y-6">
       <PageHeader
         title={`Welcome, ${me.firstName}`}
-        description={[me.jobTitle, me.department].filter(Boolean).join(' · ') || undefined}
+        description={[me.jobTitle, me.department, me.company].filter(Boolean).join(' · ') || undefined}
         actions={
           <ButtonLink to="/leave/apply" variant="primary">
             <Plus className="size-4" aria-hidden /> Apply for leave

@@ -62,7 +62,7 @@ export async function notify(trx, { recipients, event, title, body, link, entity
         return {
           recipient_id: p.id,
           to_address: p.email,
-          subject: `${email.subject ?? title} - Altus Leave`.slice(0, 255),
+          subject: `${email.subject ?? title} - Altus Group Leave`.slice(0, 255),
           body_html: html,
           body_text: text,
           event_type: event,

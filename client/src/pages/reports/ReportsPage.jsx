@@ -25,6 +25,7 @@ const FILTER_KEYS = [
   'to',
   'year',
   'employeeId',
+  'companyId',
   'departmentId',
   'leaveTypeId',
   'status',
@@ -126,15 +127,33 @@ function Filters({ report, options, applied, onApply }) {
           </Select>
         </Field>
       )}
+      {has('company') && options.companies?.length > 0 && (
+        <Field id="companyId" label="Company">
+          <Select
+            id="companyId"
+            value={v.companyId}
+            onChange={(e) => setV((s) => ({ ...s, companyId: e.target.value, departmentId: '' }))}
+          >
+            <option value="">Whole group</option>
+            {options.companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      )}
       {has('department') && options.departments.length > 0 && (
         <Field id="departmentId" label="Department">
           <Select id="departmentId" value={v.departmentId} onChange={set('departmentId')}>
             <option value="">All departments</option>
-            {options.departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
+            {options.departments
+              .filter((d) => !v.companyId || String(d.companyId) === v.companyId)
+              .map((d) => (
+                <option key={d.id} value={d.id}>
+                  {v.companyId || !d.company ? d.name : `${d.name} (${d.company})`}
+                </option>
+              ))}
           </Select>
         </Field>
       )}

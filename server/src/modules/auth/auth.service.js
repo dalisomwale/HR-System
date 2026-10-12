@@ -86,6 +86,7 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
 /** Current user: employee summary, roles and whether they manage anyone. Null if not active. */
 export async function loadUser(db, employeeId) {
   const employee = await db('employees as e')
+    .leftJoin('companies as c', 'c.id', 'e.company_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .where('e.id', employeeId)
     .first(
@@ -97,6 +98,7 @@ export async function loadUser(db, employeeId) {
       'e.job_title',
       'e.status',
       'd.name as department_name',
+      'c.name as company_name',
     );
   if (!employee || employee.status !== 'ACTIVE') return null;
 
@@ -126,6 +128,7 @@ export async function loadUser(db, employeeId) {
     lastName: employee.last_name,
     email: employee.email,
     jobTitle: employee.job_title,
+    company: employee.company_name,
     department: employee.department_name,
     roles,
     isManager: Number(reports.n) > 0,

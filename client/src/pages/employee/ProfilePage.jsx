@@ -31,6 +31,7 @@ export default function ProfilePage() {
             items={[
               ['Employee number', p.employeeNumber],
               ['Job title', p.jobTitle],
+              ['Company', p.company],
               ['Department', p.department],
               ['Manager', p.lineManager],
               ['Work email', p.email],

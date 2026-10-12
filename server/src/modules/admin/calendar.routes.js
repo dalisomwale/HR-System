@@ -179,7 +179,7 @@ export function scheduleRoutes({ db }) {
             before = await trx('work_schedules').where({ id }).forUpdate().first();
             if (!before) throw notFound('Schedule not found.');
             if (before.is_company_default && !input.isCompanyDefault) {
-              throw conflict('Choose another schedule as the company default instead.');
+              throw conflict('Choose another schedule as the group default instead.');
             }
           }
           if (input.isCompanyDefault) {

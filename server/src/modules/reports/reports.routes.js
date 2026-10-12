@@ -50,8 +50,15 @@ export function reportRoutes({ db }) {
         .modify((q) => scope.ids && q.whereIn('e.id', scope.ids.length ? scope.ids : [0]))
         .orderBy(['e.last_name', 'e.first_name'])
         .select('e.id', 'e.first_name', 'e.last_name', 'e.employee_number', 'e.status');
+      const companies =
+        scope.level === 'HR' ? await db('companies').orderBy('name').select('id', 'name') : [];
       const departments =
-        scope.level === 'HR' ? await db('departments').orderBy('name').select('id', 'name') : [];
+        scope.level === 'HR'
+          ? await db('departments as d')
+              .leftJoin('companies as c', 'c.id', 'd.company_id')
+              .orderBy([{ column: 'c.name' }, { column: 'd.name' }])
+              .select('d.id', 'd.name', 'd.company_id as companyId', 'c.name as company')
+          : [];
       const leaveTypes = await db('leave_types').orderBy('display_order').select('id', 'name');
       res.json({
         scope: scope.level,
@@ -61,6 +68,7 @@ export function reportRoutes({ db }) {
             id: e.id,
             label: `${e.first_name} ${e.last_name} (${e.employee_number})${e.status === 'ACTIVE' ? '' : ' – inactive'}`,
           })),
+          companies,
           departments,
           leaveTypes,
           statuses: STATUS_OPTIONS,

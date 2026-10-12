@@ -30,6 +30,7 @@ const FIELDS = [
   'email',
   'jobTitle',
   'sex',
+  'companyId',
   'departmentId',
   'lineManagerId',
   'workScheduleId',
@@ -43,7 +44,7 @@ const toPayload = (values, only) => {
   const out = {};
   for (const f of only ?? FIELDS) {
     const v = values[f];
-    out[f] = ['departmentId', 'lineManagerId', 'workScheduleId'].includes(f)
+    out[f] = ['companyId', 'departmentId', 'lineManagerId', 'workScheduleId'].includes(f)
       ? v
         ? Number(v)
         : null
@@ -79,7 +80,7 @@ export default function EmployeePage() {
       </Link>
       <PageHeader
         title={isNew ? 'Add employee' : `${e.firstName} ${e.lastName}`}
-        description={isNew ? undefined : e.jobTitle}
+        description={isNew ? undefined : [e.jobTitle, e.company].filter(Boolean).join(' · ') || undefined}
         actions={
           !isNew && (e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>)
         }
@@ -141,6 +142,7 @@ function EmployeeForm({ employee, isNew }) {
     queryKey: ['departments'],
     queryFn: () => api.get('/api/admin/departments'),
   });
+  const companies = useQuery({ queryKey: ['companies'], queryFn: () => api.get('/api/admin/companies') });
   const people = useQuery({
     queryKey: ['employee-options'],
     queryFn: () => api.get('/api/admin/employees/options'),
@@ -155,10 +157,13 @@ function EmployeeForm({ employee, isNew }) {
     handleSubmit,
     reset,
     setError,
+    setValue,
+    watch,
     formState: { errors, dirtyFields, isDirty, isSubmitting },
   } = useForm({ defaultValues: employee ? toForm(employee) : blank });
   // Fill the form once the dropdown options exist, so selected values show correctly.
-  const lookupsReady = departments.isSuccess && people.isSuccess && schedules.isSuccess;
+  const lookupsReady =
+    departments.isSuccess && companies.isSuccess && people.isSuccess && schedules.isSuccess;
   useEffect(() => {
     if (employee && lookupsReady) reset(toForm(employee));
   }, [employee, lookupsReady, reset]);
@@ -183,11 +188,18 @@ function EmployeeForm({ employee, isNew }) {
 
   const err = (f) => errors[f]?.message;
   const req = { required: 'Required' };
+  // A department belongs to one company, so only the chosen company's departments are offered.
+  const companyId = watch('companyId');
   const activeDepartments =
-    departments.data?.items.filter((d) => d.isActive || d.id === employee?.departmentId) ?? [];
+    departments.data?.items.filter(
+      (d) =>
+        (d.isActive || d.id === employee?.departmentId) &&
+        (!companyId || String(d.companyId) === String(companyId)),
+    ) ?? [];
+  const companyField = register('companyId', req);
 
   if (!lookupsReady) {
-    const failed = [departments, people, schedules].find((q) => q.isError);
+    const failed = [departments, companies, people, schedules].find((q) => q.isError);
     return (
       <Section title="Employment details">
         {failed ? <LoadError error={failed.error} onRetry={() => failed.refetch()} /> : <Loading />}
@@ -223,17 +235,27 @@ function EmployeeForm({ employee, isNew }) {
         <Field id="jobTitle" label="Job title" optional error={err('jobTitle')} className="sm:col-span-2">
           <Input id="jobTitle" invalid={!!err('jobTitle')} {...register('jobTitle')} />
         </Field>
-        <Field
-          id="sex"
-          label="Sex"
-          optional
-          error={err('sex')}
-          hint="Used only for maternity, paternity and Mother’s Day leave eligibility."
-        >
-          <Select id="sex" invalid={!!err('sex')} {...register('sex')}>
-            <option value="">Not recorded</option>
-            <option value="FEMALE">Female</option>
-            <option value="MALE">Male</option>
+        <Field id="companyId" label="Company" error={err('companyId')}>
+          <Select
+            id="companyId"
+            invalid={!!err('companyId')}
+            {...companyField}
+            onChange={(ev) => {
+              companyField.onChange(ev);
+              const dept = departments.data.items.find((d) => String(d.id) === String(watch('departmentId')));
+              if (dept && String(dept.companyId) !== ev.target.value) {
+                setValue('departmentId', '', { shouldDirty: true });
+              }
+            }}
+          >
+            <option value="">Choose</option>
+            {companies.data.items
+              .filter((c) => c.isActive || c.id === employee?.companyId)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </Select>
         </Field>
         <Field id="departmentId" label="Department" optional error={err('departmentId')}>
@@ -258,6 +280,19 @@ function EmployeeForm({ employee, isNew }) {
               ))}
           </Select>
         </Field>
+        <Field
+          id="sex"
+          label="Sex"
+          optional
+          error={err('sex')}
+          hint="Used only for maternity, paternity and Mother’s Day leave eligibility."
+        >
+          <Select id="sex" invalid={!!err('sex')} {...register('sex')}>
+            <option value="">Not recorded</option>
+            <option value="FEMALE">Female</option>
+            <option value="MALE">Male</option>
+          </Select>
+        </Field>
         <Field id="employmentStartDate" label="Start date" error={err('employmentStartDate')}>
           <Input
             id="employmentStartDate"
@@ -279,10 +314,10 @@ function EmployeeForm({ employee, isNew }) {
           label="Working schedule"
           optional
           error={err('workScheduleId')}
-          hint="Leave blank for the company default."
+          hint="Leave blank for the group default."
         >
           <Select id="workScheduleId" invalid={!!err('workScheduleId')} {...register('workScheduleId')}>
-            <option value="">Company default</option>
+            <option value="">Group default</option>
             {schedules.data?.items
               .filter((s) => s.isActive)
               .map((s) => (

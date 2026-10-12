@@ -29,6 +29,7 @@ function AuthLayout({ children }) {
       />
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-2 lg:px-12">
         <div className="hidden text-white lg:block">
+          <p className="mb-4 text-sm font-medium tracking-[0.08em] text-white/70 uppercase">Altus Group</p>
           <p className="text-[clamp(2.5rem,4.5vw,3.75rem)] leading-[1.02] font-semibold tracking-[-0.03em]">
             Leave
             <br />
@@ -46,7 +47,7 @@ function AuthLayout({ children }) {
           </ol>
         </div>
         <main className="w-full max-w-md justify-self-center rounded-lg border border-rule bg-white px-8 py-10 sm:px-10 lg:justify-self-end">
-          <img src={logo} alt="Altus Financial Services Limited" className="mb-10 h-12 w-auto" />
+          <img src={logo} alt="Altus Group" className="mb-10 h-12 w-auto" />
           {children}
         </main>
       </div>

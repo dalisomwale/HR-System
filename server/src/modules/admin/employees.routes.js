@@ -39,6 +39,7 @@ export function employeeRoutes({ db, config }) {
     asyncHandler(async (req, res) => {
       const { page, pageSize, offset } = pagination(req.query, { maxSize: 500 });
       const q = db('employees as e')
+        .leftJoin('companies as c', 'c.id', 'e.company_id')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
         .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
         .leftJoin('identity_links as l', 'l.employee_id', 'e.id');
@@ -55,6 +56,8 @@ export function employeeRoutes({ db, config }) {
         );
       }
       if (['ACTIVE', 'INACTIVE'].includes(req.query.status)) q.where('e.status', req.query.status);
+      if (req.query.companyId === 'none') q.whereNull('e.company_id');
+      else if (req.query.companyId) q.where('e.company_id', Number(req.query.companyId) || 0);
       if (req.query.departmentId) q.where('e.department_id', Number(req.query.departmentId) || 0);
       if (req.query.linked === 'false') q.whereNull('l.id');
       if (req.query.linked === 'true') q.whereNotNull('l.id');
@@ -69,6 +72,7 @@ export function employeeRoutes({ db, config }) {
           'e.email',
           'e.job_title',
           'e.status',
+          'c.name as company_name',
           'd.name as department_name',
           'm.first_name as manager_first',
           'm.last_name as manager_last',
@@ -96,6 +100,7 @@ export function employeeRoutes({ db, config }) {
           email: r.email,
           jobTitle: r.job_title,
           status: r.status,
+          company: r.company_name,
           department: r.department_name,
           lineManager: r.manager_first ? `${r.manager_first} ${r.manager_last}` : null,
           linked: Boolean(r.linked),
@@ -141,7 +146,8 @@ export function employeeRoutes({ db, config }) {
     express.json({ limit: '2mb' }),
     asyncHandler(async (req, res) => {
       const { csv } = importSchema.parse(req.body);
-      const { _rows, ...result } = await validateImport(db, csv); // eslint-disable-line no-unused-vars
+      // eslint-disable-next-line no-unused-vars
+      const { _rows, _newDepartments, _adoptions, ...result } = await validateImport(db, csv);
       res.json(result);
     }),
   );
@@ -160,12 +166,14 @@ export function employeeRoutes({ db, config }) {
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const e = await db('employees as e')
+        .leftJoin('companies as c', 'c.id', 'e.company_id')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
         .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
         .leftJoin('work_schedules as w', 'w.id', 'e.work_schedule_id')
         .where('e.id', id)
         .first(
           'e.*',
+          'c.name as company_name',
           'd.name as department_name',
           'm.first_name as manager_first',
           'm.last_name as manager_last',
@@ -190,6 +198,8 @@ export function employeeRoutes({ db, config }) {
         email: e.email,
         jobTitle: e.job_title,
         sex: e.sex,
+        companyId: e.company_id,
+        company: e.company_name,
         departmentId: e.department_id,
         department: e.department_name,
         lineManagerId: e.line_manager_id,

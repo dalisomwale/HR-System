@@ -20,6 +20,7 @@ function requestsQuery(db) {
   return db('leave_requests as r')
     .join('employees as e', 'e.id', 'r.employee_id')
     .join('leave_types as t', 't.id', 'r.leave_type_id')
+    .leftJoin('companies as co', 'co.id', 'e.company_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .select(
       'r.id',
@@ -41,6 +42,7 @@ function requestsQuery(db) {
       'e.last_name',
       'e.employee_number',
       'd.name as dept_name',
+      'co.name as company_name',
       't.name as type_name',
       't.is_confidential',
     );
@@ -51,7 +53,12 @@ function item(r) {
   return {
     id: r.id,
     reference: r.reference,
-    employee: { id: r.employee_id, name: name(r.first_name, r.last_name), department: r.dept_name ?? null },
+    employee: {
+      id: r.employee_id,
+      name: name(r.first_name, r.last_name),
+      company: r.company_name ?? null,
+      department: r.dept_name ?? null,
+    },
     leaveType: r.type_name,
     startDate: r.start_date,
     endDate: r.end_date,
@@ -281,9 +288,16 @@ export function dashboardRoutes({ db }) {
     asyncHandler(async (req, res) => {
       const today = todayInLusaka();
       const year = Number(today.slice(0, 4));
+      // Optional: one company in the group. Every employee-based figure below is limited to it.
+      const companyId = Number(req.query.companyId) || null;
+      const inCompany = (q) => (companyId ? q.where('e.company_id', companyId) : q);
 
-      const atHr = await requestsQuery(db).where('r.status', 'PENDING_HR_APPROVAL').orderBy('r.submitted_at');
+      const atHr = await requestsQuery(db)
+        .modify(inCompany)
+        .where('r.status', 'PENDING_HR_APPROVAL')
+        .orderBy('r.submitted_at');
       const withManagers = await requestsQuery(db)
+        .modify(inCompany)
         .select('m.status as manager_status', 'm.first_name as m_first', 'm.last_name as m_last')
         .leftJoin('employees as m', 'm.id', 'r.assigned_manager_id')
         .where('r.status', 'PENDING_MANAGER_APPROVAL')
@@ -323,51 +337,73 @@ export function dashboardRoutes({ db }) {
         .count({ n: '*' })
         .first();
 
-      const openIds = await db('leave_requests')
-        .whereIn('status', ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'APPROVED'])
-        .andWhere('end_date', '>=', addDays(today, -30))
-        .pluck('id');
+      const openIds = await db('leave_requests as r')
+        .join('employees as e', 'e.id', 'r.employee_id')
+        .modify(inCompany)
+        .whereIn('r.status', ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'APPROVED'])
+        .andWhere('r.end_date', '>=', addDays(today, -30))
+        .pluck('r.id');
       const missingIds = [...(await documentsMissing(db, openIds))];
       const missingDocs = missingIds.length
         ? await requestsQuery(db).whereIn('r.id', missingIds).orderBy('r.start_date').limit(LIST)
         : [];
 
       const onLeave = await requestsQuery(db)
+        .modify(inCompany)
         .where('r.status', 'APPROVED')
         .andWhere('r.start_date', '<=', today)
         .andWhere('r.end_date', '>=', today)
         .orderBy('e.last_name');
 
-      // Utilisation: annual-leave days approved this year per department, against headcount.
+      // Utilisation: annual-leave days approved this year per company and department, against headcount.
       const annual = await db('leave_types').where({ code: 'ANNUAL' }).first('id');
       const heads = await db('employees as e')
+        .leftJoin('companies as co', 'co.id', 'e.company_id')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
+        .modify(inCompany)
         .where('e.status', 'ACTIVE')
-        .groupBy('d.id', 'd.name')
-        .select('d.id', 'd.name')
+        .groupBy('e.company_id', 'co.name', 'e.department_id', 'd.name')
+        .select('e.company_id', 'co.name as company', 'e.department_id', 'd.name as department')
         .count({ n: '*' });
       const taken = annual
         ? await db('leave_request_days as x')
             .join('leave_requests as r', 'r.id', 'x.leave_request_id')
             .join('employees as e', 'e.id', 'r.employee_id')
+            .modify(inCompany)
             .where({ 'r.status': 'APPROVED', 'r.leave_type_id': annual.id })
             .whereBetween('x.leave_date', [`${year}-01-01`, `${year}-12-31`])
-            .groupBy('e.department_id')
-            .select('e.department_id')
+            .groupBy('e.company_id', 'e.department_id')
+            .select('e.company_id', 'e.department_id')
             .sum({ days: 'x.charged' })
         : [];
-      const takenBy = new Map(taken.map((t) => [t.department_id ?? null, Number(t.days)]));
+      const key = (r) => `${r.company_id ?? ''}|${r.department_id ?? ''}`;
+      const takenBy = new Map(taken.map((t) => [key(t), Number(t.days)]));
+      const round = (n) => Math.round(n * 100) / 100;
+      const perPerson = (days, n) => (n ? Math.round((days / n) * 10) / 10 : 0);
       const utilisation = heads
         .map((h) => {
-          const days = Math.round((takenBy.get(h.id ?? null) ?? 0) * 100) / 100;
+          const days = round(takenBy.get(key(h)) ?? 0);
           return {
-            department: h.name ?? 'No department',
+            company: h.company ?? 'No company',
+            department: h.department ?? 'No department',
             headcount: Number(h.n),
             annualDaysApproved: days,
-            perPerson: Number(h.n) ? Math.round((days / Number(h.n)) * 10) / 10 : 0,
+            perPerson: perPerson(days, Number(h.n)),
           };
         })
-        .sort((a, b) => a.department.localeCompare(b.department));
+        .sort((a, b) => a.company.localeCompare(b.company) || a.department.localeCompare(b.department));
+      const byCompany = new Map();
+      for (const u of utilisation) {
+        const c = byCompany.get(u.company) ?? { company: u.company, headcount: 0, annualDaysApproved: 0 };
+        c.headcount += u.headcount;
+        c.annualDaysApproved = round(c.annualDaysApproved + u.annualDaysApproved);
+        byCompany.set(u.company, c);
+      }
+      const companySummary = [...byCompany.values()].map((c) => ({
+        ...c,
+        perPerson: perPerson(c.annualDaysApproved, c.headcount),
+      }));
+      const companies = await db('companies').where({ is_active: true }).orderBy('name').select('id', 'name');
 
       // Carry-forward still unused before this year's expiry date.
       let carryForward = { expiry: null, items: [] };
@@ -382,6 +418,7 @@ export function dashboardRoutes({ db }) {
           if (today <= expiry) {
             const rows = await db('balance_ledger as l')
               .join('employees as e', 'e.id', 'l.employee_id')
+              .modify(inCompany)
               .where({
                 'l.leave_type_id': annual.id,
                 'l.leave_year': year,
@@ -432,7 +469,9 @@ export function dashboardRoutes({ db }) {
           missingDocuments: { count: missingIds.length, items: missingDocs.map((r) => item(r)) },
         },
         onLeave: onLeave.map((r) => item(r)),
-        utilisation: { year, rows: utilisation },
+        companies,
+        companyId,
+        utilisation: { year, rows: utilisation, companies: companySummary },
         carryForward,
       });
     }),

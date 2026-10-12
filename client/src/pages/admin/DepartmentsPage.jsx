@@ -18,11 +18,13 @@ import {
   Th,
 } from '../../components/ui.jsx';
 
-const empty = { code: '', name: '', parentId: '' };
+const empty = { companyId: '', code: '', name: '', parentId: '' };
 
 export default function DepartmentsPage() {
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['departments'], queryFn: () => api.get('/api/admin/departments') });
+  const companies = useQuery({ queryKey: ['companies'], queryFn: () => api.get('/api/admin/companies') });
+  const [companyFilter, setCompanyFilter] = useState('');
   const [form, setForm] = useState(empty);
   const [editingId, setEditingId] = useState(null);
 
@@ -35,6 +37,7 @@ export default function DepartmentsPage() {
       setForm(empty);
       setEditingId(null);
       qc.invalidateQueries({ queryKey: ['departments'] });
+      qc.invalidateQueries({ queryKey: ['companies'] });
     },
   });
   const toggle = useMutation({
@@ -45,7 +48,12 @@ export default function DepartmentsPage() {
   const startEdit = (d) => {
     save.reset();
     setEditingId(d.id);
-    setForm({ code: d.code, name: d.name, parentId: d.parentId ? String(d.parentId) : '' });
+    setForm({
+      companyId: d.companyId ? String(d.companyId) : '',
+      code: d.code,
+      name: d.name,
+      parentId: d.parentId ? String(d.parentId) : '',
+    });
   };
 
   return (
@@ -54,16 +62,34 @@ export default function DepartmentsPage() {
       <div className="grid gap-6">
         <Section title={editingId ? 'Edit department' : 'Add a department'}>
           <form
-            className="grid gap-4 sm:grid-cols-[8rem_1fr_1fr_auto] sm:items-end"
+            className="grid gap-4 sm:grid-cols-[1fr_8rem_1fr_1fr_auto] sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
               save.mutate({
+                companyId: Number(form.companyId),
                 code: form.code,
                 name: form.name,
                 parentId: form.parentId ? Number(form.parentId) : null,
               });
             }}
           >
+            <Field id="deptCompany" label="Company">
+              <Select
+                id="deptCompany"
+                value={form.companyId}
+                onChange={(e) => setForm({ ...form, companyId: e.target.value, parentId: '' })}
+                required
+              >
+                <option value="">Choose</option>
+                {companies.data?.items
+                  .filter((c) => c.isActive || String(c.id) === form.companyId)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
             <Field id="deptCode" label="Code">
               <Input
                 id="deptCode"
@@ -90,7 +116,9 @@ export default function DepartmentsPage() {
               >
                 <option value="">None</option>
                 {list.data?.items
-                  .filter((d) => d.id !== editingId && d.isActive)
+                  .filter(
+                    (d) => d.id !== editingId && d.isActive && String(d.companyId ?? '') === form.companyId,
+                  )
                   .map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
@@ -117,6 +145,11 @@ export default function DepartmentsPage() {
             </div>
           </form>
           {save.isError && <Notice tone="danger">{save.error.message}</Notice>}
+          {companies.data?.items.length === 0 && (
+            <Notice tone="pending">
+              Add the group&apos;s companies on the Companies page first; every department belongs to one.
+            </Notice>
+          )}
         </Section>
 
         {list.isPending ? (
@@ -130,9 +163,27 @@ export default function DepartmentsPage() {
         ) : (
           <>
             {toggle.isError && <Notice tone="danger">{toggle.error.message}</Notice>}
+            <div className="flex items-end gap-3">
+              <Field id="deptFilter" label="Company">
+                <Select
+                  id="deptFilter"
+                  value={companyFilter}
+                  onChange={(e) => setCompanyFilter(e.target.value)}
+                >
+                  <option value="">All companies</option>
+                  {companies.data?.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                  <option value="none">No company set</option>
+                </Select>
+              </Field>
+            </div>
             <Table>
               <thead>
                 <tr>
+                  <Th>Company</Th>
                   <Th>Code</Th>
                   <Th>Name</Th>
                   <Th>Part of</Th>
@@ -144,28 +195,35 @@ export default function DepartmentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {list.data.items.map((d) => (
-                  <tr key={d.id}>
-                    <Td className="font-medium">{d.code}</Td>
-                    <Td>{d.name}</Td>
-                    <Td>{d.parentName ?? <span className="text-muted">None</span>}</Td>
-                    <Td className="text-right">{d.activeEmployees}</Td>
-                    <Td>{d.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}</Td>
-                    <Td className="text-right whitespace-nowrap">
-                      <Button variant="ghost" className="h-7 px-2" onClick={() => startEdit(d)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="h-7 px-2"
-                        busy={toggle.isPending && toggle.variables?.id === d.id}
-                        onClick={() => toggle.mutate(d)}
-                      >
-                        {d.isActive ? 'Deactivate' : 'Reactivate'}
-                      </Button>
-                    </Td>
-                  </tr>
-                ))}
+                {list.data.items
+                  .filter((d) =>
+                    companyFilter === 'none'
+                      ? !d.companyId
+                      : !companyFilter || String(d.companyId) === companyFilter,
+                  )
+                  .map((d) => (
+                    <tr key={d.id}>
+                      <Td>{d.company ?? <Badge tone="pending">Not set</Badge>}</Td>
+                      <Td className="font-medium">{d.code}</Td>
+                      <Td>{d.name}</Td>
+                      <Td>{d.parentName ?? <span className="text-muted">None</span>}</Td>
+                      <Td className="text-right">{d.activeEmployees}</Td>
+                      <Td>{d.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}</Td>
+                      <Td className="text-right whitespace-nowrap">
+                        <Button variant="ghost" className="h-7 px-2" onClick={() => startEdit(d)}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-7 px-2"
+                          busy={toggle.isPending && toggle.variables?.id === d.id}
+                          onClick={() => toggle.mutate(d)}
+                        >
+                          {d.isActive ? 'Deactivate' : 'Reactivate'}
+                        </Button>
+                      </Td>
+                    </tr>
+                  ))}
               </tbody>
             </Table>
           </>

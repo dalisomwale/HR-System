@@ -58,7 +58,7 @@ npm install
 npm run migrate
 ```
 
-Migrations create the schema and required configuration only: two roles (HR Officer, HR Administrator), system settings with documented defaults, and the company default working week (Monday to Friday). They create no employees, departments, leave types, holidays or balances.
+Migrations create the schema and required configuration only: two roles (HR Officer, HR Administrator), system settings with documented defaults, and the company default working week (Monday to Friday). They create no companies, employees, departments, leave types, holidays or balances.
 
 ## 4. First administrator
 

@@ -34,7 +34,7 @@ export function renderEmail({ greetingName, heading, intro, rows = [], action, u
     ...(url ? ['', `Open in the leave system: ${url}`] : []),
     '',
     '--',
-    'Altus Financial Services Limited - Leave Management',
+    'Altus Group - Leave Management',
     'This message was sent automatically. Do not reply to it.',
   ].join('\r\n');
 
@@ -50,7 +50,7 @@ export function renderEmail({ greetingName, heading, intro, rows = [], action, u
 <body style="margin:0;padding:0;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1d2433">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #dce1e8;border-top:4px solid ${NAVY}">
-<tr><td style="padding:20px 24px 8px 24px;font-size:16px;font-weight:700;color:${NAVY}">Altus Financial Services Limited<span style="font-weight:400;color:#5b6475"> &middot; Leave Management</span></td></tr>
+<tr><td style="padding:20px 24px 8px 24px;font-size:16px;font-weight:700;color:${NAVY}">Altus Group<span style="font-weight:400;color:#5b6475"> &middot; Leave Management</span></td></tr>
 <tr><td style="padding:8px 24px 0 24px"><h1 style="margin:0;font-size:19px;color:#1d2433">${escape(heading)}</h1></td></tr>
 <tr><td style="padding:12px 24px 0 24px">
 <p style="margin:0 0 12px 0">Dear ${escape(greetingName)},</p>
@@ -59,7 +59,7 @@ ${rowHtml ? `<table role="presentation" cellpadding="0" cellspacing="0" style="m
 ${action ? `<p style="margin:0 0 16px 0">${escape(action)}</p>` : ''}
 ${url ? `<p style="margin:0 0 20px 0"><a href="${escape(url)}" style="display:inline-block;background:${NAVY};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:4px;font-weight:600">Open in the leave system</a></p>` : ''}
 </td></tr>
-<tr><td style="padding:12px 24px 20px 24px;border-top:1px solid #dce1e8;font-size:12px;color:#5b6475">This message was sent automatically by the Altus leave system. Do not reply to it.</td></tr>
+<tr><td style="padding:12px 24px 20px 24px;border-top:1px solid #dce1e8;font-size:12px;color:#5b6475">This message was sent automatically by the Altus Group leave system. Do not reply to it.</td></tr>
 </table></td></tr></table></body></html>`;
 
   return { html, text };

@@ -81,13 +81,13 @@ describe('Microsoft sign-in', () => {
   it('requires the CSRF token for changes', async () => {
     const emp = await fixtureEmployee(db, { roles: ['HR_ADMIN'] });
     const s = await signIn(app, entra, { oid: emp.oid });
-    const without = await s.agent.post('/api/admin/departments').send({ code: 'FIN', name: 'Finance' });
+    const without = await s.agent.post('/api/admin/companies').send({ code: 'AFS', name: 'Altus' });
     expect(without.status).toBe(403);
     expect(without.body.error.code).toBe('CSRF_FAILED');
     const withToken = await s.agent
-      .post('/api/admin/departments')
+      .post('/api/admin/companies')
       .set('X-CSRF-Token', s.csrf)
-      .send({ code: 'FIN', name: 'Finance' });
+      .send({ code: 'AFS', name: 'Altus' });
     expect(withToken.status).toBe(201);
   });
 

@@ -50,13 +50,14 @@ Email is sent through Microsoft 365; setup is in [`email-setup.md`](email-setup.
 
 ## Reports
 
-_Reports_ is in the HR menu for HR Officers, and in the Manager menu for managers and their delegates. Managers see only their own team; HR sees everyone. Each report can be filtered (period or year, employee, department, leave type, status) and exported to Excel or CSV. Every export is recorded in the audit log with its filters and row count. CSV cells that a spreadsheet would read as a formula (starting with `=`, `+`, `-`, `@`) are prefixed with `'`.
+_Reports_ is in the HR menu for HR Officers, and in the Manager menu for managers and their delegates. Managers see only their own team; HR sees everyone. Each report can be filtered (period or year, employee, company, department, leave type, status) and shows each person's company and exported to Excel or CSV. Every export is recorded in the audit log with its filters and row count. CSV cells that a spreadsheet would read as a formula (starting with `=`, `+`, `-`, `@`) are prefixed with `'`.
 
 | Report                                               | Who          |
 | ---------------------------------------------------- | ------------ |
 | Leave requests                                       | HR, managers |
 | Requests by status                                   | HR, managers |
 | Leave taken by employee                              | HR, managers |
+| Utilisation by company                               | HR           |
 | Utilisation by department                            | HR           |
 | Current balances (annual leave)                      | HR, managers |
 | Upcoming absences (default next 30 days)             | HR, managers |
@@ -69,13 +70,24 @@ _Reports_ is in the HR menu for HR Officers, and in the Manager menu for manager
 
 The screen shows the first 500 rows; exports include up to 50,000.
 
+## Companies in the group
+
+Altus is a group of companies. Every employee works for one company, and every department belongs to one company, so two companies can each have a department called Finance with the code FIN. Choosing a department on an employee's record sets their company; a company that the chosen department is not in is refused.
+
+The HR overview and every report can show the whole group or one company. The HR overview has a _Whole group_ selector at the top and, for the whole group, a table of annual leave taken per company.
+
+The employee import needs `company_name` or `company_code` on every row. An existing company code must match its name; a new code with a name creates the company. Departments are matched within the row's company. A department created before companies existed (it has no company) is assigned to the company named in the file, unless the file uses it under two companies, in which case set its company on the Departments page first.
+
+Managers can be in any company in the group: a manager in one company can approve leave for someone in another.
+
 ## First-time setup for HR
 
-1. **HR Administrators have every right**, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings.
-2. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record. Files made from the older import template may still include a `sex` column: F, M, Female or Male).
-3. **Review leave types** (Administration → Leave types). All ten were created from the policy as _inactive_. Check each one's rules against the policy; use _Change rules_ to correct anything, then _Review done – activate_. Activating records who confirmed the rules and when.
-4. **Opening balances**: on each employee's record, under _Leave balances_, record an _Opening balance_ for annual leave with a reason. Every entry is kept in the ledger and audited.
-5. **Accrual stays off** until HR confirms the rule: the policy says both 25 days a year and 2.3 days a month (27.6). Set the method and tick _Accrual rule confirmed by HR_ in _Change rules_ for annual leave, then run _Monthly accrual_ under _Balance jobs_.
+1. **Add the group's companies** (Administration → Companies), then give each existing department its company (Departments → Edit) and each employee theirs. Companies → _Show them_ lists active staff with no company yet. Importing a staff file creates any companies it names.
+2. **HR Administrators have every right**, including the HR Officer's (final approval, balances, reports) and the manager pages. Give the HR Officer role on its own to HR staff who approve leave but should not change settings.
+3. **Record each employee's sex** where maternity, paternity, Mother's Day or pregnancy-loss leave applies (Employees → record. Files made from the older import template may still include a `sex` column: F, M, Female or Male).
+4. **Review leave types** (Administration → Leave types). All ten were created from the policy as _inactive_. Check each one's rules against the policy; use _Change rules_ to correct anything, then _Review done – activate_. Activating records who confirmed the rules and when.
+5. **Opening balances**: on each employee's record, under _Leave balances_, record an _Opening balance_ for annual leave with a reason. Every entry is kept in the ledger and audited.
+6. **Accrual stays off** until HR confirms the rule: the policy says both 25 days a year and 2.3 days a month (27.6). Set the method and tick _Accrual rule confirmed by HR_ in _Change rules_ for annual leave, then run _Monthly accrual_ under _Balance jobs_.
 
 ## Balance jobs
 

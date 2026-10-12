@@ -26,7 +26,7 @@ export function Stats({ children }) {
 }
 
 /** Compact list of requests with a link to each. */
-export function RequestList({ items, empty, showEmployee = false, extra }) {
+export function RequestList({ items, empty, showEmployee = false, showCompany = false, extra }) {
   if (!items.length) return <p className="text-sm text-muted">{empty}</p>;
   return (
     <ul className="divide-y divide-rule">
@@ -41,6 +41,7 @@ export function RequestList({ items, empty, showEmployee = false, extra }) {
               · {showEmployee ? `${r.leaveType} · ` : ''}
               {dateRange(r)} · {r.chargeableDays} {r.chargeableDays === 1 ? 'day' : 'days'}
             </span>
+            {showCompany && r.employee?.company && <p className="text-xs text-muted">{r.employee.company}</p>}
           </div>
           <div className="flex items-center gap-2">
             {extra?.(r)}

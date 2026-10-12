@@ -8,6 +8,7 @@ const EXPECTED_TABLES = [
   'balance_ledger',
   'change_requests',
   'delegations',
+  'companies',
   'departments',
   'documents',
   'email_outbox',

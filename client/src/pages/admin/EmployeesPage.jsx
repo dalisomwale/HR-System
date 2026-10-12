@@ -25,6 +25,7 @@ export default function EmployeesPage() {
   const filters = {
     search: params.get('search') ?? '',
     status: params.get('status') ?? 'ACTIVE',
+    companyId: params.get('companyId') ?? '',
     departmentId: params.get('departmentId') ?? '',
     page: Number(params.get('page') ?? 1),
   };
@@ -35,6 +36,7 @@ export default function EmployeesPage() {
     });
   };
 
+  const companies = useQuery({ queryKey: ['companies'], queryFn: () => api.get('/api/admin/companies') });
   const departments = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get('/api/admin/departments'),
@@ -48,7 +50,10 @@ export default function EmployeesPage() {
     placeholderData: keepPreviousData,
   });
 
-  const filtered = filters.search || filters.departmentId || filters.status !== 'ACTIVE';
+  const filtered = filters.search || filters.companyId || filters.departmentId || filters.status !== 'ACTIVE';
+  const departmentChoices = (departments.data?.items ?? []).filter(
+    (d) => !filters.companyId || String(d.companyId ?? 'none') === filters.companyId,
+  );
 
   return (
     <div>
@@ -96,15 +101,29 @@ export default function EmployeesPage() {
           <option value="ALL">All statuses</option>
         </Select>
         <Select
+          aria-label="Company"
+          className="w-64"
+          value={filters.companyId}
+          onChange={(e) => update({ companyId: e.target.value, departmentId: '' })}
+        >
+          <option value="">All companies</option>
+          {companies.data?.items.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+          <option value="none">No company set</option>
+        </Select>
+        <Select
           aria-label="Department"
           className="w-56"
           value={filters.departmentId}
           onChange={(e) => update({ departmentId: e.target.value })}
         >
           <option value="">All departments</option>
-          {departments.data?.items.map((d) => (
+          {departmentChoices.map((d) => (
             <option key={d.id} value={d.id}>
-              {d.name}
+              {filters.companyId || !d.company ? d.name : `${d.name} (${d.company})`}
             </option>
           ))}
         </Select>
@@ -141,6 +160,7 @@ export default function EmployeesPage() {
               <tr>
                 <Th>Name</Th>
                 <Th>Employee no.</Th>
+                <Th>Company</Th>
                 <Th>Department</Th>
                 <Th>Manager</Th>
                 <Th>Microsoft account</Th>
@@ -158,6 +178,7 @@ export default function EmployeesPage() {
                     {e.jobTitle && <p className="text-xs text-muted">{e.jobTitle}</p>}
                   </Td>
                   <Td>{e.employeeNumber}</Td>
+                  <Td>{e.company ?? <Badge tone="pending">Not set</Badge>}</Td>
                   <Td>{e.department ?? <span className="text-muted">None</span>}</Td>
                   <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
                   <Td>

@@ -1,16 +1,43 @@
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
-import { LoadError, Loading, PageHeader, Section, Table, Td, Th } from '../../components/ui.jsx';
+import { LoadError, Loading, PageHeader, Section, Select, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
 
 export default function HrOverviewPage() {
-  const q = useQuery({ queryKey: ['dashboard', 'hr'], queryFn: () => api.get('/api/dashboard/hr') });
+  const [params, setParams] = useSearchParams();
+  const companyId = params.get('companyId') ?? '';
+  const q = useQuery({
+    queryKey: ['dashboard', 'hr', companyId],
+    queryFn: () => api.get(`/api/dashboard/hr${companyId ? `?companyId=${companyId}` : ''}`),
+  });
+  const companies = q.data?.companies ?? [];
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="HR overview" />
+      <PageHeader
+        title="HR overview"
+        actions={
+          companies.length > 0 && (
+            <Select
+              aria-label="Company"
+              className="w-72"
+              value={companyId}
+              onChange={(e) =>
+                setParams(e.target.value ? { companyId: e.target.value } : {}, { replace: true })
+              }
+            >
+              <option value="">Whole group</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          )
+        }
+      />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -47,7 +74,9 @@ function Body({ d }) {
                 : 'No requests held without an approver'
             }
           >
-            {ex.held.length > 0 && <RequestList items={ex.held} showEmployee empty="" />}
+            {ex.held.length > 0 && (
+              <RequestList items={ex.held} showEmployee showCompany={!d.companyId} empty="" />
+            )}
             {ex.held.length > 0 && (
               <p className="mt-1 text-muted">
                 Update the employee’s manager, or set up a delegation under Administration → Delegations.
@@ -63,7 +92,12 @@ function Body({ d }) {
             }
           >
             {ex.missingDocuments.count > 0 && (
-              <RequestList items={ex.missingDocuments.items} showEmployee empty="" />
+              <RequestList
+                items={ex.missingDocuments.items}
+                showEmployee
+                showCompany={!d.companyId}
+                empty=""
+              />
             )}
           </Exception>
           <Exception
@@ -121,6 +155,7 @@ function Body({ d }) {
           <RequestList
             items={d.awaitingHr}
             showEmployee
+            showCompany={!d.companyId}
             empty="Nothing is waiting for HR."
             extra={(r) => <Waiting r={r} />}
           />
@@ -129,6 +164,7 @@ function Body({ d }) {
           <RequestList
             items={d.withManagers}
             showEmployee
+            showCompany={!d.companyId}
             empty="Nothing is with managers."
             extra={(r) => <Waiting r={r} />}
           />
@@ -136,8 +172,38 @@ function Body({ d }) {
       </div>
 
       <Section title="On leave today">
-        <RequestList items={d.onLeave} showEmployee empty="Nobody is on leave today." />
+        <RequestList
+          items={d.onLeave}
+          showEmployee
+          showCompany={!d.companyId}
+          empty="Nobody is on leave today."
+        />
       </Section>
+
+      {!d.companyId && d.utilisation.companies.length > 1 && (
+        <Section title={`Annual leave taken by company, ${d.utilisation.year}`}>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Company</Th>
+                <Th className="text-right">Staff</Th>
+                <Th className="text-right">Days approved</Th>
+                <Th className="text-right">Per person</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.utilisation.companies.map((c) => (
+                <tr key={c.company}>
+                  <Td>{c.company}</Td>
+                  <Td className="text-right">{c.headcount}</Td>
+                  <Td className="text-right">{c.annualDaysApproved}</Td>
+                  <Td className="text-right">{c.perPerson}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Section title={`Annual leave taken by department, ${d.utilisation.year}`}>
@@ -155,8 +221,11 @@ function Body({ d }) {
               </thead>
               <tbody>
                 {d.utilisation.rows.map((u) => (
-                  <tr key={u.department}>
-                    <Td>{u.department}</Td>
+                  <tr key={`${u.company}|${u.department}`}>
+                    <Td>
+                      {u.department}
+                      {!d.companyId && <p className="text-xs text-muted">{u.company}</p>}
+                    </Td>
                     <Td className="text-right">{u.headcount}</Td>
                     <Td className="text-right">{u.annualDaysApproved}</Td>
                     <Td className="text-right">{u.perPerson}</Td>

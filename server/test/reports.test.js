@@ -37,6 +37,7 @@ let mgr;
 let emp;
 let outsider;
 let dept;
+let company;
 
 async function login(e) {
   return { ...(await signIn(app, entra, { oid: e.oid })), id: e.id };
@@ -86,10 +87,12 @@ beforeEach(async () => {
   await resetData(db);
   await db('leave_types').where({ code: 'ANNUAL' }).update({ is_active: true });
   ids = { ANNUAL: (await db('leave_types').where({ code: 'ANNUAL' }).first('id')).id };
-  [dept] = await db('departments').insert({ code: 'CRD', name: 'Credit' });
+  [company] = await db('companies').insert({ code: 'AFS', name: 'Altus Financial Services Limited' });
+  [dept] = await db('departments').insert({ company_id: company, code: 'CRD', name: 'Credit' });
   const hrE = await fixtureEmployee(db, { roles: ['HR_OFFICER'] });
-  const mgrE = await fixtureEmployee(db, { first_name: 'Mona', department_id: dept });
-  const empE = await fixtureEmployee(db, { first_name: 'Ezra', managerId: mgrE.id, department_id: dept });
+  const inCredit = { department_id: dept, company_id: company };
+  const mgrE = await fixtureEmployee(db, { first_name: 'Mona', ...inCredit });
+  const empE = await fixtureEmployee(db, { first_name: 'Ezra', managerId: mgrE.id, ...inCredit });
   const outE = await fixtureEmployee(db, { first_name: '=HYPERLINK("http://evil")' });
   const s = [];
   for (const e of [hrE, mgrE, empE, outE]) s.push(await login(e));
@@ -157,6 +160,51 @@ describe('report contents', () => {
     const res = await as(hr).get('/api/reports/status-summary?year=2027');
     expect(res.body.rows).toEqual([{ leaveType: 'Annual leave', status: 'Approved', requests: 1, days: 5 }]);
     expect((await as(hr).get('/api/reports/outstanding')).body.rows).toEqual([]);
+  });
+});
+
+describe('companies in the group', () => {
+  it('shows the company on each row and filters by company', async () => {
+    await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    await approved(outsider.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    const all = await as(hr).get('/api/reports/requests?year=2027');
+    expect(all.body.columns.map((c) => c.key)).toContain('company');
+    expect(all.body.rows.map((r) => r.company).sort()).toEqual(['', 'Altus Financial Services Limited']);
+    const one = await as(hr).get(`/api/reports/requests?year=2027&companyId=${company}`);
+    expect(one.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    const list = await as(hr).get('/api/reports');
+    expect(list.body.options.companies).toEqual([{ id: company, name: 'Altus Financial Services Limited' }]);
+  });
+
+  it('summarises utilisation per company', async () => {
+    await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    const res = await as(hr).get('/api/reports/utilisation-company?year=2027');
+    expect(res.body.rows).toEqual([
+      { company: 'Altus Financial Services Limited', headcount: 2, days: 5, perPerson: 2.5 },
+      { company: 'No company', headcount: 2, days: 0, perPerson: 0 },
+    ]);
+    const byDept = await as(hr).get(`/api/reports/utilisation?year=2027&companyId=${company}`);
+    expect(byDept.body.rows).toEqual([
+      {
+        company: 'Altus Financial Services Limited',
+        department: 'Credit',
+        headcount: 2,
+        days: 5,
+        perPerson: 2.5,
+      },
+    ]);
+  });
+
+  it('limits the HR overview to one company when asked', async () => {
+    const res = await as(hr).get(`/api/dashboard/hr?companyId=${company}`);
+    expect(res.status).toBe(200);
+    expect(res.body.companyId).toBe(company);
+    expect(res.body.utilisation.rows.every((r) => r.company === 'Altus Financial Services Limited')).toBe(
+      true,
+    );
+    expect(res.body.utilisation.companies).toEqual([
+      expect.objectContaining({ company: 'Altus Financial Services Limited', headcount: 2 }),
+    ]);
   });
 });
 

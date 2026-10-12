@@ -79,7 +79,7 @@ export default function SchedulesPage() {
                 <tr key={s.id}>
                   <Td>
                     <span className="font-medium">{s.name}</span>{' '}
-                    {s.isCompanyDefault && <Badge tone="brand">Company default</Badge>}
+                    {s.isCompanyDefault && <Badge tone="brand">Group default</Badge>}
                   </Td>
                   {DAYS.map(([d]) => (
                     <Td key={d} className={s.days[d] === 0 ? 'text-center text-muted' : 'text-center'}>
@@ -150,7 +150,7 @@ export default function SchedulesPage() {
                 checked={form.isCompanyDefault}
                 onChange={(e) => setForm({ ...form, isCompanyDefault: e.target.checked })}
               />
-              Company default
+              Group default
             </label>
             {save.isError && <Notice tone="danger">{save.error.message}</Notice>}
             <div className="flex gap-2">

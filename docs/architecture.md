@@ -29,7 +29,7 @@ Browser (React SPA)  ──HTTPS──>  Nginx  ──>  Express API (Node.js)  
 
 ## Data model
 
-Organisation: `departments`, `employees` (with `line_manager_id`), `identity_links` (Entra tenant ID + object ID, unique), `roles`, `employee_roles`, `delegations`, `work_schedules`.
+Organisation: `companies` (the Altus Group companies), `departments` (each in one company), `employees` (each in one company) (with `line_manager_id`), `identity_links` (Entra tenant ID + object ID, unique), `roles`, `employee_roles`, `delegations`, `work_schedules`.
 
 Configuration: `leave_types`, `leave_policy_versions` (versioned, effective-dated, never edited after use), `public_holidays`, `system_settings`.
 

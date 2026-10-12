@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   CalendarDays,
   Building2,
+  Landmark,
   Clock,
   FileUp,
   History,
@@ -53,6 +54,7 @@ const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
   { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/import', label: 'Import employees', icon: FileUp },
+  { to: '/admin/companies', label: 'Companies', icon: Landmark },
   { to: '/admin/departments', label: 'Departments', icon: Building2 },
   { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks },
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck },
@@ -158,7 +160,7 @@ export default function AppShell() {
             )}
           </button>
           <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Altus Financial Services Limited" className="h-8 w-auto sm:h-10" />
+            <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
             <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
               Leave Management
             </span>

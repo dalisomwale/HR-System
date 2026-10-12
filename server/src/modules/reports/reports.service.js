@@ -48,6 +48,7 @@ const ENTRY_LABEL = {
 
 export const filterSchema = z.object({
   employeeId: z.coerce.number().int().positive().optional().catch(undefined),
+  companyId: z.coerce.number().int().positive().optional().catch(undefined),
   departmentId: z.coerce.number().int().positive().optional().catch(undefined),
   leaveTypeId: z.coerce.number().int().positive().optional().catch(undefined),
   status: z.enum(STATUS).optional().catch(undefined),
@@ -91,6 +92,7 @@ export async function reportScope(db, user) {
 function people(q, scope, f) {
   if (scope.ids) q.whereIn('e.id', scope.ids.length ? scope.ids : [0]);
   if (f.employeeId) q.where('e.id', f.employeeId);
+  if (f.companyId) q.where('e.company_id', f.companyId);
   if (f.departmentId) q.where('e.department_id', f.departmentId);
   return q;
 }
@@ -105,12 +107,14 @@ function requestBase(db) {
   return db('leave_requests as r')
     .join('employees as e', 'e.id', 'r.employee_id')
     .join('leave_types as t', 't.id', 'r.leave_type_id')
+    .leftJoin('companies as co', 'co.id', 'e.company_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .select(
       'r.*',
       'e.employee_number',
       'e.first_name',
       'e.last_name',
+      'co.name as company',
       'd.name as department',
       't.name as leave_type',
     );
@@ -119,11 +123,13 @@ function requestBase(db) {
 const PERSON_COLS = [
   { key: 'employeeNumber', label: 'Employee number', type: 'text' },
   { key: 'employee', label: 'Employee', type: 'text' },
+  { key: 'company', label: 'Company', type: 'text' },
   { key: 'department', label: 'Department', type: 'text' },
 ];
 const personRow = (r) => ({
   employeeNumber: r.employee_number,
   employee: name(r),
+  company: r.company ?? '',
   department: r.department ?? '',
 });
 const lusaka = new Intl.DateTimeFormat('en-CA', {
@@ -138,6 +144,52 @@ const lusaka = new Intl.DateTimeFormat('en-CA', {
 /** Event time in Lusaka, 'YYYY-MM-DD HH:MM'. */
 const ts = (v) => (v ? lusaka.format(new Date(v)).replace(',', '') : '');
 
+/** Approved days in the period against active headcount, per company or per company and department. */
+async function utilisation(db, scope, f, byDepartment) {
+  const { from, to } = yearRange(f);
+  const keys = byDepartment ? ['e.company_id', 'e.department_id'] : ['e.company_id'];
+  const heads = await people(
+    db('employees as e')
+      .leftJoin('companies as co', 'co.id', 'e.company_id')
+      .leftJoin('departments as d', 'd.id', 'e.department_id'),
+    scope,
+    f,
+  )
+    .where('e.status', 'ACTIVE')
+    .groupBy(...keys, 'co.name', ...(byDepartment ? ['d.name'] : []))
+    .select(...keys, 'co.name as company', ...(byDepartment ? ['d.name as department'] : []))
+    .count({ n: '*' });
+  const taken = await people(
+    db('leave_request_days as x')
+      .join('leave_requests as r', 'r.id', 'x.leave_request_id')
+      .join('employees as e', 'e.id', 'r.employee_id'),
+    scope,
+    f,
+  )
+    .where('r.status', 'APPROVED')
+    .whereBetween('x.leave_date', [from, to])
+    .modify((q) => f.leaveTypeId && q.where('r.leave_type_id', f.leaveTypeId))
+    .groupBy(...keys)
+    .select(...keys)
+    .sum({ days: 'x.charged' });
+  const key = (r) => `${r.company_id ?? ''}|${byDepartment ? (r.department_id ?? '') : ''}`;
+  const by = new Map(taken.map((t) => [key(t), Number(t.days)]));
+  return heads
+    .map((h) => {
+      const days = r2(by.get(key(h)) ?? 0);
+      return {
+        company: h.company ?? 'No company',
+        ...(byDepartment ? { department: h.department ?? 'No department' } : {}),
+        headcount: Number(h.n),
+        days,
+        perPerson: Number(h.n) ? Math.round((days / Number(h.n)) * 10) / 10 : 0,
+      };
+    })
+    .sort(
+      (a, b) => a.company.localeCompare(b.company) || (a.department ?? '').localeCompare(b.department ?? ''),
+    );
+}
+
 // ---------------------------------------------------------------------------------------------
 
 export const REPORTS = [
@@ -146,7 +198,7 @@ export const REPORTS = [
     title: 'Leave requests',
     description: 'Every request whose dates fall in the period, with its status and decision dates.',
     levels: ['HR', 'MANAGER'],
-    filters: ['from', 'to', 'employee', 'department', 'leaveType', 'status'],
+    filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType', 'status'],
     columns: [
       { key: 'reference', label: 'Reference', type: 'text' },
       ...PERSON_COLS,
@@ -190,7 +242,7 @@ export const REPORTS = [
     title: 'Requests by status',
     description: 'How many requests, and how many days, are in each status for each leave type.',
     levels: ['HR', 'MANAGER'],
-    filters: ['from', 'to', 'department', 'leaveType'],
+    filters: ['from', 'to', 'company', 'department', 'leaveType'],
     columns: [
       { key: 'leaveType', label: 'Leave type', type: 'text' },
       { key: 'status', label: 'Status', type: 'text' },
@@ -229,7 +281,7 @@ export const REPORTS = [
     title: 'Leave taken by employee',
     description: 'Approved days that fall in the period, per person and leave type.',
     levels: ['HR', 'MANAGER'],
-    filters: ['from', 'to', 'employee', 'department', 'leaveType'],
+    filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
       { key: 'leaveType', label: 'Leave type', type: 'text' },
@@ -242,6 +294,7 @@ export const REPORTS = [
           .join('leave_requests as r', 'r.id', 'x.leave_request_id')
           .join('employees as e', 'e.id', 'r.employee_id')
           .join('leave_types as t', 't.id', 'r.leave_type_id')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
           .leftJoin('departments as d', 'd.id', 'e.department_id'),
         scope,
         f,
@@ -254,6 +307,7 @@ export const REPORTS = [
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name',
           'd.name',
           't.name',
           't.display_order',
@@ -262,6 +316,7 @@ export const REPORTS = [
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name as company',
           'd.name as department',
           't.name as leave_type',
         )
@@ -273,53 +328,37 @@ export const REPORTS = [
   },
 
   {
+    id: 'utilisation-company',
+    title: 'Utilisation by company',
+    description: 'Approved days taken in the period per company in the group, against current headcount.',
+    levels: ['HR'],
+    filters: ['from', 'to', 'company', 'leaveType'],
+    columns: [
+      { key: 'company', label: 'Company', type: 'text' },
+      { key: 'headcount', label: 'Active staff', type: 'number' },
+      { key: 'days', label: 'Days taken', type: 'number' },
+      { key: 'perPerson', label: 'Days per person', type: 'number' },
+    ],
+    async run(db, scope, f) {
+      return utilisation(db, scope, f, false);
+    },
+  },
+
+  {
     id: 'utilisation',
     title: 'Utilisation by department',
     description: 'Approved days taken in the period per department, against current headcount.',
     levels: ['HR'],
-    filters: ['from', 'to', 'department', 'leaveType'],
+    filters: ['from', 'to', 'company', 'department', 'leaveType'],
     columns: [
+      { key: 'company', label: 'Company', type: 'text' },
       { key: 'department', label: 'Department', type: 'text' },
       { key: 'headcount', label: 'Active staff', type: 'number' },
       { key: 'days', label: 'Days taken', type: 'number' },
       { key: 'perPerson', label: 'Days per person', type: 'number' },
     ],
     async run(db, scope, f) {
-      const { from, to } = yearRange(f);
-      const heads = await people(
-        db('employees as e').leftJoin('departments as d', 'd.id', 'e.department_id'),
-        scope,
-        f,
-      )
-        .where('e.status', 'ACTIVE')
-        .groupBy('d.id', 'd.name')
-        .select('d.id', 'd.name')
-        .count({ n: '*' });
-      const taken = await people(
-        db('leave_request_days as x')
-          .join('leave_requests as r', 'r.id', 'x.leave_request_id')
-          .join('employees as e', 'e.id', 'r.employee_id'),
-        scope,
-        f,
-      )
-        .where('r.status', 'APPROVED')
-        .whereBetween('x.leave_date', [from, to])
-        .modify((q) => f.leaveTypeId && q.where('r.leave_type_id', f.leaveTypeId))
-        .groupBy('e.department_id')
-        .select('e.department_id')
-        .sum({ days: 'x.charged' });
-      const by = new Map(taken.map((t) => [t.department_id ?? null, Number(t.days)]));
-      return heads
-        .map((h) => {
-          const days = r2(by.get(h.id ?? null) ?? 0);
-          return {
-            department: h.name ?? 'No department',
-            headcount: Number(h.n),
-            days,
-            perPerson: Number(h.n) ? Math.round((days / Number(h.n)) * 10) / 10 : 0,
-          };
-        })
-        .sort((a, b) => a.department.localeCompare(b.department));
+      return utilisation(db, scope, f, true);
     },
   },
 
@@ -329,7 +368,7 @@ export const REPORTS = [
     description:
       'Annual-leave position per person for the year: opening, carried forward, accrued, taken, adjustments and what is left.',
     levels: ['HR', 'MANAGER'],
-    filters: ['year', 'employee', 'department'],
+    filters: ['year', 'employee', 'company', 'department'],
     columns: [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
@@ -348,13 +387,22 @@ export const REPORTS = [
       const annual = await db('leave_types').where({ code: 'ANNUAL' }).first('id');
       if (!annual) return [];
       const emps = await people(
-        db('employees as e').leftJoin('departments as d', 'd.id', 'e.department_id'),
+        db('employees as e')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
+          .leftJoin('departments as d', 'd.id', 'e.department_id'),
         scope,
         f,
       )
         .where('e.status', 'ACTIVE')
         .orderBy(['e.last_name', 'e.first_name'])
-        .select('e.id', 'e.employee_number', 'e.first_name', 'e.last_name', 'd.name as department');
+        .select(
+          'e.id',
+          'e.employee_number',
+          'e.first_name',
+          'e.last_name',
+          'co.name as company',
+          'd.name as department',
+        );
       const out = [];
       for (const e of emps) {
         const p = await annualPosition(db, e.id, annual.id, year);
@@ -382,7 +430,7 @@ export const REPORTS = [
     description:
       'Approved and pending leave starting or continuing in the period (default: the next 30 days).',
     levels: ['HR', 'MANAGER'],
-    filters: ['from', 'to', 'employee', 'department', 'leaveType'],
+    filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
       { key: 'leaveType', label: 'Leave type', type: 'text' },
@@ -419,7 +467,7 @@ export const REPORTS = [
     description:
       'Annual-leave days carried into the year, how many were used by the deadline, and what expired.',
     levels: ['HR'],
-    filters: ['year', 'employee', 'department'],
+    filters: ['year', 'employee', 'company', 'department'],
     columns: [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
@@ -444,18 +492,20 @@ export const REPORTS = [
       const rows = await people(
         db('balance_ledger as l')
           .join('employees as e', 'e.id', 'l.employee_id')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
           .leftJoin('departments as d', 'd.id', 'e.department_id'),
         scope,
         f,
       )
         .where({ 'l.leave_type_id': annual.id, 'l.leave_year': year })
         .whereIn('l.entry_type', ['CARRY_FORWARD_IN', 'CARRY_FORWARD_EXPIRY'])
-        .groupBy('e.id', 'e.employee_number', 'e.first_name', 'e.last_name', 'd.name')
+        .groupBy('e.id', 'e.employee_number', 'e.first_name', 'e.last_name', 'co.name', 'd.name')
         .select(
           'e.id',
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name as company',
           'd.name as department',
           db.raw("SUM(CASE WHEN l.entry_type = 'CARRY_FORWARD_IN' THEN l.amount ELSE 0 END) AS carried"),
           db.raw("SUM(CASE WHEN l.entry_type = 'CARRY_FORWARD_EXPIRY' THEN -l.amount ELSE 0 END) AS expired"),
@@ -492,7 +542,7 @@ export const REPORTS = [
     description:
       'Every balance entry recorded in the period, with who made it and why. Choose “Adjustment” to see manual changes only.',
     levels: ['HR'],
-    filters: ['from', 'to', 'employee', 'department', 'leaveType', 'entryType'],
+    filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType', 'entryType'],
     columns: [
       { key: 'at', label: 'Recorded', type: 'text' },
       ...PERSON_COLS,
@@ -509,6 +559,7 @@ export const REPORTS = [
         db('balance_ledger as l')
           .join('employees as e', 'e.id', 'l.employee_id')
           .join('leave_types as t', 't.id', 'l.leave_type_id')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
           .leftJoin('departments as d', 'd.id', 'e.department_id')
           .leftJoin('employees as c', 'c.id', 'l.created_by'),
         scope,
@@ -521,6 +572,7 @@ export const REPORTS = [
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name as company',
           'd.name as department',
           't.name as leave_type',
           'c.first_name as by_first',
@@ -547,7 +599,7 @@ export const REPORTS = [
     description:
       'Decisions made in the period by each manager and HR Officer, and how long requests waited for them.',
     levels: ['HR'],
-    filters: ['from', 'to', 'department'],
+    filters: ['from', 'to', 'company', 'department'],
     columns: [
       { key: 'approver', label: 'Approver', type: 'text' },
       { key: 'stage', label: 'Stage', type: 'text' },
@@ -610,7 +662,7 @@ export const REPORTS = [
     description:
       'Requests still waiting for a decision, how long they have waited in working days, and whether they are overdue.',
     levels: ['HR', 'MANAGER'],
-    filters: ['employee', 'department', 'leaveType'],
+    filters: ['employee', 'company', 'department', 'leaveType'],
     columns: [
       { key: 'reference', label: 'Reference', type: 'text' },
       ...PERSON_COLS,
@@ -660,7 +712,7 @@ export const REPORTS = [
     title: 'Leave over a date range',
     description: 'Approved leave in the period, counting only the days that fall inside it.',
     levels: ['HR', 'MANAGER'],
-    filters: ['from', 'to', 'employee', 'department', 'leaveType'],
+    filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
       { key: 'leaveType', label: 'Leave type', type: 'text' },
@@ -681,6 +733,7 @@ export const REPORTS = [
           .join('leave_requests as r', 'r.id', 'x.leave_request_id')
           .join('employees as e', 'e.id', 'r.employee_id')
           .join('leave_types as t', 't.id', 'r.leave_type_id')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
           .leftJoin('departments as d', 'd.id', 'e.department_id'),
         scope,
         f,
@@ -695,6 +748,7 @@ export const REPORTS = [
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name',
           'd.name',
           't.name',
         )
@@ -705,6 +759,7 @@ export const REPORTS = [
           'e.employee_number',
           'e.first_name',
           'e.last_name',
+          'co.name as company',
           'd.name as department',
           't.name as leave_type',
         )
@@ -728,7 +783,7 @@ export const REPORTS = [
     description:
       'People whose longest block of annual leave this year is under 10 consecutive working days. Weekends and public holidays inside a block do not break it.',
     levels: ['HR', 'MANAGER'],
-    filters: ['year', 'employee', 'department'],
+    filters: ['year', 'employee', 'company', 'department'],
     columns: [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
@@ -757,13 +812,22 @@ export const REPORTS = [
       const offDay = (d) => Number(schedule?.[`${weekdayKey(d)}_fraction`] ?? 0) === 0 || holidays.has(d);
 
       const emps = await people(
-        db('employees as e').leftJoin('departments as d', 'd.id', 'e.department_id'),
+        db('employees as e')
+          .leftJoin('companies as co', 'co.id', 'e.company_id')
+          .leftJoin('departments as d', 'd.id', 'e.department_id'),
         scope,
         f,
       )
         .where('e.status', 'ACTIVE')
         .orderBy(['e.last_name', 'e.first_name'])
-        .select('e.id', 'e.employee_number', 'e.first_name', 'e.last_name', 'd.name as department');
+        .select(
+          'e.id',
+          'e.employee_number',
+          'e.first_name',
+          'e.last_name',
+          'co.name as company',
+          'd.name as department',
+        );
       const days = emps.length
         ? await db('leave_request_days as x')
             .join('leave_requests as r', 'r.id', 'x.leave_request_id')

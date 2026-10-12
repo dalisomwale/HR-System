@@ -8,6 +8,7 @@ export function profileRoutes({ db }) {
     '/',
     asyncHandler(async (req, res) => {
       const e = await db('employees as e')
+        .leftJoin('companies as c', 'c.id', 'e.company_id')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
         .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
         .leftJoin('work_schedules as w', 'w.id', 'e.work_schedule_id')
@@ -19,6 +20,7 @@ export function profileRoutes({ db }) {
           'e.email',
           'e.job_title',
           'e.employment_start_date',
+          'c.name as company',
           'd.name as department',
           'm.first_name as manager_first',
           'm.last_name as manager_last',
@@ -34,6 +36,7 @@ export function profileRoutes({ db }) {
         lastName: e.last_name,
         email: e.email,
         jobTitle: e.job_title,
+        company: e.company,
         department: e.department,
         lineManager: e.manager_first ? `${e.manager_first} ${e.manager_last}` : null,
         workSchedule: e.schedule,

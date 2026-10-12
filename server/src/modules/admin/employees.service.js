@@ -26,6 +26,7 @@ const baseFields = {
     .nullish()
     .or(z.literal('').transform(() => null))
     .transform((v) => v ?? null),
+  companyId: optionalId,
   departmentId: optionalId,
   lineManagerId: optionalId,
   workScheduleId: optionalId,
@@ -48,6 +49,7 @@ const COLUMN = {
   email: 'email',
   jobTitle: 'job_title',
   sex: 'sex',
+  companyId: 'company_id',
   departmentId: 'department_id',
   lineManagerId: 'line_manager_id',
   workScheduleId: 'work_schedule_id',
@@ -66,6 +68,32 @@ export function mapEmployeeUniqueError(err) {
   if (/email/.test(err.sqlMessage)) return conflict('Another employee already uses this email address.');
   if (/employee_number/.test(err.sqlMessage)) return conflict('This employee number is already in use.');
   return conflict('This record conflicts with an existing one.');
+}
+
+/**
+ * The employee's company. A department belongs to one company, so choosing a department sets the
+ * company; choosing a company that the current department is not in is refused.
+ */
+async function resolveCompany(trx, input, before = null) {
+  const departmentId =
+    input.departmentId !== undefined ? input.departmentId : (before?.department_id ?? null);
+  const dept = departmentId
+    ? await trx('departments as d')
+        .leftJoin('companies as c', 'c.id', 'd.company_id')
+        .where('d.id', departmentId)
+        .first('d.company_id', 'c.name as company_name')
+    : null;
+  if (input.companyId !== undefined && input.companyId !== null) {
+    const c = await trx('companies').where({ id: input.companyId }).first('is_active', 'name');
+    if (!c) throw badRequest('Company not found.');
+    if (!c.is_active && input.companyId !== before?.company_id) throw badRequest('That company is inactive.');
+    if (dept?.company_id && dept.company_id !== input.companyId) {
+      throw badRequest(`That department belongs to ${dept.company_name}, not ${c.name}.`);
+    }
+    return input.companyId;
+  }
+  if (input.departmentId !== undefined && dept?.company_id) return dept.company_id;
+  return input.companyId === null ? null : undefined;
 }
 
 /** Check department, schedule and manager, including reporting loops. */
@@ -120,6 +148,8 @@ async function defaultScheduleId(trx) {
 export async function createEmployee(trx, input, audit) {
   await validateRelations(trx, input);
   const row = toRow(input);
+  const companyId = await resolveCompany(trx, input);
+  if (companyId !== undefined) row.company_id = companyId;
   if (!row.work_schedule_id) row.work_schedule_id = await defaultScheduleId(trx);
   const [id] = await trx('employees').insert({ ...row, status: 'ACTIVE' });
   await writeAudit(trx, {
@@ -140,10 +170,16 @@ export async function updateEmployee(trx, id, input, audit) {
   const end = input.employmentEndDate !== undefined ? input.employmentEndDate : before.employment_end_date;
   if (end && end < start) throw badRequest('The end date must be on or after the start date.');
   const row = toRow(input);
+  const companyId = await resolveCompany(trx, input, before);
+  if (companyId !== undefined) row.company_id = companyId;
   if (Object.keys(row).length === 0) return;
   await trx('employees').where({ id }).update(row);
   const beforeView = {};
   for (const [k, col] of Object.entries(COLUMN)) if (input[k] !== undefined) beforeView[k] = before[col];
+  if (row.company_id !== undefined && row.company_id !== before.company_id) {
+    beforeView.companyId = before.company_id;
+    input = { ...input, companyId: row.company_id };
+  }
   await writeAudit(trx, {
     ...audit,
     action: 'EMPLOYEE_UPDATED',
