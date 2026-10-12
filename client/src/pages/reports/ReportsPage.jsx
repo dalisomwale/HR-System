@@ -43,7 +43,8 @@ export default function ReportsPage() {
 
   if (list.isPending) return <Loading />;
   if (list.isError) return <LoadError error={list.error} onRetry={() => list.refetch()} />;
-  const { items, options } = list.data;
+  const { items, scope } = list.data;
+  const options = { ...list.data.options, scope };
   const report = items.find((r) => r.id === selected) ?? items[0];
 
   const choose = (id) => setParams({ report: id });
@@ -127,14 +128,14 @@ function Filters({ report, options, applied, onApply }) {
           </Select>
         </Field>
       )}
-      {has('company') && options.companies?.length > 0 && (
+      {has('company') && options.companies?.length > 1 && (
         <Field id="companyId" label="Company">
           <Select
             id="companyId"
             value={v.companyId}
             onChange={(e) => setV((s) => ({ ...s, companyId: e.target.value, departmentId: '' }))}
           >
-            <option value="">Whole group</option>
+            <option value="">{options.scope === 'HR' ? 'Whole group' : 'All companies'}</option>
             {options.companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -143,7 +144,7 @@ function Filters({ report, options, applied, onApply }) {
           </Select>
         </Field>
       )}
-      {has('department') && options.departments.length > 0 && (
+      {has('department') && options.departments.length > 1 && (
         <Field id="departmentId" label="Department">
           <Select id="departmentId" value={v.departmentId} onChange={set('departmentId')}>
             <option value="">All departments</option>

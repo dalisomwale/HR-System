@@ -10,7 +10,7 @@ import { workingCalendar, stageSince } from '../leave/working-days.js';
 /*
  * Report definitions. Every query is limited to the people the viewer may see BEFORE rows are
  * read (scope.ids), never filtered afterwards. HR Officers see everyone; managers and their
- * delegates see their own team; nobody else can run reports.
+ * delegates see every report, for their own team only; nobody else can run reports.
  */
 
 const STATUS = [
@@ -331,7 +331,7 @@ export const REPORTS = [
     id: 'utilisation-company',
     title: 'Utilisation by company',
     description: 'Approved days taken in the period per company in the group, against current headcount.',
-    levels: ['HR'],
+    levels: ['HR', 'MANAGER'],
     filters: ['from', 'to', 'company', 'leaveType'],
     columns: [
       { key: 'company', label: 'Company', type: 'text' },
@@ -348,7 +348,7 @@ export const REPORTS = [
     id: 'utilisation',
     title: 'Utilisation by department',
     description: 'Approved days taken in the period per department, against current headcount.',
-    levels: ['HR'],
+    levels: ['HR', 'MANAGER'],
     filters: ['from', 'to', 'company', 'department', 'leaveType'],
     columns: [
       { key: 'company', label: 'Company', type: 'text' },
@@ -466,7 +466,7 @@ export const REPORTS = [
     title: 'Carry-forward and expiry',
     description:
       'Annual-leave days carried into the year, how many were used by the deadline, and what expired.',
-    levels: ['HR'],
+    levels: ['HR', 'MANAGER'],
     filters: ['year', 'employee', 'company', 'department'],
     columns: [
       ...PERSON_COLS,
@@ -541,7 +541,7 @@ export const REPORTS = [
     title: 'Ledger transactions and adjustments',
     description:
       'Every balance entry recorded in the period, with who made it and why. Choose “Adjustment” to see manual changes only.',
-    levels: ['HR'],
+    levels: ['HR', 'MANAGER'],
     filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType', 'entryType'],
     columns: [
       { key: 'at', label: 'Recorded', type: 'text' },
@@ -598,7 +598,7 @@ export const REPORTS = [
     title: 'Approval activity',
     description:
       'Decisions made in the period by each manager and HR Officer, and how long requests waited for them.',
-    levels: ['HR'],
+    levels: ['HR', 'MANAGER'],
     filters: ['from', 'to', 'company', 'department'],
     columns: [
       { key: 'approver', label: 'Approver', type: 'text' },

@@ -50,20 +50,20 @@ Email is sent through Microsoft 365; setup is in [`email-setup.md`](email-setup.
 
 ## Reports
 
-_Reports_ is in the HR menu for HR Officers, and in the Manager menu for managers and their delegates. Managers see only their own team; HR sees everyone. Each report can be filtered (period or year, employee, company, department, leave type, status) and shows each person's company and exported to Excel or CSV. Every export is recorded in the audit log with its filters and row count. CSV cells that a spreadsheet would read as a formula (starting with `=`, `+`, `-`, `@`) are prefixed with `'`.
+_Reports_ is in the HR menu for HR Officers, and in the Manager menu for managers and their delegates. Managers and delegates get every report, limited to their own team (and to the companies and departments their team is in); HR sees everyone. Each report can be filtered (period or year, employee, company, department, leave type, status) and shows each person's company and exported to Excel or CSV. Every export is recorded in the audit log with its filters and row count. CSV cells that a spreadsheet would read as a formula (starting with `=`, `+`, `-`, `@`) are prefixed with `'`.
 
 | Report                                               | Who          |
 | ---------------------------------------------------- | ------------ |
 | Leave requests                                       | HR, managers |
 | Requests by status                                   | HR, managers |
 | Leave taken by employee                              | HR, managers |
-| Utilisation by company                               | HR           |
-| Utilisation by department                            | HR           |
+| Utilisation by company                               | HR, managers |
+| Utilisation by department                            | HR, managers |
 | Current balances (annual leave)                      | HR, managers |
 | Upcoming absences (default next 30 days)             | HR, managers |
-| Carry-forward and expiry                             | HR           |
-| Ledger transactions and adjustments                  | HR           |
-| Approval activity (by manager and HR Officer)        | HR           |
+| Carry-forward and expiry                             | HR, managers |
+| Ledger transactions and adjustments                  | HR, managers |
+| Approval activity (by manager and HR Officer)        | HR, managers |
 | Outstanding and overdue requests                     | HR, managers |
 | Leave over a date range (days inside the range only) | HR, managers |
 | Not yet taken 10 consecutive annual-leave days (D37) | HR, managers |

@@ -107,7 +107,7 @@ describe('who can run reports', () => {
 
     const list = await as(mgr).get('/api/reports');
     expect(list.body.scope).toBe('MANAGER');
-    expect(list.body.items.map((r) => r.id)).not.toContain('ledger');
+    expect(list.body.items).toHaveLength(13);
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
 
     const mine = await as(mgr).get('/api/reports/requests?year=2027');
@@ -115,10 +115,43 @@ describe('who can run reports', () => {
     // Asking for someone outside the team returns nothing rather than their data.
     const sneaky = await as(mgr).get(`/api/reports/requests?year=2027&employeeId=${outsider.id}`);
     expect(sneaky.body.rows).toEqual([]);
-    expect((await as(mgr).get('/api/reports/ledger')).status).toBe(404);
+    expect((await as(emp).get('/api/reports/ledger')).status).toBe(403);
 
     const all = await as(hr).get('/api/reports/requests?year=2027');
     expect(all.body.total).toBe(2);
+  });
+});
+
+describe('every report for managers, limited to their team', () => {
+  it('runs the HR-style reports on the team only', async () => {
+    for (const who of [emp.id, outsider.id]) {
+      await db('balance_ledger').insert({
+        employee_id: who,
+        leave_type_id: ids.ANNUAL,
+        leave_year: 2027,
+        amount: 5,
+        entry_type: 'ADJUSTMENT',
+        source_type: 'ADJUSTMENT',
+        reason: 'Correction',
+      });
+    }
+    await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    await approved(outsider.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+
+    const ledger = await as(mgr).get('/api/reports/ledger?from=2000-01-01&to=2100-12-31');
+    expect(ledger.status).toBe(200);
+    expect(ledger.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+
+    const util = await as(mgr).get('/api/reports/utilisation-company?year=2027');
+    expect(util.body.rows).toEqual([
+      { company: 'Altus Financial Services Limited', headcount: 1, days: 5, perPerson: 5 },
+    ]);
+    for (const id of ['carry-forward', 'approval-activity', 'utilisation']) {
+      expect((await as(mgr).get(`/api/reports/${id}?year=2027`)).status).toBe(200);
+    }
+    const options = (await as(mgr).get('/api/reports')).body.options;
+    expect(options.companies).toEqual([{ id: company, name: 'Altus Financial Services Limited' }]);
+    expect(options.departments.map((d) => d.id)).toEqual([dept]);
   });
 });
 

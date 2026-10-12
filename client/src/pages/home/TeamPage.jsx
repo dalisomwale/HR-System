@@ -2,7 +2,8 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
-import { LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
+import { FileBarChart } from 'lucide-react';
+import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
 
 export default function TeamPage() {
@@ -12,7 +13,14 @@ export default function TeamPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="Team overview" />
+      <PageHeader
+        title="Team overview"
+        actions={
+          <ButtonLink to="/reports">
+            <FileBarChart className="size-4" aria-hidden /> Team reports
+          </ButtonLink>
+        }
+      />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (

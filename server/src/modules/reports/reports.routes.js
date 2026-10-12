@@ -50,15 +50,21 @@ export function reportRoutes({ db }) {
         .modify((q) => scope.ids && q.whereIn('e.id', scope.ids.length ? scope.ids : [0]))
         .orderBy(['e.last_name', 'e.first_name'])
         .select('e.id', 'e.first_name', 'e.last_name', 'e.employee_number', 'e.status');
-      const companies =
-        scope.level === 'HR' ? await db('companies').orderBy('name').select('id', 'name') : [];
-      const departments =
-        scope.level === 'HR'
-          ? await db('departments as d')
-              .leftJoin('companies as c', 'c.id', 'd.company_id')
-              .orderBy([{ column: 'c.name' }, { column: 'd.name' }])
-              .select('d.id', 'd.name', 'd.company_id as companyId', 'c.name as company')
-          : [];
+      // Managers get only the companies and departments their own team is in.
+      const teamColumn = (column) =>
+        db('employees')
+          .whereIn('id', scope.ids?.length ? scope.ids : [0])
+          .whereNotNull(column)
+          .select(column);
+      const companies = await db('companies as c')
+        .modify((q) => scope.ids && q.whereIn('c.id', teamColumn('company_id')))
+        .orderBy('c.name')
+        .select('c.id', 'c.name');
+      const departments = await db('departments as d')
+        .leftJoin('companies as c', 'c.id', 'd.company_id')
+        .modify((q) => scope.ids && q.whereIn('d.id', teamColumn('department_id')))
+        .orderBy([{ column: 'c.name' }, { column: 'd.name' }])
+        .select('d.id', 'd.name', 'd.company_id as companyId', 'c.name as company');
       const leaveTypes = await db('leave_types').orderBy('display_order').select('id', 'name');
       res.json({
         scope: scope.level,
