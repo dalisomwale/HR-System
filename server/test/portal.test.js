@@ -238,6 +238,38 @@ describe('supporting documents', () => {
   });
 });
 
+describe('HR Administrator rights', () => {
+  it('has every HR Officer right and the manager pages, but still cannot approve their own leave', async () => {
+    const me = await admin.agent.get('/api/auth/me');
+    expect(me.body.user.roles).toEqual(expect.arrayContaining(['HR_ADMIN', 'HR_OFFICER']));
+    expect((await as(admin).get('/api/approvals/hr')).status).toBe(200);
+    expect((await as(admin).get('/api/dashboard/hr')).status).toBe(200);
+    expect((await as(admin).get('/api/dashboard/manager')).status).toBe(200);
+    expect((await as(admin).get('/api/reports')).body.scope).toBe('HR');
+
+    // The administrator's own request, sent straight to HR (no manager): another HR person must decide.
+    await db('balance_ledger').insert({
+      employee_id: admin.id,
+      leave_type_id: ids.ANNUAL,
+      leave_year: 2027,
+      amount: 10,
+      entry_type: 'OPENING',
+      source_type: 'OPENING',
+      reason: 'Test opening balance',
+    });
+    const own = await as(admin).post('/api/leave/requests', {
+      leaveTypeId: ids.ANNUAL,
+      startDate: '2027-03-01',
+      endDate: '2027-03-05',
+      handoverNotes: 'Covered.',
+    });
+    expect(own.status, JSON.stringify(own.body)).toBe(201);
+    expect(
+      (await as(admin).post(`/api/approvals/requests/${own.body.id}/hr`, { action: 'APPROVE' })).status,
+    ).toBe(403);
+  });
+});
+
 describe('dashboards', () => {
   it('shows the employee their pending requests and required actions', async () => {
     const r = await sickRequest();

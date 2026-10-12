@@ -100,10 +100,12 @@ export async function loadUser(db, employeeId) {
     );
   if (!employee || employee.status !== 'ACTIVE') return null;
 
-  const roles = await db('employee_roles as er')
+  const assigned = await db('employee_roles as er')
     .join('roles as r', 'r.id', 'er.role_id')
     .where('er.employee_id', employeeId)
     .pluck('r.code');
+  // An HR Administrator has every right in the system, including the HR Officer's.
+  const roles = assigned.includes('HR_ADMIN') ? [...new Set([...assigned, 'HR_OFFICER'])] : assigned;
   const reports = await db('employees')
     .where({ line_manager_id: employeeId, status: 'ACTIVE' })
     .count({ n: '*' })

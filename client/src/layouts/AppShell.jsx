@@ -111,13 +111,15 @@ export default function AppShell() {
   });
   const counts = { unread: unread.data?.unread ?? 0 };
 
-  const roleText =
-    [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
-    'Employee';
+  // An HR Administrator holds every right, so that title alone is shown.
+  const roleText = hasRole(user, 'HR_ADMIN')
+    ? ROLE_LABELS.HR_ADMIN
+    : [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
+      'Employee';
   const nav = (
     <>
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
-      {(user.isManager || user.isDelegate) && (
+      {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
           title="Manager"
           items={hasRole(user, 'HR_OFFICER') ? MANAGER : [...MANAGER, REPORTS]}
