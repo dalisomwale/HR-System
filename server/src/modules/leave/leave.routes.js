@@ -19,7 +19,7 @@ import {
   changeHrDecision,
 } from './requests.service.js';
 import { myRequests, requestDetail, managerQueue, hrQueue } from './queries.service.js';
-import { employeeBalances, eligibilityProblem, recordAdjustment } from './balance.service.js';
+import { appliesTo, employeeBalances, eligibilityProblem, recordAdjustment } from './balance.service.js';
 import { policyOn } from './policy.service.js';
 
 const yearParam = (q) => {
@@ -40,7 +40,7 @@ export function leaveRoutes({ db }) {
       const items = [];
       for (const t of types) {
         const p = await policyOn(db, t.id, today);
-        if (!p) continue;
+        if (!p || !appliesTo(me, p)) continue;
         items.push({
           id: t.id,
           code: t.code,

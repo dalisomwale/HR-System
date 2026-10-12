@@ -152,6 +152,38 @@ describe('calculating and validating a request', () => {
     expect(res.body.errors[0].message).toMatch(/Only available to female employees/);
   });
 
+  it('leaves out leave types for the other sex wherever leave types are listed', async () => {
+    const codes = async (session, path, pick) => (await as(session).get(path)).body.items.map(pick).sort();
+    // Male: no maternity or Mother's Day in the apply list or the balances.
+    expect(await codes(emp, '/api/leave/types', (t) => t.code)).toEqual(['ANNUAL', 'SICK']);
+    expect(await codes(emp, `/api/leave/balances?year=${Y}`, (b) => b.leaveType.code)).toEqual([
+      'ANNUAL',
+      'SICK',
+    ]);
+    expect(
+      (await as(hr).get(`/api/hr/employees/${empId}/balances?year=${Y}`)).body.items.map(
+        (b) => b.leaveType.code,
+      ),
+    ).not.toContain('MATERNITY');
+
+    // Female: no paternity.
+    await activate('PATERNITY');
+    const her = await fixtureEmployee(db, { sex: 'FEMALE' });
+    const s = await signIn(app, entra, { oid: her.oid });
+    const hers = await codes(s, '/api/leave/types', (t) => t.code);
+    expect(hers).toContain('MATERNITY');
+    expect(hers).not.toContain('PATERNITY');
+
+    // Sex not recorded: everything is listed, with a note that HR must complete the record.
+    const unknown = await fixtureEmployee(db, {});
+    const u = await signIn(app, entra, { oid: unknown.oid });
+    const types = (await as(u).get('/api/leave/types')).body.items;
+    expect(types.map((t) => t.code)).toEqual(expect.arrayContaining(['MATERNITY', 'PATERNITY']));
+    expect(types.find((t) => t.code === 'PATERNITY').notAvailableReason).toMatch(
+      /complete your employee record/,
+    );
+  });
+
   it("limits Mother's Day to one day a calendar month", async () => {
     const her = await fixtureEmployee(db, { sex: 'FEMALE' });
     const s = await signIn(app, entra, { oid: her.oid });
