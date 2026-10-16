@@ -9,6 +9,7 @@ import { useMe } from '../../lib/auth.jsx';
 import {
   Badge,
   EmptyState,
+  Field,
   Input,
   LoadError,
   Loading,
@@ -132,6 +133,8 @@ function hrRows(data, viewerId) {
     employee: person(r.employee),
     leaveType: r.leaveType.name,
     dates: dateRange(r),
+    start: r.startDate,
+    end: r.endDate,
     days: r.chargeableDays,
     status,
     note: r.decision?.comment ?? null,
@@ -157,6 +160,8 @@ function hrRows(data, viewerId) {
       employee: { name: c.employee.name, sub: '' },
       leaveType: c.leaveType,
       dates: `${formatDate(c.startDate)} – ${formatDate(c.endDate)}`,
+      start: c.startDate,
+      end: c.endDate,
       days: c.daysToReverse,
       status: { label: CHANGE_LABELS[c.reasonType] ?? 'Cancellation', tone: 'pending' },
       date: { label: 'Asked', at: c.createdAt },
@@ -187,6 +192,9 @@ export function HrApprovalsPage() {
   const [group, setGroup] = useState('WAITING');
   const [search, setSearch] = useState('');
   const [leaveType, setLeaveType] = useState('');
+  // Period: leave whose dates overlap it (either end can be left open).
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
 
   const rows = useMemo(() => (q.data ? hrRows(q.data, me?.id) : []), [q.data, me?.id]);
   const counts = Object.fromEntries(
@@ -198,6 +206,8 @@ export function HrApprovalsPage() {
     (r) =>
       (!group || r.group === group) &&
       (!leaveType || r.leaveType === leaveType) &&
+      (!from || r.end >= from) &&
+      (!to || r.start <= to) &&
       (!term || [r.reference, r.employee.name, r.employee.sub].some((v) => v?.toLowerCase().includes(term))),
   );
 
@@ -231,48 +241,79 @@ export function HrApprovalsPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="relative w-full max-w-sm">
-              <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted" aria-hidden />
+          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
+            <Field id="hrSearch" label="Search">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted"
+                  aria-hidden
+                />
+                <Input
+                  id="hrSearch"
+                  placeholder="Name, number or reference"
+                  className="pl-9"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </Field>
+            <Field id="hrShow" label="Show">
+              <Select id="hrShow" value={group} onChange={(e) => setGroup(e.target.value)}>
+                <option value="">Everything</option>
+                {Object.entries(GROUPS).map(([g, label]) => (
+                  <option key={g} value={g}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="hrType" label="Leave type">
+              <Select id="hrType" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}>
+                <option value="">All leave types</option>
+                {types.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="hrFrom" label="From">
               <Input
-                aria-label="Search by name, employee number or reference"
-                placeholder="Name, employee number or reference"
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                id="hrFrom"
+                type="date"
+                value={from}
+                max={to || undefined}
+                onChange={(e) => setFrom(e.target.value)}
               />
-            </div>
-            <Select
-              aria-label="Show"
-              className="w-64"
-              value={group}
-              onChange={(e) => setGroup(e.target.value)}
+            </Field>
+            <Field id="hrTo" label="To">
+              <Input
+                id="hrTo"
+                type="date"
+                value={to}
+                min={from || undefined}
+                onChange={(e) => setTo(e.target.value)}
+              />
+            </Field>
+            <button
+              type="button"
+              className={`h-9 text-sm text-brand hover:underline ${search || leaveType || from || to ? '' : 'invisible'}`}
+              onClick={() => {
+                setSearch('');
+                setLeaveType('');
+                setFrom('');
+                setTo('');
+              }}
             >
-              <option value="">Everything</option>
-              {Object.entries(GROUPS).map(([g, label]) => (
-                <option key={g} value={g}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-            <Select
-              aria-label="Leave type"
-              className="w-56"
-              value={leaveType}
-              onChange={(e) => setLeaveType(e.target.value)}
-            >
-              <option value="">All leave types</option>
-              {types.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
+              Clear
+            </button>
           </div>
 
           {shown.length === 0 ? (
             <div className="rounded-md border border-rule bg-white">
-              <EmptyState title={term || leaveType ? 'Nothing matches these filters.' : 'Nothing here.'} />
+              <EmptyState
+                title={term || leaveType || from || to ? 'Nothing matches these filters.' : 'Nothing here.'}
+              />
             </div>
           ) : (
             <Table>
