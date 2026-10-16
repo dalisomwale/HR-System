@@ -200,7 +200,14 @@ export function HrApprovalsPage() {
   const counts = Object.fromEntries(
     Object.keys(GROUPS).map((g) => [g, rows.filter((r) => r.group === g).length]),
   );
-  const types = [...new Set(rows.map((r) => r.leaveType))].sort();
+  // Every leave type, in the order HR set on the Leave types page.
+  const allTypes = useQuery({
+    queryKey: ['admin-leave-types'],
+    queryFn: () => api.get('/api/admin/leave-types'),
+  });
+  const types = allTypes.data
+    ? allTypes.data.items.map((t) => t.name)
+    : [...new Set(rows.map((r) => r.leaveType))].sort();
   const term = search.trim().toLowerCase();
   const shown = rows.filter(
     (r) =>
