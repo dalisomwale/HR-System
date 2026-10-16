@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles.css';
 import { GROUP_VIEW_ROLES, RequireAuth, RequireRole } from './lib/auth.jsx';
 import AppShell from './layouts/AppShell.jsx';
+import LauncherPage from './pages/LauncherPage.jsx';
 import { SignInPage, AccessNotConfiguredPage, SignedOutPage } from './pages/auth/PublicPages.jsx';
 import ProfilePage from './pages/employee/ProfilePage.jsx';
 import EmployeesPage from './pages/admin/EmployeesPage.jsx';
@@ -65,13 +66,20 @@ createRoot(document.getElementById('root')).render(
           <Route path="/access-not-configured" element={<AccessNotConfiguredPage />} />
           <Route path="/signed-out" element={<SignedOutPage />} />
           <Route
+            index
+            element={
+              <RequireAuth>
+                <LauncherPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             element={
               <RequireAuth>
                 <AppShell />
               </RequireAuth>
             }
           >
-            <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<HomePage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="hr" element={group(<HrOverviewPage />)} />

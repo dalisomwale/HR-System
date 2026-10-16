@@ -1,6 +1,6 @@
 # Altus Leave Management System
 
-HR leave management for the Altus Group of companies: employees apply for leave, managers review, HR gives final approval. Backed by MySQL, with Microsoft Entra ID sign-in.
+Phase 1 of the Altus Group systems: leave management, reached from the Altus Group applications page that opens after sign-in (Payroll and Recruitment are planned). Employees apply for leave, managers review, HR gives final approval. Backed by MySQL, with Microsoft Entra ID sign-in.
 
 The full specification is in [`docs/project-brief.md`](docs/project-brief.md). It is delivered in seven phases.
 

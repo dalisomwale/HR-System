@@ -177,8 +177,16 @@ export default function AppShell() {
             </span>
           </Link>
           <Link
+            to="/"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-canvas hover:text-ink"
+            title="All applications"
+          >
+            <LayoutGrid className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Applications</span>
+          </Link>
+          <Link
             to="/profile"
-            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
+            className="-mr-1 rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
             aria-label={`${fullName(user)}, ${roleText}. My profile`}
           >
             <p className="text-sm font-medium">{fullName(user)}</p>
