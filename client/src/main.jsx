@@ -74,6 +74,14 @@ createRoot(document.getElementById('root')).render(
             }
           />
           <Route
+            path="/profile"
+            element={
+              <RequireAuth>
+                <ProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route
             element={
               <RequireAuth>
                 <AppShell />
@@ -86,7 +94,6 @@ createRoot(document.getElementById('root')).render(
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="reports" element={<ReportsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
             <Route path="leave/requests/:id" element={<RequestPage />} />

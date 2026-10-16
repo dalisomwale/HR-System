@@ -39,7 +39,6 @@ const MY_WORK = [
   { to: '/leave', label: 'My leave', icon: CalendarCheck, end: true },
   { to: '/leave/apply', label: 'Apply for leave', icon: CalendarPlus },
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
-  { to: '/profile', label: 'My profile', icon: UserRound },
 ];
 const MANAGER = [
   { to: '/team', label: 'Team overview', icon: UsersRound },
