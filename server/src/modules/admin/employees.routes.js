@@ -28,7 +28,7 @@ const importSchema = z.object({ csv: z.string().min(1, 'is required').max(2_000_
 
 export function employeeRoutes({ db, config }) {
   const router = Router();
-  // Microsoft account links and roles are for System Administrators only (D46).
+  // Microsoft account links, roles and deactivation are for System Administrators only (D46).
   const adminOnly = requireRole('HR_ADMIN');
   const tenantId = config.entra.tenantId;
   const tx = (fn) =>
@@ -253,6 +253,7 @@ export function employeeRoutes({ db, config }) {
 
   router.post(
     '/:id/deactivate',
+    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const input = deactivateSchema.parse(req.body ?? {});
@@ -263,6 +264,7 @@ export function employeeRoutes({ db, config }) {
 
   router.post(
     '/:id/reactivate',
+    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       await tx((trx) => reactivateEmployee(trx, id, auditContext(req)));

@@ -488,6 +488,10 @@ describe('HR Officer administration rights', () => {
       ).status,
     ).toBe(403);
 
+    expect((await as(hr).post(`/api/admin/employees/${person.body.id}/deactivate`, {})).status).toBe(403);
+    expect((await as(admin).post(`/api/admin/employees/${person.body.id}/deactivate`, {})).status).toBe(200);
+    expect((await as(hr).post(`/api/admin/employees/${person.body.id}/reactivate`, {})).status).toBe(403);
+
     // Ordinary employees still reach none of it.
     expect((await as(emp).get('/api/admin/employees')).status).toBe(403);
     expect((await as(emp).get('/api/admin/companies')).status).toBe(403);

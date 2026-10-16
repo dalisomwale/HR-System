@@ -70,6 +70,7 @@ export default function EmployeePage() {
   if (!isNew && employee.isError)
     return <LoadError error={employee.error} onRetry={() => employee.refetch()} />;
   const e = employee.data;
+  const sidePanels = !isNew && (me.roles.includes('HR_ADMIN') || e.directReports.length > 0);
 
   return (
     <div className="max-w-6xl">
@@ -86,33 +87,18 @@ export default function EmployeePage() {
           !isNew && (e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>)
         }
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className={sidePanels ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}>
         <EmployeeForm employee={e} isNew={isNew} />
-        {!isNew && (
+        {sidePanels && (
           <div className="grid content-start gap-6">
-            {/* Microsoft account links and roles are for System Administrators (D46). */}
-            {me.roles.includes('HR_ADMIN') ? (
+            {/* Microsoft account, roles and deactivation are for System Administrators (D46). */}
+            {me.roles.includes('HR_ADMIN') && (
               <>
                 <IdentityPanel employee={e} />
                 <RolesPanel employee={e} />
+                <StatusPanel employee={e} />
               </>
-            ) : (
-              <Section title="Microsoft account">
-                <p className="text-sm">
-                  {e.identity ? (
-                    <Badge tone="ok">Linked</Badge>
-                  ) : (
-                    <>
-                      <Badge tone="pending">Not linked</Badge>
-                      <span className="mt-2 block text-muted">
-                        Ask them to sign in once; a System Administrator then links the account.
-                      </span>
-                    </>
-                  )}
-                </p>
-              </Section>
             )}
-            <StatusPanel employee={e} />
             {e.directReports.length > 0 && (
               <Section title="Direct reports">
                 <ul className="space-y-1.5 text-sm">
