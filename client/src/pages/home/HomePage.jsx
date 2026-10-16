@@ -1,10 +1,10 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { CalendarClock, CalendarDays, ClipboardCheck, Hourglass, Plus, ShieldCheck, Sun } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
-import { formatDateTime } from '../../lib/format.js';
-import { ACTION_LABELS, STAGE_LABELS } from '../../lib/leave.js';
+import { formatDate, formatDateTime } from '../../lib/format.js';
+import { days } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { BalanceCards } from '../leave/MyLeavePage.jsx';
 import { RequestList } from './dashboard-ui.jsx';
@@ -59,6 +59,8 @@ function RoleLinks({ me }) {
 function Body({ d }) {
   return (
     <>
+      <Insights i={d.insights} year={d.year} />
+
       {d.actions.length > 0 && (
         <Notice tone="pending" title="Needs your attention">
           <ul className="mt-1 space-y-1">
@@ -93,28 +95,164 @@ function Body({ d }) {
         </Section>
       </div>
 
-      <Section title="Recent decisions">
-        {d.recentDecisions.length === 0 ? (
-          <p className="text-sm text-muted">No decisions yet.</p>
-        ) : (
-          <ul className="divide-y divide-rule text-sm">
-            {d.recentDecisions.map((a, i) => (
-              <li key={i} className="py-2">
-                <Link
-                  to={`/leave/requests/${a.requestId}`}
-                  className="font-medium text-brand hover:underline"
-                >
-                  {a.reference}
-                </Link>{' '}
-                {a.leaveType}: <span className="font-medium">{ACTION_LABELS[a.action]}</span> by {a.by}
-                <span className="text-muted"> · {STAGE_LABELS[a.stage]} · </span>
-                <span className="text-xs text-muted">{formatDateTime(a.at)}</span>
-                {a.comment && <p className="mt-0.5 text-muted">{a.comment}</p>}
-              </li>
-            ))}
-          </ul>
-        )}
+      <Section title="Recent activity">
+        <Activity items={d.activity} />
       </Section>
     </>
+  );
+}
+
+function Insights({ i, year }) {
+  const cards = [];
+  if (i.teamApprovals != null) {
+    cards.push({
+      key: 'team',
+      icon: ClipboardCheck,
+      value: i.teamApprovals,
+      label: 'Awaiting your approval',
+      to: '/approvals',
+      alert: i.teamApprovals > 0,
+    });
+  }
+  if (i.hrApprovals != null) {
+    cards.push({
+      key: 'hr',
+      icon: ShieldCheck,
+      value: i.hrApprovals,
+      label: 'Awaiting HR approval',
+      to: '/hr/approvals',
+      alert: i.hrApprovals > 0,
+    });
+  }
+  if (i.main) {
+    cards.push({
+      key: 'main',
+      icon: CalendarDays,
+      value: i.main.available,
+      label: `${i.main.leaveType} days available`,
+      to: '/leave',
+    });
+  }
+  cards.push(
+    {
+      key: 'taken',
+      icon: Sun,
+      value: i.takenThisYear,
+      label: `Days taken in ${year}`,
+      to: '/leave',
+    },
+    {
+      key: 'awaiting',
+      icon: Hourglass,
+      value: i.awaitingDecision,
+      label: 'Your pending requests',
+      to: '/leave',
+    },
+    i.onLeaveNow
+      ? {
+          key: 'next',
+          icon: CalendarClock,
+          value: 'On leave',
+          label: `Until ${formatDate(i.onLeaveNow.endDate)}`,
+          to: `/leave/requests/${i.onLeaveNow.id}`,
+        }
+      : {
+          key: 'next',
+          icon: CalendarClock,
+          value: i.nextLeave ? formatDate(i.nextLeave.startDate) : 'None booked',
+          label: i.nextLeave ? `Next leave · ${days(i.nextLeave.chargeableDays)}` : 'Next leave',
+          to: i.nextLeave ? `/leave/requests/${i.nextLeave.id}` : '/leave/apply',
+        },
+  );
+  const cols = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-3' }[
+    cards.length
+  ];
+
+  return (
+    <ul className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${cols}`}>
+      {cards.map(({ key, icon: Icon, value, label, to, alert }) => (
+        <li key={key}>
+          <Link
+            to={to}
+            className="flex h-full items-center gap-3 rounded-lg border border-rule bg-white p-4 hover:border-brand"
+          >
+            <span
+              className={`flex size-10 shrink-0 items-center justify-center rounded-md ${
+                alert ? 'bg-pending-bg text-pending' : 'bg-brand/10 text-brand'
+              }`}
+            >
+              <Icon className="size-5" aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xl font-semibold">{value}</span>
+              <span className="block text-sm text-muted">{label}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const VERBS = {
+  SUBMIT: 'submitted',
+  RESUBMIT: 'resubmitted',
+  APPROVE: 'approved',
+  REJECT: 'rejected',
+  RETURN: 'returned',
+  WITHDRAW: 'withdrew',
+};
+const DOTS = {
+  APPROVE: 'bg-ok',
+  REJECT: 'bg-danger',
+  RETURN: 'bg-pending',
+  ESCALATE: 'bg-pending',
+  WITHDRAW: 'bg-muted',
+};
+
+function Activity({ items }) {
+  if (!items.length) return <p className="text-sm text-muted">No activity yet.</p>;
+  return (
+    <ol className="divide-y divide-rule text-sm">
+      {items.map((a) => {
+        const who = a.byMe ? 'You' : a.by;
+        const whose = a.own ? 'your' : `${a.owner}\u2019s`;
+        const what =
+          a.change === 'CANCEL'
+            ? 'cancellation request'
+            : a.change === 'AMEND'
+              ? 'change request'
+              : 'request';
+        const ref = (
+          <Link
+            to={`/leave/requests/${a.requestId}`}
+            className="font-medium whitespace-nowrap text-brand hover:underline"
+          >
+            {a.reference}
+          </Link>
+        );
+        return (
+          <li key={a.id} className="flex items-start gap-3 py-2.5">
+            <span
+              className={`mt-1.5 size-2 shrink-0 rounded-full ${DOTS[a.action] ?? 'bg-brand'}`}
+              aria-hidden
+            />
+            <div className="min-w-0 flex-1">
+              {a.action === 'ESCALATE' ? (
+                <p>
+                  {a.own ? 'Your' : whose} {a.leaveType} {what} {ref} is overdue for a decision. Reminders
+                  were sent.
+                </p>
+              ) : (
+                <p>
+                  {who} {VERBS[a.action] ?? a.action.toLowerCase()} {whose} {a.leaveType} {what} {ref}
+                </p>
+              )}
+              <p className="text-xs text-muted">{formatDateTime(a.at)}</p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

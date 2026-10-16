@@ -7,6 +7,7 @@ import { addDays, eachDate } from '../leave/calendar.js';
 import { workingCalendar, stageSince } from '../leave/working-days.js';
 import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
+import { hrQueue, managerQueue } from '../leave/queries.service.js';
 
 /*
  * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
@@ -161,15 +162,6 @@ export function dashboardRoutes({ db }) {
         .andWhere('r.end_date', '>=', today)
         .orderBy('r.start_date')
         .limit(LIST);
-      const decisions = await db('approval_actions as a')
-        .join('leave_requests as r', 'r.id', 'a.leave_request_id')
-        .join('leave_types as t', 't.id', 'r.leave_type_id')
-        .leftJoin('employees as e', 'e.id', 'a.actor_id')
-        .where('r.employee_id', me)
-        .whereIn('a.action', ['APPROVE', 'REJECT', 'RETURN'])
-        .orderBy('a.id', 'desc')
-        .limit(5)
-        .select('a.*', 'r.reference', 't.name as type_name', 'e.first_name', 'e.last_name');
 
       const missing = await documentsMissing(
         db,
@@ -192,21 +184,81 @@ export function dashboardRoutes({ db }) {
           })),
       ];
 
+      // Insight figures, each from the same data the rest of the page uses.
+      const taken = balances.reduce((sum, b) => sum + Number(b.taken ?? 0), 0);
+      const main = balances.find((b) => b.kind === 'BALANCE') ?? null;
+      const nextLeave = upcoming.find((r) => r.start_date > today) ?? null;
+      const onLeaveNow = upcoming.find((r) => r.start_date <= today) ?? null;
+      let teamApprovals = null;
+      if (req.user.isManager || req.user.isDelegate) {
+        const mq = await managerQueue(db, req.user);
+        teamApprovals = mq.requests.length + mq.changes.length;
+      }
+      let hrApprovals = null;
+      if (req.user.roles.includes('HR_OFFICER')) {
+        const hq = await hrQueue(db, req.user);
+        hrApprovals = hq.requests.filter((r) => !r.isOwn).length + hq.changes.length;
+      }
+
+      // Recent activity: what happened on the viewer's own requests, and decisions they made.
+      const activity = await db('approval_actions as a')
+        .leftJoin('change_requests as c', 'c.id', 'a.change_request_id')
+        .joinRaw('JOIN leave_requests as r ON r.id = COALESCE(a.leave_request_id, c.leave_request_id)')
+        .join('leave_types as t', 't.id', 'r.leave_type_id')
+        .join('employees as o', 'o.id', 'r.employee_id')
+        .leftJoin('employees as x', 'x.id', 'a.actor_id')
+        .where((w) => w.where('r.employee_id', me).orWhere('a.actor_id', me))
+        .whereNot('a.action', 'ROUTE')
+        .orderBy('a.id', 'desc')
+        .limit(LIST)
+        .select(
+          'a.id',
+          'a.action',
+          'a.stage',
+          'a.created_at',
+          'a.actor_id',
+          'a.change_request_id',
+          'c.change_type',
+          'r.id as request_id',
+          'r.reference',
+          'r.employee_id',
+          't.name as type_name',
+          'o.first_name as owner_first',
+          'o.last_name as owner_last',
+          'x.first_name',
+          'x.last_name',
+        );
+
       res.json({
         year,
-        balances,
-        pending: pending.map((r) => item(r)),
-        upcoming: upcoming.map((r) => item(r)),
-        recentDecisions: decisions.map((a) => ({
-          requestId: a.leave_request_id,
+        insights: {
+          main: main
+            ? { leaveType: main.leaveType.name, available: main.available, balance: main.balance }
+            : null,
+          takenThisYear: Math.round(taken * 100) / 100,
+          awaitingDecision: pending.length,
+          nextLeave: nextLeave ? item(nextLeave) : null,
+          onLeaveNow: onLeaveNow ? item(onLeaveNow) : null,
+          teamApprovals,
+          hrApprovals,
+        },
+        activity: activity.map((a) => ({
+          id: a.id,
+          requestId: a.request_id,
           reference: a.reference,
           leaveType: a.type_name,
           action: a.action,
           stage: a.stage,
+          change: a.change_request_id ? a.change_type : null,
+          own: a.employee_id === me,
+          owner: name(a.owner_first, a.owner_last),
+          byMe: a.actor_id === me,
           by: name(a.first_name, a.last_name) ?? 'System',
           at: a.created_at,
-          comment: a.comment,
         })),
+        balances,
+        pending: pending.map((r) => item(r)),
+        upcoming: upcoming.map((r) => item(r)),
         actions,
       });
     }),

@@ -290,6 +290,23 @@ describe('dashboards', () => {
     expect(res.body.pending.map((p) => p.id)).toEqual([r.id]);
     expect(res.body.actions).toEqual([expect.objectContaining({ kind: 'DOCUMENT', requestId: r.id })]);
     expect(res.body.balances.length).toBeGreaterThan(0);
+    expect(res.body.insights).toMatchObject({ awaitingDecision: 1, teamApprovals: null, hrApprovals: null });
+    expect(res.body.activity[0]).toMatchObject({ requestId: r.id, action: 'SUBMIT', own: true, byMe: true });
+  });
+
+  it('gives the manager an approvals count and their decisions in recent activity', async () => {
+    const r = await sickRequest();
+    let res = await as(mgr).get('/api/dashboard/employee');
+    expect(res.body.insights.teamApprovals).toBe(1);
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    res = await as(mgr).get('/api/dashboard/employee');
+    expect(res.body.insights.teamApprovals).toBe(0);
+    expect(res.body.activity[0]).toMatchObject({
+      requestId: r.id,
+      action: 'APPROVE',
+      own: false,
+      byMe: true,
+    });
   });
 
   it('shows the manager what awaits them, without reasons', async () => {
