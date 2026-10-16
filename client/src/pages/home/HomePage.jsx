@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
-import { formatDate, formatDateTime } from '../../lib/format.js';
+import { formatDate } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
-import { RequestList } from './dashboard-ui.jsx';
+import { Activity, RequestList } from './dashboard-ui.jsx';
 
 export default function HomePage() {
   const { data: me } = useMe();
@@ -165,68 +165,5 @@ function Insights({ i, year }) {
         </li>
       ))}
     </ul>
-  );
-}
-
-const VERBS = {
-  SUBMIT: 'submitted',
-  RESUBMIT: 'resubmitted',
-  APPROVE: 'approved',
-  REJECT: 'rejected',
-  RETURN: 'returned',
-  WITHDRAW: 'withdrew',
-};
-const DOTS = {
-  APPROVE: 'bg-ok',
-  REJECT: 'bg-danger',
-  RETURN: 'bg-pending',
-  ESCALATE: 'bg-pending',
-  WITHDRAW: 'bg-muted',
-};
-
-function Activity({ items }) {
-  if (!items.length) return <p className="text-sm text-muted">No activity yet.</p>;
-  return (
-    <ol className="divide-y divide-rule text-sm">
-      {items.map((a) => {
-        const who = a.byMe ? 'You' : a.by;
-        const whose = a.own ? 'your' : `${a.owner}\u2019s`;
-        const what =
-          a.change === 'CANCEL'
-            ? 'cancellation request'
-            : a.change === 'AMEND'
-              ? 'change request'
-              : 'request';
-        const ref = (
-          <Link
-            to={`/leave/requests/${a.requestId}`}
-            className="font-medium whitespace-nowrap text-brand hover:underline"
-          >
-            {a.reference}
-          </Link>
-        );
-        return (
-          <li key={a.id} className="flex items-start gap-3 py-2.5">
-            <span
-              className={`mt-1.5 size-2 shrink-0 rounded-full ${DOTS[a.action] ?? 'bg-brand'}`}
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-              {a.action === 'ESCALATE' ? (
-                <p>
-                  {a.own ? 'Your' : whose} {a.leaveType} {what} {ref} is overdue for a decision. Reminders
-                  were sent.
-                </p>
-              ) : (
-                <p>
-                  {who} {VERBS[a.action] ?? a.action.toLowerCase()} {whose} {a.leaveType} {what} {ref}
-                </p>
-              )}
-              <p className="text-xs text-muted">{formatDateTime(a.at)}</p>
-            </div>
-          </li>
-        );
-      })}
-    </ol>
   );
 }

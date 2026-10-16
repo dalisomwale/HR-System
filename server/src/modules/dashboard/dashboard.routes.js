@@ -229,8 +229,24 @@ export function dashboardRoutes({ db }) {
           'x.last_name',
         );
 
+      // Active leave: approved leave running today. Days left counts today and the remaining
+      // charged days of the stored day breakdown, so it goes down by itself day by day.
+      const running = upcoming.filter((r) => r.start_date <= today);
+      const daysLeft = running.length
+        ? await db('leave_request_days')
+            .whereIn(
+              'leave_request_id',
+              running.map((r) => r.id),
+            )
+            .andWhere('leave_date', '>=', today)
+            .groupBy('leave_request_id')
+            .select('leave_request_id', db.raw('SUM(charged) as left_days'))
+        : [];
+      const leftById = new Map(daysLeft.map((x) => [x.leave_request_id, Number(x.left_days)]));
+
       res.json({
         year,
+        active: running.map((r) => ({ ...item(r), daysLeft: leftById.get(r.id) ?? 0 })),
         insights: {
           main: main
             ? { leaveType: main.leaveType.name, available: main.available, balance: main.balance }

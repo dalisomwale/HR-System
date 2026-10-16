@@ -294,6 +294,16 @@ describe('dashboards', () => {
     expect(res.body.activity[0]).toMatchObject({ requestId: r.id, action: 'SUBMIT', own: true, byMe: true });
   });
 
+  it('lists approved leave running today as active, with the days left', async () => {
+    const today = todayInLusaka();
+    const r = await sickRequest(today, addDays(today, 6));
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    const hrRes = await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
+    expect(hrRes.status, JSON.stringify(hrRes.body)).toBe(200);
+    const res = await as(emp).get('/api/dashboard/employee');
+    expect(res.body.active).toEqual([expect.objectContaining({ id: r.id, daysLeft: r.chargeableDays })]);
+  });
+
   it('gives the manager an approvals count and their decisions in recent activity', async () => {
     const r = await sickRequest();
     let res = await as(mgr).get('/api/dashboard/employee');
