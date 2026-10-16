@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import logo from '../assets/brand/altus-logo.png';
 import {
+  ArrowLeft,
   Bell,
   FileBarChart,
   Mail,
@@ -128,6 +129,16 @@ export default function AppShell() {
       'Employee';
   const nav = (
     <>
+      {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
+      <div className="mb-5 px-3">
+        <Link
+          to="/"
+          onClick={() => setMenuOpen(false)}
+          className="flex items-center justify-center gap-2 rounded-md border border-brand px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
+        >
+          <ArrowLeft className="size-4" aria-hidden /> Back to applications
+        </Link>
+      </div>
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
@@ -178,15 +189,14 @@ export default function AppShell() {
           </Link>
           <Link
             to="/"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted hover:bg-canvas hover:text-ink"
-            title="All applications"
+            className="ml-auto hidden h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink hover:border-muted md:inline-flex"
           >
             <LayoutGrid className="size-4" aria-hidden />
-            <span className="hidden sm:inline">Applications</span>
+            Applications
           </Link>
           <Link
             to="/profile"
-            className="-mr-1 rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
+            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas md:ml-0"
             aria-label={`${fullName(user)}, ${roleText}. My profile`}
           >
             <p className="text-sm font-medium">{fullName(user)}</p>
