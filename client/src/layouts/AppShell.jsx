@@ -53,7 +53,6 @@ const HR = [
   { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true },
   { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck },
   { to: '/admin/employees', label: 'Employees', icon: Users },
-  { to: '/admin/import', label: 'Import employees', icon: FileUp },
   { to: '/admin/companies', label: 'Companies', icon: Landmark },
   { to: '/admin/departments', label: 'Departments', icon: Building2 },
   { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks },
