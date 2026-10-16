@@ -44,7 +44,7 @@ const MY_WORK = [
 ];
 const MANAGER = [
   { to: '/team', label: 'Departmental overview', icon: UsersRound, end: true },
-  { to: '/team/members', label: 'Department members', icon: Users, managersOnly: true },
+  { to: '/team/members', label: 'Members', icon: Users, managersOnly: true },
   { to: '/approvals', label: 'Approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];

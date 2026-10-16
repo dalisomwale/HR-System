@@ -22,7 +22,7 @@ export default function MembersPage() {
   const q = useQuery({ queryKey: ['members'], queryFn: () => api.get('/api/dashboard/members') });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="Department members" description={q.data?.department ?? undefined} />
+      <PageHeader title="Members" description={q.data?.department ?? undefined} />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
