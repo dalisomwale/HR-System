@@ -1,12 +1,11 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, CalendarDays, ClipboardCheck, Hourglass, Plus, ShieldCheck, Sun } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
-import { BalanceCards } from '../leave/MyLeavePage.jsx';
 import { RequestList } from './dashboard-ui.jsx';
 
 export default function HomePage() {
@@ -75,17 +74,6 @@ function Body({ d }) {
         </Notice>
       )}
 
-      <Section
-        title={`Your balances ${d.year}`}
-        actions={
-          <Link to="/leave" className="text-sm text-brand hover:underline">
-            My leave
-          </Link>
-        }
-      >
-        <BalanceCards items={d.balances} />
-      </Section>
-
       <div className="grid gap-6 lg:grid-cols-2">
         <Section title="Waiting for a decision">
           <RequestList items={d.pending} empty="No requests are waiting for a decision." />
@@ -107,7 +95,6 @@ function Insights({ i, year }) {
   if (i.teamApprovals != null) {
     cards.push({
       key: 'team',
-      icon: ClipboardCheck,
       value: i.teamApprovals,
       label: 'Awaiting your approval',
       to: '/approvals',
@@ -117,7 +104,6 @@ function Insights({ i, year }) {
   if (i.hrApprovals != null) {
     cards.push({
       key: 'hr',
-      icon: ShieldCheck,
       value: i.hrApprovals,
       label: 'Awaiting HR approval',
       to: '/hr/approvals',
@@ -127,23 +113,20 @@ function Insights({ i, year }) {
   if (i.main) {
     cards.push({
       key: 'main',
-      icon: CalendarDays,
       value: i.main.available,
       label: `${i.main.leaveType} days available`,
-      to: '/leave',
+      to: '/leave/balances',
     });
   }
   cards.push(
     {
       key: 'taken',
-      icon: Sun,
       value: i.takenThisYear,
       label: `Days taken in ${year}`,
-      to: '/leave',
+      to: '/leave/balances',
     },
     {
       key: 'awaiting',
-      icon: Hourglass,
       value: i.awaitingDecision,
       label: 'Your pending requests',
       to: '/leave',
@@ -151,14 +134,12 @@ function Insights({ i, year }) {
     i.onLeaveNow
       ? {
           key: 'next',
-          icon: CalendarClock,
           value: 'On leave',
           label: `Until ${formatDate(i.onLeaveNow.endDate)}`,
           to: `/leave/requests/${i.onLeaveNow.id}`,
         }
       : {
           key: 'next',
-          icon: CalendarClock,
           value: i.nextLeave ? formatDate(i.nextLeave.startDate) : 'None booked',
           label: i.nextLeave ? `Next leave · ${days(i.nextLeave.chargeableDays)}` : 'Next leave',
           to: i.nextLeave ? `/leave/requests/${i.nextLeave.id}` : '/leave/apply',
@@ -170,21 +151,14 @@ function Insights({ i, year }) {
 
   return (
     <ul className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${cols}`}>
-      {cards.map(({ key, icon: Icon, value, label, to, alert }) => (
+      {cards.map(({ key, value, label, to, alert }) => (
         <li key={key}>
           <Link
             to={to}
-            className="flex h-full items-center gap-3 rounded-lg border border-rule bg-white p-4 hover:border-brand"
+            className={`block h-full rounded-lg border bg-white p-4 hover:border-brand ${alert ? 'border-pending/40' : 'border-rule'}`}
           >
-            <span
-              className={`flex size-10 shrink-0 items-center justify-center rounded-md ${
-                alert ? 'bg-pending-bg text-pending' : 'bg-brand/10 text-brand'
-              }`}
-            >
-              <Icon className="size-5" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-xl font-semibold">{value}</span>
+            <span className="block">
+              <span className={`block text-xl font-semibold ${alert ? 'text-pending' : ''}`}>{value}</span>
               <span className="block text-sm text-muted">{label}</span>
             </span>
           </Link>

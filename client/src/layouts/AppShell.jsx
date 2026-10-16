@@ -23,6 +23,7 @@ import {
   FileUp,
   History,
   Menu,
+  Scale,
   Settings2,
   UserRound,
   Users,
@@ -37,6 +38,7 @@ import { ROLE_LABELS, fullName } from '../lib/format.js';
 const MY_WORK = [
   { to: '/home', label: 'Home', icon: House },
   { to: '/leave', label: 'My leave', icon: CalendarCheck, end: true },
+  { to: '/leave/balances', label: 'My balances', icon: Scale },
   { to: '/leave/apply', label: 'Apply for leave', icon: CalendarPlus },
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
 ];
@@ -187,15 +189,8 @@ export default function AppShell() {
             </span>
           </Link>
           <Link
-            to="/"
-            className="ml-auto hidden h-9 items-center gap-1.5 rounded-md border border-rule px-3 text-sm font-medium text-ink hover:border-muted md:inline-flex"
-          >
-            <LayoutGrid className="size-4" aria-hidden />
-            Applications
-          </Link>
-          <Link
             to="/profile"
-            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas md:ml-0"
+            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
             aria-label={`${fullName(user)}, ${roleText}. My profile`}
           >
             <p className="text-sm font-medium">{fullName(user)}</p>

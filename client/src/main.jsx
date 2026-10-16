@@ -21,7 +21,7 @@ import SchedulesPage from './pages/admin/SchedulesPage.jsx';
 import SettingsPage from './pages/admin/SettingsPage.jsx';
 import AuditPage from './pages/admin/AuditPage.jsx';
 import LeaveTypesPage from './pages/admin/LeaveTypesPage.jsx';
-import MyLeavePage from './pages/leave/MyLeavePage.jsx';
+import MyLeavePage, { MyBalancesPage } from './pages/leave/MyLeavePage.jsx';
 import ApplyPage from './pages/leave/ApplyPage.jsx';
 import RequestPage from './pages/leave/RequestPage.jsx';
 import { ManagerApprovalsPage, HrApprovalsPage } from './pages/approvals/ApprovalsPages.jsx';
@@ -96,6 +96,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="reports" element={<ReportsPage />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
+            <Route path="leave/balances" element={<MyBalancesPage />} />
             <Route path="leave/requests/:id" element={<RequestPage />} />
             <Route path="approvals" element={<ManagerApprovalsPage />} />
             <Route path="hr/approvals" element={hr(<HrApprovalsPage />)} />

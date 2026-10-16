@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { formatDateTime } from '../../lib/format.js';
 import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
   Badge,
-  ButtonLink,
   EmptyState,
   LoadError,
   Loading,
@@ -25,31 +23,33 @@ export default function MyLeavePage() {
   const [year, setYear] = useState(thisYear);
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="My leave"
-        actions={
-          <>
-            <Select
-              aria-label="Year"
-              className="w-28"
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-            >
-              {[thisYear + 1, thisYear, thisYear - 1, thisYear - 2].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </Select>
-            <ButtonLink to="/leave/apply" variant="primary">
-              <Plus className="size-4" aria-hidden /> Apply for leave
-            </ButtonLink>
-          </>
-        }
-      />
-      <Balances year={year} />
+      <PageHeader title="My leave" actions={<YearSelect year={year} setYear={setYear} />} />
       <Requests year={year} />
+      <Balances year={year} />
     </div>
+  );
+}
+
+/** Balances on their own page (My balances in the menu). */
+export function MyBalancesPage() {
+  const [year, setYear] = useState(thisYear);
+  return (
+    <div className="max-w-6xl space-y-6">
+      <PageHeader title="My balances" actions={<YearSelect year={year} setYear={setYear} />} />
+      <Balances year={year} bare />
+    </div>
+  );
+}
+
+function YearSelect({ year, setYear }) {
+  return (
+    <Select aria-label="Year" className="w-28" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+      {[thisYear + 1, thisYear, thisYear - 1, thisYear - 2].map((y) => (
+        <option key={y} value={y}>
+          {y}
+        </option>
+      ))}
+    </Select>
   );
 }
 
@@ -126,22 +126,19 @@ export function BalanceCards({ items, showPending = true }) {
   );
 }
 
-function Balances({ year }) {
+function Balances({ year, bare = false }) {
   const q = useQuery({
     queryKey: ['balances', year],
     queryFn: () => api.get(`/api/leave/balances${qs({ year })}`),
   });
-  return (
-    <Section title={`Balances ${year}`}>
-      {q.isPending ? (
-        <Loading />
-      ) : q.isError ? (
-        <LoadError error={q.error} onRetry={() => q.refetch()} />
-      ) : (
-        <BalanceCards items={q.data.items} />
-      )}
-    </Section>
+  const body = q.isPending ? (
+    <Loading />
+  ) : q.isError ? (
+    <LoadError error={q.error} onRetry={() => q.refetch()} />
+  ) : (
+    <BalanceCards items={q.data.items} />
   );
+  return bare ? body : <Section title={`Balances ${year}`}>{body}</Section>;
 }
 
 function Requests({ year }) {
