@@ -12,6 +12,18 @@ export const STATUS_LABELS = {
   CANCELLED: 'Cancelled',
 };
 
+/**
+ * Status as the viewer should read it. "With HR" and "With manager" describe where a request is
+ * from the employee's side; for the person who has to decide it reads "Awaiting your approval".
+ * `yourTurn` is the status the viewer acts on (PENDING_HR_APPROVAL for HR, PENDING_MANAGER_APPROVAL
+ * for a manager); a request of their own never counts.
+ */
+export function statusLabel(r, yourTurn, viewerId) {
+  const own = r.isOwn || (viewerId != null && r.employee?.id === viewerId);
+  if (yourTurn && r.status === yourTurn && !own) return 'Awaiting your approval';
+  return STATUS_LABELS[r.status] ?? r.status;
+}
+
 export const STATUS_TONES = {
   PENDING_MANAGER_APPROVAL: 'pending',
   PENDING_HR_APPROVAL: 'pending',

@@ -50,7 +50,11 @@ export default function RequestPage() {
       <PageHeader
         title={`${r.leaveType.name} · ${r.reference}`}
         description={`${r.employee.name} · ${dateRange(r)}`}
-        actions={<Badge tone={STATUS_TONES[r.status]}>{STATUS_LABELS[r.status]}</Badge>}
+        actions={
+          <Badge tone={STATUS_TONES[r.status]}>
+            {can.managerDecide || can.hrDecide ? 'Awaiting your approval' : STATUS_LABELS[r.status]}
+          </Badge>
+        }
       />
       {location.state?.submitted && (
         <div className="mb-6">

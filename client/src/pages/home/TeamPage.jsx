@@ -56,6 +56,7 @@ function Body({ d }) {
       >
         <RequestList
           items={d.awaiting}
+          yourTurn="PENDING_MANAGER_APPROVAL"
           showEmployee
           empty="Nothing is waiting for you."
           extra={(r) => <Waiting r={r} />}

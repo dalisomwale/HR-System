@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { formatDateTime } from '../../lib/format.js';
-import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days } from '../../lib/leave.js';
+import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
   Badge,
   ButtonLink,
@@ -147,7 +147,7 @@ function Requests({ year }) {
   );
 }
 
-export function RequestTable({ items, showEmployee = false }) {
+export function RequestTable({ items, showEmployee = false, yourTurn }) {
   return (
     <Table>
       <thead>
@@ -181,7 +181,7 @@ export function RequestTable({ items, showEmployee = false }) {
             <Td>{dateRange(r)}</Td>
             <Td className="text-right">{r.chargeableDays}</Td>
             <Td>
-              <Badge tone={STATUS_TONES[r.status]}>{STATUS_LABELS[r.status]}</Badge>
+              <Badge tone={STATUS_TONES[r.status]}>{statusLabel(r, yourTurn)}</Badge>
               {r.isOverdue && (
                 <span className="ml-1">
                   <Badge tone="danger">Overdue</Badge>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Badge } from '../../components/ui.jsx';
-import { STATUS_LABELS, STATUS_TONES, dateRange } from '../../lib/leave.js';
+import { STATUS_TONES, dateRange, statusLabel } from '../../lib/leave.js';
+import { useMe } from '../../lib/auth.jsx';
 
 /** One headline figure. `value` is shown only when a query established it. */
 export function Stat({ label, value, to, tone }) {
@@ -26,7 +27,8 @@ export function Stats({ children }) {
 }
 
 /** Compact list of requests with a link to each. */
-export function RequestList({ items, empty, showEmployee = false, showCompany = false, extra }) {
+export function RequestList({ items, empty, showEmployee = false, showCompany = false, extra, yourTurn }) {
+  const { data: me } = useMe();
   if (!items.length) return <p className="text-sm text-muted">{empty}</p>;
   return (
     <ul className="divide-y divide-rule">
@@ -45,7 +47,7 @@ export function RequestList({ items, empty, showEmployee = false, showCompany = 
           </div>
           <div className="flex items-center gap-2">
             {extra?.(r)}
-            {r.status && <Badge tone={STATUS_TONES[r.status]}>{STATUS_LABELS[r.status]}</Badge>}
+            {r.status && <Badge tone={STATUS_TONES[r.status]}>{statusLabel(r, yourTurn, me?.id)}</Badge>}
           </div>
         </li>
       ))}

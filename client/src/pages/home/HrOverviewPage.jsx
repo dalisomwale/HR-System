@@ -162,6 +162,7 @@ function Body({ d }) {
         <Section title="Waiting for final approval">
           <RequestList
             items={d.awaitingHr}
+            yourTurn={approvals ? 'PENDING_HR_APPROVAL' : undefined}
             showEmployee
             showCompany={!d.companyId}
             empty="Nothing is waiting for HR."

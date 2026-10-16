@@ -80,7 +80,7 @@ export function ManagerApprovalsPage() {
       ) : (
         <>
           <Block title="Leave requests" count={q.data.requests.length} empty="Nothing waiting for you">
-            <RequestTable items={q.data.requests} showEmployee />
+            <RequestTable items={q.data.requests} showEmployee yourTurn="PENDING_MANAGER_APPROVAL" />
           </Block>
           <Block title="Cancellation requests" count={q.data.changes.length} empty="No cancellations waiting">
             <ChangeTable items={q.data.changes} />
@@ -102,8 +102,12 @@ export function HrApprovalsPage() {
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
-          <Block title="Waiting for HR" count={q.data.requests.length} empty="Nothing waiting for HR">
-            <RequestTable items={q.data.requests} showEmployee />
+          <Block
+            title="Waiting for your approval"
+            count={q.data.requests.length}
+            empty="Nothing waiting for HR"
+          >
+            <RequestTable items={q.data.requests} showEmployee yourTurn="PENDING_HR_APPROVAL" />
           </Block>
           <Block title="Cancellation requests" count={q.data.changes.length} empty="No cancellations waiting">
             <ChangeTable items={q.data.changes} />
