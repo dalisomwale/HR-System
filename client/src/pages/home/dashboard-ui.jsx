@@ -22,8 +22,12 @@ export function Stat({ label, value, to, tone }) {
   );
 }
 
-export function Stats({ children }) {
-  return <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{children}</div>;
+export function Stats({ children, cols = 4 }) {
+  return (
+    <div className={`grid grid-cols-2 gap-3 ${cols === 3 ? 'sm:grid-cols-3' : 'lg:grid-cols-4'}`}>
+      {children}
+    </div>
+  );
 }
 
 /** Compact list of requests with a link to each. */
