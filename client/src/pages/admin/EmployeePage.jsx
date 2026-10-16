@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { useMe } from '../../lib/auth.jsx';
 import EmployeeBalances from './EmployeeBalances.jsx';
@@ -60,6 +60,9 @@ export default function EmployeePage() {
   const { id } = useParams();
   const { data: me } = useMe();
   const isNew = id === 'new';
+  // Details are read-only until the pencil next to the name is pressed.
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState(false);
   const employee = useQuery({
     queryKey: ['employee', id],
     queryFn: () => api.get(`/api/admin/employees/${id}`),
@@ -84,11 +87,41 @@ export default function EmployeePage() {
         title={isNew ? 'Add employee' : `${e.firstName} ${e.lastName}`}
         description={isNew ? undefined : [e.jobTitle, e.company].filter(Boolean).join(' · ') || undefined}
         actions={
-          !isNew && (e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>)
+          !isNew && (
+            <div className="flex items-center gap-3">
+              {e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
+              {!editing && (
+                <button
+                  type="button"
+                  className="inline-flex size-9 items-center justify-center rounded-md border border-rule bg-white text-ink hover:border-muted"
+                  aria-label="Edit employee details"
+                  title="Edit employee details"
+                  onClick={() => {
+                    setSaved(false);
+                    setEditing(true);
+                  }}
+                >
+                  <Pencil className="size-4" aria-hidden />
+                </button>
+              )}
+            </div>
+          )
         }
       />
       <div className={sidePanels ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}>
-        <EmployeeForm employee={e} isNew={isNew} />
+        {isNew || editing ? (
+          <EmployeeForm
+            employee={e}
+            isNew={isNew}
+            onDone={() => {
+              setEditing(false);
+              setSaved(true);
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
+          <EmployeeDetails employee={e} saved={saved} />
+        )}
         {sidePanels && (
           <div className="grid content-start gap-6">
             {/* Microsoft account, roles and deactivation are for System Administrators (D46). */}
@@ -142,7 +175,43 @@ function useInvalidateEmployee(id) {
   };
 }
 
-function EmployeeForm({ employee, isNew }) {
+const SEX = { FEMALE: 'Female', MALE: 'Male' };
+
+/** Read-only employment details; the pencil in the page header switches to the form. */
+function EmployeeDetails({ employee: e, saved }) {
+  const none = <span className="text-muted">Not recorded</span>;
+  const rows = [
+    ['Employee number', e.employeeNumber],
+    ['Work email', e.email],
+    ['Job title', e.jobTitle],
+    ['Company', e.company],
+    ['Department', e.department],
+    ['Manager', e.lineManager],
+    ['Sex', SEX[e.sex]],
+    ['Start date', e.employmentStartDate && formatDate(e.employmentStartDate)],
+    ['End date', e.employmentEndDate && formatDate(e.employmentEndDate)],
+    ['Working schedule', e.workSchedule ?? 'Group default'],
+  ];
+  return (
+    <Section title="Employment details">
+      {saved && (
+        <div className="mb-4">
+          <Notice tone="ok">Changes saved.</Notice>
+        </div>
+      )}
+      <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted">{k}</dt>
+            <dd>{v || none}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
+}
+
+function EmployeeForm({ employee, isNew, onDone, onCancel }) {
   const navigate = useNavigate();
   const invalidate = useInvalidateEmployee(employee?.id);
   const [message, setMessage] = useState(null);
@@ -186,7 +255,7 @@ function EmployeeForm({ employee, isNew }) {
       } else {
         await api.patch(`/api/admin/employees/${employee.id}`, toPayload(values, Object.keys(dirtyFields)));
         invalidate();
-        setMessage({ tone: 'ok', text: 'Changes saved.' });
+        onDone?.();
       }
     } catch (err) {
       const left = applyServerErrors(err, setError, FIELDS);
@@ -217,7 +286,7 @@ function EmployeeForm({ employee, isNew }) {
   }
 
   return (
-    <Section title="Employment details">
+    <Section title={isNew ? 'Employment details' : 'Edit employment details'}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-2">
         <Field id="firstName" label="First name" error={err('firstName')}>
           <Input
@@ -348,6 +417,11 @@ function EmployeeForm({ employee, isNew }) {
           <Button type="submit" busy={isSubmitting} disabled={!isNew && !isDirty}>
             {isNew ? 'Create employee' : 'Save changes'}
           </Button>
+          {!isNew && (
+            <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+              Cancel
+            </Button>
+          )}
           {message && (
             <span className={message.tone === 'ok' ? 'text-sm text-ok' : 'text-sm text-danger'}>
               {message.text}
