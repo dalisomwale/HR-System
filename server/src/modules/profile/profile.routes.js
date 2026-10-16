@@ -1,7 +1,64 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { asyncHandler } from '../../utils/validation.js';
+import { auditContext } from '../../middleware/auth.js';
+import { writeAudit } from '../audit/audit.service.js';
 
-/** The signed-in employee's own record. Never takes an employee ID from the client. */
+/*
+ * The signed-in employee's own record. Never takes an employee ID from the client.
+ * Employees may change only their personal details (D48); job, company, department, manager
+ * and dates are kept by HR because they decide approvals and entitlement.
+ */
+
+const text = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => v || null);
+const phone = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => v || null)
+  .refine(
+    (v) => v === null || /^\+?[0-9][0-9 ()-]{5,24}$/.test(v),
+    'must be a phone number, e.g. +260 97 1234567',
+  );
+
+export const personalSchema = z
+  .object({
+    mobilePhone: phone,
+    personalEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .nullish()
+      .transform((v) => v || null)
+      .refine(
+        (v) => v === null || z.string().email().max(254).safeParse(v).success,
+        'must be a valid email address',
+      ),
+    homeAddress: text(500),
+    emergencyContactName: text(160),
+    emergencyContactRelationship: text(60),
+    emergencyContactPhone: phone,
+  })
+  .strict();
+
+export const PERSONAL_COLUMNS = {
+  mobilePhone: 'mobile_phone',
+  personalEmail: 'personal_email',
+  homeAddress: 'home_address',
+  emergencyContactName: 'emergency_contact_name',
+  emergencyContactRelationship: 'emergency_contact_relationship',
+  emergencyContactPhone: 'emergency_contact_phone',
+};
+
+export const personalOf = (row) =>
+  Object.fromEntries(Object.entries(PERSONAL_COLUMNS).map(([k, col]) => [k, row[col] ?? null]));
+
 export function profileRoutes({ db }) {
   const router = Router();
   router.get(
@@ -14,22 +71,13 @@ export function profileRoutes({ db }) {
         .leftJoin('work_schedules as w', 'w.id', 'e.work_schedule_id')
         .where('e.id', req.user.id)
         .first(
-          'e.employee_number',
-          'e.first_name',
-          'e.last_name',
-          'e.email',
-          'e.job_title',
-          'e.employment_start_date',
+          'e.*',
           'c.name as company',
           'd.name as department',
           'm.first_name as manager_first',
           'm.last_name as manager_last',
           'w.name as schedule',
         );
-      const reports = await db('employees')
-        .where({ line_manager_id: req.user.id, status: 'ACTIVE' })
-        .orderBy(['last_name', 'first_name'])
-        .select('first_name', 'last_name', 'job_title');
       res.json({
         employeeNumber: e.employee_number,
         firstName: e.first_name,
@@ -42,11 +90,32 @@ export function profileRoutes({ db }) {
         workSchedule: e.schedule,
         employmentStartDate: e.employment_start_date,
         roles: req.user.roles,
-        directReports: reports.map((r) => ({
-          name: `${r.first_name} ${r.last_name}`,
-          jobTitle: r.job_title,
-        })),
+        personal: personalOf(e),
       });
+    }),
+  );
+
+  router.patch(
+    '/personal',
+    asyncHandler(async (req, res) => {
+      const input = personalSchema.parse(req.body ?? {});
+      await db.transaction(async (trx) => {
+        const before = await trx('employees').where({ id: req.user.id }).forUpdate().first();
+        const row = Object.fromEntries(Object.entries(input).map(([k, v]) => [PERSONAL_COLUMNS[k], v]));
+        if (Object.keys(row).length) await trx('employees').where({ id: req.user.id }).update(row);
+        const changed = Object.keys(input).filter((k) => (before[PERSONAL_COLUMNS[k]] ?? null) !== input[k]);
+        if (changed.length) {
+          // Field names only: personal details themselves are not copied into the audit log.
+          await writeAudit(trx, {
+            ...auditContext(req),
+            action: 'PERSONAL_DETAILS_UPDATED',
+            entityType: 'employee',
+            entityId: req.user.id,
+            after: { fields: changed },
+          });
+        }
+      });
+      res.json({ ok: true });
     }),
   );
   return router;

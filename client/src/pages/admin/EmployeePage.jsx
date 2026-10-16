@@ -23,6 +23,7 @@ import {
   applyServerErrors,
 } from '../../components/ui.jsx';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
+import { PERSONAL_FIELDS } from '../employee/ProfilePage.jsx';
 
 const FIELDS = [
   'employeeNumber',
@@ -207,6 +208,20 @@ function EmployeeDetails({ employee: e, saved }) {
           </div>
         ))}
       </dl>
+      {e.personal && (
+        <>
+          <h3 className="mt-6 mb-2 border-t border-rule pt-4 text-sm font-semibold">Personal details</h3>
+          <p className="mb-3 text-xs text-muted">Kept up to date by the employee on My profile.</p>
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
+            {PERSONAL_FIELDS.map(([k, label]) => (
+              <div key={k} className="contents">
+                <dt className="text-muted">{label}</dt>
+                <dd className="whitespace-pre-line">{e.personal[k] || none}</dd>
+              </div>
+            ))}
+          </dl>
+        </>
+      )}
     </Section>
   );
 }

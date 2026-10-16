@@ -19,6 +19,7 @@ import {
   pendingSignIns,
 } from './employees.service.js';
 import { validateImport, commitImport, IMPORT_COLUMNS } from './employees.import.js';
+import { personalOf } from '../profile/profile.routes.js';
 
 const deactivateSchema = z.object({
   reason: optionalText(500),
@@ -211,6 +212,7 @@ export function employeeRoutes({ db, config }) {
         workSchedule: e.schedule_name,
         employmentStartDate: e.employment_start_date,
         employmentEndDate: e.employment_end_date,
+        personal: personalOf(e),
         status: e.status,
         deactivatedAt: e.deactivated_at,
         roles,

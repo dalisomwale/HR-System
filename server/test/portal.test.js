@@ -508,3 +508,41 @@ describe('HR Officer administration rights', () => {
     expect((await as(emp).get('/api/admin/companies')).status).toBe(403);
   });
 });
+
+describe('My profile personal details', () => {
+  const patch = (s, body) => s.agent.patch('/api/me/profile/personal').set('X-CSRF-Token', s.csrf).send(body);
+
+  it('lets employees keep their own personal details, and nothing else', async () => {
+    const res = await patch(emp, {
+      mobilePhone: '+260 97 1234567',
+      personalEmail: 'Ezra@Example.test',
+      homeAddress: 'Plot 12, Kabulonga, Lusaka',
+      emergencyContactName: 'Ruth',
+      emergencyContactRelationship: 'Sister',
+      emergencyContactPhone: '0977 000111',
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const me = await as(emp).get('/api/me/profile');
+    expect(me.body.personal).toMatchObject({
+      mobilePhone: '+260 97 1234567',
+      personalEmail: 'ezra@example.test',
+      emergencyContactRelationship: 'Sister',
+    });
+    // HR sees them on the employee record.
+    const hrView = await as(hr).get(`/api/admin/employees/${emp.id}`);
+    expect(hrView.body.personal.homeAddress).toBe('Plot 12, Kabulonga, Lusaka');
+    // The audit log names the fields changed, not their values.
+    const audit = await db('audit_log').where({ action: 'PERSONAL_DETAILS_UPDATED' }).first();
+    const after = typeof audit.after_data === 'string' ? JSON.parse(audit.after_data) : audit.after_data;
+    expect(after.fields).toContain('mobilePhone');
+    expect(JSON.stringify(after)).not.toContain('Kabulonga');
+
+    // Job details, bad numbers and bad emails are refused.
+    expect((await patch(emp, { jobTitle: 'Director' })).status).toBe(400);
+    expect((await patch(emp, { mobilePhone: 'call me' })).status).toBe(400);
+    expect((await patch(emp, { personalEmail: 'nope' })).status).toBe(400);
+    // Clearing a field is allowed.
+    expect((await patch(emp, { mobilePhone: '' })).status).toBe(200);
+    expect((await as(emp).get('/api/me/profile')).body.personal.mobilePhone).toBeNull();
+  });
+});
