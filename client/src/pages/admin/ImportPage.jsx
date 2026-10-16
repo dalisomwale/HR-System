@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { api } from '../../lib/api.js';
+import { useMe } from '../../lib/auth.jsx';
 import {
   Badge,
   Button,
@@ -35,6 +36,8 @@ const COLUMNS = [
 ];
 
 export default function ImportPage() {
+  const { data: me } = useMe();
+  const isAdmin = me.roles.includes('HR_ADMIN');
   const qc = useQueryClient();
   const [file, setFile] = useState(null);
   const [csv, setCsv] = useState('');
@@ -125,10 +128,16 @@ export default function ImportPage() {
               .map(([n, one, many]) => `, ${n} new ${n === 1 ? one : many}`)
               .join('')}.`}
           >
-            Next, link their Microsoft accounts: ask them to sign in once, then use Sign-in requests.{' '}
-            <ButtonLink to="/admin/sign-in-requests" variant="ghost" className="h-auto px-1">
-              Open sign-in requests
-            </ButtonLink>
+            {isAdmin ? (
+              <>
+                Next, link their Microsoft accounts: ask them to sign in once, then use Sign-in requests.{' '}
+                <ButtonLink to="/admin/sign-in-requests" variant="ghost" className="h-auto px-1">
+                  Open sign-in requests
+                </ButtonLink>
+              </>
+            ) : (
+              'Next, ask them to sign in once. A System Administrator then links their Microsoft accounts.'
+            )}
           </Notice>
         ) : (
           result && (

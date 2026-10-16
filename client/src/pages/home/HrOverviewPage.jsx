@@ -82,7 +82,7 @@ function Body({ d }) {
             )}
             {ex.held.length > 0 && (
               <p className="mt-1 text-muted">
-                Update the employee’s manager, or set up a delegation under Administration → Delegations.
+                Update the employee’s manager, or set up a delegation under HR → Delegations.
               </p>
             )}
           </Exception>
@@ -124,15 +124,20 @@ function Body({ d }) {
                 )}
               </ul>
             )}
-            {configIssues > 0 && isAdmin && (
+            {configIssues > 0 && approvals && (
               <p className="mt-1">
                 <Link to="/admin/leave-types" className="text-brand underline">
                   Leave types
-                </Link>{' '}
-                ·{' '}
-                <Link to="/admin/settings" className="text-brand underline">
-                  Workflow settings
                 </Link>
+                {isAdmin && (
+                  <>
+                    {' '}
+                    ·{' '}
+                    <Link to="/admin/settings" className="text-brand underline">
+                      Workflow settings
+                    </Link>
+                  </>
+                )}
               </p>
             )}
           </Exception>

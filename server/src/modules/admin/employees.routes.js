@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
-import { auditContext } from '../../middleware/auth.js';
+import { auditContext, requireRole } from '../../middleware/auth.js';
 import { asyncHandler, idParam, isoDate, optionalText, pagination } from '../../utils/validation.js';
 import { notFound } from '../../utils/errors.js';
 import {
@@ -28,6 +28,8 @@ const importSchema = z.object({ csv: z.string().min(1, 'is required').max(2_000_
 
 export function employeeRoutes({ db, config }) {
   const router = Router();
+  // Microsoft account links and roles are for System Administrators only (D46).
+  const adminOnly = requireRole('HR_ADMIN');
   const tenantId = config.entra.tenantId;
   const tx = (fn) =>
     db.transaction(fn).catch((err) => {
@@ -129,6 +131,7 @@ export function employeeRoutes({ db, config }) {
 
   router.get(
     '/pending-sign-ins',
+    adminOnly,
     asyncHandler(async (req, res) => {
       res.json({ items: await pendingSignIns(db, tenantId), signInConfigured: Boolean(tenantId) });
     }),
@@ -269,6 +272,7 @@ export function employeeRoutes({ db, config }) {
 
   router.put(
     '/:id/identity',
+    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const input = linkIdentitySchema.parse(req.body);
@@ -279,6 +283,7 @@ export function employeeRoutes({ db, config }) {
 
   router.delete(
     '/:id/identity',
+    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       await tx((trx) => unlinkIdentity(trx, id, auditContext(req)));
@@ -288,6 +293,7 @@ export function employeeRoutes({ db, config }) {
 
   router.put(
     '/:id/roles',
+    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const { roles } = setRolesSchema.parse(req.body);

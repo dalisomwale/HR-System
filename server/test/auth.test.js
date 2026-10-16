@@ -124,12 +124,14 @@ describe('authorisation', () => {
     }
   });
 
-  it('blocks the HR Administration API for employees and HR Officers', async () => {
-    for (const roles of [[], ['HR_OFFICER']]) {
-      const emp = await fixtureEmployee(db, { roles });
-      const s = await signIn(app, entra, { oid: emp.oid });
-      expect((await s.agent.get('/api/admin/employees')).status).toBe(403);
-    }
+  it('blocks administration for employees, and System Administrator pages for HR Officers', async () => {
+    const emp = await fixtureEmployee(db);
+    const s = await signIn(app, entra, { oid: emp.oid });
+    expect((await s.agent.get('/api/admin/employees')).status).toBe(403);
+    const officer = await fixtureEmployee(db, { roles: ['HR_OFFICER'] });
+    const o = await signIn(app, entra, { oid: officer.oid });
+    expect((await o.agent.get('/api/admin/employees')).status).toBe(200);
+    expect((await o.agent.get('/api/admin/settings')).status).toBe(403);
   });
 
   it('serves only the signed-in employee their own profile', async () => {

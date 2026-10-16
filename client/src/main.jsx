@@ -86,19 +86,19 @@ createRoot(document.getElementById('root')).render(
             <Route path="hr/approvals" element={hr(<HrApprovalsPage />)} />
             <Route path="admin">
               <Route index element={<Navigate to="/admin/employees" replace />} />
-              <Route path="employees" element={admin(<EmployeesPage />)} />
-              <Route path="employees/:id" element={admin(<EmployeePage />)} />
+              <Route path="employees" element={hr(<EmployeesPage />)} />
+              <Route path="employees/:id" element={hr(<EmployeePage />)} />
               <Route path="sign-in-requests" element={admin(<SignInRequestsPage />)} />
-              <Route path="import" element={admin(<ImportPage />)} />
+              <Route path="import" element={hr(<ImportPage />)} />
               <Route path="roles" element={admin(<RolesPage />)} />
-              <Route path="companies" element={admin(<CompaniesPage />)} />
-              <Route path="departments" element={admin(<DepartmentsPage />)} />
-              <Route path="holidays" element={admin(<HolidaysPage />)} />
-              <Route path="schedules" element={admin(<SchedulesPage />)} />
+              <Route path="companies" element={hr(<CompaniesPage />)} />
+              <Route path="departments" element={hr(<DepartmentsPage />)} />
+              <Route path="holidays" element={hr(<HolidaysPage />)} />
+              <Route path="schedules" element={hr(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />
-              <Route path="leave-types" element={admin(<LeaveTypesPage />)} />
-              <Route path="leave-types/:id" element={admin(<LeaveTypePage />)} />
-              <Route path="delegations" element={admin(<AdminDelegationsPage />)} />
+              <Route path="leave-types" element={hr(<LeaveTypesPage />)} />
+              <Route path="leave-types/:id" element={hr(<LeaveTypePage />)} />
+              <Route path="delegations" element={hr(<AdminDelegationsPage />)} />
               <Route path="emails" element={admin(<EmailsPage />)} />
               <Route path="audit" element={admin(<AuditPage />)} />
             </Route>

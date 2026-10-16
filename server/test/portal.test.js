@@ -411,3 +411,63 @@ describe('sensitive requests', () => {
     expect(r.status).toBe('PENDING_MANAGER_APPROVAL');
   });
 });
+
+describe('HR Officer administration rights', () => {
+  it('reaches people and leave setup, but not roles, accounts, settings, emails or audit', async () => {
+    for (const path of [
+      '/api/admin/employees',
+      '/api/admin/employees/options',
+      '/api/admin/employees/import/template',
+      '/api/admin/companies',
+      '/api/admin/departments',
+      '/api/admin/leave-types',
+      '/api/admin/jobs',
+      '/api/admin/delegations',
+      '/api/admin/holidays?year=2027',
+      '/api/admin/work-schedules',
+      '/api/reports',
+    ]) {
+      expect((await as(hr).get(path)).status, path).toBe(200);
+    }
+    const created = await as(hr).post('/api/admin/companies', { code: 'HRC', name: 'Created by HR' });
+    expect(created.status).toBe(201);
+    const person = await as(hr).post('/api/admin/employees', {
+      employeeNumber: 'HR-1',
+      firstName: 'Added',
+      lastName: 'ByHr',
+      employmentStartDate: '2026-01-05',
+      companyId: created.body.id,
+    });
+    expect(person.status, JSON.stringify(person.body)).toBe(201);
+
+    for (const path of [
+      '/api/admin/roles',
+      '/api/admin/settings',
+      '/api/admin/audit',
+      '/api/admin/emails',
+      '/api/admin/employees/pending-sign-ins',
+    ]) {
+      expect((await as(hr).get(path)).status, path).toBe(403);
+    }
+    expect(
+      (
+        await hr.agent
+          .put(`/api/admin/employees/${person.body.id}/roles`)
+          .set('X-CSRF-Token', hr.csrf)
+          .send({ roles: ['HR_ADMIN'] })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await hr.agent
+          .put(`/api/admin/employees/${person.body.id}/identity`)
+          .set('X-CSRF-Token', hr.csrf)
+          .send({ objectId: '55555555-5555-5555-5555-555555555555' })
+      ).status,
+    ).toBe(403);
+
+    // Ordinary employees still reach none of it.
+    expect((await as(emp).get('/api/admin/employees')).status).toBe(403);
+    expect((await as(emp).get('/api/admin/companies')).status).toBe(403);
+  });
+});

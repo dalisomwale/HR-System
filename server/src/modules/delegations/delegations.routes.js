@@ -186,10 +186,10 @@ export function delegationRoutes({ db }) {
   return router;
 }
 
-/** System Administrators: every delegation, and set one up for a manager who is away unexpectedly. */
+/** HR Officers and System Administrators: every delegation, and set one up for an absent manager. */
 export function adminDelegationRoutes({ db }) {
   const router = Router();
-  router.use(requireRole('HR_ADMIN'));
+  router.use(requireRole('HR_OFFICER'));
 
   router.get(
     '/',

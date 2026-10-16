@@ -90,8 +90,28 @@ export default function EmployeePage() {
         <EmployeeForm employee={e} isNew={isNew} />
         {!isNew && (
           <div className="grid content-start gap-6">
-            <IdentityPanel employee={e} />
-            <RolesPanel employee={e} />
+            {/* Microsoft account links and roles are for System Administrators (D46). */}
+            {me.roles.includes('HR_ADMIN') ? (
+              <>
+                <IdentityPanel employee={e} />
+                <RolesPanel employee={e} />
+              </>
+            ) : (
+              <Section title="Microsoft account">
+                <p className="text-sm">
+                  {e.identity ? (
+                    <Badge tone="ok">Linked</Badge>
+                  ) : (
+                    <>
+                      <Badge tone="pending">Not linked</Badge>
+                      <span className="mt-2 block text-muted">
+                        Ask them to sign in once; a System Administrator then links the account.
+                      </span>
+                    </>
+                  )}
+                </p>
+              </Section>
+            )}
             <StatusPanel employee={e} />
             {e.directReports.length > 0 && (
               <Section title="Direct reports">

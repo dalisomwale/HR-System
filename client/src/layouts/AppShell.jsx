@@ -45,17 +45,11 @@ const MANAGER = [
   { to: '/approvals', label: 'Team approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];
+// HR Officers look after people and leave setup as well as approvals (D46).
 const HR = [
   { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true },
   { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck },
-  { to: '/reports', label: 'Reports', icon: FileBarChart },
-];
-const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
-const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
-const ADMIN = [
   { to: '/admin/employees', label: 'Employees', icon: Users },
-  { to: '/admin/roles', label: 'Roles', icon: KeyRound },
-  { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/import', label: 'Import employees', icon: FileUp },
   { to: '/admin/companies', label: 'Companies', icon: Landmark },
   { to: '/admin/departments', label: 'Departments', icon: Building2 },
@@ -63,6 +57,14 @@ const ADMIN = [
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck },
   { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
   { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
+  { to: '/reports', label: 'Reports', icon: FileBarChart },
+];
+const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
+const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
+// System Administrators only. They also see everything in the HR menu.
+const ADMIN = [
+  { to: '/admin/roles', label: 'Roles', icon: KeyRound },
+  { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/settings', label: 'Workflow settings', icon: Settings2 },
   { to: '/admin/emails', label: 'Emails', icon: Mail },
   { to: '/admin/audit', label: 'Audit log', icon: History },
