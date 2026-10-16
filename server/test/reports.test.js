@@ -107,7 +107,7 @@ describe('who can run reports', () => {
 
     const list = await as(mgr).get('/api/reports');
     expect(list.body.scope).toBe('MANAGER');
-    expect(list.body.items).toHaveLength(13);
+    expect(list.body.items).toHaveLength(14);
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
 
     const mine = await as(mgr).get('/api/reports/requests?year=2027');
@@ -152,6 +152,30 @@ describe('every report for managers, limited to their team', () => {
     const options = (await as(mgr).get('/api/reports')).body.options;
     expect(options.companies).toEqual([{ id: company, name: 'Altus Financial Services Limited' }]);
     expect(options.departments.map((d) => d.id)).toEqual([dept]);
+  });
+});
+
+describe('department members report', () => {
+  it('gives a manager their whole department and HR everyone, without leave types', async () => {
+    const peer = await fixtureEmployee(db, { first_name: 'Pia', department_id: dept, company_id: company });
+    await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    const mine = await as(mgr).get('/api/reports/department-members');
+    expect(mine.status).toBe(200);
+    expect(mine.body.rows.map((r) => r.employee).sort()).toEqual([
+      expect.stringMatching(/^Ezra/),
+      expect.stringMatching(/^Pia/),
+    ]);
+    expect(mine.body.rows.find((r) => r.employee.startsWith('Ezra'))).toMatchObject({
+      today: 'At work',
+      nextStart: '2027-03-01',
+      nextDays: 5,
+    });
+    expect(JSON.stringify(mine.body.rows)).not.toMatch(/Annual leave/);
+    const all = await as(hr).get('/api/reports/department-members');
+    expect(all.body.rows.map((r) => r.employee)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^Mona/), expect.stringMatching(/HYPERLINK/)]),
+    );
+    expect(peer.id).toBeTruthy();
   });
 });
 

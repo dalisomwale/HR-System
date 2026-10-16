@@ -8,6 +8,7 @@ import { workingCalendar, stageSince } from '../leave/working-days.js';
 import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 import { hrQueue, managerQueue } from '../leave/queries.service.js';
+import { departmentMembers } from './members.service.js';
 
 /*
  * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
@@ -287,122 +288,8 @@ export function dashboardRoutes({ db }) {
   router.get(
     '/members',
     asyncHandler(async (req, res) => {
-      const { user } = req;
-      if (!user.isManager) throw forbidden('Department members is for managers.');
-      const today = todayInLusaka();
-      const year = Number(today.slice(0, 4));
-      const meRow = await db('employees').where({ id: user.id }).first('department_id', 'company_id');
-      const department = meRow.department_id
-        ? await db('departments').where({ id: meRow.department_id }).first('id', 'name')
-        : null;
-      const reports = await teamOf(db, user.id);
-
-      const people = await db('employees as e')
-        .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
-        .leftJoin('departments as d', 'd.id', 'e.department_id')
-        .where('e.status', 'ACTIVE')
-        .whereNot('e.id', user.id)
-        .where((w) => {
-          if (department) w.where('e.department_id', department.id);
-          if (reports.length) w.orWhereIn('e.id', reports);
-          if (!department && !reports.length) w.whereRaw('1 = 0');
-        })
-        .orderBy(['e.first_name', 'e.last_name'])
-        .select(
-          'e.id',
-          'e.first_name',
-          'e.last_name',
-          'e.employee_number',
-          'e.job_title',
-          'e.email',
-          'e.mobile_phone',
-          'e.employment_start_date',
-          'e.line_manager_id',
-          'd.name as dept_name',
-          'm.first_name as mgr_first',
-          'm.last_name as mgr_last',
-        );
-      const ids = people.map((p) => p.id);
-
-      const open = ids.length
-        ? await db('leave_requests')
-            .whereIn('employee_id', ids)
-            .where((w) =>
-              w
-                .whereIn('status', PENDING_STATES)
-                .orWhere((a) => a.where('status', 'APPROVED').andWhere('end_date', '>=', today)),
-            )
-            .orderBy('start_date')
-            .select(
-              'id',
-              'employee_id',
-              'status',
-              'start_date',
-              'end_date',
-              'start_portion',
-              'end_portion',
-              'chargeable_days',
-            )
-        : [];
-      // Today counts as leave only if today is a charged day of an approved request.
-      const todayRows = ids.length
-        ? await db('leave_request_days as x')
-            .join('leave_requests as r', 'r.id', 'x.leave_request_id')
-            .whereIn('r.employee_id', ids)
-            .where({ 'r.status': 'APPROVED', 'x.leave_date': today })
-            .where('x.charged', '>', 0)
-            .select('r.id', 'r.employee_id', 'r.end_date', 'x.charged')
-        : [];
-
-      const members = [];
-      for (const p of people) {
-        const mine = open.filter((r) => r.employee_id === p.id);
-        const away = todayRows.find((t) => t.employee_id === p.id);
-        const next = mine.find((r) => r.status === 'APPROVED' && r.start_date > today);
-        const balances = await employeeBalances(db, p.id, year);
-        const main = balances.find((b) => b.kind === 'BALANCE');
-        members.push({
-          id: p.id,
-          name: name(p.first_name, p.last_name),
-          employeeNumber: p.employee_number,
-          jobTitle: p.job_title,
-          department: p.dept_name,
-          email: p.email,
-          mobilePhone: p.mobile_phone,
-          startDate: p.employment_start_date,
-          lineManager: name(p.mgr_first, p.mgr_last),
-          reportsToYou: p.line_manager_id === user.id,
-          today: away
-            ? { onLeave: true, until: away.end_date, halfDay: Number(away.charged) < 1 }
-            : { onLeave: false },
-          annual: main ? { leaveType: main.leaveType.name, available: main.available } : null,
-          takenThisYear: Math.round(balances.reduce((n, b) => n + Number(b.taken ?? 0), 0) * 100) / 100,
-          pendingRequests: mine.filter((r) => PENDING_STATES.includes(r.status)).length,
-          nextLeave: next
-            ? {
-                startDate: next.start_date,
-                endDate: next.end_date,
-                startPortion: next.start_portion,
-                endPortion: next.end_portion,
-                chargeableDays: Number(next.chargeable_days),
-              }
-            : null,
-        });
-      }
-
-      const in30 = addDays(today, 30);
-      for (const m of members) m.leaveSoon = !!m.nextLeave && m.nextLeave.startDate <= in30;
-      res.json({
-        department: department?.name ?? null,
-        year,
-        summary: {
-          members: members.length,
-          onLeaveToday: members.filter((m) => m.today.onLeave).length,
-          atWorkToday: members.filter((m) => !m.today.onLeave).length,
-          leaveNext30Days: members.filter((m) => m.leaveSoon).length,
-        },
-        members,
-      });
+      if (!req.user.isManager) throw forbidden('Department members is for managers.');
+      res.json(await departmentMembers(db, req.user));
     }),
   );
 

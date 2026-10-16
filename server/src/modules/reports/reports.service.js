@@ -7,6 +7,7 @@ import { addDays, daysBetween, eachDate, weekdayKey } from '../leave/calendar.js
 import { annualPosition, daysTaken } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 import { workingCalendar, stageSince } from '../leave/working-days.js';
+import { describeMembers, groupPeople, managerMembers } from '../dashboard/members.service.js';
 
 /*
  * Report definitions. Every query is limited to the people the viewer may see BEFORE rows are
@@ -61,7 +62,7 @@ export const filterSchema = z.object({
 
 /** Who the viewer may report on. */
 export async function reportScope(db, user) {
-  if (seesWholeGroup(user)) return { level: 'HR', ids: null };
+  if (seesWholeGroup(user)) return { level: 'HR', ids: null, userId: user.id };
   if (!user.isManager && !user.isDelegate) throw forbidden('Reports are for managers and HR.');
   const today = todayInLusaka();
   const delegators = await db('delegations')
@@ -86,7 +87,7 @@ export async function reportScope(db, user) {
     }
   }
   ids.delete(user.id);
-  return { level: 'MANAGER', ids: [...ids] };
+  return { level: 'MANAGER', ids: [...ids], userId: user.id, isManager: !!user.isManager };
 }
 
 /** Apply the viewer's scope and the people filters to a query on employees `e`. */
@@ -141,6 +142,12 @@ const lusaka = new Intl.DateTimeFormat('en-CA', {
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',
+});
+const dayMonthYear = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
 });
 /** Event time in Lusaka, 'YYYY-MM-DD HH:MM'. */
 const ts = (v) => (v ? lusaka.format(new Date(v)).replace(',', '') : '');
@@ -422,6 +429,68 @@ export const REPORTS = [
         });
       }
       return out;
+    },
+  },
+
+  {
+    id: 'department-members',
+    title: 'Department members',
+    description:
+      'Everyone in the department with contact details, whether they are on leave today, annual leave available, days taken, pending requests and next leave. Leave is shown by dates only.',
+    levels: ['HR', 'MANAGER'],
+    filters: ['employee', 'company', 'department'],
+    columns: [
+      ...PERSON_COLS,
+      { key: 'jobTitle', label: 'Job title', type: 'text' },
+      { key: 'email', label: 'Work email', type: 'text' },
+      { key: 'mobile', label: 'Mobile number', type: 'text' },
+      { key: 'reportsTo', label: 'Reports to', type: 'text' },
+      { key: 'startDate', label: 'Start date', type: 'date' },
+      { key: 'today', label: 'Today', type: 'text' },
+      { key: 'available', label: 'Annual leave available', type: 'number' },
+      { key: 'taken', label: 'Days taken this year', type: 'number' },
+      { key: 'pending', label: 'Pending requests', type: 'number' },
+      { key: 'nextStart', label: 'Next leave first day', type: 'date' },
+      { key: 'nextEnd', label: 'Next leave last day', type: 'date' },
+      { key: 'nextDays', label: 'Next leave days', type: 'number' },
+    ],
+    async run(db, scope, f) {
+      const narrow = (q) => {
+        if (f.employeeId) q.where('e.id', f.employeeId);
+        if (f.companyId) q.where('e.company_id', f.companyId);
+        if (f.departmentId) q.where('e.department_id', f.departmentId);
+      };
+      let rows;
+      if (scope.level === 'HR') rows = await groupPeople(db, narrow);
+      else if (scope.isManager) rows = (await managerMembers(db, scope.userId, narrow)).people;
+      else {
+        // Covering for a manager only: the people they cover.
+        rows = await groupPeople(db, (q) => {
+          q.whereIn('e.id', scope.ids.length ? scope.ids : [0]);
+          narrow(q);
+        });
+      }
+      const { members } = await describeMembers(db, rows, scope.userId);
+      return members.map((m) => ({
+        employeeNumber: m.employeeNumber,
+        employee: m.name,
+        company: m.company ?? '',
+        department: m.department ?? '',
+        jobTitle: m.jobTitle ?? '',
+        email: m.email ?? '',
+        mobile: m.mobilePhone ?? '',
+        reportsTo: m.lineManager ?? '',
+        startDate: m.startDate,
+        today: m.today.onLeave
+          ? `${m.today.halfDay ? 'Half day leave' : 'On leave'} until ${dayMonthYear.format(new Date(`${m.today.until}T12:00:00Z`))}`
+          : 'At work',
+        available: m.annual ? m.annual.available : null,
+        taken: m.takenThisYear,
+        pending: m.pendingRequests,
+        nextStart: m.nextLeave?.startDate ?? null,
+        nextEnd: m.nextLeave?.endDate ?? null,
+        nextDays: m.nextLeave?.chargeableDays ?? null,
+      }));
     },
   },
 

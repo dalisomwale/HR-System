@@ -372,7 +372,7 @@ describe('directors', () => {
       expect((await as(director).get('/api/dashboard/hr')).status).toBe(200);
       const reports = await as(director).get('/api/reports');
       expect(reports.body.scope).toBe('HR');
-      expect(reports.body.items).toHaveLength(13);
+      expect(reports.body.items).toHaveLength(14);
 
       // Request detail is visible; the confidential reason of sick leave is not.
       const detail = await as(director).get(`/api/leave/requests/${sick.id}`);
