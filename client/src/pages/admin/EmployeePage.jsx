@@ -322,10 +322,10 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
         <Field id="employeeNumber" label="Employee number" error={err('employeeNumber')}>
           <Input id="employeeNumber" invalid={!!err('employeeNumber')} {...register('employeeNumber', req)} />
         </Field>
-        <Field id="email" label="Work email" optional error={err('email')}>
+        <Field id="email" label="Work email" error={err('email')}>
           <Input id="email" type="email" invalid={!!err('email')} {...register('email')} />
         </Field>
-        <Field id="jobTitle" label="Job title" optional error={err('jobTitle')} className="sm:col-span-2">
+        <Field id="jobTitle" label="Job title" error={err('jobTitle')} className="sm:col-span-2">
           <Input id="jobTitle" invalid={!!err('jobTitle')} {...register('jobTitle')} />
         </Field>
         <Field id="companyId" label="Company" error={err('companyId')}>
@@ -351,7 +351,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
               ))}
           </Select>
         </Field>
-        <Field id="departmentId" label="Department" optional error={err('departmentId')}>
+        <Field id="departmentId" label="Department" error={err('departmentId')}>
           <Select
             id="departmentId"
             invalid={!!err('departmentId')}
@@ -369,7 +369,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
             <DepartmentOptions departments={activeDepartments} />
           </Select>
         </Field>
-        <Field id="lineManagerId" label="Manager" optional error={err('lineManagerId')}>
+        <Field id="lineManagerId" label="Manager" error={err('lineManagerId')}>
           <Select id="lineManagerId" invalid={!!err('lineManagerId')} {...register('lineManagerId')}>
             <option value="">No manager</option>
             {people.data?.items
@@ -384,7 +384,6 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
         <Field
           id="sex"
           label="Sex"
-          optional
           error={err('sex')}
           hint="Used only for maternity, paternity and Mother’s Day leave eligibility."
         >
@@ -402,7 +401,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
             {...register('employmentStartDate', req)}
           />
         </Field>
-        <Field id="employmentEndDate" label="End date" optional error={err('employmentEndDate')}>
+        <Field id="employmentEndDate" label="End date" error={err('employmentEndDate')}>
           <Input
             id="employmentEndDate"
             type="date"
@@ -413,7 +412,6 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
         <Field
           id="workScheduleId"
           label="Working schedule"
-          optional
           error={err('workScheduleId')}
           hint="Leave blank for the group default."
         >
@@ -600,7 +598,7 @@ function StatusPanel({ employee }) {
       title="Deactivate"
       description="Use when someone leaves. They are signed out and cannot sign in. History is kept."
     >
-      <Field id="deactivateReason" label="Reason" optional>
+      <Field id="deactivateReason" label="Reason">
         <Textarea id="deactivateReason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>
       {deactivate.isError && (

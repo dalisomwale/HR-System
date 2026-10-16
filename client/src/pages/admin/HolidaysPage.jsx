@@ -102,7 +102,7 @@ export default function HolidaysPage() {
                 required
               />
             </Field>
-            <Field id="hSource" label="Source" optional hint="e.g. Gazette notice or statutory instrument">
+            <Field id="hSource" label="Source" hint="e.g. Gazette notice or statutory instrument">
               <Input
                 id="hSource"
                 value={form.sourceNote}

@@ -275,7 +275,6 @@ function DecisionPanel({ request: r, stage }) {
         <Field
           id={`comment-${stage}`}
           label="Comment"
-          optional
           error={missing}
           hint={isHr ? 'Required to reject or return.' : 'Required to reject.'}
         >
@@ -341,7 +340,7 @@ function ChangeDecisionPanel({ request: r, change, stage }) {
             ? `${days(change.daysToReverse)} will be returned if approved.`
             : 'No days are returned for this cancellation.'}
         </p>
-        <Field id={`change-comment-${stage}`} label="Comment" optional error={missing}>
+        <Field id={`change-comment-${stage}`} label="Comment" error={missing}>
           <Textarea
             id={`change-comment-${stage}`}
             rows={2}

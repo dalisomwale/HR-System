@@ -126,10 +126,10 @@ function PersonalDetails({ personal }) {
     >
       {editing ? (
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-2">
-          <Field id="mobilePhone" label="Mobile number" optional error={err('mobilePhone')}>
+          <Field id="mobilePhone" label="Mobile number" error={err('mobilePhone')}>
             <Input id="mobilePhone" type="tel" invalid={!!err('mobilePhone')} {...register('mobilePhone')} />
           </Field>
-          <Field id="personalEmail" label="Personal email" optional error={err('personalEmail')}>
+          <Field id="personalEmail" label="Personal email" error={err('personalEmail')}>
             <Input
               id="personalEmail"
               type="email"
@@ -137,21 +137,10 @@ function PersonalDetails({ personal }) {
               {...register('personalEmail')}
             />
           </Field>
-          <Field
-            id="homeAddress"
-            label="Home address"
-            optional
-            error={err('homeAddress')}
-            className="sm:col-span-2"
-          >
+          <Field id="homeAddress" label="Home address" error={err('homeAddress')} className="sm:col-span-2">
             <Textarea id="homeAddress" rows={2} invalid={!!err('homeAddress')} {...register('homeAddress')} />
           </Field>
-          <Field
-            id="emergencyContactName"
-            label="Emergency contact"
-            optional
-            error={err('emergencyContactName')}
-          >
+          <Field id="emergencyContactName" label="Emergency contact" error={err('emergencyContactName')}>
             <Input
               id="emergencyContactName"
               invalid={!!err('emergencyContactName')}
@@ -161,7 +150,6 @@ function PersonalDetails({ personal }) {
           <Field
             id="emergencyContactRelationship"
             label="Relationship"
-            optional
             error={err('emergencyContactRelationship')}
           >
             <Input
@@ -173,7 +161,6 @@ function PersonalDetails({ personal }) {
           <Field
             id="emergencyContactPhone"
             label="Emergency contact number"
-            optional
             error={err('emergencyContactPhone')}
           >
             <Input

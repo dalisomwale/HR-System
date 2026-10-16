@@ -164,7 +164,7 @@ function DelegationForm({ people, admin }) {
       <Field id="endDate" label="Until (inclusive)" error={err('endDate')}>
         <Input id="endDate" type="date" invalid={!!err('endDate')} {...register('endDate', req)} />
       </Field>
-      <Field id="reason" label="Reason" optional className="sm:col-span-2">
+      <Field id="reason" label="Reason" className="sm:col-span-2">
         <Input id="reason" {...register('reason')} />
       </Field>
       <div className="flex items-center gap-3 sm:col-span-2">

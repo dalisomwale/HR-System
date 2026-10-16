@@ -272,22 +272,11 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
               </Field>
             )}
 
-            <Field
-              id="reason"
-              label="Reason"
-              optional={!type?.reasonRequired}
-              error={err('reason')}
-              className="sm:col-span-2"
-            >
+            <Field id="reason" label="Reason" error={err('reason')} className="sm:col-span-2">
               <Textarea id="reason" rows={3} invalid={!!err('reason')} {...register('reason')} />
             </Field>
 
-            <Field
-              id="handoverContactId"
-              label="Who will cover your work?"
-              optional
-              error={err('handoverContactId')}
-            >
+            <Field id="handoverContactId" label="Who will cover your work?" error={err('handoverContactId')}>
               <Select
                 id="handoverContactId"
                 invalid={!!err('handoverContactId')}
@@ -473,10 +462,7 @@ function AttachmentPicker({ files, onChange, type, sensitiveField, sensitive, lo
 
   return (
     <div className="rounded-md border border-rule p-4">
-      <p className="text-sm font-medium">
-        Supporting documents
-        {!type?.documentRequired && <span className="ml-1 font-normal text-muted">(optional)</span>}
-      </p>
+      <p className="text-sm font-medium">Supporting documents</p>
       <p className="mt-1 text-xs text-muted">
         {type?.documentRequired
           ? `Required: ${type.documentDescription ?? 'a supporting document'}. If you do not have it yet, you can upload it later from the request page.`

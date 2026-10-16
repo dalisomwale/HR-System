@@ -97,12 +97,12 @@ function Filters({ report, options, applied, onApply }) {
       className="grid gap-3 rounded-md border border-rule bg-white p-4 sm:grid-cols-2 xl:grid-cols-4"
     >
       {has('from') && (
-        <Field id="from" label="From" optional>
+        <Field id="from" label="From">
           <Input id="from" type="date" value={v.from} onChange={set('from')} />
         </Field>
       )}
       {has('to') && (
-        <Field id="to" label="To" optional>
+        <Field id="to" label="To">
           <Input id="to" type="date" value={v.to} onChange={set('to')} />
         </Field>
       )}

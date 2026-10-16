@@ -140,7 +140,7 @@ export function PolicyForm({ type: t, onDone }) {
   };
   const err = (f) => errors[f]?.message;
   const num = (name, label, hint) => (
-    <Field id={`${t.id}-${name}`} label={label} hint={hint} optional error={err(name)}>
+    <Field id={`${t.id}-${name}`} label={label} hint={hint} error={err(name)}>
       <Input id={`${t.id}-${name}`} inputMode="decimal" invalid={!!err(name)} {...register(name)} />
     </Field>
   );
@@ -214,7 +214,7 @@ export function PolicyForm({ type: t, onDone }) {
         {check('documentRequired', 'Supporting document required')}
         {p.consumesBalance && check('accrualConfirmed', 'Accrual rule confirmed by HR')}
       </div>
-      <Field id={`${t.id}-documentDescription`} label="Document needed" optional className="sm:col-span-3">
+      <Field id={`${t.id}-documentDescription`} label="Document needed" className="sm:col-span-3">
         <Input id={`${t.id}-documentDescription`} {...register('documentDescription')} />
       </Field>
       <Field id={`${t.id}-note`} label="Why is this changing?" error={err('note')} className="sm:col-span-3">

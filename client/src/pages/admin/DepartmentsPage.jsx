@@ -108,7 +108,7 @@ export default function DepartmentsPage() {
                 required
               />
             </Field>
-            <Field id="deptParent" label="Part of" optional>
+            <Field id="deptParent" label="Part of">
               <Select
                 id="deptParent"
                 value={form.parentId}
