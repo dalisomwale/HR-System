@@ -61,7 +61,13 @@ export default function DocumentsPanel({ request: r }) {
     }
   };
 
-  if (!r.documents.length && !req && !r.can.uploadDocument) return null;
+  if (!r.documents.length && !req && !r.can.uploadDocument) {
+    return (
+      <Section title="Supporting documents">
+        <p className="text-sm text-muted">No documents attached.</p>
+      </Section>
+    );
+  }
   const canRemove =
     r.can.uploadDocument &&
     ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'RETURNED_FOR_CORRECTION'].includes(r.status);
@@ -116,7 +122,7 @@ export default function DocumentsPanel({ request: r }) {
                     </a>
                   </div>
                 )}
-                {canRemove && !d.restricted && (
+                {canRemove && !isHr && !d.restricted && (
                   <Button variant="ghost" busy={busy === d.id} onClick={() => remove(d.id)}>
                     Remove
                   </Button>

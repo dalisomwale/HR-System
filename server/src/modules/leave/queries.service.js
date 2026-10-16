@@ -172,9 +172,9 @@ export async function requestDetail(db, viewer, id) {
       hrDecide: isHr && !isOwner && !approvedAsManager && r.status === 'PENDING_HR_APPROVAL',
       changeManagerDecide: Boolean(authority) && openChange?.status === 'PENDING_MANAGER_APPROVAL',
       changeHrDecide: isHr && !isOwner && openChange?.status === 'PENDING_HR_APPROVAL',
+      // Only the employee adds documents to their own request; HR views and downloads them.
       uploadDocument:
-        (isOwner || isHr) &&
-        !['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'].includes(r.status),
+        isOwner && !['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'].includes(r.status),
     },
     started: today >= r.start_date,
   };

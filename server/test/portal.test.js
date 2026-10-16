@@ -234,11 +234,14 @@ describe('supporting documents', () => {
     expect((await as(mgr).get(`/api/documents/${up.body.id}/download?view=1`)).status).toBe(404);
   });
 
-  it('lets only the employee or HR upload, and the uploader remove while pending', async () => {
+  it('lets only the employee upload, and remove their own upload while pending', async () => {
     const r = await annualRequest();
     expect((await as(mgr).upload(`/api/documents/requests/${r.id}`, PDF, 'x.pdf')).status).toBe(404);
+    expect((await as(hr).upload(`/api/documents/requests/${r.id}`, PDF, 'x.pdf')).status).toBe(404);
+    expect((await as(hr).get(`/api/leave/requests/${r.id}`)).body.can.uploadDocument).toBe(false);
     const up = await as(emp).upload(`/api/documents/requests/${r.id}`, PDF, 'x.pdf');
     expect((await as(mgr).post(`/api/documents/${up.body.id}/remove`)).status).toBe(404);
+    expect((await as(hr).post(`/api/documents/${up.body.id}/remove`)).status).toBe(404);
     expect((await as(emp).post(`/api/documents/${up.body.id}/remove`)).status).toBe(200);
     expect((await as(emp).get(`/api/documents/requests/${r.id}`)).body.items).toHaveLength(0);
 

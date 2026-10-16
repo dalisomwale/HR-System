@@ -140,8 +140,8 @@ export function documentRoutes({ db, config, logger }) {
       }),
     asyncHandler(async (req, res) => {
       const requestId = idParam(req);
-      const { r, isOwner, isHr } = await access(db, req.user, requestId);
-      if (!isOwner && !isHr) throw notFound('Leave request not found.');
+      const { r, isOwner } = await access(db, req.user, requestId);
+      if (!isOwner) throw notFound('Leave request not found.');
       if (CLOSED_STATES.includes(r.status)) throw conflict('Documents cannot be added to a closed request.');
       const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
       if (buf.length === 0) throw badRequest('Choose a file to upload.');
@@ -246,15 +246,15 @@ export function documentRoutes({ db, config, logger }) {
         .whereNull('deleted_at')
         .first();
       if (!d) throw notFound('Document not found.');
-      const { r, isOwner, isHr, seesMedical } = await access(db, req.user, d.leave_request_id);
+      const { r, isOwner, seesMedical } = await access(db, req.user, d.leave_request_id);
       if (d.is_medical && !seesMedical) throw notFound('Document not found.');
       const ownUpload = isOwner && d.uploaded_by === req.user.id;
-      if (!isHr && !ownUpload) throw notFound('Document not found.');
+      // Only the employee can remove a document they uploaded themselves; HR keeps every file.
+      if (!ownUpload) throw notFound('Document not found.');
       if (
-        !isHr &&
         !['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'RETURNED_FOR_CORRECTION'].includes(r.status)
       ) {
-        throw conflict('Documents can only be removed while the request is waiting for a decision. Ask HR.');
+        throw conflict('Documents can only be removed while the request is waiting for a decision.');
       }
       await db.transaction(async (trx) => {
         await trx('documents')
