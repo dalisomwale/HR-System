@@ -62,7 +62,7 @@ export default function EmployeeBalances({ employeeId }) {
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <div className="space-y-6">
-          <BalanceCards items={q.data.items} />
+          <BalanceCards items={q.data.items} showPending={false} />
           <AdjustmentForm
             employeeId={employeeId}
             year={year}

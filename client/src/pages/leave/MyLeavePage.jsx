@@ -53,7 +53,7 @@ export default function MyLeavePage() {
   );
 }
 
-export function BalanceCards({ items }) {
+export function BalanceCards({ items, showPending = true }) {
   if (!items.length) {
     return (
       <EmptyState title="No leave types are active yet">
@@ -69,7 +69,7 @@ export function BalanceCards({ items }) {
           <Th>Leave type</Th>
           <Th>Allowance</Th>
           <Th className="text-right">Taken</Th>
-          <Th className="text-right">Awaiting approval</Th>
+          {showPending && <Th className="text-right">Awaiting approval</Th>}
           <Th className="text-right">Available</Th>
         </tr>
       </thead>
@@ -89,7 +89,7 @@ export function BalanceCards({ items }) {
                   )}
                 </Td>
                 <Td className="text-right">{b.taken}</Td>
-                <Td className="text-right">{b.pending}</Td>
+                {showPending && <Td className="text-right">{b.pending}</Td>}
                 <Td className="text-right font-semibold">{days(b.available)}</Td>
               </>
             )}
@@ -99,7 +99,7 @@ export function BalanceCards({ items }) {
                   {days(b.entitlement)} {PERIOD_LABELS[b.period]}
                 </Td>
                 <Td className="text-right">{b.taken}</Td>
-                <Td className="text-right">{b.pending}</Td>
+                {showPending && <Td className="text-right">{b.pending}</Td>}
                 <Td className="text-right font-semibold">{days(b.remaining)}</Td>
               </>
             )}
@@ -107,7 +107,7 @@ export function BalanceCards({ items }) {
               <>
                 <Td>{b.maxPerRequest ? `Up to ${days(b.maxPerRequest)} per occasion` : 'Per occasion'}</Td>
                 <Td className="text-right">{b.taken ?? dash}</Td>
-                <Td className="text-right">{b.pending ?? dash}</Td>
+                {showPending && <Td className="text-right">{b.pending ?? dash}</Td>}
                 <Td className="text-right">{dash}</Td>
               </>
             )}
@@ -115,7 +115,7 @@ export function BalanceCards({ items }) {
               <>
                 <Td>No fixed allowance</Td>
                 <Td className="text-right">{b.taken ?? dash}</Td>
-                <Td className="text-right">{b.pending ?? dash}</Td>
+                {showPending && <Td className="text-right">{b.pending ?? dash}</Td>}
                 <Td className="text-right">{dash}</Td>
               </>
             )}
