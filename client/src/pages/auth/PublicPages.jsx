@@ -114,7 +114,7 @@ export function AccessNotConfiguredPage() {
       <p className="mt-3 text-[15px] leading-relaxed text-muted">
         {inactive
           ? 'Your employee record is inactive, so you cannot sign in. If this is wrong, contact HR.'
-          : 'You signed in with Microsoft, but your account is not linked to an employee record yet. HR has been told and can link it. Once they have, sign in again.'}
+          : 'You signed in with Microsoft. Contact the IT Administrator to accept your request.'}
       </p>
       <a
         href="/sign-in"
