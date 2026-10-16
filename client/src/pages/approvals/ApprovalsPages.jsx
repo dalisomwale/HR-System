@@ -93,7 +93,7 @@ export function ManagerApprovalsPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader title="Team approvals" />
+      <PageHeader title="Approvals" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (

@@ -3,7 +3,7 @@
 ## How a request moves
 
 1. **Employee** applies under _Apply for leave_. The right-hand panel shows the server's own calculation (working days on their schedule, public holidays excluded, balance after the request) and any rule that would stop the request. The server repeats every check on submit.
-2. **Manager** (skipped if the employee ticked _Sensitive_: the request goes straight to HR and only the employee and HR see its reason and documents) sees it under _Team approvals_ (shown to anyone with direct reports). They approve or reject; rejecting needs a reason (policy 1.3.2(c)). A delegate covering for the manager can act on their behalf.
+2. **Manager** (skipped if the employee ticked _Sensitive_: the request goes straight to HR and only the employee and HR see its reason and documents) sees it under _Approvals_ (under Department Manager) (shown to anyone with direct reports). They approve or reject; rejecting needs a reason (policy 1.3.2(c)). A delegate covering for the manager can act on their behalf.
 3. **HR Officer** gives final approval under _HR approvals_, or rejects, or returns it for correction (both need a comment). Approval deducts the days from the balance exactly once. HR cannot finally approve their own leave or a request they already approved as manager.
 4. If the employee has no active manager, the request goes straight to HR and is marked as such (D3).
 
@@ -14,7 +14,7 @@ Until the employee or HR acts, a pending request can be withdrawn by the employe
 ## Dashboards
 
 - **Home** (everyone): balances, requests waiting for a decision, upcoming approved leave, recent decisions, and anything needing action (a returned request, a missing document).
-- **Team overview** (managers and delegates): requests waiting for review with working days waited and overdue flags, who is on leave today, the next 30 days, days when two or more people are off, and approved leave with no cover named.
+- **Departmental overview** (managers and delegates): requests waiting for review with working days waited and overdue flags, who is on leave today, the next 30 days, days when two or more people are off, and approved leave with no cover named.
 - **HR overview** (HR Officers): the HR and manager queues with age, exceptions (requests held because the manager is no longer active, missing documents, policy settings not yet confirmed, failed emails once email is added), who is on leave, annual leave taken by department, and carried-forward days about to lapse.
 
 System Administrators also see a notice on every page while the annual-leave accrual rule is unconfirmed.
@@ -27,7 +27,7 @@ Documents on sick, maternity, family-responsibility and pregnancy-loss leave are
 
 ## Delegation
 
-A manager who will be away opens _Delegation_, names a colleague and the dates. During those dates the colleague sees the team's requests under _Team approvals_ and decides at the manager stage; the history records that they acted on the manager's behalf. HR still gives final approval. If a manager is away without having done this, a System Administrator sets it up under _Administration → Delegations_. Either can revoke it.
+A manager who will be away opens _Delegation_, names a colleague and the dates. During those dates the colleague sees the team's requests under _Approvals_ (under Department Manager) and decides at the manager stage; the history records that they acted on the manager's behalf. HR still gives final approval. If a manager is away without having done this, a System Administrator sets it up under _Administration → Delegations_. Either can revoke it.
 
 ## Notifications and email
 

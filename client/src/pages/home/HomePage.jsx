@@ -43,7 +43,7 @@ function RoleLinks({ me }) {
     <div className="flex flex-wrap gap-2 text-sm">
       {(me.isManager || me.isDelegate || me.roles.includes('HR_ADMIN')) && (
         <Link to="/team" className="rounded-md border border-rule bg-white px-3 py-2 hover:border-muted">
-          Team overview
+          Departmental overview
         </Link>
       )}
       {seesWholeGroup(me) && (

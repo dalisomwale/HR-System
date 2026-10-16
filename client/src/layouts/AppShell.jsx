@@ -43,9 +43,9 @@ const MY_WORK = [
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
 ];
 const MANAGER = [
-  { to: '/team', label: 'Team overview', icon: UsersRound, end: true },
+  { to: '/team', label: 'Departmental overview', icon: UsersRound, end: true },
   { to: '/team/members', label: 'Department members', icon: Users, managersOnly: true },
-  { to: '/approvals', label: 'Team approvals', icon: ClipboardCheck },
+  { to: '/approvals', label: 'Approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];
 // HR Officers look after people and leave setup as well as approvals (D46).
@@ -144,7 +144,7 @@ export default function AppShell() {
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
-          title="Manager"
+          title="Department Manager"
           items={(seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]).filter(
             (i) => !i.managersOnly || user.isManager,
           )}

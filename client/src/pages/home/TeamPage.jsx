@@ -14,7 +14,7 @@ export default function TeamPage() {
   return (
     <div className="max-w-6xl space-y-6">
       <PageHeader
-        title="Team overview"
+        title="Departmental overview"
         actions={
           <ButtonLink to="/reports">
             <FileBarChart className="size-4" aria-hidden /> Team reports
