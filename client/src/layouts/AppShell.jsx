@@ -130,13 +130,13 @@ export default function AppShell() {
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
-      <div className="mb-5 px-3">
+      <div className="mb-4 px-3">
         <Link
           to="/"
           onClick={() => setMenuOpen(false)}
-          className="flex items-center justify-center gap-2 rounded-md border border-brand px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
+          className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand-soft"
         >
-          <ArrowLeft className="size-4" aria-hidden /> Back to applications
+          <ArrowLeft className="size-3.5" aria-hidden /> Back to applications
         </Link>
       </div>
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
