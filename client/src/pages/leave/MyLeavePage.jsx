@@ -61,49 +61,68 @@ export function BalanceCards({ items }) {
       </EmptyState>
     );
   }
+  const dash = <span className="text-muted">—</span>;
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {items.map((b) => (
-        <div key={b.leaveType.id} className="rounded-md border border-rule bg-white px-4 py-3">
-          <p className="text-sm font-medium">{b.leaveType.name}</p>
-          {b.kind === 'BALANCE' && (
-            <>
-              <p className="mt-1 text-2xl font-semibold">{days(b.available)}</p>
-              <p className="text-xs text-muted">available to request</p>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
-                <dt className="text-muted">Balance</dt>
-                <dd className="text-right">{b.balance}</dd>
-                <dt className="text-muted">Awaiting approval</dt>
-                <dd className="text-right">{b.pending}</dd>
-                {b.carriedForward > 0 && (
-                  <>
-                    <dt className="text-muted">Carried forward</dt>
-                    <dd className="text-right">{b.carriedForward}</dd>
-                  </>
-                )}
-                <dt className="text-muted">Taken</dt>
-                <dd className="text-right">{b.taken}</dd>
-              </dl>
-            </>
-          )}
-          {b.kind === 'ALLOWANCE' && (
-            <>
-              <p className="mt-1 text-2xl font-semibold">{days(b.remaining)}</p>
-              <p className="text-xs text-muted">
-                left of {days(b.entitlement)} {PERIOD_LABELS[b.period]}
-              </p>
-            </>
-          )}
-          {b.kind === 'PER_OCCASION' && (
-            <p className="mt-1 text-sm text-muted">
-              {b.maxPerRequest ? `Up to ${days(b.maxPerRequest)} per occasion` : 'Per occasion'}
-            </p>
-          )}
-          {b.kind === 'UNLIMITED' && <p className="mt-1 text-sm text-muted">No fixed allowance</p>}
-          {b.eligibility && <p className="mt-2 text-xs text-pending">{b.eligibility}</p>}
-        </div>
-      ))}
-    </div>
+    <Table>
+      <thead>
+        <tr>
+          <Th>Leave type</Th>
+          <Th>Allowance</Th>
+          <Th className="text-right">Taken</Th>
+          <Th className="text-right">Awaiting approval</Th>
+          <Th className="text-right">Available</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((b) => (
+          <tr key={b.leaveType.id}>
+            <Td>
+              <span className="font-medium">{b.leaveType.name}</span>
+              {b.eligibility && <p className="text-xs text-pending">{b.eligibility}</p>}
+            </Td>
+            {b.kind === 'BALANCE' && (
+              <>
+                <Td>
+                  Balance {days(b.balance)}
+                  {b.carriedForward > 0 && (
+                    <p className="text-xs text-muted">includes {days(b.carriedForward)} carried forward</p>
+                  )}
+                </Td>
+                <Td className="text-right">{b.taken}</Td>
+                <Td className="text-right">{b.pending}</Td>
+                <Td className="text-right font-semibold">{days(b.available)}</Td>
+              </>
+            )}
+            {b.kind === 'ALLOWANCE' && (
+              <>
+                <Td>
+                  {days(b.entitlement)} {PERIOD_LABELS[b.period]}
+                </Td>
+                <Td className="text-right">{b.used}</Td>
+                <Td className="text-right">{dash}</Td>
+                <Td className="text-right font-semibold">{days(b.remaining)}</Td>
+              </>
+            )}
+            {b.kind === 'PER_OCCASION' && (
+              <>
+                <Td>{b.maxPerRequest ? `Up to ${days(b.maxPerRequest)} per occasion` : 'Per occasion'}</Td>
+                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{dash}</Td>
+              </>
+            )}
+            {b.kind === 'UNLIMITED' && (
+              <>
+                <Td>No fixed allowance</Td>
+                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{dash}</Td>
+              </>
+            )}
+          </tr>
+        ))}
+      </tbody>
+    </Table>
   );
 }
 
