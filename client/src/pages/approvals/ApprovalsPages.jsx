@@ -241,7 +241,7 @@ export function HrApprovalsPage() {
             ))}
           </div>
 
-          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
+          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
             <Field id="hrSearch" label="Search">
               <div className="relative">
                 <Search
@@ -256,16 +256,6 @@ export function HrApprovalsPage() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-            </Field>
-            <Field id="hrShow" label="Show">
-              <Select id="hrShow" value={group} onChange={(e) => setGroup(e.target.value)}>
-                <option value="">Everything</option>
-                {Object.entries(GROUPS).map(([g, label]) => (
-                  <option key={g} value={g}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
             </Field>
             <Field id="hrType" label="Leave type">
               <Select id="hrType" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}>
