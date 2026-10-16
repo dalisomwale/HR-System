@@ -98,24 +98,24 @@ export function BalanceCards({ items }) {
                 <Td>
                   {days(b.entitlement)} {PERIOD_LABELS[b.period]}
                 </Td>
-                <Td className="text-right">{b.used}</Td>
-                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{b.taken}</Td>
+                <Td className="text-right">{b.pending}</Td>
                 <Td className="text-right font-semibold">{days(b.remaining)}</Td>
               </>
             )}
             {b.kind === 'PER_OCCASION' && (
               <>
                 <Td>{b.maxPerRequest ? `Up to ${days(b.maxPerRequest)} per occasion` : 'Per occasion'}</Td>
-                <Td className="text-right">{dash}</Td>
-                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{b.taken ?? dash}</Td>
+                <Td className="text-right">{b.pending ?? dash}</Td>
                 <Td className="text-right">{dash}</Td>
               </>
             )}
             {b.kind === 'UNLIMITED' && (
               <>
                 <Td>No fixed allowance</Td>
-                <Td className="text-right">{dash}</Td>
-                <Td className="text-right">{dash}</Td>
+                <Td className="text-right">{b.taken ?? dash}</Td>
+                <Td className="text-right">{b.pending ?? dash}</Td>
                 <Td className="text-right">{dash}</Td>
               </>
             )}

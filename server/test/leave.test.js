@@ -400,6 +400,28 @@ describe('cancelling approved leave', () => {
   });
 });
 
+describe('balances table figures', () => {
+  it('reports approved and waiting days separately for every leave type', async () => {
+    const res = await as(emp).post('/api/leave/requests', {
+      leaveTypeId: ids.SICK,
+      handoverNotes: 'Covered.',
+      startDate: addDays(todayInLusaka(), -2),
+      endDate: addDays(todayInLusaka(), -1),
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    const sick = async () =>
+      (await as(emp).get(`/api/leave/balances?year=${todayInLusaka().slice(0, 4)}`)).body.items.find(
+        (b) => b.leaveType.code === 'SICK',
+      );
+    expect(await sick()).toMatchObject({ taken: 0, pending: 2, remaining: 28 });
+
+    await as(mgr).post(`/api/approvals/requests/${res.body.id}/manager`, { action: 'APPROVE' });
+    const ok = await as(hr).post(`/api/approvals/requests/${res.body.id}/hr`, { action: 'APPROVE' });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    expect(await sick()).toMatchObject({ taken: 2, pending: 0, remaining: 28 });
+  });
+});
+
 describe('who can see a request', () => {
   it('hides requests from unrelated staff and confidential reasons from managers', async () => {
     const res = await as(emp).post('/api/leave/requests', {

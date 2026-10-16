@@ -120,6 +120,14 @@ function addMonth(ym) {
   return m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
 }
 
+async function takenAndPending(db, employeeId, leaveTypeId, from, to) {
+  const range = { employeeId, leaveTypeId, from, to };
+  return {
+    taken: await daysTaken(db, { ...range, states: ['APPROVED'] }),
+    pending: await daysTaken(db, { ...range, states: PENDING_STATES }),
+  };
+}
+
 /** All of an employee's balances and allowances for a year, for display. */
 export async function employeeBalances(db, employeeId, year, { activeOnly = true } = {}) {
   const emp = await db('employees').where({ id: employeeId }).first();
@@ -146,23 +154,37 @@ export async function employeeBalances(db, employeeId, year, { activeOnly = true
       ['LEAVE_YEAR', 'ROLLING_12_MONTHS', 'CALENDAR_MONTH'].includes(policy.entitlementPeriod)
     ) {
       const w = entitlementWindow(policy.entitlementPeriod, asOf, asOf);
-      const used = await daysTaken(db, { employeeId, leaveTypeId: t.id, from: w.from, to: w.to });
+      // Approved and waiting are reported apart; both count against what is left.
+      const { taken, pending } = await takenAndPending(db, employeeId, t.id, w.from, w.to);
+      const used = round2(taken + pending);
       out.push({
         leaveType: { id: t.id, code: t.code, name: t.name },
         kind: 'ALLOWANCE',
         eligibility,
         entitlement: policy.entitlementDays,
         period: policy.entitlementPeriod,
+        taken,
+        pending,
         used,
         remaining: round2(Math.max(0, policy.entitlementDays - used)),
       });
     } else {
+      // No running allowance: still show what was taken and what is waiting in the leave year.
+      const { taken, pending } = await takenAndPending(
+        db,
+        employeeId,
+        t.id,
+        `${year}-01-01`,
+        `${year}-12-31`,
+      );
       out.push({
         leaveType: { id: t.id, code: t.code, name: t.name },
         kind: policy.entitlementPeriod === 'PER_OCCASION' ? 'PER_OCCASION' : 'UNLIMITED',
         eligibility,
         entitlement: policy.entitlementDays,
         maxPerRequest: policy.maxSingleDurationDays,
+        taken,
+        pending,
       });
     }
   }
