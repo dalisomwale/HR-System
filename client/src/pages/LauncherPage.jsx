@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { Briefcase, CalendarCheck, ChevronRight, UserRound, Wallet } from 'lucide-react';
-import AppFrame from '../layouts/AppFrame.jsx';
+import AppFrame, { LogOutButton } from '../layouts/AppFrame.jsx';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 
 /*
@@ -62,7 +62,7 @@ export default function LauncherPage() {
         {greeting()}, {me.firstName}
       </h1>
 
-      <ul className={`mt-8 grid gap-4 sm:grid-cols-2 ${apps.length > 2 ? 'lg:grid-cols-4' : 'lg:max-w-2xl'}`}>
+      <ul className={`mt-8 grid gap-4 sm:grid-cols-2 ${apps.length > 2 ? 'lg:grid-cols-4' : 'sm:max-w-2xl'}`}>
         {apps.map((app) => {
           const Icon = app.icon;
           const body = (
@@ -113,6 +113,9 @@ export default function LauncherPage() {
           );
         })}
       </ul>
+      <div className={`mt-8 flex justify-center ${apps.length > 2 ? '' : 'sm:max-w-2xl'}`}>
+        <LogOutButton />
+      </div>
     </AppFrame>
   );
 }
