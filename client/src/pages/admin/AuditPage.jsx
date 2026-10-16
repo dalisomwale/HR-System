@@ -42,6 +42,8 @@ const ACTION_LABELS = {
   SCHEDULE_UPDATED: 'Working schedule changed',
   SETTING_CONFIRMED: 'Setting confirmed',
   SETTING_CHANGED: 'Setting changed',
+  LEAVE_MANAGER_TRANSFERRED: 'Leave transferred with different dates',
+  LEAVE_TRANSFER_ACCEPTED: 'Offered dates accepted',
 };
 const label = (a) => ACTION_LABELS[a] ?? a;
 

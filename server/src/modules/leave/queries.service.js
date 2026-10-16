@@ -112,6 +112,7 @@ export async function requestDetail(db, viewer, id) {
   const approvedAsManager = actions.some(
     (a) => a.stage === 'MANAGER' && a.action === 'APPROVE' && a.actor_id === viewer.id,
   );
+  const lastTransfer = [...actions].reverse().find((a) => a.action === 'TRANSFER');
   const today = todayInLusaka();
   const openChange = changes.find((c) =>
     ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL'].includes(c.status),
@@ -164,8 +165,22 @@ export async function requestDetail(db, viewer, id) {
           comment: a.comment,
         })),
     })),
+    // Dates the manager offered in a transfer, waiting for the employee (D50).
+    offer:
+      r.status === 'PENDING_EMPLOYEE_ACCEPTANCE'
+        ? {
+            startDate: r.offered_start_date,
+            endDate: r.offered_end_date,
+            startPortion: r.offered_start_portion,
+            endPortion: r.offered_end_portion,
+            chargeableDays: Number(r.offered_chargeable_days),
+            by: lastTransfer ? name(lastTransfer.first_name, lastTransfer.last_name) : null,
+            comment: lastTransfer?.comment ?? null,
+          }
+        : null,
     can: {
       withdraw: isOwner && PENDING_STATES.includes(r.status),
+      accept: isOwner && r.status === 'PENDING_EMPLOYEE_ACCEPTANCE',
       resubmit: isOwner && r.status === 'RETURNED_FOR_CORRECTION',
       cancel: isOwner && r.status === 'APPROVED' && today <= r.end_date && !openChange,
       managerDecide: Boolean(authority) && r.status === 'PENDING_MANAGER_APPROVAL',

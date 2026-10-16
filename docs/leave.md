@@ -3,7 +3,8 @@
 ## How a request moves
 
 1. **Employee** applies under _Apply for leave_. The right-hand panel shows the server's own calculation (working days on their schedule, public holidays excluded, balance after the request) and any rule that would stop the request. The server repeats every check on submit.
-2. **Manager** (skipped if the employee ticked _Sensitive_: the request goes straight to HR and only the employee and HR see its reason and documents) sees it under _Approvals_ (under Department Manager) (shown to anyone with direct reports). They approve or reject; rejecting needs a reason (policy 1.3.2(c)). A delegate covering for the manager can act on their behalf.
+2. **Manager** (skipped if the employee ticked _Sensitive_: the request goes straight to HR and only the employee and HR see its reason and documents) sees it under _Approvals_ (under Department Manager) (shown to anyone with direct reports). They approve, reject or transfer; rejecting needs a reason (policy 1.3.2(c)). A delegate covering for the manager can act on their behalf.
+   - **Transfer** (D50): the manager offers different dates, for example 5 days instead of the 10 asked for, with a reason. The offer cannot give more days than were asked for and is checked against the policy and balance (not the notice period again). The request goes back to the employee, who either **accepts** (the request takes the offered dates and returns to the manager for approval, then HR) or **withdraws** it with a reason (the manager is told). The original days stay counted as awaiting approval until the employee answers.
 3. **HR Officer** gives final approval under _HR approvals_, or rejects, or returns it for correction (both need a comment). Approval deducts the days from the balance exactly once. HR cannot finally approve their own leave or a request they already approved as manager.
 4. If the employee has no active manager, the request goes straight to HR and is marked as such (D3).
 

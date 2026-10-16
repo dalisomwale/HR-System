@@ -78,6 +78,7 @@ const VERBS = {
   WITHDRAW: 'withdrew',
 };
 const DOTS = {
+  TRANSFER: 'bg-pending',
   APPROVE: 'bg-ok',
   REJECT: 'bg-danger',
   RETURN: 'bg-pending',
@@ -114,7 +115,15 @@ export function Activity({ items }) {
               aria-hidden
             />
             <div className="min-w-0 flex-1">
-              {a.action === 'ESCALATE' ? (
+              {a.action === 'TRANSFER' ? (
+                <p>
+                  {who} offered different dates for {whose} {a.leaveType} {what} {ref}
+                </p>
+              ) : a.action === 'ACCEPT' ? (
+                <p>
+                  {who} accepted the dates offered for {whose} {a.leaveType} {what} {ref}
+                </p>
+              ) : a.action === 'ESCALATE' ? (
                 <p>
                   {a.own ? 'Your' : whose} {a.leaveType} {what} {ref} is overdue for a decision. Reminders
                   were sent.

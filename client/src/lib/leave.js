@@ -3,6 +3,7 @@ import { formatDate } from './format.js';
 export const STATUS_LABELS = {
   DRAFT: 'Draft',
   PENDING_MANAGER_APPROVAL: 'With manager',
+  PENDING_EMPLOYEE_ACCEPTANCE: 'With employee',
   PENDING_HR_APPROVAL: 'With HR',
   RETURNED_FOR_CORRECTION: 'Returned to you',
   APPROVED: 'Approved',
@@ -21,11 +22,15 @@ export const STATUS_LABELS = {
 export function statusLabel(r, yourTurn, viewerId) {
   const own = r.isOwn || (viewerId != null && r.employee?.id === viewerId);
   if (yourTurn && r.status === yourTurn && !own) return 'Awaiting your approval';
+  if (r.status === 'PENDING_EMPLOYEE_ACCEPTANCE' && (own || viewerId == null)) {
+    return 'Awaiting your acceptance';
+  }
   return STATUS_LABELS[r.status] ?? r.status;
 }
 
 export const STATUS_TONES = {
   PENDING_MANAGER_APPROVAL: 'pending',
+  PENDING_EMPLOYEE_ACCEPTANCE: 'pending',
   PENDING_HR_APPROVAL: 'pending',
   RETURNED_FOR_CORRECTION: 'pending',
   APPROVED: 'ok',
@@ -48,6 +53,8 @@ export const ACTION_LABELS = {
   REJECT: 'Rejected',
   RETURN: 'Returned for correction',
   WITHDRAW: 'Withdrawn',
+  TRANSFER: 'Transferred with different dates',
+  ACCEPT: 'Offered dates accepted',
   ROUTE: 'Routed',
   ESCALATE: 'Escalated',
 };

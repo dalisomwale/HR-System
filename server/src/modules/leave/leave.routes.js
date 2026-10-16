@@ -9,6 +9,9 @@ import {
   evaluationView,
   submitRequest,
   withdrawRequest,
+  transferRequest,
+  transferSchema,
+  acceptTransfer,
   resubmitRequest,
   requestCancellation,
   cancelSchema,
@@ -139,6 +142,21 @@ export function leaveRoutes({ db }) {
   );
 
   router.post(
+    '/requests/:id/accept',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await acceptTransfer(
+          db,
+          req.user,
+          idParam(req),
+          versionSchema.parse(req.body ?? {}),
+          auditContext(req),
+        ),
+      );
+    }),
+  );
+
+  router.post(
     '/requests/:id/resubmit',
     asyncHandler(async (req, res) => {
       const input = requestInputSchema.omit({ leaveTypeId: true }).merge(versionSchema).parse(req.body);
@@ -174,6 +192,15 @@ export function approvalRoutes({ db }) {
     '/manager',
     asyncHandler(async (req, res) => {
       res.json(await managerQueue(db, req.user));
+    }),
+  );
+
+  router.post(
+    '/requests/:id/transfer',
+    asyncHandler(async (req, res) => {
+      res.json(
+        await transferRequest(db, req.user, idParam(req), transferSchema.parse(req.body), auditContext(req)),
+      );
     }),
   );
 

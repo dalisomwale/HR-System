@@ -170,6 +170,13 @@ export function dashboardRoutes({ db }) {
       );
       const actions = [
         ...pending
+          .filter((r) => r.status === 'PENDING_EMPLOYEE_ACCEPTANCE')
+          .map((r) => ({
+            kind: 'ANSWER_OFFER',
+            requestId: r.id,
+            text: `${r.reference}: your manager offered different dates. Accept them or withdraw the request.`,
+          })),
+        ...pending
           .filter((r) => r.status === 'RETURNED_FOR_CORRECTION')
           .map((r) => ({
             kind: 'RESUBMIT',

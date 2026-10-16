@@ -587,3 +587,88 @@ describe('My profile personal details', () => {
     expect((await as(emp).get('/api/me/profile')).body.personal.mobilePhone).toBeNull();
   });
 });
+
+describe('transfer: the manager offers different dates', () => {
+  const offer = (r, body) => as(mgr).post(`/api/approvals/requests/${r.id}/transfer`, body);
+
+  it('holds the offer until the employee answers, and refuses bad offers', async () => {
+    const r = await sickRequest('2027-03-01', '2027-03-02');
+    expect((await offer(r, { startDate: '2027-03-01', endDate: '2027-03-01' })).status).toBe(400);
+    expect((await offer(r, { startDate: '2027-03-01', endDate: '2027-03-02', comment: 'Same' })).status).toBe(
+      400,
+    );
+    expect((await offer(r, { startDate: '2027-03-01', endDate: '2027-03-05', comment: 'More' })).status).toBe(
+      400,
+    );
+    expect(
+      (
+        await as(emp).post(`/api/approvals/requests/${r.id}/transfer`, {
+          startDate: '2027-03-01',
+          endDate: '2027-03-01',
+          comment: 'Mine',
+        })
+      ).status,
+    ).toBe(403);
+
+    const res = await offer(r, { startDate: '2027-03-01', endDate: '2027-03-01', comment: 'Busy week' });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body).toMatchObject({ status: 'PENDING_EMPLOYEE_ACCEPTANCE', offeredDays: 1 });
+
+    const detail = (await as(emp).get(`/api/leave/requests/${r.id}`)).body;
+    expect(detail).toMatchObject({ startDate: '2027-03-01', endDate: '2027-03-02', chargeableDays: 2 });
+    expect(detail.offer).toMatchObject({
+      startDate: '2027-03-01',
+      endDate: '2027-03-01',
+      chargeableDays: 1,
+      comment: 'Busy week',
+    });
+    expect(detail.can).toMatchObject({ accept: true, withdraw: true });
+    const note = await db('notifications')
+      .where({ recipient_id: emp.id, event_type: 'LEAVE_TRANSFERRED' })
+      .first();
+    expect(note).toBeTruthy();
+    // While it is with the employee the manager cannot approve it.
+    expect(
+      (await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' })).status,
+    ).toBe(409);
+  });
+
+  it('on acceptance takes the offered dates and goes back to the manager, then HR', async () => {
+    const r = await sickRequest('2027-03-01', '2027-03-02');
+    await offer(r, { startDate: '2027-03-02', endDate: '2027-03-02', comment: 'Monday is busy' });
+    expect((await as(other).post(`/api/leave/requests/${r.id}/accept`)).status).toBe(403);
+    const acc = await as(emp).post(`/api/leave/requests/${r.id}/accept`);
+    expect(acc.status, JSON.stringify(acc.body)).toBe(200);
+    expect(acc.body).toMatchObject({ status: 'PENDING_MANAGER_APPROVAL', chargeableDays: 1 });
+    const row = await db('leave_requests').where({ id: r.id }).first();
+    expect(row).toMatchObject({ start_date: '2027-03-02', end_date: '2027-03-02', offered_start_date: null });
+    expect(await db('leave_request_days').where({ leave_request_id: r.id }).pluck('leave_date')).toEqual([
+      '2027-03-02',
+    ]);
+    expect(
+      await db('notifications')
+        .where({ recipient_id: mgr.id, event_type: 'LEAVE_AWAITING_MANAGER' })
+        .count({ n: '*' })
+        .first(),
+    ).toEqual({ n: 2 });
+    expect(
+      (await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' })).status,
+    ).toBe(200);
+    const fin = await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
+    expect(fin.body.status).toBe('APPROVED');
+    const history = (await as(emp).get(`/api/leave/requests/${r.id}`)).body.history.map((h) => h.action);
+    expect(history).toEqual(['SUBMIT', 'TRANSFER', 'ACCEPT', 'APPROVE', 'APPROVE']);
+  });
+
+  it('lets the employee withdraw instead, with a reason, and tells the manager', async () => {
+    const r = await sickRequest('2027-03-01', '2027-03-02');
+    await offer(r, { startDate: '2027-03-01', endDate: '2027-03-01', comment: 'One day only' });
+    expect((await as(emp).post(`/api/leave/requests/${r.id}/withdraw`, {})).status).toBe(400);
+    const res = await as(emp).post(`/api/leave/requests/${r.id}/withdraw`, { comment: 'I need both days' });
+    expect(res.body.status).toBe('WITHDRAWN');
+    const note = await db('notifications')
+      .where({ recipient_id: mgr.id, event_type: 'LEAVE_WITHDRAWN' })
+      .first();
+    expect(note.title).toMatch(/declined/);
+  });
+});

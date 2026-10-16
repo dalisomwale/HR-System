@@ -18,6 +18,7 @@ import {
   Button,
   Details,
   Field,
+  Input,
   LoadError,
   Loading,
   Notice,
@@ -46,19 +47,21 @@ export default function RequestPage() {
   const can = r.can;
   const openChange = r.changes.find((c) => c.status.startsWith('PENDING'));
   // The last tab holds whatever the viewer can do here, named after the main action.
-  const actionLabel = can.hrDecide
-    ? 'HR decision'
-    : can.managerDecide
-      ? 'Manager decision'
-      : openChange && (can.changeHrDecide || can.changeManagerDecide)
-        ? 'Cancellation decision'
-        : can.resubmit
-          ? 'Correct and resubmit'
-          : can.withdraw
-            ? 'Withdraw'
-            : can.cancel
-              ? 'Cancel leave'
-              : null;
+  const actionLabel = can.accept
+    ? 'Offered dates'
+    : can.hrDecide
+      ? 'HR decision'
+      : can.managerDecide
+        ? 'Manager decision'
+        : openChange && (can.changeHrDecide || can.changeManagerDecide)
+          ? 'Cancellation decision'
+          : can.resubmit
+            ? 'Correct and resubmit'
+            : can.withdraw
+              ? 'Withdraw'
+              : can.cancel
+                ? 'Cancel leave'
+                : null;
   const tabs = [
     { id: 'request', label: 'Request' },
     { id: 'documents', label: 'Supporting documents', count: r.documents.length },
@@ -74,7 +77,11 @@ export default function RequestPage() {
         description={`${r.employee.name} · ${dateRange(r)}`}
         actions={
           <Badge tone={STATUS_TONES[r.status]}>
-            {can.managerDecide || can.hrDecide ? 'Awaiting your approval' : STATUS_LABELS[r.status]}
+            {can.managerDecide || can.hrDecide
+              ? 'Awaiting your approval'
+              : can.accept
+                ? 'Awaiting your acceptance'
+                : STATUS_LABELS[r.status]}
           </Badge>
         }
       />
@@ -119,6 +126,25 @@ export default function RequestPage() {
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === 'request' && (
               <div className="grid gap-6">
+                {r.offer && (
+                  <Notice
+                    tone="pending"
+                    title={can.accept ? 'Your manager offered different dates' : 'Different dates offered'}
+                  >
+                    <OfferSummary request={r} />
+                    {can.accept && (
+                      <p className="mt-1">
+                        <button
+                          type="button"
+                          className="font-medium underline"
+                          onClick={() => setTab('action')}
+                        >
+                          Accept or withdraw
+                        </button>
+                      </p>
+                    )}
+                  </Notice>
+                )}
                 {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
                   <Notice tone="pending" title="Cancellation in progress">
                     {CHANGE_LABELS[openChange.reasonType]} – {STATUS_LABELS[openChange.status].toLowerCase()}.
@@ -186,7 +212,8 @@ export default function RequestPage() {
                     <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
                   </Section>
                 )}
-                {can.withdraw && <WithdrawPanel request={r} />}
+                {can.accept && <OfferPanel request={r} />}
+                {can.withdraw && !can.accept && <WithdrawPanel request={r} />}
                 {can.cancel && <CancelPanel request={r} />}
               </div>
             )}
@@ -236,7 +263,8 @@ function useAction(id) {
       return out;
     } catch (err) {
       key.current = newActionKey();
-      setError(err.status === 409 ? `${err.message} The page has been refreshed.` : err.message);
+      const detail = err.fields?.length ? err.fields.map((f) => f.message).join(' ') : err.message;
+      setError(err.status === 409 ? `${err.message} The page has been refreshed.` : detail);
       if (err.status === 409) refresh();
       return null;
     } finally {
@@ -248,6 +276,7 @@ function useAction(id) {
 
 function DecisionPanel({ request: r, stage }) {
   const { run, busy, error } = useAction(r.id);
+  const [transferring, setTransferring] = useState(false);
   const [comment, setComment] = useState('');
   const [missing, setMissing] = useState(null);
   const isHr = stage === 'hr';
@@ -301,6 +330,11 @@ function DecisionPanel({ request: r, stage }) {
               Return for correction
             </Button>
           )}
+          {!isHr && (
+            <Button variant="secondary" disabled={!!busy} onClick={() => setTransferring((v) => !v)}>
+              Transfer
+            </Button>
+          )}
           <Button
             variant="danger"
             busy={busy === 'REJECT'}
@@ -310,6 +344,140 @@ function DecisionPanel({ request: r, stage }) {
             Reject
           </Button>
         </div>
+        {transferring && <TransferForm request={r} onCancel={() => setTransferring(false)} />}
+      </div>
+    </Section>
+  );
+}
+
+/** The manager offers different dates; the employee then accepts or withdraws (D50). */
+function TransferForm({ request: r, onCancel }) {
+  const { run, busy, error } = useAction(r.id);
+  const [v, setV] = useState({
+    startDate: r.startDate,
+    endDate: r.endDate,
+    startPortion: r.startPortion,
+    endPortion: r.endPortion,
+    comment: '',
+  });
+  const [missing, setMissing] = useState(null);
+  const set = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.value }));
+  const send = () => {
+    if (!v.comment.trim()) return setMissing('Say why you are offering these dates.');
+    setMissing(null);
+    run('TRANSFER', `/api/approvals/requests/${r.id}/transfer`, {
+      ...v,
+      comment: v.comment.trim(),
+      version: r.version,
+    });
+  };
+  return (
+    <div className="mt-2 grid gap-3 rounded-md border border-rule p-4 sm:grid-cols-2">
+      <p className="text-sm sm:col-span-2">
+        Asked for: <span className="font-medium">{dateRange(r)}</span> ({days(r.chargeableDays)})
+      </p>
+      <Field id="tStart" label="First day">
+        <Input id="tStart" type="date" value={v.startDate} onChange={set('startDate')} />
+      </Field>
+      <Field id="tEnd" label="Last day">
+        <Input id="tEnd" type="date" value={v.endDate} onChange={set('endDate')} />
+      </Field>
+      <Field id="tStartPortion" label="First day is">
+        <Select id="tStartPortion" value={v.startPortion} onChange={set('startPortion')}>
+          <option value="FULL">A full day</option>
+          <option value="PM_ONLY">Afternoon only</option>
+        </Select>
+      </Field>
+      <Field id="tEndPortion" label="Last day is">
+        <Select id="tEndPortion" value={v.endPortion} onChange={set('endPortion')}>
+          <option value="FULL">A full day</option>
+          <option value="AM_ONLY">Morning only</option>
+        </Select>
+      </Field>
+      <Field id="tComment" label="Reason" error={missing} className="sm:col-span-2">
+        <Textarea id="tComment" rows={2} value={v.comment} invalid={!!missing} onChange={set('comment')} />
+      </Field>
+      {error && (
+        <div className="sm:col-span-2">
+          <Notice tone="danger">{error}</Notice>
+        </div>
+      )}
+      <div className="flex gap-2 sm:col-span-2">
+        <Button busy={busy === 'TRANSFER'} disabled={!!busy} onClick={send}>
+          Send to employee
+        </Button>
+        <Button variant="secondary" disabled={!!busy} onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function OfferSummary({ request: r }) {
+  return (
+    <div className="space-y-0.5">
+      <p>
+        Asked for: {dateRange(r)} ({days(r.chargeableDays)})
+      </p>
+      <p className="font-medium">
+        Offered: {dateRange(r.offer)} ({days(r.offer.chargeableDays)})
+      </p>
+      {r.offer.comment && (
+        <p>
+          {r.offer.by ? `${r.offer.by}: ` : ''}
+          {r.offer.comment}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The employee accepts the offered dates, or withdraws the request with a reason. */
+function OfferPanel({ request: r }) {
+  const { run, busy, error } = useAction(r.id);
+  const [reason, setReason] = useState('');
+  const [missing, setMissing] = useState(null);
+  const withdraw = () => {
+    if (!reason.trim()) return setMissing('Give a reason for withdrawing.');
+    setMissing(null);
+    run('WITHDRAW', `/api/leave/requests/${r.id}/withdraw`, { comment: reason.trim(), version: r.version });
+  };
+  return (
+    <Section title="Offered dates">
+      <div className="space-y-4 text-sm">
+        <OfferSummary request={r} />
+        <div>
+          <Button
+            busy={busy === 'ACCEPT'}
+            disabled={!!busy}
+            onClick={() => run('ACCEPT', `/api/leave/requests/${r.id}/accept`, { version: r.version })}
+          >
+            Accept these dates
+          </Button>
+          <p className="mt-1 text-xs text-muted">It goes back to your manager for approval, then to HR.</p>
+        </div>
+        <div className="border-t border-rule pt-4">
+          <Field id="withdrawReason" label="Reason for withdrawing" error={missing}>
+            <Textarea
+              id="withdrawReason"
+              rows={2}
+              value={reason}
+              invalid={!!missing}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <Button
+            variant="danger"
+            className="mt-3"
+            busy={busy === 'WITHDRAW'}
+            disabled={!!busy}
+            onClick={withdraw}
+          >
+            Withdraw request
+          </Button>
+        </div>
+        {error && <Notice tone="danger">{error}</Notice>}
       </div>
     </Section>
   );

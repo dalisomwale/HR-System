@@ -1,3 +1,4 @@
+import { PENDING_STATES } from '../leave/balance.service.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -251,9 +252,7 @@ export function documentRoutes({ db, config, logger }) {
       const ownUpload = isOwner && d.uploaded_by === req.user.id;
       // Only the employee can remove a document they uploaded themselves; HR keeps every file.
       if (!ownUpload) throw notFound('Document not found.');
-      if (
-        !['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'RETURNED_FOR_CORRECTION'].includes(r.status)
-      ) {
+      if (!PENDING_STATES.includes(r.status)) {
         throw conflict('Documents can only be removed while the request is waiting for a decision.');
       }
       await db.transaction(async (trx) => {

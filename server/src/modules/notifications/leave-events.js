@@ -111,9 +111,14 @@ const OUTCOME = {
 };
 
 /**
- * @param {'SUBMITTED'|'RESUBMITTED'|'MANAGER_APPROVED'|'MANAGER_REJECTED'|'HR_APPROVED'|'HR_REJECTED'|'HR_RETURNED'|'WITHDRAWN'} kind
+ * @param {'SUBMITTED'|'RESUBMITTED'|'TRANSFERRED'|'ACCEPTED'|'MANAGER_APPROVED'|'MANAGER_REJECTED'|'HR_APPROVED'|'HR_REJECTED'|'HR_RETURNED'|'WITHDRAWN'} kind
  */
-export async function leaveRequestEvent(trx, kind, requestId, { actorId, previousManagerId } = {}) {
+export async function leaveRequestEvent(
+  trx,
+  kind,
+  requestId,
+  { actorId, previousManagerId, declinedOffer = false } = {},
+) {
   const r = await loadRequest(trx, requestId);
   const link = `/leave/requests/${r.id}`;
   const who = `${r.first_name} ${r.last_name}`;
@@ -135,6 +140,43 @@ export async function leaveRequestEvent(trx, kind, requestId, { actorId, previou
     return;
   }
 
+  if (kind === 'TRANSFERRED') {
+    const offer = {
+      start_date: r.offered_start_date,
+      end_date: r.offered_end_date,
+    };
+    await notify(trx, {
+      recipients: without([r.employee_id], actorId),
+      event: 'LEAVE_TRANSFERRED',
+      title: `Your manager offered different dates: ${r.reference}`,
+      body: `You asked for ${dates(r)} (${daysText(r.chargeable_days)}). Your manager offered ${dates(offer)} (${daysText(r.offered_chargeable_days)}). Accept or withdraw the request.`,
+      link,
+      entityType: 'leave_request',
+      entityId: r.id,
+      email: {
+        subject: `Your manager offered different dates: ${r.reference}`,
+        heading: 'Different dates offered',
+        intro: 'Your manager has transferred your leave request back to you with different dates.',
+        rows: [
+          ['Reference', r.reference],
+          ['Leave type', emailType(r)],
+          ['You asked for', `${dates(r)} (${daysText(r.chargeable_days)})`],
+          ['Offered', `${dates(offer)} (${daysText(r.offered_chargeable_days)})`],
+          ['Status', 'Waiting for your answer'],
+        ],
+        action:
+          'Please accept the offered dates or withdraw the request in the leave system. If you accept, it goes back to your manager for approval.',
+      },
+    });
+    return;
+  }
+
+  if (kind === 'ACCEPTED') {
+    // Back to the manager (or HR) to decide on the accepted dates.
+    await toStage(trx, r, actorId);
+    return;
+  }
+
   if (kind === 'WITHDRAWN') {
     const recipients = previousManagerId
       ? await approversFor(trx, previousManagerId)
@@ -142,8 +184,10 @@ export async function leaveRequestEvent(trx, kind, requestId, { actorId, previou
     await notify(trx, {
       recipients: without(recipients, actorId),
       event: 'LEAVE_WITHDRAWN',
-      title: `Request withdrawn: ${who}`,
-      body: `${r.reference} (${dates(r)}) was withdrawn and no longer needs a decision.`,
+      title: declinedOffer ? `Offered dates declined: ${who}` : `Request withdrawn: ${who}`,
+      body: declinedOffer
+        ? `${who} did not accept the dates you offered and withdrew ${r.reference}. See their reason in the leave system.`
+        : `${r.reference} (${dates(r)}) was withdrawn and no longer needs a decision.`,
       link,
       entityType: 'leave_request',
       entityId: r.id,

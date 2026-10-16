@@ -503,6 +503,200 @@ export async function managerDecision(db, actor, requestId, input, audit) {
   });
 }
 
+// ---------------------------------------------------------------------------------------------
+// Transfer (D50): the manager offers different dates; the employee accepts or withdraws.
+
+export const transferSchema = z.object({
+  startDate: isoDate,
+  endDate: isoDate,
+  startPortion: z.enum(['FULL', 'PM_ONLY']).default('FULL'),
+  endPortion: z.enum(['FULL', 'AM_ONLY']).default('FULL'),
+  comment: z.string().trim().min(1, 'Say why you are offering these dates.').max(2000),
+  version: z.coerce.number().int().positive().optional(),
+});
+
+const sameDates = (r, o) =>
+  r.start_date === o.startDate &&
+  r.end_date === o.endDate &&
+  r.start_portion === o.startPortion &&
+  r.end_portion === o.endPortion;
+
+/**
+ * Manager (or delegate) transfers the request back to the employee with different dates, for
+ * example fewer days than asked for. Nothing about the request's own dates changes until the
+ * employee accepts; the offer is held alongside it.
+ */
+export async function transferRequest(db, actor, requestId, input, audit) {
+  return db.transaction(async (trx) => {
+    const r = await lockRequest(trx, requestId, input.version);
+    requireState(r, 'PENDING_MANAGER_APPROVAL');
+    const authority = await managerAuthority(trx, actor, r);
+    if (!authority)
+      throw forbidden('Only the employee’s manager (or their delegate) can act on this request.');
+    if (sameDates(r, input)) {
+      throw badRequest('These are the dates already asked for. Choose different dates.');
+    }
+    const employee = await trx('employees').where({ id: r.employee_id }).first();
+    const ev = await evaluateRequest(
+      trx,
+      employee,
+      {
+        leaveTypeId: r.leave_type_id,
+        startDate: input.startDate,
+        endDate: input.endDate,
+        startPortion: input.startPortion,
+        endPortion: input.endPortion,
+        multipleBirth: Boolean(r.multiple_birth),
+        eventDate: r.event_date,
+        noticeShortfallReason: r.notice_shortfall_reason,
+      },
+      // Notice rules applied when the employee applied; the offer is checked against the
+      // policy, the balance and other leave, not against the notice period again.
+      { excludeRequestId: r.id, phase: 'TRANSFER' },
+    );
+    const errors = [...ev.errors];
+    const today = todayInLusaka();
+    if (input.startDate < today && input.startDate < r.start_date) {
+      errors.push(err('startDate', 'The offered leave cannot start earlier, in the past.'));
+    }
+    if (!errors.length && ev.calc.chargeableDays > Number(r.chargeable_days)) {
+      errors.push(
+        err(
+          'endDate',
+          `That is ${ev.calc.chargeableDays} days; the employee asked for ${Number(r.chargeable_days)}. A transfer cannot give more days than were asked for.`,
+        ),
+      );
+    }
+    if (errors.length) throw new RequestInvalid({ ...ev, errors });
+
+    const to = 'PENDING_EMPLOYEE_ACCEPTANCE';
+    await trx('leave_requests')
+      .where({ id: r.id })
+      .update({
+        status: to,
+        offered_start_date: input.startDate,
+        offered_end_date: input.endDate,
+        offered_start_portion: input.startPortion,
+        offered_end_portion: input.endPortion,
+        offered_chargeable_days: ev.calc.chargeableDays,
+        is_overdue: false,
+        version: r.version + 1,
+      });
+    await recordAction(trx, {
+      requestId: r.id,
+      stage: 'MANAGER',
+      action: 'TRANSFER',
+      actorId: actor.id,
+      ...authority,
+      from: r.status,
+      to,
+      comment: input.comment,
+    });
+    await writeAudit(trx, {
+      ...audit,
+      action: 'LEAVE_MANAGER_TRANSFERRED',
+      entityType: 'leave_request',
+      entityId: r.id,
+      before: { startDate: r.start_date, endDate: r.end_date, days: Number(r.chargeable_days) },
+      after: {
+        status: to,
+        offeredStartDate: input.startDate,
+        offeredEndDate: input.endDate,
+        offeredDays: ev.calc.chargeableDays,
+        comment: input.comment,
+      },
+    });
+    await leaveRequestEvent(trx, 'TRANSFERRED', r.id, { actorId: actor.id });
+    return { id: r.id, status: to, offeredDays: ev.calc.chargeableDays };
+  });
+}
+
+/**
+ * The employee accepts the offered dates. The request takes them (and a new day breakdown)
+ * and goes back to the manager to approve, then on to HR as usual.
+ */
+export async function acceptTransfer(db, actor, requestId, { comment, version } = {}, audit) {
+  return db.transaction(async (trx) => {
+    const r = await lockRequest(trx, requestId, version);
+    if (r.employee_id !== actor.id) throw forbidden('Only the employee can accept offered dates.');
+    requireState(r, 'PENDING_EMPLOYEE_ACCEPTANCE');
+    const employee = await lockEmployee(trx, actor.id);
+    const offered = {
+      leaveTypeId: r.leave_type_id,
+      startDate: r.offered_start_date,
+      endDate: r.offered_end_date,
+      startPortion: r.offered_start_portion,
+      endPortion: r.offered_end_portion,
+      multipleBirth: Boolean(r.multiple_birth),
+      eventDate: r.event_date,
+      noticeShortfallReason: r.notice_shortfall_reason,
+    };
+    const ev = await evaluateRequest(trx, employee, offered, {
+      excludeRequestId: r.id,
+      phase: 'TRANSFER',
+    });
+    if (ev.errors.length) {
+      throw conflict(
+        `These dates can no longer be accepted: ${ev.errors.map((e) => e.message).join(' ')} Withdraw the request and apply again.`,
+      );
+    }
+    // Back to the manager who made the offer, if still active; otherwise to HR.
+    const managerActive = r.assigned_manager_id
+      ? await trx('employees').where({ id: r.assigned_manager_id, status: 'ACTIVE' }).first('id')
+      : null;
+    const to = managerActive ? 'PENDING_MANAGER_APPROVAL' : 'PENDING_HR_APPROVAL';
+    await trx('leave_requests')
+      .where({ id: r.id })
+      .update({
+        policy_version_id: ev.policy.id,
+        start_date: offered.startDate,
+        end_date: offered.endDate,
+        start_portion: offered.startPortion,
+        end_portion: offered.endPortion,
+        chargeable_days: ev.calc.chargeableDays,
+        calendar_days: ev.calc.calendarDays,
+        offered_start_date: null,
+        offered_end_date: null,
+        offered_start_portion: null,
+        offered_end_portion: null,
+        offered_chargeable_days: null,
+        status: to,
+        routed_without_manager: !managerActive,
+        // The manager's clock restarts from the acceptance.
+        submitted_at: trx.fn.now(),
+        is_overdue: false,
+        version: r.version + 1,
+      });
+    await trx('leave_request_days').where({ leave_request_id: r.id }).del();
+    await insertDays(trx, r.id, ev.calc);
+    await recordAction(trx, {
+      requestId: r.id,
+      stage: 'EMPLOYEE',
+      action: 'ACCEPT',
+      actorId: actor.id,
+      actingAs: 'EMPLOYEE',
+      from: r.status,
+      to,
+      comment,
+    });
+    await writeAudit(trx, {
+      ...audit,
+      action: 'LEAVE_TRANSFER_ACCEPTED',
+      entityType: 'leave_request',
+      entityId: r.id,
+      before: { startDate: r.start_date, endDate: r.end_date, days: Number(r.chargeable_days) },
+      after: {
+        startDate: offered.startDate,
+        endDate: offered.endDate,
+        days: ev.calc.chargeableDays,
+        status: to,
+      },
+    });
+    await leaveRequestEvent(trx, 'ACCEPTED', r.id, { actorId: actor.id });
+    return { id: r.id, status: to, chargeableDays: ev.calc.chargeableDays };
+  });
+}
+
 /** HR final decision. Only approval confirms the leave and deducts the balance — exactly once. */
 export async function hrDecision(db, actor, requestId, input, audit) {
   return db.transaction(async (trx) => {
@@ -613,9 +807,20 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
     const r = await lockRequest(trx, requestId, version);
     if (r.employee_id !== actor.id) throw forbidden('You can only withdraw your own requests.');
     requireState(r, ...PENDING_STATES);
+    const answeringOffer = r.status === 'PENDING_EMPLOYEE_ACCEPTANCE';
+    if (answeringOffer && !comment) throw badRequest('Give a reason for withdrawing.');
     await trx('leave_requests')
       .where({ id: r.id })
-      .update({ status: 'WITHDRAWN', is_overdue: false, version: r.version + 1 });
+      .update({
+        status: 'WITHDRAWN',
+        is_overdue: false,
+        offered_start_date: null,
+        offered_end_date: null,
+        offered_start_portion: null,
+        offered_end_portion: null,
+        offered_chargeable_days: null,
+        version: r.version + 1,
+      });
     await recordAction(trx, {
       requestId: r.id,
       stage: 'EMPLOYEE',
@@ -636,7 +841,9 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
     if (r.status !== 'RETURNED_FOR_CORRECTION') {
       await leaveRequestEvent(trx, 'WITHDRAWN', r.id, {
         actorId: actor.id,
-        previousManagerId: r.status === 'PENDING_MANAGER_APPROVAL' ? r.assigned_manager_id : null,
+        previousManagerId:
+          r.status === 'PENDING_MANAGER_APPROVAL' || answeringOffer ? r.assigned_manager_id : null,
+        declinedOffer: answeringOffer,
       });
     }
     return { id: r.id, status: 'WITHDRAWN' };

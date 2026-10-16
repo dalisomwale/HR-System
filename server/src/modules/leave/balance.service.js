@@ -4,7 +4,13 @@ import { addDays, completedMonths } from './calendar.js';
 import { policyOn, toPolicy } from './policy.service.js';
 
 const round2 = (n) => Math.round(n * 100) / 100;
-export const PENDING_STATES = ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'RETURNED_FOR_CORRECTION'];
+// Requests still in progress: their days count as awaiting approval until decided.
+export const PENDING_STATES = [
+  'PENDING_MANAGER_APPROVAL',
+  'PENDING_EMPLOYEE_ACCEPTANCE',
+  'PENDING_HR_APPROVAL',
+  'RETURNED_FOR_CORRECTION',
+];
 const COUNTED_STATES = [...PENDING_STATES, 'APPROVED'];
 
 /**

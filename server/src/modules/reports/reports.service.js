@@ -17,6 +17,7 @@ import { describeMembers, groupPeople, managerMembers } from '../dashboard/membe
 
 const STATUS = [
   'PENDING_MANAGER_APPROVAL',
+  'PENDING_EMPLOYEE_ACCEPTANCE',
   'PENDING_HR_APPROVAL',
   'RETURNED_FOR_CORRECTION',
   'APPROVED',
@@ -27,6 +28,7 @@ const STATUS = [
 ];
 const STATUS_LABEL = {
   PENDING_MANAGER_APPROVAL: 'With manager',
+  PENDING_EMPLOYEE_ACCEPTANCE: 'Dates offered to employee',
   PENDING_HR_APPROVAL: 'With HR',
   RETURNED_FOR_CORRECTION: 'Returned for correction',
   APPROVED: 'Approved',
