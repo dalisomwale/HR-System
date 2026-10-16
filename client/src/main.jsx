@@ -27,6 +27,7 @@ import RequestPage from './pages/leave/RequestPage.jsx';
 import { ManagerApprovalsPage, HrApprovalsPage } from './pages/approvals/ApprovalsPages.jsx';
 import HomePage from './pages/home/HomePage.jsx';
 import TeamPage from './pages/home/TeamPage.jsx';
+import MembersPage from './pages/home/MembersPage.jsx';
 import HrOverviewPage from './pages/home/HrOverviewPage.jsx';
 import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/DelegationsPage.jsx';
 import NotificationsPage from './pages/notifications/NotificationsPage.jsx';
@@ -90,6 +91,7 @@ createRoot(document.getElementById('root')).render(
           >
             <Route path="home" element={<HomePage />} />
             <Route path="team" element={<TeamPage />} />
+            <Route path="team/members" element={<MembersPage />} />
             <Route path="hr" element={group(<HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />

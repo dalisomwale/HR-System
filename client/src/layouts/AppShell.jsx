@@ -43,7 +43,8 @@ const MY_WORK = [
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
 ];
 const MANAGER = [
-  { to: '/team', label: 'Team overview', icon: UsersRound },
+  { to: '/team', label: 'Team overview', icon: UsersRound, end: true },
+  { to: '/team/members', label: 'Department members', icon: Users, managersOnly: true },
   { to: '/approvals', label: 'Team approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];
@@ -144,7 +145,9 @@ export default function AppShell() {
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
           title="Manager"
-          items={seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]}
+          items={(seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]).filter(
+            (i) => !i.managersOnly || user.isManager,
+          )}
           onNavigate={() => setMenuOpen(false)}
         />
       )}

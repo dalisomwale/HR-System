@@ -304,6 +304,20 @@ describe('dashboards', () => {
     expect(res.body.active).toEqual([expect.objectContaining({ id: r.id, daysLeft: r.chargeableDays })]);
   });
 
+  it('shows a manager their department members without leave types, and refuses others', async () => {
+    const today = todayInLusaka();
+    const r = await sickRequest(today, addDays(today, 6));
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
+    const res = await as(mgr).get('/api/dashboard/members');
+    expect(res.status).toBe(200);
+    const m = res.body.members.find((x) => x.id === emp.id);
+    expect(m).toMatchObject({ reportsToYou: true, pendingRequests: 0 });
+    expect(res.body.summary.members).toBe(res.body.members.length);
+    expect(JSON.stringify(res.body)).not.toMatch(/Sick|Unwell/);
+    expect((await as(emp).get('/api/dashboard/members')).status).toBe(403);
+  });
+
   it('gives the manager an approvals count and their decisions in recent activity', async () => {
     const r = await sickRequest();
     let res = await as(mgr).get('/api/dashboard/employee');
