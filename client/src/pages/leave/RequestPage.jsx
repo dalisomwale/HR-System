@@ -24,6 +24,7 @@ import {
   PageHeader,
   Section,
   Select,
+  Tabs,
   Textarea,
 } from '../../components/ui.jsx';
 import { LeaveForm } from '../../components/LeaveForm.jsx';
@@ -37,12 +38,33 @@ export default function RequestPage() {
     queryFn: () => api.get(`/api/leave/requests/${id}`),
   });
   const [editing, setEditing] = useState(false);
+  const [tab, setTab] = useState('request');
 
   if (q.isPending) return <Loading />;
   if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;
   const r = q.data;
   const can = r.can;
   const openChange = r.changes.find((c) => c.status.startsWith('PENDING'));
+  // The last tab holds whatever the viewer can do here, named after the main action.
+  const actionLabel = can.hrDecide
+    ? 'HR decision'
+    : can.managerDecide
+      ? 'Manager decision'
+      : openChange && (can.changeHrDecide || can.changeManagerDecide)
+        ? 'Cancellation decision'
+        : can.resubmit
+          ? 'Correct and resubmit'
+          : can.withdraw
+            ? 'Withdraw'
+            : can.cancel
+              ? 'Cancel leave'
+              : null;
+  const tabs = [
+    { id: 'request', label: 'Request' },
+    { id: 'documents', label: 'Supporting documents', count: r.documents.length },
+    { id: 'history', label: 'History' },
+    ...(actionLabel ? [{ id: 'action', label: actionLabel }] : []),
+  ];
 
   return (
     <div className="max-w-6xl">
@@ -87,74 +109,89 @@ export default function RequestPage() {
       {editing ? (
         <ResubmitForm request={r} onDone={() => setEditing(false)} />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="grid content-start gap-6">
-            <Section title="Request">
-              <Details
-                items={[
-                  ['Employee', `${r.employee.name} (${r.employee.employeeNumber})`],
-                  ['Department', r.employee.department],
-                  ['Leave type', r.leaveType.name],
-                  ['Dates', dateRange(r)],
-                  ['Days charged', days(r.chargeableDays)],
-                  ...(r.eventDate ? [['Date of birth', formatDate(r.eventDate)]] : []),
-                  ...(r.multipleBirth ? [['Multiple birth', 'Yes']] : []),
-                  [
-                    'Reason',
-                    r.reasonHidden ? (
-                      <span className="font-normal text-muted">Visible to HR only</span>
-                    ) : (
-                      r.reason
-                    ),
-                  ],
-                  ...(r.noticeShortfallReason ? [['Short notice reason', r.noticeShortfallReason]] : []),
-                  ['Covering', r.handoverContact],
-                  ['Handover notes', r.handoverNotes],
-                  [
-                    'Manager',
-                    r.sensitive
-                      ? 'Marked sensitive – sent straight to HR'
-                      : r.routedWithoutManager
-                        ? 'None recorded – sent straight to HR'
-                        : r.assignedManager,
-                  ],
-                  ['Submitted', formatDateTime(r.submittedAt)],
-                ]}
-              />
-            </Section>
-            <DocumentsPanel request={r} />
-            <History items={r.history} />
-            {r.changes.length > 0 && <Changes items={r.changes} />}
-            <DayBreakdown items={r.days} />
+        <>
+          <Tabs
+            label="Request sections"
+            active={tabs.some((t) => t.id === tab) ? tab : 'request'}
+            onChange={setTab}
+            tabs={tabs}
+          />
+          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+            {tab === 'request' && (
+              <div className="grid gap-6">
+                {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
+                  <Notice tone="pending" title="Cancellation in progress">
+                    {CHANGE_LABELS[openChange.reasonType]} – {STATUS_LABELS[openChange.status].toLowerCase()}.
+                  </Notice>
+                )}
+                <Section title="Request">
+                  <Details
+                    items={[
+                      ['Employee', `${r.employee.name} (${r.employee.employeeNumber})`],
+                      ['Department', r.employee.department],
+                      ['Leave type', r.leaveType.name],
+                      ['Dates', dateRange(r)],
+                      ['Days charged', days(r.chargeableDays)],
+                      ...(r.eventDate ? [['Date of birth', formatDate(r.eventDate)]] : []),
+                      ...(r.multipleBirth ? [['Multiple birth', 'Yes']] : []),
+                      [
+                        'Reason',
+                        r.reasonHidden ? (
+                          <span className="font-normal text-muted">Visible to HR only</span>
+                        ) : (
+                          r.reason
+                        ),
+                      ],
+                      ...(r.noticeShortfallReason ? [['Short notice reason', r.noticeShortfallReason]] : []),
+                      ['Covering', r.handoverContact],
+                      ['Handover notes', r.handoverNotes],
+                      [
+                        'Manager',
+                        r.sensitive
+                          ? 'Marked sensitive – sent straight to HR'
+                          : r.routedWithoutManager
+                            ? 'None recorded – sent straight to HR'
+                            : r.assignedManager,
+                      ],
+                      ['Submitted', formatDateTime(r.submittedAt)],
+                    ]}
+                  />
+                </Section>
+                <DayBreakdown items={r.days} />
+              </div>
+            )}
+            {tab === 'documents' && <DocumentsPanel request={r} />}
+            {tab === 'history' && (
+              <div className="grid gap-6">
+                <History items={r.history} />
+                {r.changes.length > 0 && <Changes items={r.changes} />}
+              </div>
+            )}
+            {tab === 'action' && (
+              <div className="grid max-w-xl gap-6">
+                {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
+                {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
+                {openChange && can.changeManagerDecide && (
+                  <ChangeDecisionPanel request={r} change={openChange} stage="manager" />
+                )}
+                {openChange && can.changeHrDecide && (
+                  <ChangeDecisionPanel request={r} change={openChange} stage="hr" />
+                )}
+                {can.resubmit && (
+                  <Section title="Returned for correction">
+                    <p className="mb-3 text-sm">
+                      HR returned this request. Check the comment in the history, correct the details and send
+                      it again.
+                    </p>
+                    <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
+                  </Section>
+                )}
+                {can.withdraw && <WithdrawPanel request={r} />}
+                {can.cancel && <CancelPanel request={r} />}
+              </div>
+            )}
           </div>
-
-          <div className="grid content-start gap-6">
-            {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
-            {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
-            {openChange && can.changeManagerDecide && (
-              <ChangeDecisionPanel request={r} change={openChange} stage="manager" />
-            )}
-            {openChange && can.changeHrDecide && (
-              <ChangeDecisionPanel request={r} change={openChange} stage="hr" />
-            )}
-            {can.resubmit && (
-              <Section title="Returned for correction">
-                <p className="mb-3 text-sm">
-                  HR returned this request. Check the comment in the history, correct the details and send it
-                  again.
-                </p>
-                <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
-              </Section>
-            )}
-            {can.withdraw && <WithdrawPanel request={r} />}
-            {can.cancel && <CancelPanel request={r} />}
-            {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
-              <Notice tone="pending" title="Cancellation in progress">
-                {CHANGE_LABELS[openChange.reasonType]} – {STATUS_LABELS[openChange.status].toLowerCase()}.
-              </Notice>
-            )}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

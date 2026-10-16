@@ -333,3 +333,50 @@ export function ConfirmDialog({
     </dialog>
   );
 }
+
+/**
+ * Horizontal tabs. `tabs` is [{ id, label, count? }]; the caller renders the active panel.
+ * Arrow keys move between tabs.
+ */
+export function Tabs({ tabs, active, onChange, label }) {
+  const move = (dir) => {
+    const i = tabs.findIndex((t) => t.id === active);
+    const next = tabs[(i + dir + tabs.length) % tabs.length];
+    onChange(next.id);
+    document.getElementById(`tab-${next.id}`)?.focus();
+  };
+  return (
+    <div
+      role="tablist"
+      aria-label={label}
+      className="mb-6 flex gap-1 overflow-x-auto border-b border-rule"
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowRight') move(1);
+        if (e.key === 'ArrowLeft') move(-1);
+      }}
+    >
+      {tabs.map((t) => {
+        const selected = t.id === active;
+        return (
+          <button
+            key={t.id}
+            id={`tab-${t.id}`}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            aria-controls={`panel-${t.id}`}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onChange(t.id)}
+            className={cx(
+              '-mb-px border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap',
+              selected ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink',
+            )}
+          >
+            {t.label}
+            {t.count != null && <span className="ml-1.5 font-normal text-muted">({t.count})</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
