@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { FileText, Lock } from 'lucide-react';
+import { Download, Eye, FileText, Lock } from 'lucide-react';
+import { useMe } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { formatDateTime } from '../lib/format.js';
 import { Button, Notice, Section } from './ui.jsx';
@@ -11,6 +12,9 @@ const kb = (n) =>
 
 /** Supporting documents on a request. The server decides who sees what; this only shows it. */
 export default function DocumentsPanel({ request: r }) {
+  // HR Officers and System Administrators get View and Download on each document.
+  const { data: me } = useMe();
+  const isHr = Boolean(me?.roles.includes('HR_OFFICER'));
   const qc = useQueryClient();
   const input = useRef(null);
   const [busy, setBusy] = useState(null);
@@ -94,6 +98,24 @@ export default function DocumentsPanel({ request: r }) {
                     {d.sizeBytes ? ` · ${kb(d.sizeBytes)}` : ''}
                   </p>
                 </div>
+                {isHr && !d.restricted && (
+                  <div className="flex shrink-0 gap-1">
+                    <a
+                      href={`/api/documents/${d.id}/download?view=1`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 text-sm font-medium hover:border-muted"
+                    >
+                      <Eye className="size-4" aria-hidden /> View
+                    </a>
+                    <a
+                      href={`/api/documents/${d.id}/download`}
+                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 text-sm font-medium hover:border-muted"
+                    >
+                      <Download className="size-4" aria-hidden /> Download
+                    </a>
+                  </div>
+                )}
                 {canRemove && !d.restricted && (
                   <Button variant="ghost" busy={busy === d.id} onClick={() => remove(d.id)}>
                     Remove

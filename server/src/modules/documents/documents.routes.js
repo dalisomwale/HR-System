@@ -214,9 +214,12 @@ export function documentRoutes({ db, config, logger }) {
         logger?.error({ err, documentId: d.id }, 'Stored document is missing');
         throw new AppError(410, 'DOCUMENT_MISSING', 'The stored file could not be found. Contact IT.');
       }
+      // ?view=1 opens the file in the browser instead of saving it. The type was checked from the
+      // file's content at upload (PDF, JPEG or PNG only), and nosniff stops any reinterpretation.
+      const view = req.query.view === '1';
       await writeAudit(db, {
         ...auditContext(req),
-        action: 'DOCUMENT_DOWNLOADED',
+        action: view ? 'DOCUMENT_VIEWED' : 'DOCUMENT_DOWNLOADED',
         entityType: 'document',
         entityId: d.id,
         after: { leaveRequestId: d.leave_request_id, medical: Boolean(d.is_medical) },
@@ -226,7 +229,7 @@ export function documentRoutes({ db, config, logger }) {
         .set({
           'Content-Type': d.mime_type,
           'Content-Length': data.length,
-          'Content-Disposition': `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(d.original_name)}`,
+          'Content-Disposition': `${view ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(d.original_name)}`,
           'Cache-Control': 'private, no-store',
           'X-Content-Type-Options': 'nosniff',
         })

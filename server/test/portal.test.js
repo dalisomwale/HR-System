@@ -224,6 +224,14 @@ describe('supporting documents', () => {
     const audit = await db('audit_log').where({ action: 'DOCUMENT_DOWNLOADED' });
     expect(audit).toHaveLength(1);
     expect(audit[0].actor_employee_id).toBe(hr.id);
+
+    // View opens it in the browser instead of saving, and is recorded separately.
+    const view = await as(hr).get(`/api/documents/${up.body.id}/download?view=1`);
+    expect(view.status).toBe(200);
+    expect(view.headers['content-disposition']).toMatch(/^inline/);
+    expect(view.headers['x-content-type-options']).toBe('nosniff');
+    expect(await db('audit_log').where({ action: 'DOCUMENT_VIEWED' })).toHaveLength(1);
+    expect((await as(mgr).get(`/api/documents/${up.body.id}/download?view=1`)).status).toBe(404);
   });
 
   it('lets only the employee or HR upload, and the uploader remove while pending', async () => {
