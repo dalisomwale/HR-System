@@ -2,8 +2,8 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { formatDate, formatDateTime } from '../../lib/format.js';
-import { CHANGE_LABELS, days } from '../../lib/leave.js';
-import { EmptyState, LoadError, Loading, PageHeader, Table, Td, Th } from '../../components/ui.jsx';
+import { CHANGE_LABELS, dateRange, days } from '../../lib/leave.js';
+import { Badge, EmptyState, LoadError, Loading, PageHeader, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestTable } from '../leave/MyLeavePage.jsx';
 
 function Block({ title, children, empty, count }) {
@@ -65,6 +65,61 @@ function ChangeTable({ items }) {
   );
 }
 
+const DECISION = {
+  APPROVE: ['Approved', 'ok'],
+  REJECT: ['Rejected', 'danger'],
+  RETURN: ['Returned for correction', 'pending'],
+};
+
+/** HR decisions already made, newest first. */
+function DecidedTable({ items }) {
+  return (
+    <Table>
+      <thead>
+        <tr>
+          <Th>Reference</Th>
+          <Th>Employee</Th>
+          <Th>Leave type</Th>
+          <Th>Dates</Th>
+          <Th className="text-right">Days</Th>
+          <Th>Decision</Th>
+          <Th>Decided by</Th>
+          <Th>Decided</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((r) => {
+          const [label, tone] = DECISION[r.decision.action] ?? [r.decision.action, 'neutral'];
+          return (
+            <tr key={r.decision.id}>
+              <Td>
+                <Link to={`/leave/requests/${r.id}`} className="font-medium text-brand hover:underline">
+                  {r.reference}
+                </Link>
+              </Td>
+              <Td>
+                {r.employee.name}
+                <span className="block text-xs text-muted">
+                  {[r.employee.employeeNumber, r.employee.department].filter(Boolean).join(' · ')}
+                </span>
+              </Td>
+              <Td>{r.leaveType.name}</Td>
+              <Td className="whitespace-nowrap">{dateRange(r)}</Td>
+              <Td className="text-right">{r.chargeableDays}</Td>
+              <Td>
+                <Badge tone={tone}>{label}</Badge>
+                {r.decision.comment && <p className="mt-1 text-xs text-muted">{r.decision.comment}</p>}
+              </Td>
+              <Td>{r.decision.by ?? '—'}</Td>
+              <Td className="whitespace-nowrap">{formatDateTime(r.decision.at)}</Td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  );
+}
+
 export function ManagerApprovalsPage() {
   const q = useQuery({
     queryKey: ['approvals', 'manager'],
@@ -114,6 +169,13 @@ export function HrApprovalsPage() {
           </Block>
           <Block title="Still with managers" count={q.data.withManagers.length} empty="None">
             <RequestTable items={q.data.withManagers} showEmployee />
+          </Block>
+          <Block
+            title="Decided in the last 90 days"
+            count={q.data.decided.length}
+            empty="No HR decisions in the last 90 days"
+          >
+            <DecidedTable items={q.data.decided} />
           </Block>
         </>
       )}

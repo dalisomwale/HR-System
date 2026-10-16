@@ -223,10 +223,37 @@ export async function hrQueue(db, viewer) {
   const managerStage = await baseRequestQuery(db)
     .where('r.status', 'PENDING_MANAGER_APPROVAL')
     .orderBy('r.submitted_at');
+  // HR decisions on leave requests in the last 90 days, newest first.
+  const decided = await baseRequestQuery(db)
+    .join('approval_actions as a', 'a.leave_request_id', 'r.id')
+    .leftJoin('employees as x', 'x.id', 'a.actor_id')
+    .where('a.stage', 'HR')
+    .whereIn('a.action', ['APPROVE', 'REJECT', 'RETURN'])
+    .andWhere('a.created_at', '>=', db.raw('UTC_TIMESTAMP() - INTERVAL 90 DAY'))
+    .orderBy('a.id', 'desc')
+    .limit(100)
+    .select(
+      'a.id as action_id',
+      'a.action as decision',
+      'a.created_at as decided_at',
+      'a.comment as decision_comment',
+      'x.first_name as by_first',
+      'x.last_name as by_last',
+    );
   return {
     requests: requests.map((r) => ({ ...requestSummary(r), isOwn: r.employee_id === viewer.id })),
     changes,
     withManagers: managerStage.map(requestSummary),
+    decided: decided.map((r) => ({
+      ...requestSummary(r),
+      decision: {
+        id: r.action_id,
+        action: r.decision,
+        at: r.decided_at,
+        by: name(r.by_first, r.by_last),
+        comment: r.decision_comment,
+      },
+    })),
   };
 }
 

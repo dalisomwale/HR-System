@@ -357,6 +357,28 @@ describe('directors', () => {
   });
 });
 
+describe('HR approvals page', () => {
+  it('lists recent HR decisions with who made them', async () => {
+    const r = await annualRequest();
+    expect(
+      (await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' })).status,
+    ).toBe(200);
+    const ok = await as(hr).post(`/api/approvals/requests/${r.id}/hr`, {
+      action: 'APPROVE',
+      comment: 'Fine.',
+    });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    const page = await as(hr).get('/api/approvals/hr');
+    expect(page.body.requests).toHaveLength(0);
+    expect(page.body.decided).toHaveLength(1);
+    expect(page.body.decided[0]).toMatchObject({
+      id: r.id,
+      decision: { action: 'APPROVE', comment: 'Fine.' },
+    });
+    expect(page.body.decided[0].decision.by).toBeTruthy();
+  });
+});
+
 describe('sensitive requests', () => {
   it('go straight to HR, and the manager never sees the reason or documents', async () => {
     const res = await as(emp).post('/api/leave/requests', {
