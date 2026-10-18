@@ -86,7 +86,7 @@ export default function LeaveTypePage() {
           <Stat label="On this leave today" value={t.usage.onLeaveToday} />
         </Stats>
 
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="grid content-start gap-6">
             {p ? (
               <RulesSection type={t} />

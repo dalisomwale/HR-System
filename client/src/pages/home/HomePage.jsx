@@ -74,7 +74,7 @@ function Body({ d }) {
         </Notice>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <Section title="Waiting for a decision">
           <RequestList items={d.pending} empty="No requests are waiting for a decision." />
         </Section>
@@ -145,12 +145,16 @@ function Insights({ i, year }) {
           to: i.nextLeave ? `/leave/requests/${i.nextLeave.id}` : '/leave/apply',
         },
   );
-  const cols = { 3: 'lg:grid-cols-3', 4: 'lg:grid-cols-4', 5: 'lg:grid-cols-5', 6: 'lg:grid-cols-3' }[
-    cards.length
-  ];
+  // Two across on phones, more as the screen widens; never a lone card on the last row.
+  const cols = {
+    3: 'sm:grid-cols-3',
+    4: 'sm:grid-cols-2 xl:grid-cols-4',
+    5: 'sm:grid-cols-3 2xl:grid-cols-5',
+    6: 'sm:grid-cols-3',
+  }[cards.length];
 
   return (
-    <ul className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${cols}`}>
+    <ul className={`grid grid-cols-2 gap-3 ${cols} max-sm:[&>li:last-child:nth-child(odd)]:col-span-2`}>
       {cards.map(({ key, value, label, to, alert }) => (
         <li key={key}>
           <Link

@@ -64,3 +64,71 @@
     }
   }
 }
+
+/*
+ * Tables on phones: below 768 px each row becomes a small card, one "label: value" line per
+ * cell. Labels come from the table's own column headings (Table in components/ui.jsx copies
+ * them onto each cell), so every table in the system gets this without page changes.
+ */
+@layer components {
+  @media (max-width: 767.98px) {
+    .rtable thead {
+      display: none;
+    }
+    .rtable,
+    .rtable tbody,
+    .rtable tr {
+      display: block;
+      width: 100%;
+    }
+    .rtable tr {
+      border-bottom: 1px solid var(--color-rule);
+      padding: 0.5rem 0;
+    }
+    .rtable tbody tr:last-child {
+      border-bottom: 0;
+    }
+    .rtable td {
+      display: block;
+      border: 0 !important;
+      padding: 0.3rem 0.875rem !important;
+      text-align: left !important;
+      overflow-wrap: anywhere;
+    }
+    .rtable td[data-label] {
+      /* flow-root keeps the floated label inside the row, so a long label makes it taller. */
+      display: flow-root;
+      padding-left: 8.75rem !important;
+    }
+    .rtable td[data-label]::before {
+      content: attr(data-label);
+      float: left;
+      width: 7.25rem;
+      margin-left: -7.875rem;
+      color: var(--color-muted);
+      font-size: 0.8rem;
+      font-weight: 500;
+      line-height: 1.35;
+      padding-top: 0.1rem;
+    }
+    /* The first cell names the row: full width, no label. */
+    .rtable td:first-child {
+      padding-left: 0.875rem !important;
+      font-weight: 500;
+    }
+    .rtable td:first-child::before {
+      display: none;
+    }
+    /* Cells that only hold buttons or links sit at the end of the card, full width. */
+    .rtable td.rtable-actions {
+      padding-top: 0.5rem !important;
+    }
+  }
+}
+
+/* Request and cancellation references (LR-2026-000005) always stay on one line. */
+@layer components {
+  table a[href*='/leave/requests/'] {
+    white-space: nowrap;
+  }
+}

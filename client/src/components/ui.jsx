@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -217,10 +217,45 @@ export function EmptyState({ title, children, action }) {
   );
 }
 
-export function Table({ children }) {
+/**
+ * Data table. On phones each row stacks into a card (see .rtable in styles.css): the column
+ * headings are copied onto each cell as data-label after every render. `stack={false}` keeps
+ * a real grid that scrolls sideways instead, for tables read across, such as a week of days.
+ */
+export function Table({ children, stack = true }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const table = ref.current;
+    if (!table || !stack) return;
+    const heads = [...table.querySelectorAll('thead th')].map((th) =>
+      th.querySelector('.sr-only') &&
+      th.textContent.trim() === th.querySelector('.sr-only').textContent.trim()
+        ? ''
+        : th.textContent.trim(),
+    );
+    for (const row of table.querySelectorAll('tbody tr')) {
+      let col = 0;
+      for (const cell of row.children) {
+        const span = Number(cell.getAttribute('colspan') ?? 1);
+        const label = span === 1 ? heads[col] : '';
+        if (label) cell.setAttribute('data-label', label);
+        else {
+          cell.removeAttribute('data-label');
+          if (span === 1 && col > 0) cell.classList.add('rtable-actions');
+        }
+        col += span;
+      }
+    }
+  });
   return (
     <div className="overflow-x-auto rounded-md border border-rule bg-white">
-      <table className="w-full border-collapse text-left text-sm [&_tbody_tr:last-child>td]:border-b-0">
+      <table
+        ref={ref}
+        className={cx(
+          'w-full border-collapse text-left text-sm [&_tbody_tr:last-child>td]:border-b-0',
+          stack && 'rtable',
+        )}
+      >
         {children}
       </table>
     </div>
@@ -368,7 +403,7 @@ export function Tabs({ tabs, active, onChange, label }) {
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(t.id)}
             className={cx(
-              '-mb-px border-b-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap',
+              '-mb-px border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap sm:px-4',
               selected ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink',
             )}
           >

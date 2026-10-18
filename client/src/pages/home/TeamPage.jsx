@@ -71,7 +71,7 @@ function Body({ d }) {
         )}
       </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <Section title="On leave today">
           <RequestList items={d.onLeave} showEmployee empty="Nobody in your team is on leave today." />
         </Section>
@@ -80,7 +80,7 @@ function Body({ d }) {
         </Section>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <Section title="Overlapping absences">
           {d.overlaps.length === 0 ? (
             <p className="text-sm text-muted">No overlaps in the next 30 days.</p>

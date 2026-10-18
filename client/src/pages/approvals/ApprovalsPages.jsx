@@ -248,7 +248,7 @@ export function HrApprovalsPage() {
             ))}
           </div>
 
-          <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
+          <div className="grid items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_9.5rem_9.5rem_auto]">
             <Field id="hrSearch" label="Search">
               <div className="relative">
                 <Search

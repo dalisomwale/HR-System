@@ -156,7 +156,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
   const err = (f) => errors[f]?.message;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <Section title="Request details">
         {available.length === 0 ? (
           <Notice tone="pending" title="No leave types are available yet.">

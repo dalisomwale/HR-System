@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router';
 import logo from '../assets/brand/altus-logo.png';
 import {
@@ -120,6 +120,18 @@ export default function AppShell() {
   });
   const counts = { unread: unread.data?.unread ?? 0 };
 
+  // While the menu is open on a phone or tablet the page behind it stays still; Escape closes it.
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const close = (e) => e.key === 'Escape' && setMenuOpen(false);
+    document.addEventListener('keydown', close);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', close);
+      document.body.style.overflow = '';
+    };
+  }, [menuOpen]);
+
   // A System Administrator holds every right, so that title alone is shown.
   const roleText = hasRole(user, 'HR_ADMIN')
     ? [
@@ -174,7 +186,7 @@ export default function AppShell() {
         <div className="flex h-14 items-center gap-4 px-4">
           <button
             type="button"
-            className="relative -ml-1 rounded-sm p-1 text-ink md:hidden"
+            className="relative -ml-1 rounded-sm p-1 text-ink lg:hidden"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
@@ -203,7 +215,7 @@ export default function AppShell() {
 
       <div className="flex min-h-[calc(100vh-60px)]">
         {/* The white column runs the full page height; the menu inside stays in view while scrolling. */}
-        <div className="hidden w-60 shrink-0 border-r border-rule bg-white md:block">
+        <div className="hidden w-60 shrink-0 border-r border-rule bg-white lg:block">
           <nav
             aria-label="Main"
             className="sticky top-[60px] max-h-[calc(100vh-60px)] overflow-y-auto pt-5 pb-5"
@@ -212,15 +224,27 @@ export default function AppShell() {
           </nav>
         </div>
         {menuOpen && (
-          <nav
-            aria-label="Main"
-            className="fixed inset-x-0 top-[60px] z-20 border-b border-rule bg-white pt-4 shadow-sm md:hidden"
-          >
-            {nav}
-          </nav>
+          <>
+            {/* Phones and tablets: the menu slides over the page and scrolls on its own. */}
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="fixed inset-0 top-[60px] z-20 bg-ink/30 lg:hidden"
+              onClick={() => setMenuOpen(false)}
+            />
+            <nav
+              aria-label="Main"
+              className="fixed top-[60px] bottom-0 left-0 z-30 w-72 max-w-[85vw] overflow-y-auto border-r border-rule bg-white pt-4 pb-6 shadow-lg lg:hidden"
+            >
+              {nav}
+            </nav>
+          </>
         )}
-        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-8">
-          <Outlet />
+        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
+          {/* Pages set their own width; on wide screens they sit in the middle of the space. */}
+          <div className="mx-auto w-full max-w-7xl [&>*]:mx-auto">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
