@@ -184,9 +184,23 @@ export default function AppShell() {
       </a>
       <header className="sticky top-0 z-30 border-t-[3px] border-b border-t-brand border-b-rule bg-white">
         <div className="flex h-14 items-center gap-4 px-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
+            <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
+              Leave Management
+            </span>
+          </Link>
+          <Link
+            to="/profile"
+            className="ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas lg:-mr-1"
+            aria-label={`${fullName(user)}, ${roleText}. My profile`}
+          >
+            <p className="text-sm font-medium">{fullName(user)}</p>
+            <p className="hidden text-xs text-muted sm:block">{roleText}</p>
+          </Link>
           <button
             type="button"
-            className="relative -ml-1 rounded-sm p-1 text-ink lg:hidden"
+            className="relative -mr-1 rounded-sm p-1 text-ink lg:hidden"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
@@ -196,20 +210,6 @@ export default function AppShell() {
               <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-danger" />
             )}
           </button>
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
-            <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
-              Leave Management
-            </span>
-          </Link>
-          <Link
-            to="/profile"
-            className="-mr-1 ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas"
-            aria-label={`${fullName(user)}, ${roleText}. My profile`}
-          >
-            <p className="text-sm font-medium">{fullName(user)}</p>
-            <p className="hidden text-xs text-muted sm:block">{roleText}</p>
-          </Link>
         </div>
       </header>
 
@@ -234,7 +234,7 @@ export default function AppShell() {
             />
             <nav
               aria-label="Main"
-              className="fixed top-[60px] bottom-0 left-0 z-30 w-72 max-w-[85vw] overflow-y-auto border-r border-rule bg-white pt-4 pb-6 shadow-lg lg:hidden"
+              className="fixed top-[60px] right-0 bottom-0 z-30 w-72 max-w-[85vw] overflow-y-auto border-l border-rule bg-white pt-4 pb-6 shadow-lg lg:hidden"
             >
               {nav}
             </nav>
