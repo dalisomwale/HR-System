@@ -154,7 +154,7 @@ function Insights({ i, year }) {
   }[cards.length];
 
   return (
-    <ul className={`grid grid-cols-2 gap-3 ${cols} max-sm:[&>li:last-child:nth-child(odd)]:col-span-2`}>
+    <ul className={`grid grid-cols-2 gap-3 ${cols}`}>
       {cards.map(({ key, value, label, to, alert }) => (
         <li key={key}>
           <Link

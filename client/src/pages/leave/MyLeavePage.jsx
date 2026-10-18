@@ -56,7 +56,7 @@ function MyLeaveTop() {
       ) : q.data.active.length === 0 ? (
         <p className="text-sm text-muted">You are not on leave.</p>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
+        <ul className="grid grid-cols-2 gap-3">
           {q.data.active.map((r) => (
             <ActiveLeave key={r.id} r={r} />
           ))}
@@ -71,11 +71,11 @@ function ActiveLeave({ r }) {
   const pct = r.chargeableDays > 0 ? Math.round((used / r.chargeableDays) * 100) : 100;
   return (
     <li className="rounded-md border border-rule p-4">
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
         <Link to={`/leave/requests/${r.id}`} className="font-medium text-brand hover:underline">
           {r.leaveType}
         </Link>
-        <span className="text-xs text-muted">{r.reference}</span>
+        <span className="text-xs whitespace-nowrap text-muted">{r.reference}</span>
       </div>
       <p className="mt-0.5 text-sm text-muted">{dateRange(r)}</p>
       <p className="mt-3">

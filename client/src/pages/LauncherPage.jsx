@@ -62,19 +62,21 @@ export default function LauncherPage() {
         {greeting()}, {me.firstName}
       </h1>
 
-      <ul className={`mt-8 grid gap-4 sm:grid-cols-2 ${apps.length > 2 ? 'lg:grid-cols-4' : 'sm:max-w-2xl'}`}>
+      <ul
+        className={`mt-6 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 ${apps.length > 2 ? 'lg:grid-cols-4' : 'sm:max-w-2xl'}`}
+      >
         {apps.map((app) => {
           const Icon = app.icon;
           const body = (
             <>
               <span
-                className={`flex size-11 items-center justify-center rounded-md ${
+                className={`flex size-9 items-center justify-center rounded-md sm:size-11 ${
                   app.comingSoon ? 'bg-neutral-bg text-muted' : 'bg-brand text-white'
                 }`}
               >
                 <Icon className="size-5" aria-hidden />
               </span>
-              <span className="mt-4 flex items-center gap-2">
+              <span className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 sm:mt-4">
                 <span className={`text-base font-semibold ${app.comingSoon ? 'text-muted' : ''}`}>
                   {app.name}
                 </span>
@@ -89,7 +91,7 @@ export default function LauncherPage() {
                   />
                 )}
               </span>
-              <span className="mt-1 block text-sm text-muted">{app.description}</span>
+              <span className="mt-1 block text-xs text-muted sm:text-sm">{app.description}</span>
             </>
           );
           return (
@@ -97,14 +99,14 @@ export default function LauncherPage() {
               {app.comingSoon ? (
                 <div
                   aria-disabled="true"
-                  className="flex h-full flex-col rounded-lg border border-dashed border-rule bg-white/60 p-5"
+                  className="flex h-full flex-col rounded-lg border border-dashed border-rule bg-white/60 p-4 sm:p-5"
                 >
                   {body}
                 </div>
               ) : (
                 <Link
                   to={app.to}
-                  className="group flex h-full flex-col rounded-lg border border-rule bg-white p-5 hover:border-brand focus-visible:border-brand"
+                  className="group flex h-full flex-col rounded-lg border border-rule bg-white p-4 hover:border-brand focus-visible:border-brand sm:p-5"
                 >
                   {body}
                 </Link>
