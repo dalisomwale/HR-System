@@ -1,41 +1,71 @@
 import { Link } from 'react-router';
-import { Briefcase, CalendarCheck, ChevronRight, UserRound, Wallet } from 'lucide-react';
+import {
+  Briefcase,
+  CalendarCheck,
+  ChevronRight,
+  Clock,
+  TrendingUp,
+  UserRound,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import AppFrame, { LogOutButton } from '../layouts/AppFrame.jsx';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 
 /*
- * The first page after sign-in: the Altus Group applications. Leave management is phase 1;
- * Payroll and Recruitment are shown as coming soon to HR, System Administrators and directors.
- * Everyone else sees only the applications they use: Leave and My profile.
+ * The first page after sign-in: the Altus Group HR applications. Leave management is live
+ * (phase 1); the others are shown as coming soon to HR, System Administrators and directors.
+ * Everyone else sees only the applications they use: Leave management and My profile.
  */
 
 const APPS = [
   {
     id: 'leave',
-    name: 'Leave',
+    name: 'Leave management',
     description: 'Apply for leave, see your balances and, for approvers, decide on requests.',
     icon: CalendarCheck,
     to: '/home',
     everyone: true,
   },
   {
-    id: 'payroll',
-    name: 'Payroll',
-    description: 'Payslips, pay runs and deductions.',
-    icon: Wallet,
+    id: 'employees',
+    name: 'Employee management',
+    description: 'Employee records, contracts and documents in one place.',
+    icon: Users,
     comingSoon: true,
   },
   {
     id: 'recruitment',
-    name: 'Recruitment',
-    description: 'Vacancies, applicants and interviews.',
+    name: 'Recruitment management',
+    description: 'Vacancies, applicants, interviews and offers.',
     icon: Briefcase,
+    comingSoon: true,
+  },
+  {
+    id: 'performance',
+    name: 'Performance management',
+    description: 'Goals, check-ins and appraisals.',
+    icon: TrendingUp,
+    comingSoon: true,
+  },
+  {
+    id: 'shifts',
+    name: 'Shift management',
+    description: 'Shift rosters, swaps and attendance.',
+    icon: Clock,
+    comingSoon: true,
+  },
+  {
+    id: 'payroll',
+    name: 'Payroll management',
+    description: 'Pay runs, payslips and statutory deductions.',
+    icon: Wallet,
     comingSoon: true,
   },
   {
     id: 'profile',
     name: 'My profile',
-    description: 'Your employee details: job, company, department and manager.',
+    description: 'Your personal and employment details.',
     icon: UserRound,
     to: '/profile',
     everyone: true,
@@ -86,7 +116,7 @@ export default function LauncherPage() {
                   </span>
                 ) : (
                   <ChevronRight
-                    className="size-4 text-muted transition-transform group-hover:translate-x-0.5"
+                    className="hidden size-4 text-muted transition-transform group-hover:translate-x-0.5 sm:block"
                     aria-hidden
                   />
                 )}
