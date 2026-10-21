@@ -30,9 +30,9 @@ const APPS = [
   {
     id: 'employees',
     name: 'Employee management',
-    description: 'Employee records, contracts and documents in one place.',
+    description: 'The central record for every member of staff, from onboarding to offboarding.',
     icon: Users,
-    comingSoon: true,
+    to: '/people',
   },
   {
     id: 'recruitment',

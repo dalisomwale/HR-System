@@ -32,6 +32,20 @@ const baseFields = {
   workScheduleId: optionalId,
   employmentStartDate: isoDate,
   employmentEndDate: isoDate.nullish().or(z.literal('').transform(() => null)),
+  // Employee management (D52).
+  employmentType: z
+    .enum(['PERMANENT', 'FIXED_TERM', 'TEMPORARY'])
+    .nullish()
+    .or(z.literal('').transform(() => null))
+    .transform((v) => v ?? null),
+  contractEndDate: isoDate.nullish().or(z.literal('').transform(() => null)),
+  probationEndDate: isoDate.nullish().or(z.literal('').transform(() => null)),
+  probationStatus: z
+    .enum(['ON_PROBATION', 'CONFIRMED', 'EXTENDED'])
+    .nullish()
+    .or(z.literal('').transform(() => null))
+    .transform((v) => v ?? null),
+  payGrade: optionalText(20),
 };
 
 export const createEmployeeSchema = z
@@ -55,7 +69,48 @@ const COLUMN = {
   workScheduleId: 'work_schedule_id',
   employmentStartDate: 'employment_start_date',
   employmentEndDate: 'employment_end_date',
+  employmentType: 'employment_type',
+  contractEndDate: 'contract_end_date',
+  probationEndDate: 'probation_end_date',
+  probationStatus: 'probation_status',
+  payGrade: 'pay_grade',
 };
+
+/*
+ * Change history (D52). One append-only row per field that changed. Ids are stored as the names
+ * people saw at the time, so the history still reads correctly after a rename.
+ */
+const LOOKUP = {
+  companyId: async (trx, v) => (await trx('companies').where({ id: v }).first('name'))?.name,
+  departmentId: async (trx, v) => (await trx('departments').where({ id: v }).first('name'))?.name,
+  workScheduleId: async (trx, v) => (await trx('work_schedules').where({ id: v }).first('name'))?.name,
+  lineManagerId: async (trx, v) => {
+    const m = await trx('employees').where({ id: v }).first('first_name', 'last_name');
+    return m ? `${m.first_name} ${m.last_name}` : null;
+  },
+};
+
+async function shown(trx, field, value) {
+  if (value === null || value === undefined || value === '') return null;
+  const text = LOOKUP[field] ? ((await LOOKUP[field](trx, value)) ?? `#${value}`) : String(value);
+  return text.slice(0, 500);
+}
+
+export async function writeHistory(trx, employeeId, event, changes, actorId, reason = null) {
+  const rows = [];
+  for (const { field = null, from = null, to = null } of changes.length ? changes : [{}]) {
+    rows.push({
+      employee_id: employeeId,
+      event,
+      field,
+      old_value: field ? await shown(trx, field, from) : null,
+      new_value: field ? await shown(trx, field, to) : null,
+      reason: reason ? String(reason).slice(0, 500) : null,
+      actor_id: actorId ?? null,
+    });
+  }
+  await trx('employee_history').insert(rows);
+}
 
 function toRow(input) {
   const row = {};
@@ -152,6 +207,7 @@ export async function createEmployee(trx, input, audit) {
   if (companyId !== undefined) row.company_id = companyId;
   if (!row.work_schedule_id) row.work_schedule_id = await defaultScheduleId(trx);
   const [id] = await trx('employees').insert({ ...row, status: 'ACTIVE' });
+  await writeHistory(trx, id, 'CREATED', [], audit.actorEmployeeId, audit.historyReason ?? null);
   await writeAudit(trx, {
     ...audit,
     action: 'EMPLOYEE_CREATED',
@@ -174,6 +230,14 @@ export async function updateEmployee(trx, id, input, audit) {
   if (companyId !== undefined) row.company_id = companyId;
   if (Object.keys(row).length === 0) return;
   await trx('employees').where({ id }).update(row);
+  const changes = [];
+  for (const [k, col] of Object.entries(COLUMN)) {
+    if (row[col] === undefined) continue;
+    const from = before[col] ?? null;
+    const to = row[col] ?? null;
+    if (String(from ?? '') !== String(to ?? '')) changes.push({ field: k, from, to });
+  }
+  if (changes.length) await writeHistory(trx, id, 'UPDATED', changes, audit.actorEmployeeId);
   const beforeView = {};
   for (const [k, col] of Object.entries(COLUMN)) if (input[k] !== undefined) beforeView[k] = before[col];
   if (row.company_id !== undefined && row.company_id !== before.company_id) {
@@ -217,6 +281,7 @@ export async function deactivateEmployee(trx, id, { reason, endDate }, audit) {
       employment_end_date: endDate ?? emp.employment_end_date,
     });
   const revoked = await revokeEmployeeSessions(trx, id);
+  await writeHistory(trx, id, 'DEACTIVATED', [], audit.actorEmployeeId, reason);
   await writeAudit(trx, {
     ...audit,
     action: 'EMPLOYEE_DEACTIVATED',
@@ -231,6 +296,7 @@ export async function reactivateEmployee(trx, id, audit) {
   if (!emp) throw notFound('Employee not found.');
   if (emp.status === 'ACTIVE') throw conflict('This employee is already active.');
   await trx('employees').where({ id }).update({ status: 'ACTIVE', deactivated_at: null });
+  await writeHistory(trx, id, 'REACTIVATED', [], audit.actorEmployeeId);
   await writeAudit(trx, { ...audit, action: 'EMPLOYEE_REACTIVATED', entityType: 'employee', entityId: id });
 }
 

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, Link } from 'react-router';
+import { BrowserRouter, Navigate, Route, Routes, Link, useParams, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles.css';
 import { GROUP_VIEW_ROLES, RequireAuth, RequireRole } from './lib/auth.jsx';
@@ -8,8 +8,9 @@ import AppShell from './layouts/AppShell.jsx';
 import LauncherPage from './pages/LauncherPage.jsx';
 import { SignInPage, AccessNotConfiguredPage, SignedOutPage } from './pages/auth/PublicPages.jsx';
 import ProfilePage from './pages/employee/ProfilePage.jsx';
-import EmployeesPage from './pages/admin/EmployeesPage.jsx';
-import EmployeePage from './pages/admin/EmployeePage.jsx';
+import DirectoryPage from './pages/people/DirectoryPage.jsx';
+import EmployeeRecordPage from './pages/people/EmployeeRecordPage.jsx';
+import PeopleDashboardPage from './pages/people/PeopleDashboardPage.jsx';
 import SignInRequestsPage from './pages/admin/SignInRequestsPage.jsx';
 import ImportPage from './pages/admin/ImportPage.jsx';
 import LeaveTypePage from './pages/admin/LeaveTypePage.jsx';
@@ -43,6 +44,13 @@ const queryClient = new QueryClient({
 const admin = (el) => <RequireRole role="HR_ADMIN">{el}</RequireRole>;
 const hr = (el) => <RequireRole role="HR_OFFICER">{el}</RequireRole>;
 const group = (el) => <RequireRole role={GROUP_VIEW_ROLES}>{el}</RequireRole>;
+
+/** Old addresses from before Employee management (D52) keep working. */
+function ToPeople({ base }) {
+  const { id } = useParams();
+  const { search } = useLocation();
+  return <Navigate to={`${base}${id ? `/${id}` : ''}${search}`} replace />;
+}
 
 function NotFound() {
   return (
@@ -102,15 +110,23 @@ createRoot(document.getElementById('root')).render(
             <Route path="leave/requests/:id" element={<RequestPage />} />
             <Route path="approvals" element={<ManagerApprovalsPage />} />
             <Route path="hr/approvals" element={hr(<HrApprovalsPage />)} />
-            <Route path="admin">
-              <Route index element={<Navigate to="/admin/employees" replace />} />
-              <Route path="employees" element={hr(<EmployeesPage />)} />
-              <Route path="employees/:id" element={hr(<EmployeePage />)} />
-              <Route path="sign-in-requests" element={admin(<SignInRequestsPage />)} />
-              <Route path="import" element={hr(<ImportPage />)} />
-              <Route path="roles" element={admin(<RolesPage />)} />
+            <Route path="people">
+              <Route index element={group(<PeopleDashboardPage />)} />
+              <Route path="employees" element={group(<DirectoryPage />)} />
+              <Route path="employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="companies" element={hr(<CompaniesPage />)} />
               <Route path="departments" element={hr(<DepartmentsPage />)} />
+              <Route path="import" element={hr(<ImportPage />)} />
+            </Route>
+            <Route path="admin">
+              <Route index element={<Navigate to="/people/employees" replace />} />
+              <Route path="employees" element={<ToPeople base="/people/employees" />} />
+              <Route path="employees/:id" element={<ToPeople base="/people/employees" />} />
+              <Route path="sign-in-requests" element={admin(<SignInRequestsPage />)} />
+              <Route path="import" element={<ToPeople base="/people/import" />} />
+              <Route path="roles" element={admin(<RolesPage />)} />
+              <Route path="companies" element={<ToPeople base="/people/companies" />} />
+              <Route path="departments" element={<ToPeople base="/people/departments" />} />
               <Route path="holidays" element={hr(<HolidaysPage />)} />
               <Route path="schedules" element={hr(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />

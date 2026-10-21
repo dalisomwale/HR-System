@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { useMe } from '../../lib/auth.jsx';
-import EmployeeBalances from './EmployeeBalances.jsx';
+import { hasRole, useMe } from '../../lib/auth.jsx';
+import EmployeeBalances from '../admin/EmployeeBalances.jsx';
 import { formatDate, formatDateTime, ROLE_LABELS } from '../../lib/format.js';
 import {
   Badge,
@@ -19,9 +19,18 @@ import {
   PageHeader,
   Section,
   Select,
+  Tabs,
   Textarea,
   applyServerErrors,
 } from '../../components/ui.jsx';
+import {
+  EMPLOYMENT_TYPES,
+  FIELD_LABELS,
+  Initials,
+  PROBATION,
+  StatusBadge,
+  historyValue,
+} from './people-ui.jsx';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import { PERSONAL_FIELDS } from '../employee/ProfilePage.jsx';
 
@@ -38,6 +47,11 @@ const FIELDS = [
   'workScheduleId',
   'employmentStartDate',
   'employmentEndDate',
+  'employmentType',
+  'contractEndDate',
+  'probationEndDate',
+  'probationStatus',
+  'payGrade',
 ];
 
 const blank = Object.fromEntries(FIELDS.map((f) => [f, '']));
@@ -57,19 +71,27 @@ const toPayload = (values, only) => {
   return out;
 };
 
-export default function EmployeePage() {
+export default function EmployeeRecordPage() {
   const { id } = useParams();
   const { data: me } = useMe();
+  const canEdit = hasRole(me, 'HR_OFFICER');
   const isNew = id === 'new';
-  // Details are read-only until the pencil next to the name is pressed.
+  const [tab, setTab] = useState('overview');
+  // Details are read-only until Edit is pressed.
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const employee = useQuery({
     queryKey: ['employee', id],
-    queryFn: () => api.get(`/api/admin/employees/${id}`),
+    queryFn: () => api.get(`/api/people/employees/${id}`),
     enabled: !isNew,
   });
+  useEffect(() => {
+    setTab('overview');
+    setEditing(false);
+    setSaved(false);
+  }, [id]);
 
+  if (isNew && !canEdit) return <Notice tone="neutral" title="Only HR Officers add employees." />;
   if (!isNew && employee.isPending) return <Loading />;
   if (!isNew && employee.isError)
     return <LoadError error={employee.error} onRetry={() => employee.refetch()} />;
@@ -79,89 +101,175 @@ export default function EmployeePage() {
   return (
     <div className="max-w-6xl">
       <Link
-        to="/admin/employees"
+        to="/people/employees"
         className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
       >
-        <ArrowLeft className="size-4" aria-hidden /> Employees
+        <ArrowLeft className="size-4" aria-hidden /> Directory
       </Link>
-      <PageHeader
-        title={isNew ? 'Add employee' : `${e.firstName} ${e.lastName}`}
-        description={isNew ? undefined : [e.jobTitle, e.company].filter(Boolean).join(' · ') || undefined}
-        actions={
-          !isNew && (
-            <div className="flex items-center gap-3">
-              {e.status === 'ACTIVE' ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
-              {!editing && (
-                <button
-                  type="button"
-                  className="inline-flex size-9 items-center justify-center rounded-md border border-rule bg-white text-ink hover:border-muted"
-                  aria-label="Edit employee details"
-                  title="Edit employee details"
-                  onClick={() => {
-                    setSaved(false);
-                    setEditing(true);
-                  }}
-                >
-                  <Pencil className="size-4" aria-hidden />
-                </button>
+      {isNew ? (
+        <PageHeader title="Add employee" />
+      ) : (
+        <section className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-rule bg-white p-4 sm:p-5">
+          <Initials first={e.firstName} last={e.lastName} size="lg" />
+          <div className="min-w-0 flex-1 basis-56">
+            <h1 className="text-xl font-semibold">
+              {e.firstName} {e.lastName}
+            </h1>
+            <p className="text-sm text-muted">
+              {[e.jobTitle, e.department, e.company, e.employeeNumber].filter(Boolean).join(' · ')}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <StatusBadge e={e} />
+              {e.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[e.employmentType]}</Badge>}
+            </div>
+          </div>
+          {canEdit && !editing && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setTab('overview');
+                setSaved(false);
+                setEditing(true);
+              }}
+            >
+              <Pencil className="size-4" aria-hidden /> Edit details
+            </Button>
+          )}
+        </section>
+      )}
+      {!isNew && (
+        <Tabs
+          label="Employee record"
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'overview', label: 'Overview' },
+            { id: 'leave', label: 'Leave' },
+            { id: 'history', label: 'History' },
+          ]}
+        />
+      )}
+      {(isNew || tab === 'overview') && (
+        <div
+          id="panel-overview"
+          role={isNew ? undefined : 'tabpanel'}
+          className={sidePanels ? 'grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}
+        >
+          {isNew || editing ? (
+            <EmployeeForm
+              employee={e}
+              isNew={isNew}
+              onDone={() => {
+                setEditing(false);
+                setSaved(true);
+              }}
+              onCancel={() => setEditing(false)}
+            />
+          ) : (
+            <EmployeeDetails employee={e} saved={saved} />
+          )}
+          {sidePanels && (
+            <div className="grid content-start gap-6">
+              {e.directReports.length > 0 && (
+                <Section title="Direct reports">
+                  <ul className="space-y-2 text-sm">
+                    {e.directReports.map((r) => (
+                      <li key={r.id}>
+                        <Link to={`/people/employees/${r.id}`} className="text-brand hover:underline">
+                          {r.name}
+                        </Link>
+                        <span className="text-muted"> · {r.jobTitle ?? r.employeeNumber}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+              {/* Microsoft account, roles and deactivation are for System Administrators (D46). */}
+              {me.roles.includes('HR_ADMIN') && (
+                <>
+                  <IdentityPanel employee={e} />
+                  <RolesPanel employee={e} />
+                  <StatusPanel employee={e} />
+                </>
               )}
             </div>
-          )
-        }
-      />
-      <div className={sidePanels ? 'grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}>
-        {isNew || editing ? (
-          <EmployeeForm
-            employee={e}
-            isNew={isNew}
-            onDone={() => {
-              setEditing(false);
-              setSaved(true);
-            }}
-            onCancel={() => setEditing(false)}
-          />
-        ) : (
-          <EmployeeDetails employee={e} saved={saved} />
-        )}
-        {sidePanels && (
-          <div className="grid content-start gap-6">
-            {/* Microsoft account, roles and deactivation are for System Administrators (D46). */}
-            {me.roles.includes('HR_ADMIN') && (
-              <>
-                <IdentityPanel employee={e} />
-                <RolesPanel employee={e} />
-                <StatusPanel employee={e} />
-              </>
-            )}
-            {e.directReports.length > 0 && (
-              <Section title="Direct reports">
-                <ul className="space-y-1.5 text-sm">
-                  {e.directReports.map((r) => (
-                    <li key={r.id}>
-                      <Link to={`/admin/employees/${r.id}`} className="text-brand hover:underline">
-                        {r.name}
-                      </Link>{' '}
-                      <span className="text-muted">{r.employeeNumber}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Section>
-            )}
-          </div>
-        )}
-      </div>
-      {!isNew && (
-        <div className="mt-6">
-          {me.roles.includes('HR_OFFICER') ? (
+          )}
+        </div>
+      )}
+      {!isNew && tab === 'leave' && (
+        <div id="panel-leave" role="tabpanel">
+          {canEdit ? (
             <EmployeeBalances employeeId={e.id} />
           ) : (
             <Notice tone="neutral" title="Leave balances">
-              Balances and adjustments are managed by HR Officers. Add the HR Officer role to see them here.
+              Balances and adjustments are managed by HR Officers.
             </Notice>
           )}
         </div>
       )}
+      {!isNew && tab === 'history' && (
+        <div id="panel-history" role="tabpanel">
+          <History employeeId={e.id} />
+        </div>
+      )}
     </div>
+  );
+}
+
+const EVENTS = {
+  CREATED: 'Record created',
+  DEACTIVATED: 'Marked as left',
+  REACTIVATED: 'Made active again',
+};
+
+/** Every change to the record, newest first (D52). */
+function History({ employeeId }) {
+  const q = useQuery({
+    queryKey: ['employee-history', String(employeeId)],
+    queryFn: () => api.get(`/api/people/employees/${employeeId}/history`),
+  });
+  if (q.isPending) return <Loading />;
+  if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;
+  if (!q.data.items.length) return <Notice tone="neutral" title="No changes recorded yet." />;
+  return (
+    <Section title="History" description="Every change to this record, with who made it">
+      <ol className="divide-y divide-rule text-sm">
+        {q.data.items.map((h) => {
+          const label = FIELD_LABELS[h.field] ?? h.field;
+          const from = historyValue(h.field, h.from);
+          const to = historyValue(h.field, h.to);
+          return (
+            <li key={h.id} className="flex gap-3 py-3">
+              <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
+              <div className="min-w-0">
+                {h.event === 'UPDATED' ? (
+                  <p>
+                    <span className="font-medium">{label}</span>{' '}
+                    {from ? (
+                      <>
+                        changed from <span className="text-muted line-through">{from}</span> to{' '}
+                        <span className="font-medium">{to ?? 'nothing'}</span>
+                      </>
+                    ) : (
+                      <>
+                        set to <span className="font-medium">{to}</span>
+                      </>
+                    )}
+                    {from && !to && ' (cleared)'}
+                  </p>
+                ) : (
+                  <p className="font-medium">{EVENTS[h.event] ?? h.event}</p>
+                )}
+                {h.reason && <p className="text-muted">{h.reason}</p>}
+                <p className="text-xs text-muted">
+                  {h.by} · {formatDateTime(h.at)}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </Section>
   );
 }
 
@@ -170,6 +278,9 @@ function useInvalidateEmployee(id) {
   return () => {
     qc.invalidateQueries({ queryKey: ['employee', String(id)] });
     qc.invalidateQueries({ queryKey: ['employees'] });
+    qc.invalidateQueries({ queryKey: ['employee-history', String(id)] });
+    qc.invalidateQueries({ queryKey: ['people-dashboard'] });
+    qc.invalidateQueries({ queryKey: ['people-quick'] });
     qc.invalidateQueries({ queryKey: ['employee-options'] });
     qc.invalidateQueries({ queryKey: ['companies'] });
     qc.invalidateQueries({ queryKey: ['me'] });
@@ -191,6 +302,16 @@ function EmployeeDetails({ employee: e, saved }) {
     ['Sex', SEX[e.sex]],
     ['Start date', e.employmentStartDate && formatDate(e.employmentStartDate)],
     ['End date', e.employmentEndDate && formatDate(e.employmentEndDate)],
+    ['Employment type', EMPLOYMENT_TYPES[e.employmentType]],
+    ['Contract end', e.contractEndDate && formatDate(e.contractEndDate)],
+    [
+      'Probation',
+      e.probationStatus &&
+        [PROBATION[e.probationStatus], e.probationEndDate && `ends ${formatDate(e.probationEndDate)}`]
+          .filter(Boolean)
+          .join(', '),
+    ],
+    ['Pay grade', e.payGrade],
     ['Working schedule', e.workSchedule ?? 'Group default'],
   ];
   return (
@@ -266,7 +387,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
       if (isNew) {
         const { id } = await api.post('/api/admin/employees', toPayload(values));
         invalidate();
-        navigate(`/admin/employees/${id}`, { replace: true });
+        navigate(`/people/employees/${id}`, { replace: true });
       } else {
         await api.patch(`/api/admin/employees/${employee.id}`, toPayload(values, Object.keys(dirtyFields)));
         invalidate();
@@ -408,6 +529,50 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
             invalid={!!err('employmentEndDate')}
             {...register('employmentEndDate')}
           />
+        </Field>
+        <Field id="employmentType" label="Employment type" error={err('employmentType')}>
+          <Select id="employmentType" invalid={!!err('employmentType')} {...register('employmentType')}>
+            <option value="">Not recorded</option>
+            {Object.entries(EMPLOYMENT_TYPES).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field
+          id="contractEndDate"
+          label="Contract end"
+          error={err('contractEndDate')}
+          hint="For fixed-term and temporary staff."
+        >
+          <Input
+            id="contractEndDate"
+            type="date"
+            invalid={!!err('contractEndDate')}
+            {...register('contractEndDate')}
+          />
+        </Field>
+        <Field id="probationStatus" label="Probation" error={err('probationStatus')}>
+          <Select id="probationStatus" invalid={!!err('probationStatus')} {...register('probationStatus')}>
+            <option value="">Not recorded</option>
+            {Object.entries(PROBATION).map(([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field id="probationEndDate" label="Probation end" error={err('probationEndDate')}>
+          <Input
+            id="probationEndDate"
+            type="date"
+            invalid={!!err('probationEndDate')}
+            {...register('probationEndDate')}
+          />
+        </Field>
+        <Field id="payGrade" label="Pay grade" error={err('payGrade')} hint="Seen only by HR and directors.">
+          <Input id="payGrade" invalid={!!err('payGrade')} {...register('payGrade')} />
         </Field>
         <Field
           id="workScheduleId"

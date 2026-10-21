@@ -102,7 +102,7 @@ function RequestRow({ request, candidates }) {
         {candidates.length === 0 ? (
           <div className="text-sm text-muted">
             No unlinked employees.{' '}
-            <ButtonLink to="/admin/employees/new" variant="ghost" className="h-auto px-1">
+            <ButtonLink to="/people/employees/new" variant="ghost" className="h-auto px-1">
               Add employee
             </ButtonLink>
           </div>

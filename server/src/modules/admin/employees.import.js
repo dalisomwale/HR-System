@@ -379,7 +379,7 @@ export async function commitImport(db, csvText, audit) {
       const id = await createEmployee(
         trx,
         { ...row.input, companyId: companyId(row.companyKey), departmentId, lineManagerId: null },
-        { ...audit },
+        { ...audit, historyReason: 'Imported from a file' },
       );
       idByNumber.set(row.employeeNumber, id);
     }

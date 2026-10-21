@@ -1,0 +1,382 @@
+import { notFound } from '../../utils/errors.js';
+import { todayInLusaka } from '../../utils/dates.js';
+import { addDays } from '../leave/calendar.js';
+import { personalOf } from '../profile/profile.routes.js';
+
+/*
+ * Employee management (phase 2, D52): the central employee record. Every HR module reads people
+ * from here; only this module (and the leave system's HR screens, which call the same service)
+ * changes them.
+ */
+
+const name = (f, l) => (f ? `${f} ${l}` : null);
+const SOON_DAYS = 30;
+const CONTRACT_DAYS = 60;
+
+/** Quick filters on the directory, each a condition on the active staff list. */
+export const QUICK_FILTERS = {
+  probation: {
+    label: 'On probation',
+    apply: (q) => q.whereIn('e.probation_status', ['ON_PROBATION', 'EXTENDED']),
+  },
+  contractEnding: {
+    label: 'Contract ending soon',
+    apply: (q, today) => q.whereBetween('e.contract_end_date', [today, addDays(today, CONTRACT_DAYS)]),
+  },
+  startingSoon: {
+    label: 'Starting soon',
+    apply: (q, today) =>
+      q
+        .where('e.employment_start_date', '>', today)
+        .andWhere('e.employment_start_date', '<=', addDays(today, SOON_DAYS)),
+  },
+  leavingSoon: {
+    label: 'Leaving soon',
+    apply: (q, today) => q.whereBetween('e.employment_end_date', [today, addDays(today, SOON_DAYS)]),
+  },
+  noManager: { label: 'No line manager', apply: (q) => q.whereNull('e.line_manager_id') },
+  notLinked: { label: 'No Microsoft account linked', apply: (q) => q.whereNull('l.id') },
+};
+
+function baseList(db) {
+  return db('employees as e')
+    .leftJoin('companies as c', 'c.id', 'e.company_id')
+    .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
+    .leftJoin('identity_links as l', 'l.employee_id', 'e.id');
+}
+
+/** The directory: search, filters and one quick filter, paged. */
+export async function listEmployees(db, query, { page, pageSize, offset }) {
+  const today = todayInLusaka();
+  const q = baseList(db);
+  const search = String(query.search ?? '').trim();
+  if (search) {
+    const like = `%${search.replace(/[%_\\]/g, '\\$&')}%`;
+    q.where((w) =>
+      w
+        .where('e.first_name', 'like', like)
+        .orWhere('e.last_name', 'like', like)
+        .orWhere('e.employee_number', 'like', like)
+        .orWhere('e.email', 'like', like)
+        .orWhere('e.job_title', 'like', like)
+        .orWhereRaw("CONCAT(e.first_name, ' ', e.last_name) LIKE ?", [like]),
+    );
+  }
+  if (['ACTIVE', 'INACTIVE'].includes(query.status)) q.where('e.status', query.status);
+  if (query.companyId === 'none') q.whereNull('e.company_id');
+  else if (query.companyId) q.where('e.company_id', Number(query.companyId) || 0);
+  if (query.departmentId) q.where('e.department_id', Number(query.departmentId) || 0);
+  if (query.employmentType) q.where('e.employment_type', String(query.employmentType));
+  if (query.linked === 'false') q.whereNull('l.id');
+  if (query.linked === 'true') q.whereNotNull('l.id');
+  const quick = QUICK_FILTERS[query.filter];
+  if (quick) {
+    q.where('e.status', 'ACTIVE');
+    quick.apply(q, today);
+  }
+
+  const { total } = await q.clone().count({ total: '*' }).first();
+  const rows = await q
+    .select(
+      'e.id',
+      'e.employee_number',
+      'e.first_name',
+      'e.last_name',
+      'e.email',
+      'e.job_title',
+      'e.status',
+      'e.employment_type',
+      'e.employment_start_date',
+      'e.employment_end_date',
+      'e.contract_end_date',
+      'e.probation_end_date',
+      'e.probation_status',
+      'c.name as company_name',
+      'd.name as department_name',
+      'm.id as manager_id',
+      'm.first_name as manager_first',
+      'm.last_name as manager_last',
+      db.raw('l.id IS NOT NULL as linked'),
+    )
+    .orderBy([{ column: 'e.last_name' }, { column: 'e.first_name' }])
+    .limit(pageSize)
+    .offset(offset);
+  const ids = rows.map((r) => r.id);
+  const roleRows = ids.length
+    ? await db('employee_roles as er')
+        .join('roles as r', 'r.id', 'er.role_id')
+        .whereIn('er.employee_id', ids)
+        .select('er.employee_id', 'r.code')
+    : [];
+  return {
+    total: Number(total),
+    page,
+    pageSize,
+    items: rows.map((r) => ({
+      id: r.id,
+      employeeNumber: r.employee_number,
+      firstName: r.first_name,
+      lastName: r.last_name,
+      email: r.email,
+      jobTitle: r.job_title,
+      status: r.status,
+      company: r.company_name,
+      department: r.department_name,
+      lineManager: name(r.manager_first, r.manager_last),
+      lineManagerId: r.manager_id,
+      employmentType: r.employment_type,
+      employmentStartDate: r.employment_start_date,
+      employmentEndDate: r.employment_end_date,
+      contractEndDate: r.contract_end_date,
+      probationEndDate: r.probation_end_date,
+      probationStatus: r.probation_status,
+      linked: Boolean(r.linked),
+      roles: roleRows.filter((x) => x.employee_id === r.id).map((x) => x.code),
+    })),
+  };
+}
+
+/** How many active people each quick filter would show, for the chips above the directory. */
+export async function quickFilterCounts(db, companyId = null) {
+  const today = todayInLusaka();
+  const out = {};
+  for (const [key, f] of Object.entries(QUICK_FILTERS)) {
+    const q = baseList(db).where('e.status', 'ACTIVE');
+    if (companyId) q.where('e.company_id', companyId);
+    f.apply(q, today);
+    const { n } = await q.count({ n: '*' }).first();
+    out[key] = { label: f.label, count: Number(n) };
+  }
+  return out;
+}
+
+/** One employee's full record, pay grade included: only HR and directors reach it. */
+export async function employeeRecord(db, id) {
+  const e = await db('employees as e')
+    .leftJoin('companies as c', 'c.id', 'e.company_id')
+    .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
+    .leftJoin('work_schedules as w', 'w.id', 'e.work_schedule_id')
+    .where('e.id', id)
+    .first(
+      'e.*',
+      'c.name as company_name',
+      'd.name as department_name',
+      'm.first_name as manager_first',
+      'm.last_name as manager_last',
+      'm.employee_number as manager_number',
+      'w.name as schedule_name',
+    );
+  if (!e) throw notFound('Employee not found.');
+  const link = await db('identity_links').where({ employee_id: id }).first();
+  const roles = await db('employee_roles as er')
+    .join('roles as r', 'r.id', 'er.role_id')
+    .where('er.employee_id', id)
+    .pluck('r.code');
+  const reports = await db('employees')
+    .where({ line_manager_id: id, status: 'ACTIVE' })
+    .orderBy(['last_name', 'first_name'])
+    .select('id', 'first_name', 'last_name', 'employee_number', 'job_title');
+  return {
+    id: e.id,
+    employeeNumber: e.employee_number,
+    firstName: e.first_name,
+    lastName: e.last_name,
+    email: e.email,
+    jobTitle: e.job_title,
+    sex: e.sex,
+    companyId: e.company_id,
+    company: e.company_name,
+    departmentId: e.department_id,
+    department: e.department_name,
+    lineManagerId: e.line_manager_id,
+    lineManager: e.manager_first ? `${e.manager_first} ${e.manager_last} (${e.manager_number})` : null,
+    workScheduleId: e.work_schedule_id,
+    workSchedule: e.schedule_name,
+    employmentStartDate: e.employment_start_date,
+    employmentEndDate: e.employment_end_date,
+    employmentType: e.employment_type,
+    contractEndDate: e.contract_end_date,
+    probationEndDate: e.probation_end_date,
+    probationStatus: e.probation_status,
+    payGrade: e.pay_grade,
+    personal: personalOf(e),
+    status: e.status,
+    deactivatedAt: e.deactivated_at,
+    roles,
+    identity: link
+      ? {
+          objectId: link.object_id,
+          email: link.email_at_link,
+          linkedVia: link.linked_via,
+          linkedAt: link.linked_at,
+          lastSignInAt: link.last_sign_in_at,
+        }
+      : null,
+    directReports: reports.map((r) => ({
+      id: r.id,
+      name: `${r.first_name} ${r.last_name}`,
+      employeeNumber: r.employee_number,
+      jobTitle: r.job_title,
+    })),
+  };
+}
+
+/** The record's history, newest first. */
+export async function employeeHistory(db, id, limit = 200) {
+  const rows = await db('employee_history as h')
+    .leftJoin('employees as a', 'a.id', 'h.actor_id')
+    .where('h.employee_id', id)
+    .orderBy('h.id', 'desc')
+    .limit(limit)
+    .select('h.*', 'a.first_name', 'a.last_name');
+  return rows.map((h) => ({
+    id: h.id,
+    event: h.event,
+    field: h.field,
+    from: h.old_value,
+    to: h.new_value,
+    reason: h.reason,
+    by: name(h.first_name, h.last_name) ?? 'System',
+    at: h.created_at,
+  }));
+}
+
+/** Figures and lists for the Employee management dashboard, optionally for one company. */
+export async function peopleDashboard(db, companyId = null) {
+  const today = todayInLusaka();
+  const year = Number(today.slice(0, 4));
+  const inCompany = (q) => (companyId ? q.where('e.company_id', companyId) : q);
+  const active = () => db('employees as e').where('e.status', 'ACTIVE').modify(inCompany);
+  const count = async (q) => Number((await q.count({ n: '*' }).first()).n);
+
+  const people = (q) =>
+    q
+      .leftJoin('departments as d', 'd.id', 'e.department_id')
+      .leftJoin('companies as c', 'c.id', 'e.company_id')
+      .select(
+        'e.id',
+        'e.first_name',
+        'e.last_name',
+        'e.job_title',
+        'd.name as department',
+        'c.name as company',
+        'e.employment_start_date',
+        'e.employment_end_date',
+        'e.contract_end_date',
+        'e.probation_end_date',
+        'e.probation_status',
+      );
+  const person = (r) => ({
+    id: r.id,
+    name: name(r.first_name, r.last_name),
+    jobTitle: r.job_title,
+    department: r.department,
+    company: r.company,
+    startDate: r.employment_start_date,
+    endDate: r.employment_end_date,
+    contractEndDate: r.contract_end_date,
+    probationEndDate: r.probation_end_date,
+    probationStatus: r.probation_status,
+  });
+
+  const headcount = await count(active());
+  const startingSoon = await people(active())
+    .where('e.employment_start_date', '>', today)
+    .andWhere('e.employment_start_date', '<=', addDays(today, SOON_DAYS))
+    .orderBy('e.employment_start_date');
+  const leavingSoon = await people(active())
+    .whereBetween('e.employment_end_date', [today, addDays(today, SOON_DAYS)])
+    .orderBy('e.employment_end_date');
+  const contractsEnding = await people(active())
+    .whereBetween('e.contract_end_date', [today, addDays(today, CONTRACT_DAYS)])
+    .orderBy('e.contract_end_date');
+  const probationDue = await people(active())
+    .whereIn('e.probation_status', ['ON_PROBATION', 'EXTENDED'])
+    .andWhere('e.probation_end_date', '<=', addDays(today, SOON_DAYS))
+    .orderBy('e.probation_end_date');
+
+  const byCompany = await db('employees as e')
+    .leftJoin('companies as c', 'c.id', 'e.company_id')
+    .where('e.status', 'ACTIVE')
+    .modify(inCompany)
+    .groupBy('e.company_id', 'c.name')
+    .select('e.company_id as id', 'c.name')
+    .count({ n: '*' });
+  const byDepartment = await db('employees as e')
+    .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .leftJoin('companies as c', 'c.id', 'e.company_id')
+    .where('e.status', 'ACTIVE')
+    .modify(inCompany)
+    .groupBy('e.department_id', 'd.name', 'c.name')
+    .select('e.department_id as id', 'd.name', 'c.name as company')
+    .count({ n: '*' });
+  const byType = await active()
+    .groupBy('e.employment_type')
+    .select('e.employment_type as type')
+    .count({ n: '*' });
+
+  // Joiners and leavers by month of the year, from start and end dates.
+  const monthly = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, joined: 0, left: 0 }));
+  const joined = await db('employees as e')
+    .modify(inCompany)
+    .whereBetween('e.employment_start_date', [`${year}-01-01`, `${year}-12-31`])
+    .groupByRaw('MONTH(e.employment_start_date)')
+    .select(db.raw('MONTH(e.employment_start_date) as m'))
+    .count({ n: '*' });
+  const left = await db('employees as e')
+    .modify(inCompany)
+    .whereBetween('e.employment_end_date', [`${year}-01-01`, `${year}-12-31`])
+    .groupByRaw('MONTH(e.employment_end_date)')
+    .select(db.raw('MONTH(e.employment_end_date) as m'))
+    .count({ n: '*' });
+  for (const r of joined) monthly[Number(r.m) - 1].joined = Number(r.n);
+  for (const r of left) monthly[Number(r.m) - 1].left = Number(r.n);
+
+  const recent = await db('employee_history as h')
+    .join('employees as e', 'e.id', 'h.employee_id')
+    .leftJoin('employees as a', 'a.id', 'h.actor_id')
+    .modify(inCompany)
+    .orderBy('h.id', 'desc')
+    .limit(10)
+    .select('h.*', 'e.first_name', 'e.last_name', 'a.first_name as a_first', 'a.last_name as a_last');
+
+  const companies = await db('companies').where({ is_active: true }).orderBy('name').select('id', 'name');
+
+  return {
+    year,
+    companyId,
+    companies,
+    headcount,
+    counts: {
+      startingSoon: startingSoon.length,
+      leavingSoon: leavingSoon.length,
+      contractsEnding: contractsEnding.length,
+      probationDue: probationDue.length,
+    },
+    startingSoon: startingSoon.map(person),
+    leavingSoon: leavingSoon.map(person),
+    contractsEnding: contractsEnding.map(person),
+    probationDue: probationDue.map(person),
+    byCompany: byCompany
+      .map((r) => ({ id: r.id, name: r.name ?? 'No company', count: Number(r.n) }))
+      .sort((a, b) => b.count - a.count),
+    byDepartment: byDepartment
+      .map((r) => ({ id: r.id, name: r.name ?? 'No department', company: r.company, count: Number(r.n) }))
+      .sort((a, b) => b.count - a.count),
+    byType: byType.map((r) => ({ type: r.type, count: Number(r.n) })),
+    monthly,
+    recentChanges: recent.map((h) => ({
+      id: h.id,
+      employeeId: h.employee_id,
+      employee: name(h.first_name, h.last_name),
+      event: h.event,
+      field: h.field,
+      from: h.old_value,
+      to: h.new_value,
+      by: name(h.a_first, h.a_last) ?? 'System',
+      at: h.created_at,
+    })),
+  };
+}

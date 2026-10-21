@@ -16,6 +16,7 @@ import { leaveRoutes, approvalRoutes, hrRoutes } from './modules/leave/leave.rou
 import { delegationRoutes } from './modules/delegations/delegations.routes.js';
 import { documentRoutes } from './modules/documents/documents.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
+import { peopleRoutes } from './modules/people/people.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
 import { configureNotifications } from './modules/notifications/notify.service.js';
 import { reportRoutes } from './modules/reports/reports.routes.js';
@@ -133,6 +134,7 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/delegations', delegationRoutes(deps));
   app.use('/api/documents', documentRoutes(deps));
   app.use('/api/dashboard', dashboardRoutes(deps));
+  app.use('/api/people', peopleRoutes(deps));
   app.use('/api/notifications', notificationRoutes(deps));
   app.use('/api/reports', reportRoutes(deps));
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import logo from '../assets/brand/altus-logo.png';
 import {
   ArrowLeft,
@@ -52,14 +52,20 @@ const MANAGER = [
 const HR = [
   { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true },
   { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck },
-  { to: '/admin/employees', label: 'Employees', icon: Users },
-  { to: '/admin/companies', label: 'Companies', icon: Landmark },
-  { to: '/admin/departments', label: 'Departments', icon: Building2 },
   { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks },
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck },
   { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
   { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
   { to: '/reports', label: 'Reports', icon: FileBarChart },
+];
+// Employee management (D52): the central employee record, its own menu.
+const PEOPLE = [
+  { to: '/people', label: 'Dashboard', icon: LayoutGrid, end: true },
+  { to: '/people/employees', label: 'Directory', icon: Users },
+];
+const ORGANISATION = [
+  { to: '/people/companies', label: 'Companies', icon: Landmark },
+  { to: '/people/departments', label: 'Departments', icon: Building2 },
 ];
 const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
 const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
@@ -108,8 +114,33 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
   );
 }
 
+/** The leave system's menu: what each person does, by role. */
+function LeaveNav({ user, counts, onNavigate }) {
+  return (
+    <>
+      <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
+      {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
+        <NavGroup
+          title="Department Manager"
+          items={(seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]).filter(
+            (i) => !i.managersOnly || user.isManager,
+          )}
+          onNavigate={onNavigate}
+        />
+      )}
+      {hasRole(user, 'HR_OFFICER') && <NavGroup title="HR" items={HR} onNavigate={onNavigate} />}
+      {!hasRole(user, 'HR_OFFICER') && seesWholeGroup(user) && (
+        <NavGroup title="Directors" items={DIRECTORS} onNavigate={onNavigate} />
+      )}
+      {hasRole(user, 'HR_ADMIN') && <NavGroup title="Administration" items={ADMIN} onNavigate={onNavigate} />}
+    </>
+  );
+}
+
 export default function AppShell() {
   const { data: user } = useMe();
+  const { pathname } = useLocation();
+  const inPeople = pathname === '/people' || pathname.startsWith('/people/');
   const [menuOpen, setMenuOpen] = useState(false);
   // Unread notifications, refreshed every minute and when the window regains focus.
   const unread = useQuery({
@@ -152,28 +183,25 @@ export default function AppShell() {
           <ArrowLeft className="size-3.5" aria-hidden /> Back to applications
         </Link>
       </div>
-      <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={() => setMenuOpen(false)} />
-      {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
-        <NavGroup
-          title="Department Manager"
-          items={(seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]).filter(
-            (i) => !i.managersOnly || user.isManager,
+      {inPeople ? (
+        <>
+          <NavGroup title="People" items={PEOPLE} onNavigate={() => setMenuOpen(false)} />
+          {hasRole(user, 'HR_OFFICER') && (
+            <NavGroup title="Organisation" items={ORGANISATION} onNavigate={() => setMenuOpen(false)} />
           )}
-          onNavigate={() => setMenuOpen(false)}
-        />
-      )}
-      {hasRole(user, 'HR_OFFICER') && (
-        <NavGroup title="HR" items={HR} onNavigate={() => setMenuOpen(false)} />
-      )}
-      {!hasRole(user, 'HR_OFFICER') && seesWholeGroup(user) && (
-        <NavGroup title="Directors" items={DIRECTORS} onNavigate={() => setMenuOpen(false)} />
-      )}
-      {hasRole(user, 'HR_ADMIN') && (
-        <NavGroup title="Administration" items={ADMIN} onNavigate={() => setMenuOpen(false)} />
+          {hasRole(user, 'HR_ADMIN') && (
+            <NavGroup
+              title="Administration"
+              items={ADMIN.filter((i) => ['/admin/roles', '/admin/sign-in-requests'].includes(i.to))}
+              onNavigate={() => setMenuOpen(false)}
+            />
+          )}
+        </>
+      ) : (
+        <LeaveNav user={user} counts={counts} onNavigate={() => setMenuOpen(false)} />
       )}
     </>
   );
-
   return (
     <div className="min-h-screen">
       <a
@@ -187,7 +215,7 @@ export default function AppShell() {
           <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
             <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
-              Leave Management
+              {inPeople ? 'Employee Management' : 'Leave Management'}
             </span>
           </Link>
           <Link

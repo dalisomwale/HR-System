@@ -64,7 +64,7 @@ function useRefresh() {
 function PersonCell({ p }) {
   return (
     <Td>
-      <Link to={`/admin/employees/${p.id}`} className="font-medium text-brand hover:underline">
+      <Link to={`/people/employees/${p.id}`} className="font-medium text-brand hover:underline">
         {p.name}
       </Link>
       <p className="text-xs text-muted">{[p.jobTitle, p.company].filter(Boolean).join(' · ')}</p>

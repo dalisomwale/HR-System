@@ -113,7 +113,7 @@ export default function CompaniesPage() {
               <Notice tone="pending" title="Staff without a company">
                 {list.data.activeWithoutCompany} active employee
                 {list.data.activeWithoutCompany === 1 ? ' has' : 's have'} no company.{' '}
-                <Link to="/admin/employees?companyId=none" className="underline">
+                <Link to="/people/employees?companyId=none" className="underline">
                   Show them
                 </Link>
               </Notice>
@@ -146,7 +146,7 @@ export default function CompaniesPage() {
                         <Td className="text-right">{c.departments}</Td>
                         <Td className="text-right">
                           <Link
-                            to={`/admin/employees?companyId=${c.id}`}
+                            to={`/people/employees?companyId=${c.id}`}
                             className="text-brand hover:underline"
                           >
                             {c.activeEmployees}
