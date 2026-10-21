@@ -191,3 +191,31 @@ describe('statistics', () => {
     expect(c.companies.every((x) => x.bySex && 'FEMALE' in x.bySex)).toBe(true);
   });
 });
+
+describe('employee overview', () => {
+  it('gives one person their service, contract and record completeness', async () => {
+    const today = todayInLusaka();
+    const id = (
+      await post(
+        '/api/admin/employees',
+        newEmployee({
+          employmentStartDate: '2024-01-15',
+          employmentType: 'FIXED_TERM',
+          contractEndDate: addDays(today, 40),
+          email: `p${Date.now()}@example.test`,
+        }),
+      )
+    ).body.id;
+    const o = (await hr.agent.get(`/api/people/employees/${id}/overview`)).body;
+    expect(o.service.started).toBe(true);
+    expect(o.service.months).toBeGreaterThanOrEqual(24);
+    expect(o.contract).toMatchObject({ type: 'FIXED_TERM', daysLeft: 40 });
+    expect(o.monthly).toHaveLength(12);
+    const done = o.completeness.filter((c) => c.done).map((c) => c.label);
+    expect(done).toEqual(expect.arrayContaining(['Work email', 'Employment type', 'Contract end date']));
+    expect(done).not.toContain('Line manager');
+    const staff = await fixtureEmployee(db);
+    const s = await signIn(app, entra, { oid: staff.oid });
+    expect((await s.agent.get(`/api/people/employees/${id}/overview`)).status).toBe(403);
+  });
+});

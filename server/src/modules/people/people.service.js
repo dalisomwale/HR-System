@@ -2,6 +2,8 @@ import { notFound } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { addDays } from '../leave/calendar.js';
 import { personalOf } from '../profile/profile.routes.js';
+import { annualPosition } from '../leave/balance.service.js';
+import { daysByType, monthlyTakenBooked, requestOutcomes } from '../dashboard/charts.service.js';
 
 /*
  * Employee management (phase 2, D52): the central employee record. Every HR module reads people
@@ -564,5 +566,107 @@ export async function departmentsOverview(db, companyId = null) {
         ...(figures.get(d.id) ?? {}),
       })),
     withoutDepartment: figures.get(null)?.headcount ?? 0,
+  };
+}
+
+/*
+ * One employee's overview (D66): figures for the statistics on the record's Overview tab.
+ * Leave figures come from the same queries as the leave dashboards, limited to this person.
+ */
+export async function employeeOverview(db, id) {
+  const e = await db('employees').where({ id }).first();
+  if (!e) throw notFound('Employee not found.');
+  const today = todayInLusaka();
+  const year = Number(today.slice(0, 4));
+  const own = (q) => q.where('r.employee_id', id);
+  const daysUntil = (d) =>
+    d ? Math.round((Date.parse(`${d}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 864e5) : null;
+
+  const months = monthsOfService(e.employment_start_date, today);
+  const annualType = await db('leave_types').where({ code: 'ANNUAL', is_active: true }).first('id', 'name');
+  const annual = annualType ? await annualPosition(db, id, annualType.id, year) : null;
+
+  const next = await db('leave_requests as r')
+    .join('leave_types as t', 't.id', 'r.leave_type_id')
+    .where('r.employee_id', id)
+    .where('r.status', 'APPROVED')
+    .andWhere('r.end_date', '>=', today)
+    .orderBy('r.start_date')
+    .first('r.id', 'r.start_date', 'r.end_date', 'r.chargeable_days', 't.name as type');
+
+  const link = await db('identity_links').where({ employee_id: id }).first('id');
+  const reports = await db('employees')
+    .where({ line_manager_id: id, status: 'ACTIVE' })
+    .count({ n: '*' })
+    .first();
+  const changes = await db('employee_history').where({ employee_id: id }).count({ n: '*' }).first();
+  const lastChange = await db('employee_history')
+    .where({ employee_id: id })
+    .orderBy('id', 'desc')
+    .first('created_at');
+
+  // What makes a record complete, in the order HR would fill it in.
+  const checks = [
+    ['Work email', !!e.email],
+    ['Department', !!e.department_id],
+    ['Line manager', !!e.line_manager_id],
+    ['Employment type', !!e.employment_type],
+    ...(e.employment_type && e.employment_type !== 'PERMANENT'
+      ? [['Contract end date', !!e.contract_end_date]]
+      : []),
+    ['Microsoft account linked', !!link],
+    ['Mobile number', !!e.mobile_phone],
+    ['Personal email', !!e.personal_email],
+    ['Home address', !!e.home_address],
+    ['Next of kin name', !!e.emergency_contact_name],
+    ['Next of kin phone', !!e.emergency_contact_phone],
+  ].map(([label, done]) => ({ label, done }));
+
+  return {
+    year,
+    today,
+    service: {
+      startDate: e.employment_start_date,
+      months: months ?? 0,
+      started: months !== null,
+    },
+    contract: {
+      type: e.employment_type,
+      endDate: e.contract_end_date,
+      daysLeft: daysUntil(e.contract_end_date),
+      leavingDate: e.employment_end_date,
+    },
+    probation: {
+      status: e.probation_status,
+      endDate: e.probation_end_date,
+      daysLeft: daysUntil(e.probation_end_date),
+    },
+    annual: annual
+      ? {
+          leaveType: annualType.name,
+          taken: annual.taken,
+          pending: annual.pending,
+          available: annual.available,
+          balance: annual.balance,
+          carriedForward: annual.carriedForward,
+        }
+      : null,
+    monthly: await monthlyTakenBooked(db, own, year, today),
+    byType: await daysByType(db, own, year),
+    outcomes: await requestOutcomes(db, own, year),
+    nextLeave: next
+      ? {
+          id: next.id,
+          startDate: next.start_date,
+          endDate: next.end_date,
+          days: Number(next.chargeable_days),
+          type: next.type,
+          now: next.start_date <= today,
+        }
+      : null,
+    directReports: Number(reports.n),
+    changes: Number(changes.n),
+    lastChangeAt: lastChange?.created_at ?? null,
+    completeness: checks,
   };
 }

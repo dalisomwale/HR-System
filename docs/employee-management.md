@@ -36,8 +36,10 @@ company and Add department are for HR Officers.
 - **Employees**: search by name, job title, number or email; filter by company, department,
   employment type and status; quick filters (on probation, contract ending soon, starting soon,
   leaving soon, no line manager, no Microsoft account linked).
-- **Employee record**: header with status and employment type; tabs for Overview (employment
-  and personal details, direct reports, Microsoft account, roles), Leave (balances) and History.
+- **Employee record** (D66): header with status and employment type; tabs for Overview (the
+  person's statistics: service, leave, contract, timeline, record completeness), Personal
+  details, Next of kin, Job details (employment details, direct reports, Microsoft account,
+  roles and the change history), Leave (balances) and Attendance (coming soon).
 - **Company overview**: each company side by side: staff, employment type split, departments,
   managers, on probation, contracts ending in 60 days, joined and left this year, average
   service, no line manager, staff by department. HR Officers manage companies from here.

@@ -13,6 +13,7 @@ import {
   companiesOverview,
   departmentsOverview,
   employeeHistory,
+  employeeOverview,
   employeeRecord,
   listEmployees,
   peopleDashboard,
@@ -71,6 +72,12 @@ export function peopleRoutes({ db }) {
     '/employees/:id',
     asyncHandler(async (req, res) => {
       res.json(await employeeRecord(db, idParam(req)));
+    }),
+  );
+  router.get(
+    '/employees/:id/overview',
+    asyncHandler(async (req, res) => {
+      res.json(await employeeOverview(db, idParam(req)));
     }),
   );
   router.get(

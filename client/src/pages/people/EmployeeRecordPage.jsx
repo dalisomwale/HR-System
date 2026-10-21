@@ -35,6 +35,7 @@ import {
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import { PERSONAL_FIELDS } from '../employee/ProfilePage.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
+import EmployeeOverview from './EmployeeOverview.jsx';
 
 const FIELDS = [
   'employeeNumber',
@@ -125,7 +126,7 @@ export default function EmployeeRecordPage() {
             <Button
               variant="secondary"
               onClick={() => {
-                setTab('overview');
+                setTab('job');
                 setSaved(false);
                 setEditing(true);
               }}
@@ -142,14 +143,58 @@ export default function EmployeeRecordPage() {
           onChange={setTab}
           tabs={[
             { id: 'overview', label: 'Overview' },
+            { id: 'personal', label: 'Personal details' },
+            { id: 'kin', label: 'Next of kin' },
+            { id: 'job', label: 'Job details' },
             { id: 'leave', label: 'Leave' },
-            { id: 'history', label: 'History' },
+            { id: 'attendance', label: 'Attendance' },
           ]}
         />
       )}
-      {(isNew || tab === 'overview') && (
+      {!isNew && tab === 'overview' && (
+        <div id="panel-overview" role="tabpanel">
+          <EmployeeOverview employee={e} />
+        </div>
+      )}
+      {!isNew && tab === 'personal' && (
+        <div id="panel-personal" role="tabpanel">
+          <InfoList
+            title="Personal details"
+            note="The employee keeps these up to date on My profile; HR records sex."
+            rows={[
+              ['Mobile number', e.personal?.mobilePhone],
+              ['Personal email', e.personal?.personalEmail],
+              ['Home address', e.personal?.homeAddress],
+              ['Sex', SEX[e.sex]],
+            ]}
+          />
+        </div>
+      )}
+      {!isNew && tab === 'kin' && (
+        <div id="panel-kin" role="tabpanel">
+          <InfoList
+            title="Next of kin"
+            note="Who to contact in an emergency. The employee keeps this up to date on My profile."
+            rows={[
+              ['Name', e.personal?.emergencyContactName],
+              ['Relationship', e.personal?.emergencyContactRelationship],
+              ['Phone number', e.personal?.emergencyContactPhone],
+            ]}
+          />
+        </div>
+      )}
+      {!isNew && tab === 'attendance' && (
+        <div id="panel-attendance" role="tabpanel">
+          <Section title="Attendance">
+            <p className="text-sm text-muted">
+              Coming soon. Clock-in times, absences and lateness will appear here once attendance is set up.
+            </p>
+          </Section>
+        </div>
+      )}
+      {(isNew || tab === 'job') && (
         <div
-          id="panel-overview"
+          id="panel-job"
           role={isNew ? undefined : 'tabpanel'}
           className={sidePanels ? 'grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}
         >
@@ -169,7 +214,7 @@ export default function EmployeeRecordPage() {
               onCancel={() => setEditing(false)}
             />
           ) : (
-            <EmployeeDetails employee={e} saved={saved} />
+            <EmployeeDetails employee={e} saved={saved} personal={false} title="Job details" />
           )}
           {sidePanels && (
             <div className="grid content-start gap-6">
@@ -210,12 +255,29 @@ export default function EmployeeRecordPage() {
           )}
         </div>
       )}
-      {!isNew && tab === 'history' && (
-        <div id="panel-history" role="tabpanel">
+      {/* Every change to the record stays with the job details it mostly concerns. */}
+      {!isNew && tab === 'job' && (
+        <div className="mt-6">
           <History employeeId={e.id} />
         </div>
       )}
     </div>
+  );
+}
+
+/** A titled list of label and value pairs. */
+function InfoList({ title, note, rows }) {
+  return (
+    <Section title={title} description={note}>
+      <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[12rem_1fr]">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted">{k}</dt>
+            <dd className="whitespace-pre-line">{v || <span className="text-muted">Not recorded</span>}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
   );
 }
 
@@ -235,7 +297,7 @@ function History({ employeeId }) {
   if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;
   if (!q.data.items.length) return <Notice tone="neutral" title="No changes recorded yet." />;
   return (
-    <Section title="History" description="Every change to this record, with who made it">
+    <Section title="Change history" description="Every change to this record, with who made it">
       <ol className="divide-y divide-rule text-sm">
         {q.data.items.map((h) => {
           const label = FIELD_LABELS[h.field] ?? h.field;
@@ -282,6 +344,7 @@ function useInvalidateEmployee(id) {
     qc.invalidateQueries({ queryKey: ['employee', String(id)] });
     qc.invalidateQueries({ queryKey: ['employees'] });
     qc.invalidateQueries({ queryKey: ['employee-history', String(id)] });
+    qc.invalidateQueries({ queryKey: ['employee-overview', String(id)] });
     qc.invalidateQueries({ queryKey: ['people-dashboard'] });
     qc.invalidateQueries({ queryKey: ['people-quick'] });
     qc.invalidateQueries({ queryKey: ['employee-options'] });
@@ -293,7 +356,7 @@ function useInvalidateEmployee(id) {
 const SEX = { FEMALE: 'Female', MALE: 'Male' };
 
 /** Read-only employment details; the pencil in the page header switches to the form. */
-export function EmployeeDetails({ employee: e, saved }) {
+export function EmployeeDetails({ employee: e, saved, personal = true, title = 'Employment details' }) {
   const none = <span className="text-muted">Not recorded</span>;
   const rows = [
     ['Employee number', e.employeeNumber],
@@ -302,7 +365,7 @@ export function EmployeeDetails({ employee: e, saved }) {
     ['Company', e.company],
     ['Department', e.department],
     ['Manager', e.lineManager],
-    ['Sex', SEX[e.sex]],
+    ...(personal ? [['Sex', SEX[e.sex]]] : []),
     ['Start date', e.employmentStartDate && formatDate(e.employmentStartDate)],
     ['End date', e.employmentEndDate && formatDate(e.employmentEndDate)],
     ['Employment type', EMPLOYMENT_TYPES[e.employmentType]],
@@ -318,7 +381,7 @@ export function EmployeeDetails({ employee: e, saved }) {
     ['Working schedule', e.workSchedule ?? 'Group default'],
   ];
   return (
-    <Section title="Employment details">
+    <Section title={title}>
       {saved && (
         <div className="mb-4">
           <Notice tone="ok">Changes saved.</Notice>
@@ -332,7 +395,7 @@ export function EmployeeDetails({ employee: e, saved }) {
           </div>
         ))}
       </dl>
-      {e.personal && (
+      {personal && e.personal && (
         <>
           <h3 className="mt-6 mb-2 border-t border-rule pt-4 text-sm font-semibold">Personal details</h3>
           <p className="mb-3 text-xs text-muted">Kept up to date by the employee on My profile.</p>
