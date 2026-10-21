@@ -26,7 +26,7 @@ const LONG = [
   'December',
 ];
 
-/** Employee management home: the whole group's people at a glance (D52). */
+/** Employee management home: the whole company's people at a glance (D52). */
 export default function PeopleDashboardPage() {
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
@@ -52,7 +52,7 @@ export default function PeopleDashboardPage() {
                   setParams(e.target.value ? { companyId: e.target.value } : {}, { replace: true })
                 }
               >
-                <option value="">Whole group</option>
+                <option value="">Whole company</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}

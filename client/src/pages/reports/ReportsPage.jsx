@@ -157,7 +157,7 @@ function Filters({ report, options, applied, onApply }) {
             value={v.companyId}
             onChange={(e) => setV((s) => ({ ...s, companyId: e.target.value, departmentId: '' }))}
           >
-            <option value="">{options.scope === 'HR' ? 'Whole group' : 'All companies'}</option>
+            <option value="">{options.scope === 'HR' ? 'Whole company' : 'All companies'}</option>
             {options.companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

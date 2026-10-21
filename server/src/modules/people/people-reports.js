@@ -5,7 +5,7 @@ import { isoDate } from '../../utils/validation.js';
 import { addDays } from '../leave/calendar.js';
 
 /*
- * Employee management reports (D53). HR Officers and directors see the whole group; each report
+ * Employee management reports (D53). HR Officers and directors see the whole company; each report
  * has the same shape as the leave reports, so the same screen shows and exports them.
  */
 

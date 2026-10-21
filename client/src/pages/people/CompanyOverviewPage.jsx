@@ -158,13 +158,13 @@ function Statistics({ companies, year }) {
       <Section title="Staff by company" description="Active staff, by employment type">
         <TypesByGroup groups={groups} label="Active staff in each company by employment type" />
       </Section>
-      <Section title="Employment type" description="Whole group">
+      <Section title="Employment type" description="Whole company">
         <TypeDonutChart byType={sumTypes(companies)} />
       </Section>
       <Section title={`Joined and left in ${year}`} description="By company">
         <MovesByGroup groups={groups} label={`Joined and left in ${year} by company`} />
       </Section>
-      <Section title="Length of service" description="Whole group">
+      <Section title="Length of service" description="Whole company">
         <ServiceChart bands={sumBands(companies)} />
       </Section>
     </div>

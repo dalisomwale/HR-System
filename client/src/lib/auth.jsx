@@ -58,6 +58,6 @@ export function RequireRole({ role, children }) {
 
 export const hasRole = (user, role) => Boolean(user?.roles?.includes(role));
 
-/** Roles that see leave across the whole group. Directors can look but not approve. */
+/** Roles that see leave across the whole company. Directors can look but not approve. */
 export const GROUP_VIEW_ROLES = ['HR_OFFICER', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
 export const seesWholeGroup = (user) => GROUP_VIEW_ROLES.some((r) => hasRole(user, r));

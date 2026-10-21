@@ -30,7 +30,7 @@ export default function HrOverviewPage() {
                 setParams(e.target.value ? { companyId: e.target.value } : {}, { replace: true })
               }
             >
-              <option value="">Whole group</option>
+              <option value="">Whole company</option>
               {companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}

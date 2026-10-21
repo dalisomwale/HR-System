@@ -169,7 +169,7 @@ export async function departmentMembers(db, user) {
   };
 }
 
-/** People for the report when the viewer sees the whole group. */
+/** People for the report when the viewer sees the whole company. */
 export function groupPeople(db, narrow) {
   return peopleQuery(db, narrow);
 }
