@@ -20,10 +20,12 @@ function serviceText(months) {
 }
 
 /** The record's Overview tab: this person's figures as charts (D66). */
-export default function EmployeeOverview({ employee }) {
+export default function EmployeeOverview({ employee, source }) {
+  // My profile passes its own address; HR reads the record by ID (D70).
+  const url = source ?? `/api/people/employees/${employee.id}/overview`;
   const q = useQuery({
-    queryKey: ['employee-overview', String(employee.id)],
-    queryFn: () => api.get(`/api/people/employees/${employee.id}/overview`),
+    queryKey: ['employee-overview', url],
+    queryFn: () => api.get(url),
   });
   if (q.isPending) return <Loading />;
   if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;

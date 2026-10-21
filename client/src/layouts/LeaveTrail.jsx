@@ -86,11 +86,16 @@ export default function LeaveTrail() {
     return null;
   }
 
+  return <Trail items={trail} />;
+}
+
+/** The path shown at the top of a page: links to each step, the last one plain. */
+export function Trail({ items }) {
   return (
     <nav aria-label="You are here" className="mb-4">
       <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-        {trail.map((t, i) => {
-          const last = i === trail.length - 1;
+        {items.map((t, i) => {
+          const last = i === items.length - 1;
           return (
             <Fragment key={`${t.label}-${i}`}>
               <li className={`flex items-center gap-1.5 ${last ? 'min-w-0' : ''}`}>

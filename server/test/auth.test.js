@@ -142,4 +142,16 @@ describe('authorisation', () => {
     expect(res.body.firstName).toBe('Ezra');
     expect(res.body.lineManager).toMatch(/^Mona /);
   });
+
+  it('gives an employee the overview of their own record only', async () => {
+    const mgr = await fixtureEmployee(db, { first_name: 'Mona' });
+    const emp = await fixtureEmployee(db, { first_name: 'Ezra', managerId: mgr.id });
+    const s = await signIn(app, entra, { oid: emp.oid });
+    const own = await s.agent.get('/api/me/profile/overview?employeeId=' + mgr.id);
+    expect(own.status).toBe(200);
+    expect(own.body.directReports).toBe(0);
+    expect(own.body.completeness.length).toBeGreaterThan(0);
+    // The HR version of the same figures stays closed to an ordinary employee.
+    expect((await s.agent.get(`/api/people/employees/${emp.id}/overview`)).status).toBe(403);
+  });
 });

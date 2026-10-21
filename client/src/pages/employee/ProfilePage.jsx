@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil } from 'lucide-react';
+import { CalendarPlus, Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { formatDate, ROLE_LABELS } from '../../lib/format.js';
 import {
+  Badge,
   Button,
+  ButtonLink,
   Details,
   Field,
   Input,
@@ -14,14 +17,20 @@ import {
   Notice,
   PageHeader,
   Section,
+  Tabs,
   Textarea,
   applyServerErrors,
 } from '../../components/ui.jsx';
 import AppFrame from '../../layouts/AppFrame.jsx';
+import { Trail } from '../../layouts/LeaveTrail.jsx';
+import EmployeeOverview from '../people/EmployeeOverview.jsx';
+import { EMPLOYMENT_TYPES, Initials, PROBATION, StatusBadge } from '../people/people-ui.jsx';
+import { Balances, YearSelect } from '../leave/MyLeavePage.jsx';
 
 /*
  * The My profile application. Employment details are kept by HR and shown read-only;
- * the person keeps their own personal details up to date (D48).
+ * the person keeps their own personal details up to date (D48). The tabs match the employee
+ * record HR sees in Employee management (D70).
  */
 
 export const PERSONAL_FIELDS = [
@@ -33,8 +42,27 @@ export const PERSONAL_FIELDS = [
   ['emergencyContactPhone', 'Emergency contact number'],
 ];
 
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'personal', label: 'Personal details' },
+  { id: 'kin', label: 'Next of kin' },
+  { id: 'job', label: 'Job details' },
+  { id: 'leave', label: 'Leave' },
+  { id: 'attendance', label: 'Attendance' },
+];
+
+const CONTACT = PERSONAL_FIELDS.slice(0, 3);
+const KIN = [
+  ['emergencyContactName', 'Name'],
+  ['emergencyContactRelationship', 'Relationship'],
+  ['emergencyContactPhone', 'Phone number'],
+];
+
 export default function ProfilePage() {
   const q = useQuery({ queryKey: ['profile'], queryFn: () => api.get('/api/me/profile') });
+  const [tab, setTab] = useState('overview');
+  const [year, setYear] = useState(new Date().getFullYear());
+  const p = q.data;
   return (
     <AppFrame back>
       {q.isPending ? (
@@ -42,41 +70,132 @@ export default function ProfilePage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
-        <div className="max-w-3xl">
-          <PageHeader title={`${q.data.firstName} ${q.data.lastName}`} />
-          <div className="grid gap-6">
-            <PersonalDetails personal={q.data.personal} />
-            <Section title="Employment details">
-              <Details
-                items={[
-                  ['Employee number', q.data.employeeNumber],
-                  ['Job title', q.data.jobTitle],
-                  ['Company', q.data.company],
-                  ['Department', q.data.department],
-                  ['Manager', q.data.lineManager],
-                  ['Work email', q.data.email],
-                  ['Start date', formatDate(q.data.employmentStartDate)],
-                  ['Working schedule', q.data.workSchedule ?? 'Group default'],
-                  [
-                    'System access',
-                    q.data.roles.length ? q.data.roles.map((r) => ROLE_LABELS[r]).join(', ') : 'Employee',
-                  ],
-                ]}
+        <div>
+          <Trail
+            items={[{ label: 'My profile', to: '/profile' }, { label: TABS.find((t) => t.id === tab).label }]}
+          />
+          <section className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-rule bg-white p-4 sm:p-5">
+            <Initials first={p.firstName} last={p.lastName} size="lg" />
+            <div className="min-w-0 flex-1 basis-56">
+              <h1 className="text-xl font-semibold">
+                {p.firstName} {p.lastName}
+              </h1>
+              <p className="text-sm text-muted">
+                {[p.jobTitle, p.department, p.company, p.employeeNumber].filter(Boolean).join(' · ')}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <StatusBadge e={p} />
+                {p.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[p.employmentType]}</Badge>}
+              </div>
+            </div>
+          </section>
+
+          <Tabs label="My profile" active={tab} onChange={setTab} tabs={TABS} />
+
+          {tab === 'overview' && (
+            <div id="panel-overview" role="tabpanel">
+              <EmployeeOverview source="/api/me/profile/overview" />
+            </div>
+          )}
+          {tab === 'personal' && (
+            <div id="panel-personal" role="tabpanel">
+              <PersonalDetails
+                title="Personal details"
+                note="Keep these up to date. HR uses them to reach you."
+                fields={CONTACT}
+                personal={p.personal}
               />
-            </Section>
-          </div>
+            </div>
+          )}
+          {tab === 'kin' && (
+            <div id="panel-kin" role="tabpanel">
+              <PersonalDetails
+                title="Next of kin"
+                note="Who to contact in an emergency."
+                fields={KIN}
+                personal={p.personal}
+              />
+            </div>
+          )}
+          {tab === 'job' && (
+            <div id="panel-job" role="tabpanel">
+              <Section title="Job details" description="Kept by HR. Ask HR if something is wrong.">
+                <Details
+                  items={[
+                    ['Employee number', p.employeeNumber],
+                    ['Job title', p.jobTitle],
+                    ['Company', p.company],
+                    ['Department', p.department],
+                    ['Line manager', p.lineManager],
+                    ['Work email', p.email],
+                    ['Start date', formatDate(p.employmentStartDate)],
+                    ['Employment type', EMPLOYMENT_TYPES[p.employmentType]],
+                    ['Contract end date', p.contractEndDate && formatDate(p.contractEndDate)],
+                    [
+                      'Probation',
+                      p.probationStatus &&
+                        [
+                          PROBATION[p.probationStatus],
+                          p.probationEndDate && `ends ${formatDate(p.probationEndDate)}`,
+                        ]
+                          .filter(Boolean)
+                          .join(', '),
+                    ],
+                    ['Working schedule', p.workSchedule ?? 'Group default'],
+                    [
+                      'System access',
+                      p.roles.length ? p.roles.map((r) => ROLE_LABELS[r]).join(', ') : 'Employee',
+                    ],
+                  ]}
+                />
+              </Section>
+            </div>
+          )}
+          {tab === 'leave' && (
+            <div id="panel-leave" role="tabpanel">
+              <Section
+                title={`Leave balances, ${year}`}
+                actions={
+                  <div className="flex flex-wrap items-center gap-2">
+                    <YearSelect year={year} setYear={setYear} />
+                    <ButtonLink to="/leave/apply" variant="primary">
+                      <CalendarPlus className="size-4" aria-hidden /> Apply for leave
+                    </ButtonLink>
+                  </div>
+                }
+              >
+                <Balances year={year} bare />
+                <p className="mt-4 text-sm">
+                  <Link to="/leave" className="text-brand hover:underline">
+                    See all my requests
+                  </Link>
+                </p>
+              </Section>
+            </div>
+          )}
+          {tab === 'attendance' && (
+            <div id="panel-attendance" role="tabpanel">
+              <Section title="Attendance">
+                <p className="text-sm text-muted">
+                  Coming soon. Your clock-in times, absences and lateness will appear here once attendance is
+                  set up.
+                </p>
+              </Section>
+            </div>
+          )}
         </div>
       )}
     </AppFrame>
   );
 }
 
-function PersonalDetails({ personal }) {
+/** Some of the person's own details, read-only until the pencil is pressed. */
+function PersonalDetails({ title, note, fields, personal }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [message, setMessage] = useState(null);
-  const blank = Object.fromEntries(PERSONAL_FIELDS.map(([k]) => [k, personal[k] ?? '']));
+  const blank = Object.fromEntries(fields.map(([k]) => [k, personal[k] ?? '']));
   const {
     register,
     handleSubmit,
@@ -96,7 +215,7 @@ function PersonalDetails({ personal }) {
       const left = applyServerErrors(
         err,
         setError,
-        PERSONAL_FIELDS.map(([k]) => k),
+        fields.map(([k]) => k),
       );
       if (left) setMessage(left);
     }
@@ -105,14 +224,15 @@ function PersonalDetails({ personal }) {
 
   return (
     <Section
-      title="Personal details"
+      title={title}
+      description={note}
       actions={
         !editing && (
           <button
             type="button"
             className="inline-flex size-9 items-center justify-center rounded-md border border-rule bg-white text-ink hover:border-muted"
-            aria-label="Edit personal details"
-            title="Edit personal details"
+            aria-label={`Edit ${title.toLowerCase()}`}
+            title={`Edit ${title.toLowerCase()}`}
             onClick={() => {
               reset(blank);
               setSaved(false);
@@ -126,50 +246,26 @@ function PersonalDetails({ personal }) {
     >
       {editing ? (
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-2">
-          <Field id="mobilePhone" label="Mobile number" error={err('mobilePhone')}>
-            <Input id="mobilePhone" type="tel" invalid={!!err('mobilePhone')} {...register('mobilePhone')} />
-          </Field>
-          <Field id="personalEmail" label="Personal email" error={err('personalEmail')}>
-            <Input
-              id="personalEmail"
-              type="email"
-              invalid={!!err('personalEmail')}
-              {...register('personalEmail')}
-            />
-          </Field>
-          <Field id="homeAddress" label="Home address" error={err('homeAddress')} className="sm:col-span-2">
-            <Textarea id="homeAddress" rows={2} invalid={!!err('homeAddress')} {...register('homeAddress')} />
-          </Field>
-          <Field id="emergencyContactName" label="Emergency contact" error={err('emergencyContactName')}>
-            <Input
-              id="emergencyContactName"
-              invalid={!!err('emergencyContactName')}
-              {...register('emergencyContactName')}
-            />
-          </Field>
-          <Field
-            id="emergencyContactRelationship"
-            label="Relationship"
-            error={err('emergencyContactRelationship')}
-          >
-            <Input
-              id="emergencyContactRelationship"
-              invalid={!!err('emergencyContactRelationship')}
-              {...register('emergencyContactRelationship')}
-            />
-          </Field>
-          <Field
-            id="emergencyContactPhone"
-            label="Emergency contact number"
-            error={err('emergencyContactPhone')}
-          >
-            <Input
-              id="emergencyContactPhone"
-              type="tel"
-              invalid={!!err('emergencyContactPhone')}
-              {...register('emergencyContactPhone')}
-            />
-          </Field>
+          {fields.map(([k, label]) => (
+            <Field
+              key={k}
+              id={k}
+              label={label}
+              error={err(k)}
+              className={k === 'homeAddress' ? 'sm:col-span-2' : undefined}
+            >
+              {k === 'homeAddress' ? (
+                <Textarea id={k} rows={2} invalid={!!err(k)} {...register(k)} />
+              ) : (
+                <Input
+                  id={k}
+                  type={/Phone$/.test(k) ? 'tel' : k === 'personalEmail' ? 'email' : 'text'}
+                  invalid={!!err(k)}
+                  {...register(k)}
+                />
+              )}
+            </Field>
+          ))}
           {message && (
             <div className="sm:col-span-2">
               <Notice tone="danger">{message}</Notice>
@@ -191,7 +287,7 @@ function PersonalDetails({ personal }) {
               <Notice tone="ok">Changes saved.</Notice>
             </div>
           )}
-          <Details items={PERSONAL_FIELDS.map(([k, label]) => [label, personal[k]])} />
+          <Details items={fields.map(([k, label]) => [label, personal[k]])} />
         </>
       )}
     </Section>

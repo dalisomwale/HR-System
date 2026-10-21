@@ -364,7 +364,7 @@ function useInvalidateEmployee(id) {
     qc.invalidateQueries({ queryKey: ['employee', String(id)] });
     qc.invalidateQueries({ queryKey: ['employees'] });
     qc.invalidateQueries({ queryKey: ['employee-history', String(id)] });
-    qc.invalidateQueries({ queryKey: ['employee-overview', String(id)] });
+    qc.invalidateQueries({ queryKey: ['employee-overview'] });
     qc.invalidateQueries({ queryKey: ['people-dashboard'] });
     qc.invalidateQueries({ queryKey: ['people-quick'] });
     qc.invalidateQueries({ queryKey: ['employee-options'] });

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { asyncHandler } from '../../utils/validation.js';
 import { auditContext } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { employeeOverview } from '../people/people.service.js';
 
 /*
  * The signed-in employee's own record. Never takes an employee ID from the client.
@@ -89,9 +90,23 @@ export function profileRoutes({ db }) {
         lineManager: e.manager_first ? `${e.manager_first} ${e.manager_last}` : null,
         workSchedule: e.schedule,
         employmentStartDate: e.employment_start_date,
+        employmentEndDate: e.employment_end_date,
+        employmentType: e.employment_type,
+        contractEndDate: e.contract_end_date,
+        probationEndDate: e.probation_end_date,
+        probationStatus: e.probation_status,
+        status: e.status,
         roles: req.user.roles,
         personal: personalOf(e),
       });
+    }),
+  );
+
+  // The same figures HR sees on the record's Overview tab, for the person themselves (D70).
+  router.get(
+    '/overview',
+    asyncHandler(async (req, res) => {
+      res.json(await employeeOverview(db, req.user.id));
     }),
   );
 

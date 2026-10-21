@@ -3,16 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { useMe } from '../../lib/auth.jsx';
-import {
-  Badge,
-  Button,
-  ButtonLink,
-  Notice,
-  Section,
-  Table,
-  Td,
-  Th,
-} from '../../components/ui.jsx';
+import { Badge, Button, ButtonLink, Notice, Section, Table, Td, Th } from '../../components/ui.jsx';
 
 const COLUMNS = [
   ['employee_number', 'Required. Must be unique.'],

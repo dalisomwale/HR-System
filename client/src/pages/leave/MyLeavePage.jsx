@@ -123,7 +123,7 @@ export function MyBalancesPage() {
   );
 }
 
-function YearSelect({ year, setYear }) {
+export function YearSelect({ year, setYear }) {
   return (
     <Select aria-label="Year" className="w-28" value={year} onChange={(e) => setYear(Number(e.target.value))}>
       {[thisYear + 1, thisYear, thisYear - 1, thisYear - 2].map((y) => (
@@ -208,7 +208,7 @@ export function BalanceCards({ items, showPending = true }) {
   );
 }
 
-function Balances({ year, bare = false }) {
+export function Balances({ year, bare = false }) {
   const q = useQuery({
     queryKey: ['balances', year],
     queryFn: () => api.get(`/api/leave/balances${qs({ year })}`),
