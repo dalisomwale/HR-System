@@ -61,7 +61,7 @@ const HR = [
 // Employee management (D52): the central employee record, its own menu.
 const PEOPLE = [
   { to: '/people', label: 'Dashboard', icon: LayoutGrid, end: true },
-  { to: '/people/employees', label: 'Directory', icon: Users },
+  { to: '/people/employees', label: 'Employees', icon: Users },
 ];
 const ORGANISATION = [
   { to: '/people/companies', label: 'Companies', icon: Landmark },

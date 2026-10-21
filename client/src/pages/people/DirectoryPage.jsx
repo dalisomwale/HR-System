@@ -74,7 +74,7 @@ export default function DirectoryPage() {
   return (
     <div className="max-w-7xl">
       <PageHeader
-        title="Directory"
+        title="Employees"
         description={
           list.data ? `${list.data.total} ${list.data.total === 1 ? 'person' : 'people'}` : undefined
         }

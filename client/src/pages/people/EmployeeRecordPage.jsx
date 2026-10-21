@@ -104,7 +104,7 @@ export default function EmployeeRecordPage() {
         to="/people/employees"
         className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
       >
-        <ArrowLeft className="size-4" aria-hidden /> Directory
+        <ArrowLeft className="size-4" aria-hidden /> Employees
       </Link>
       {isNew ? (
         <PageHeader title="Add employee" />

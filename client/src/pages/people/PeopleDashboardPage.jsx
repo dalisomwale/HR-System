@@ -217,7 +217,7 @@ function Body({ d, companyId }) {
         title="Recent changes"
         actions={
           <Link to={`/people/employees${qs({ companyId })}`} className="text-sm text-brand hover:underline">
-            Directory
+            All employees
           </Link>
         }
       >

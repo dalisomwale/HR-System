@@ -10,7 +10,7 @@ lifecycle from onboarding to offboarding (decision D52).
 | ------------------------------ | ------------------------------------------------------------------------------ |
 | HR Officer                     | Everything below: add, edit and import employees; companies and departments    |
 | System Administrator           | As HR Officer, plus Microsoft account links, roles and marking someone as left |
-| Executive or Managing Director | Read the dashboard, directory and records; no changes                          |
+| Executive or Managing Director | Read the dashboard, employee list and records; no changes                          |
 | Everyone else                  | No access; they keep their own personal details on My profile                  |
 
 ## Screens (`/people`)
@@ -18,7 +18,7 @@ lifecycle from onboarding to offboarding (decision D52).
 - **Dashboard**: active staff, starting and leaving in the next 30 days, contracts ending in
   60 days; staff by company and department; joiners and leavers by month; contracts and
   probation ending; recent changes. Can be limited to one company.
-- **Directory**: search by name, job title, number or email; filter by company, department,
+- **Employees**: search by name, job title, number or email; filter by company, department,
   employment type and status; quick filters (on probation, contract ending soon, starting soon,
   leaving soon, no line manager, no Microsoft account linked).
 - **Employee record**: header with status and employment type; tabs for Overview (employment
@@ -47,7 +47,7 @@ again are recorded too.
 | ------ | -------------------------------------- | -------------------------------------------------------------------------------------- |
 | GET    | `/api/people/dashboard?companyId=`     | HR Officers and directors                                                              |
 | GET    | `/api/people/organisation`             | Companies and departments for filters                                                  |
-| GET    | `/api/people/employees`                | Directory; `search`, `companyId`, `departmentId`, `employmentType`, `status`, `filter` |
+| GET    | `/api/people/employees`                | Employee list; `search`, `companyId`, `departmentId`, `employmentType`, `status`, `filter` |
 | GET    | `/api/people/quick-filters?companyId=` | Count for each quick filter                                                            |
 | GET    | `/api/people/employees/:id`            | The full record                                                                        |
 | GET    | `/api/people/employees/:id/history`    | Newest first                                                                           |
