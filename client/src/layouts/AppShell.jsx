@@ -29,6 +29,8 @@ import {
   Users,
   UserPlus,
   X,
+  ChevronDown,
+  Plus,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -59,13 +61,101 @@ const HR = [
   { to: '/reports', label: 'Reports', icon: FileBarChart },
 ];
 // Employee management (D52): the central employee record, its own menu.
+// Employee management (D52, D55): its own menu, in segments.
 const PEOPLE = [
   { to: '/people', label: 'Home', icon: House, end: true },
   { to: '/people/employees', label: 'Employees', icon: Users },
-  { to: '/people/companies', label: 'Company overview', icon: Landmark },
-  { to: '/people/departments', label: 'Department overview', icon: Building2 },
-  { to: '/people/reports', label: 'Reports', icon: FileBarChart },
 ];
+const DEPARTMENTS = [
+  { to: '/people/departments', label: 'Department overview', icon: Building2, end: true },
+  { to: '/people/departments/manage', label: 'Add department', icon: Plus, hrOnly: true },
+];
+const PEOPLE_REPORTS = [{ to: '/people/reports', label: 'Reports', icon: FileBarChart }];
+
+const navLinkClass = ({ isActive }) =>
+  [
+    'flex items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-sm',
+    isActive
+      ? 'border-brand bg-brand-soft font-medium text-brand'
+      : 'border-transparent text-ink hover:bg-canvas',
+  ].join(' ');
+
+/** Company segment: the overview, which opens to list each company, and Add company. */
+function CompanyNav({ user, onNavigate }) {
+  const { pathname } = useLocation();
+  const inCompanies = pathname.startsWith('/people/companies');
+  const [open, setOpen] = useState(inCompanies);
+  useEffect(() => {
+    if (inCompanies) setOpen(true);
+  }, [inCompanies]);
+  const org = useQuery({
+    queryKey: ['people-organisation'],
+    queryFn: () => api.get('/api/people/organisation'),
+  });
+  const companies = (org.data?.companies ?? []).filter((c) => c.isActive);
+  return (
+    <div className="mb-6">
+      <p className="mb-1.5 px-3 text-xs font-medium text-muted">Company</p>
+      <ul>
+        <li className="flex items-stretch">
+          <NavLink
+            to="/people/companies"
+            end
+            onClick={onNavigate}
+            className={(a) => `${navLinkClass(a)} flex-1`}
+          >
+            <Landmark className="size-4 shrink-0" aria-hidden />
+            Company overview
+          </NavLink>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="company-list"
+            aria-label={open ? 'Hide companies' : 'Show companies'}
+            onClick={() => setOpen((o) => !o)}
+            className="px-3 text-muted hover:bg-canvas hover:text-ink"
+          >
+            <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+          </button>
+        </li>
+        {open && (
+          <li id="company-list">
+            <ul className="mb-1">
+              {org.isPending && <li className="py-1.5 pl-10 text-xs text-muted">Loading</li>}
+              {companies.map((c) => (
+                <li key={c.id}>
+                  <NavLink
+                    to={`/people/companies/${c.id}`}
+                    onClick={onNavigate}
+                    className={({ isActive }) =>
+                      [
+                        'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
+                        isActive
+                          ? 'border-brand bg-brand-soft font-medium text-brand'
+                          : 'border-transparent text-ink hover:bg-canvas',
+                      ].join(' ')
+                    }
+                  >
+                    {c.name}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </li>
+        )}
+        {hasRole(user, 'HR_OFFICER') && (
+          <li>
+            <NavLink to="/people/companies/manage" onClick={onNavigate} className={navLinkClass}>
+              <Plus className="size-4 shrink-0" aria-hidden />
+              Add company
+            </NavLink>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
 const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
 // System Administrators only. They also see everything in the HR menu.
@@ -185,6 +275,13 @@ export default function AppShell() {
       {inPeople ? (
         <>
           <NavGroup title="People" items={PEOPLE} onNavigate={() => setMenuOpen(false)} />
+          <CompanyNav user={user} onNavigate={() => setMenuOpen(false)} />
+          <NavGroup
+            title="Departments"
+            items={DEPARTMENTS.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER'))}
+            onNavigate={() => setMenuOpen(false)}
+          />
+          <NavGroup title="Reports" items={PEOPLE_REPORTS} onNavigate={() => setMenuOpen(false)} />
           {hasRole(user, 'HR_ADMIN') && (
             <NavGroup
               title="Administration"

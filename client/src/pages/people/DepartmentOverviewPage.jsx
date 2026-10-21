@@ -95,7 +95,7 @@ function Body({ d, companyId }) {
           title={`${d.withoutDepartment} active ${d.withoutDepartment === 1 ? 'person has' : 'people have'} no department set.`}
         />
       )}
-      <Statistics departments={sorted} year={d.year} companyId={companyId} />
+      <DepartmentStatistics departments={sorted} year={d.year} companyId={companyId} />
 
       <Section title="Staff by department">
         <div className="max-w-3xl">
@@ -113,78 +113,87 @@ function Body({ d, companyId }) {
         </div>
       </Section>
 
-      <Section
-        title="Department figures"
-        description={`Joined and left are for ${d.year}; contracts ending are the next 60 days`}
-      >
-        <Table>
-          <thead>
-            <tr>
-              <Th>Department</Th>
-              <Th className="text-right">Staff</Th>
-              <Th>Employment type</Th>
-              <Th className="text-right">Managers</Th>
-              <Th className="text-right">On probation</Th>
-              <Th className="text-right">Contracts ending</Th>
-              <Th className="text-right">Joined</Th>
-              <Th className="text-right">Left</Th>
-              <Th className="text-right">Average service</Th>
-              <Th className="text-right">No manager</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((x) => (
-              <tr key={x.id}>
-                <Td>
-                  <Link
-                    to={`/people/employees?departmentId=${x.id}`}
-                    className="font-medium text-brand hover:underline"
-                  >
-                    {x.name}
-                  </Link>
-                  {!companyId && <p className="text-xs text-muted">{x.company ?? 'No company'}</p>}
-                  {!x.isActive && <p className="text-xs text-muted">Inactive</p>}
-                </Td>
-                <Td className="text-right font-semibold">{x.headcount}</Td>
-                <Td className="min-w-32">
-                  <TypeMeter byType={x.byType} compact />
-                </Td>
-                <Td className="text-right">{x.managers}</Td>
-                <Td className="text-right">{x.onProbation}</Td>
-                <Td className={`text-right ${x.contractsEnding ? 'font-semibold text-pending' : ''}`}>
-                  {x.contractsEnding}
-                </Td>
-                <Td className="text-right">{x.joinedThisYear}</Td>
-                <Td className="text-right">{x.leftThisYear}</Td>
-                <Td className="text-right whitespace-nowrap">
-                  {x.headcount ? `${x.averageServiceYears} yrs` : '—'}
-                </Td>
-                <Td className={`text-right ${x.noManager ? 'font-semibold text-pending' : ''}`}>
-                  {x.noManager}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-          {[
-            ['#2a3fbf', 'Permanent'],
-            ['#eb6834', 'Fixed-term'],
-            ['#1baf7a', 'Temporary'],
-            ['#a3aab8', 'Not recorded'],
-          ].map(([c, n]) => (
-            <span key={n} className="flex items-center gap-1.5">
-              <span aria-hidden className="inline-block size-2.5 rounded-sm" style={{ background: c }} />
-              {n}
-            </span>
-          ))}
-        </div>
-      </Section>
+      <DepartmentTable departments={sorted} year={d.year} companyId={companyId} />
     </>
   );
 }
 
-function Statistics({ departments, year, companyId }) {
+/** Every department compared on the same figures. */
+export function DepartmentTable({ departments, year, companyId }) {
+  const sorted = departments;
+  const d = { year };
+  return (
+    <Section
+      title="Department figures"
+      description={`Joined and left are for ${d.year}; contracts ending are the next 60 days`}
+    >
+      <Table>
+        <thead>
+          <tr>
+            <Th>Department</Th>
+            <Th className="text-right">Staff</Th>
+            <Th>Employment type</Th>
+            <Th className="text-right">Managers</Th>
+            <Th className="text-right">On probation</Th>
+            <Th className="text-right">Contracts ending</Th>
+            <Th className="text-right">Joined</Th>
+            <Th className="text-right">Left</Th>
+            <Th className="text-right">Average service</Th>
+            <Th className="text-right">No manager</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.map((x) => (
+            <tr key={x.id}>
+              <Td>
+                <Link
+                  to={`/people/employees?departmentId=${x.id}`}
+                  className="font-medium text-brand hover:underline"
+                >
+                  {x.name}
+                </Link>
+                {!companyId && <p className="text-xs text-muted">{x.company ?? 'No company'}</p>}
+                {!x.isActive && <p className="text-xs text-muted">Inactive</p>}
+              </Td>
+              <Td className="text-right font-semibold">{x.headcount}</Td>
+              <Td className="min-w-32">
+                <TypeMeter byType={x.byType} compact />
+              </Td>
+              <Td className="text-right">{x.managers}</Td>
+              <Td className="text-right">{x.onProbation}</Td>
+              <Td className={`text-right ${x.contractsEnding ? 'font-semibold text-pending' : ''}`}>
+                {x.contractsEnding}
+              </Td>
+              <Td className="text-right">{x.joinedThisYear}</Td>
+              <Td className="text-right">{x.leftThisYear}</Td>
+              <Td className="text-right whitespace-nowrap">
+                {x.headcount ? `${x.averageServiceYears} yrs` : '—'}
+              </Td>
+              <Td className={`text-right ${x.noManager ? 'font-semibold text-pending' : ''}`}>
+                {x.noManager}
+              </Td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        {[
+          ['#2a3fbf', 'Permanent'],
+          ['#eb6834', 'Fixed-term'],
+          ['#1baf7a', 'Temporary'],
+          ['#a3aab8', 'Not recorded'],
+        ].map(([c, n]) => (
+          <span key={n} className="flex items-center gap-1.5">
+            <span aria-hidden className="inline-block size-2.5 rounded-sm" style={{ background: c }} />
+            {n}
+          </span>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+export function DepartmentStatistics({ departments, year, companyId }) {
   // The twelve largest departments keep the charts readable; the table below has them all.
   const top = departments.filter((x) => x.headcount > 0 || x.joinedThisYear || x.leftThisYear).slice(0, 12);
   const groups = top.map((x) => ({

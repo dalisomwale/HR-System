@@ -80,7 +80,11 @@ export default function CompanyOverviewPage() {
 function CompanyCard({ c, year }) {
   return (
     <Section
-      title={c.name}
+      title={
+        <Link to={`/people/companies/${c.id}`} className="text-brand hover:underline">
+          {c.name}
+        </Link>
+      }
       description={c.isActive ? c.code : `${c.code} · inactive`}
       actions={
         <Link

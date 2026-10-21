@@ -29,6 +29,9 @@ export default function CompaniesPage() {
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['companies'] });
     qc.invalidateQueries({ queryKey: ['departments'] });
+    qc.invalidateQueries({ queryKey: ['people-organisation'] });
+    qc.invalidateQueries({ queryKey: ['people-companies'] });
+    qc.invalidateQueries({ queryKey: ['people-departments'] });
   };
   const save = useMutation({
     mutationFn: (body) =>

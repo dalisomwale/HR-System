@@ -15,7 +15,17 @@ lifecycle from onboarding to offboarding (decision D52).
 
 ## Screens (`/people`)
 
-The menu is Home, Employees, Company overview, Department overview and Reports (D53).
+The menu is in segments (D55):
+
+| Segment     | Items                                                      |
+| ----------- | ---------------------------------------------------------- |
+| People      | Home, Employees                                            |
+| Company     | Company overview (opens to list each company), Add company |
+| Departments | Department overview, Add department                        |
+| Reports     | Reports                                                    |
+
+Each company in the list opens its own overview: headline figures, employment type, length of
+service, and its departments' charts and table.
 
 - **Home**: active staff, starting and leaving in the next 30 days, contracts ending in 60 days;
   staff by company and department; joiners and leavers by month; contracts and probation
