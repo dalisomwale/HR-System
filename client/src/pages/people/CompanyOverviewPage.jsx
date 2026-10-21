@@ -93,7 +93,7 @@ function CompanyCard({ c, year }) {
       description={c.isActive ? c.code : `${c.code} · inactive`}
       actions={
         <Link
-          to={`/people/employees?companyId=${c.id}`}
+          to={`/people/companies/${c.id}/employees`}
           className="text-sm whitespace-nowrap text-brand hover:underline"
         >
           Employees

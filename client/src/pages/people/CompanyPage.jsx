@@ -50,7 +50,7 @@ export default function CompanyPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {!c.isActive && <Badge>Inactive</Badge>}
-              <ButtonLink to={`/people/employees?companyId=${c.id}`}>
+              <ButtonLink to={`/people/companies/${c.id}/employees`}>
                 <Users className="size-4" aria-hidden /> Employees
               </ButtonLink>
               {hasRole(me, 'HR_OFFICER') && (
@@ -69,17 +69,17 @@ export default function CompanyPage() {
       </div>
 
       <Stats>
-        <Stat label="Active staff" value={c.headcount} to={`/people/employees?companyId=${c.id}`} />
+        <Stat label="Active staff" value={c.headcount} to={`/people/companies/${c.id}/employees`} />
         <Stat label="Departments" value={c.departments.length} />
         <Stat
           label="On probation"
           value={c.onProbation}
-          to={`/people/employees?companyId=${c.id}&filter=probation`}
+          to={`/people/companies/${c.id}/employees?filter=probation`}
         />
         <Stat
           label="Contracts ending in 60 days"
           value={c.contractsEnding}
-          to={`/people/employees?companyId=${c.id}&filter=contractEnding`}
+          to={`/people/companies/${c.id}/employees?filter=contractEnding`}
         />
       </Stats>
 

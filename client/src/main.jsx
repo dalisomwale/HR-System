@@ -121,10 +121,12 @@ createRoot(document.getElementById('root')).render(
               <Route path="companies" element={group(<CompanyOverviewPage />)} />
               <Route path="companies/manage" element={hr(<CompaniesPage />)} />
               <Route path="companies/:id" element={group(<CompanyPage />)} />
+              <Route path="companies/:companyId/employees" element={group(<DirectoryPage />)} />
               <Route path="companies/:companyId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="departments" element={group(<DepartmentOverviewPage />)} />
               <Route path="departments/manage" element={hr(<DepartmentsPage />)} />
               <Route path="departments/:id" element={group(<DepartmentPage />)} />
+              <Route path="departments/:departmentId/employees" element={group(<DirectoryPage />)} />
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="reports" element={group(<ReportsPage base="/api/people/reports" />)} />
               <Route path="import" element={hr(<ImportPage />)} />

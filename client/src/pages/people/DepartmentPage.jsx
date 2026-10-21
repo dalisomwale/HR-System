@@ -99,14 +99,9 @@ export default function DepartmentPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {!d.isActive && <Badge>Inactive</Badge>}
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  document.getElementById('department-people')?.scrollIntoView({ behavior: 'smooth' })
-                }
-              >
+              <ButtonLink to={`/people/departments/${d.id}/employees`}>
                 <Users className="size-4" aria-hidden /> Employees
-              </Button>
+              </ButtonLink>
               {canEdit && (
                 <>
                   <Button
@@ -172,17 +167,17 @@ export default function DepartmentPage() {
       )}
 
       <Stats>
-        <Stat label="Active staff" value={d.headcount} to={`/people/employees?departmentId=${d.id}`} />
+        <Stat label="Active staff" value={d.headcount} to={`/people/departments/${d.id}/employees`} />
         <Stat label="Managers" value={d.managers} />
         <Stat
           label="On probation"
           value={d.onProbation}
-          to={`/people/employees?departmentId=${d.id}&filter=probation`}
+          to={`/people/departments/${d.id}/employees?filter=probation`}
         />
         <Stat
           label="Contracts ending in 60 days"
           value={d.contractsEnding}
-          to={`/people/employees?departmentId=${d.id}&filter=contractEnding`}
+          to={`/people/departments/${d.id}/employees?filter=contractEnding`}
         />
       </Stats>
 

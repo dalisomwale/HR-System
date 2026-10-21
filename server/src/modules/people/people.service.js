@@ -155,12 +155,13 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
 }
 
 /** How many active people each quick filter would show, for the chips above the directory. */
-export async function quickFilterCounts(db, companyId = null) {
+export async function quickFilterCounts(db, companyId = null, departmentId = null) {
   const today = todayInLusaka();
   const out = {};
   for (const [key, f] of Object.entries(QUICK_FILTERS)) {
     const q = baseList(db).where('e.status', 'ACTIVE');
     if (companyId) q.where('e.company_id', companyId);
+    if (departmentId) q.where('e.department_id', departmentId);
     f.apply(q, today);
     const { n } = await q.count({ n: '*' }).first();
     out[key] = { label: f.label, count: Number(n) };

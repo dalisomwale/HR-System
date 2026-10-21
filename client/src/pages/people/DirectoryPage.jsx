@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { FileUp, Plus, Search } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
@@ -19,7 +19,7 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
+import { EMPLOYMENT_TYPES, Initials, StatusBadge, useEmployeeBase } from './people-ui.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
 
 /** Everyone in the group, searchable and filterable (D52). */
@@ -27,12 +27,15 @@ export default function DirectoryPage() {
   const { data: me } = useMe();
   const canEdit = hasRole(me, 'HR_OFFICER');
   const [params, setParams] = useSearchParams();
+  // Opened from a company or department page, the list is fixed to it and the path carries on (D63).
+  const fixed = useParams();
+  const base = useEmployeeBase();
   const [search, setSearch] = useState(params.get('search') ?? '');
   const filters = {
     search: params.get('search') ?? '',
     status: params.get('status') ?? 'ACTIVE',
-    companyId: params.get('companyId') ?? '',
-    departmentId: params.get('departmentId') ?? '',
+    companyId: fixed.companyId ?? params.get('companyId') ?? '',
+    departmentId: fixed.departmentId ?? params.get('departmentId') ?? '',
     employmentType: params.get('employmentType') ?? '',
     filter: params.get('filter') ?? '',
     page: Number(params.get('page') ?? 1),
@@ -49,8 +52,11 @@ export default function DirectoryPage() {
     queryFn: () => api.get('/api/people/organisation'),
   });
   const quick = useQuery({
-    queryKey: ['people-quick', filters.companyId],
-    queryFn: () => api.get(`/api/people/quick-filters${qs({ companyId: filters.companyId })}`),
+    queryKey: ['people-quick', filters.companyId, filters.departmentId],
+    queryFn: () =>
+      api.get(
+        `/api/people/quick-filters${qs({ companyId: filters.companyId, departmentId: filters.departmentId })}`,
+      ),
   });
   const list = useQuery({
     queryKey: ['employees', filters],
@@ -86,7 +92,7 @@ export default function DirectoryPage() {
               <ButtonLink to="/people/import">
                 <FileUp className="size-4" aria-hidden /> Import
               </ButtonLink>
-              <ButtonLink to="/people/employees/new" variant="primary">
+              <ButtonLink to={`${base}/employees/new`} variant="primary">
                 <Plus className="size-4" aria-hidden /> Add employee
               </ButtonLink>
             </>
@@ -113,31 +119,35 @@ export default function DirectoryPage() {
             onBlur={() => search.trim() !== filters.search && update({ search: search.trim() })}
           />
         </div>
-        <Select
-          aria-label="Company"
-          className="w-full sm:w-56"
-          value={filters.companyId}
-          onChange={(e) => update({ companyId: e.target.value, departmentId: '' })}
-        >
-          <option value="">All companies</option>
-          {org.data?.companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-          {(org.data?.employeesWithoutCompany || filters.companyId === 'none') && (
-            <option value="none">No company set</option>
-          )}
-        </Select>
-        <Select
-          aria-label="Department"
-          className="w-full sm:w-48"
-          value={filters.departmentId}
-          onChange={(e) => update({ departmentId: e.target.value })}
-        >
-          <option value="">All departments</option>
-          <DepartmentOptions departments={departmentChoices} />
-        </Select>
+        {!fixed.companyId && !fixed.departmentId && (
+          <Select
+            aria-label="Company"
+            className="w-full sm:w-56"
+            value={filters.companyId}
+            onChange={(e) => update({ companyId: e.target.value, departmentId: '' })}
+          >
+            <option value="">All companies</option>
+            {org.data?.companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+            {(org.data?.employeesWithoutCompany || filters.companyId === 'none') && (
+              <option value="none">No company set</option>
+            )}
+          </Select>
+        )}
+        {!fixed.departmentId && (
+          <Select
+            aria-label="Department"
+            className="w-full sm:w-48"
+            value={filters.departmentId}
+            onChange={(e) => update({ departmentId: e.target.value })}
+          >
+            <option value="">All departments</option>
+            <DepartmentOptions departments={departmentChoices} />
+          </Select>
+        )}
         <Select
           aria-label="Employment type"
           className="w-full sm:w-44"
@@ -197,7 +207,7 @@ export default function DirectoryPage() {
                 canEdit && (
                   <>
                     <ButtonLink to="/people/import">Import from a spreadsheet</ButtonLink>
-                    <ButtonLink to="/people/employees/new" variant="primary">
+                    <ButtonLink to={`${base}/employees/new`} variant="primary">
                       Add employee
                     </ButtonLink>
                   </>
@@ -230,7 +240,7 @@ export default function DirectoryPage() {
                       <Initials first={e.firstName} last={e.lastName} />
                       <div className="min-w-0">
                         <Link
-                          to={`/people/employees/${e.id}`}
+                          to={`${base}/employees/${e.id}`}
                           className="font-medium text-brand hover:underline"
                         >
                           {e.firstName} {e.lastName}
@@ -245,7 +255,7 @@ export default function DirectoryPage() {
                   <Td>{e.department ?? <span className="text-muted">None</span>}</Td>
                   <Td>
                     {e.lineManagerId ? (
-                      <Link to={`/people/employees/${e.lineManagerId}`} className="hover:underline">
+                      <Link to={`${base}/employees/${e.lineManagerId}`} className="hover:underline">
                         {e.lineManager}
                       </Link>
                     ) : (

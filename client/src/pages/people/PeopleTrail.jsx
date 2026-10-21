@@ -73,7 +73,11 @@ export default function PeopleTrail() {
   else if (section === 'import') trail.push(SECTIONS.employees, { label: 'Import employees' });
   else if (nested) {
     trail.push(SECTIONS[section], { label: groupName, to: `/people/${section}/${rest}` });
-    trail.push({ label: subId === 'new' ? 'Add employee' : employeeName });
+    if (!subId) trail.push({ label: 'Employees' });
+    else {
+      trail.push({ label: 'Employees', to: `/people/${section}/${rest}/employees` });
+      trail.push({ label: subId === 'new' ? 'Add employee' : employeeName });
+    }
   } else {
     const s = SECTIONS[section];
     if (s) trail.push(rest ? s : { label: s.label });

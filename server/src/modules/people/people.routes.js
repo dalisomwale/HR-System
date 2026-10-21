@@ -64,7 +64,7 @@ export function peopleRoutes({ db }) {
   router.get(
     '/quick-filters',
     asyncHandler(async (req, res) => {
-      res.json(await quickFilterCounts(db, companyOf(req)));
+      res.json(await quickFilterCounts(db, companyOf(req), Number(req.query.departmentId) || null));
     }),
   );
   router.get(
