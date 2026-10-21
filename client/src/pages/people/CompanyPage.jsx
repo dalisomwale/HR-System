@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2, Users } from 'lucide-react';
+import { Settings2, UserPlus, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
@@ -53,6 +53,11 @@ export default function CompanyPage() {
               <ButtonLink to={`/people/employees?companyId=${c.id}`}>
                 <Users className="size-4" aria-hidden /> Employees
               </ButtonLink>
+              {hasRole(me, 'HR_OFFICER') && (
+                <ButtonLink to={`/people/companies/${c.id}/employees/new`}>
+                  <UserPlus className="size-4" aria-hidden /> Add employee
+                </ButtonLink>
+              )}
               {hasRole(me, 'HR_OFFICER') && (
                 <ButtonLink to="/people/companies/manage">
                   <Settings2 className="size-4" aria-hidden /> Manage

@@ -265,6 +265,7 @@ export default function DepartmentPage() {
       {viewing && (
         <EmployeePanel
           employeeId={viewing}
+          base={`/people/departments/${d.id}`}
           onClose={() => setViewing(null)}
           onSaved={() => {
             qc.invalidateQueries({ queryKey: ['employees'] });

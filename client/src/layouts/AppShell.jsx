@@ -291,6 +291,7 @@ export default function AppShell() {
   const { data: user } = useMe();
   const { pathname } = useLocation();
   const inPeople = pathname === '/people' || pathname.startsWith('/people/');
+  const placeBase = pathname.match(/^\/people\/(companies|departments)\/\d+/)?.[0] ?? null;
   const [menuOpen, setMenuOpen] = useState(false);
   // Unread notifications, refreshed every minute and when the window regains focus.
   const unread = useQuery({
@@ -337,7 +338,10 @@ export default function AppShell() {
         <>
           <NavGroup
             title="People"
-            items={PEOPLE.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER'))}
+            items={PEOPLE.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER')).map((i) =>
+              // Inside a company or department, Add employee adds to it and keeps the path (D62).
+              i.to === '/people/employees/new' && placeBase ? { ...i, to: `${placeBase}/employees/new` } : i,
+            )}
             onNavigate={() => setMenuOpen(false)}
           />
           <OrganisationNav user={user} onNavigate={() => setMenuOpen(false)} />

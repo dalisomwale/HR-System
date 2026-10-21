@@ -1,3 +1,4 @@
+import { useParams } from 'react-router';
 import { Badge } from '../../components/ui.jsx';
 import { formatDate } from '../../lib/format.js';
 
@@ -129,4 +130,16 @@ export function TypeMeter({ byType, compact = false }) {
       )}
     </div>
   );
+}
+
+/**
+ * Where an employee's record sits in the path (D62): inside the company or department page it
+ * was opened from, so the path carries on (… › Altus Capital Limited › Add employee), or under
+ * Employees otherwise. Returns the base to put `/employees/:id` after.
+ */
+export function useEmployeeBase() {
+  const { companyId, departmentId } = useParams();
+  if (companyId) return `/people/companies/${companyId}`;
+  if (departmentId) return `/people/departments/${departmentId}`;
+  return '/people';
 }

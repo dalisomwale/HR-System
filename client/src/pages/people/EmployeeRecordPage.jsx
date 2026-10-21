@@ -30,6 +30,7 @@ import {
   PROBATION,
   StatusBadge,
   historyValue,
+  useEmployeeBase,
 } from './people-ui.jsx';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import { PERSONAL_FIELDS } from '../employee/ProfilePage.jsx';
@@ -73,7 +74,8 @@ const toPayload = (values, only) => {
 };
 
 export default function EmployeeRecordPage() {
-  const { id } = useParams();
+  const { id, companyId, departmentId } = useParams();
+  const base = useEmployeeBase();
   const { data: me } = useMe();
   const canEdit = hasRole(me, 'HR_OFFICER');
   const isNew = id === 'new';
@@ -155,6 +157,11 @@ export default function EmployeeRecordPage() {
             <EmployeeForm
               employee={e}
               isNew={isNew}
+              defaults={
+                isNew
+                  ? Object.fromEntries(Object.entries({ companyId, departmentId }).filter(([, v]) => v))
+                  : undefined
+              }
               onDone={() => {
                 setEditing(false);
                 setSaved(true);
@@ -171,7 +178,7 @@ export default function EmployeeRecordPage() {
                   <ul className="space-y-2 text-sm">
                     {e.directReports.map((r) => (
                       <li key={r.id}>
-                        <Link to={`/people/employees/${r.id}`} className="text-brand hover:underline">
+                        <Link to={`${base}/employees/${r.id}`} className="text-brand hover:underline">
                           {r.name}
                         </Link>
                         <span className="text-muted"> · {r.jobTitle ?? r.employeeNumber}</span>
@@ -349,6 +356,7 @@ export function EmployeeDetails({ employee: e, saved }) {
  */
 export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCreated, title }) {
   const navigate = useNavigate();
+  const base = useEmployeeBase();
   const invalidate = useInvalidateEmployee(employee?.id);
   const [message, setMessage] = useState(null);
   const departments = useQuery({
@@ -380,6 +388,12 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
   useEffect(() => {
     if (employee && lookupsReady) reset(toForm(employee));
   }, [employee, lookupsReady, reset]);
+  // Adding from a department's page: its company is filled in too.
+  useEffect(() => {
+    if (!isNew || !lookupsReady || !defaults?.departmentId || defaults.companyId) return;
+    const dept = departments.data.items.find((x) => String(x.id) === String(defaults.departmentId));
+    if (dept?.companyId) setValue('companyId', String(dept.companyId));
+  }, [isNew, lookupsReady, defaults, departments.data, setValue]);
 
   const onSubmit = async (values) => {
     setMessage(null);
@@ -388,7 +402,7 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
         const { id } = await api.post('/api/admin/employees', toPayload(values));
         invalidate();
         if (onCreated) onCreated(id, values);
-        else navigate(`/people/employees/${id}`, { replace: true });
+        else navigate(`${base}/employees/${id}`, { replace: true });
       } else {
         await api.patch(`/api/admin/employees/${employee.id}`, toPayload(values, Object.keys(dirtyFields)));
         invalidate();

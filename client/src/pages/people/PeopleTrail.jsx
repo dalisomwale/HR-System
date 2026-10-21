@@ -24,30 +24,31 @@ const FIXED = {
   'departments/manage': 'Add or edit departments',
 };
 
-function useName(section, id) {
-  const numeric = /^\d+$/.test(id ?? '');
-  const employee = useQuery({
+const isId = (v) => /^\d+$/.test(v ?? '');
+
+function useEmployeeName(id) {
+  const q = useQuery({
     queryKey: ['employee', id],
     queryFn: () => api.get(`/api/people/employees/${id}`),
-    enabled: numeric && section === 'employees',
+    enabled: isId(id),
   });
+  if (!isId(id)) return null;
+  return q.data ? `${q.data.firstName} ${q.data.lastName}` : '…';
+}
+
+function useGroupName(section, id) {
   const companies = useQuery({
     queryKey: ['people-companies'],
     queryFn: () => api.get('/api/people/companies-overview'),
-    enabled: numeric && section === 'companies',
+    enabled: isId(id) && section === 'companies',
   });
   const departments = useQuery({
     queryKey: ['people-departments', ''],
     queryFn: () => api.get('/api/people/departments-overview'),
-    enabled: numeric && section === 'departments',
+    enabled: isId(id) && section === 'departments',
   });
-  if (!numeric) return null;
-  if (section === 'employees') {
-    return employee.data ? `${employee.data.firstName} ${employee.data.lastName}` : '…';
-  }
-  if (section === 'companies') {
-    return companies.data?.companies.find((c) => String(c.id) === id)?.name ?? '…';
-  }
+  if (!isId(id)) return null;
+  if (section === 'companies') return companies.data?.companies.find((c) => String(c.id) === id)?.name ?? '…';
   if (section === 'departments') {
     return departments.data?.departments.find((d) => String(d.id) === id)?.name ?? '…';
   }
@@ -60,17 +61,27 @@ export default function PeopleTrail() {
     .replace(/^\/people\/?/, '')
     .split('/')
     .filter(Boolean);
-  const [section, rest] = parts;
-  const name = useName(section, rest);
+  const [section, rest, sub, subId] = parts;
+  // An employee opened inside a company or department keeps that place in the path (D62).
+  const nested = (section === 'companies' || section === 'departments') && sub === 'employees';
+  const groupName = useGroupName(section, rest);
+  const employeeName = useEmployeeName(nested ? subId : section === 'employees' ? rest : null);
   if (!pathname.startsWith('/people')) return null;
 
   const trail = [ROOT];
   if (!section) trail.push({ label: 'Home' });
   else if (section === 'import') trail.push(SECTIONS.employees, { label: 'Import employees' });
-  else {
+  else if (nested) {
+    trail.push(SECTIONS[section], { label: groupName, to: `/people/${section}/${rest}` });
+    trail.push({ label: subId === 'new' ? 'Add employee' : employeeName });
+  } else {
     const s = SECTIONS[section];
     if (s) trail.push(rest ? s : { label: s.label });
-    if (rest) trail.push({ label: FIXED[`${section}/${rest}`] ?? name ?? rest });
+    if (rest) {
+      trail.push({
+        label: FIXED[`${section}/${rest}`] ?? (section === 'employees' ? employeeName : groupName) ?? rest,
+      });
+    }
   }
 
   return (

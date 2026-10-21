@@ -12,7 +12,7 @@ import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
  * One employee in a panel over the page (D59): their details, and for HR Officers the form to
  * change them, so a department or company page never has to be left to look at or edit someone.
  */
-export default function EmployeePanel({ employeeId, onClose, onSaved }) {
+export default function EmployeePanel({ employeeId, onClose, onSaved, base = '/people' }) {
   const { data: me } = useMe();
   const canEdit = hasRole(me, 'HR_OFFICER');
   const [editing, setEditing] = useState(false);
@@ -99,7 +99,7 @@ export default function EmployeePanel({ employeeId, onClose, onSaved }) {
                   </Button>
                 )}
                 <Link
-                  to={`/people/employees/${e.id}`}
+                  to={`${base}/employees/${e.id}`}
                   className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-brand hover:underline"
                 >
                   <ExternalLink className="size-4" aria-hidden /> Full record
