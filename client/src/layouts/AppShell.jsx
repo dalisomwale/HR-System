@@ -183,7 +183,6 @@ function ReportsNav({ onNavigate }) {
   const chosen = inside ? (current ?? items[0]?.id) : null;
   return (
     <div className="mb-6">
-      <p className="mb-1.5 px-3 text-xs font-medium text-muted">Reports</p>
       <ul>
         <li className="flex items-stretch">
           {/* The chosen report below is the one lit up, so this stays plain. */}
