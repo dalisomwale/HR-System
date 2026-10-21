@@ -16,7 +16,6 @@ import CompanyPage from './pages/people/CompanyPage.jsx';
 import DepartmentPage from './pages/people/DepartmentPage.jsx';
 import DepartmentOverviewPage from './pages/people/DepartmentOverviewPage.jsx';
 import SignInRequestsPage from './pages/admin/SignInRequestsPage.jsx';
-import ImportPage from './pages/admin/ImportPage.jsx';
 import LeaveTypePage from './pages/admin/LeaveTypePage.jsx';
 import RolesPage from './pages/admin/RolesPage.jsx';
 import CompaniesPage from './pages/admin/CompaniesPage.jsx';
@@ -129,7 +128,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="departments/:departmentId/employees" element={group(<DirectoryPage />)} />
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="reports" element={group(<ReportsPage base="/api/people/reports" listInMenu />)} />
-              <Route path="import" element={hr(<ImportPage />)} />
+              <Route path="import" element={<Navigate to="/people/employees/new?mode=import" replace />} />
             </Route>
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />

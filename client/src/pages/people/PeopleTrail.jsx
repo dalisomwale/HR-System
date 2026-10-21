@@ -16,7 +16,6 @@ const SECTIONS = {
   companies: { label: 'Company overview', to: '/people/companies' },
   departments: { label: 'Department overview', to: '/people/departments' },
   reports: { label: 'Reports', to: '/people/reports' },
-  import: { label: 'Import employees', to: '/people/import' },
 };
 const FIXED = {
   'employees/new': 'Add employee',

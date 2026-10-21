@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import EmployeeBalances from '../admin/EmployeeBalances.jsx';
+import { ImportEmployees } from './ImportEmployees.jsx';
 import { formatDate, formatDateTime, ROLE_LABELS } from '../../lib/format.js';
 import {
   Badge,
@@ -80,6 +81,9 @@ export default function EmployeeRecordPage() {
   const { data: me } = useMe();
   const canEdit = hasRole(me, 'HR_OFFICER');
   const isNew = id === 'new';
+  // Add employee: one person through the form, or many from a CSV (D69).
+  const [params, setParams] = useSearchParams();
+  const addMode = params.get('mode') === 'import' ? 'import' : 'single';
   const [tab, setTab] = useState('overview');
   // Details are read-only until Edit is pressed.
   const [editing, setEditing] = useState(false);
@@ -106,7 +110,18 @@ export default function EmployeeRecordPage() {
     <div className="max-w-6xl">
       <PeopleTrail />
       {isNew ? (
-        <PageHeader title="Add employee" />
+        <>
+          <PageHeader title="Add employee" />
+          <Tabs
+            label="How to add"
+            active={addMode}
+            onChange={(m) => setParams(m === 'import' ? { mode: 'import' } : {}, { replace: true })}
+            tabs={[
+              { id: 'single', label: 'One employee' },
+              { id: 'import', label: 'Import from a file' },
+            ]}
+          />
+        </>
       ) : (
         <section className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-rule bg-white p-4 sm:p-5">
           <Initials first={e.firstName} last={e.lastName} size="lg" />
@@ -192,10 +207,15 @@ export default function EmployeeRecordPage() {
           </Section>
         </div>
       )}
-      {(isNew || tab === 'job') && (
+      {isNew && addMode === 'import' && (
+        <div id="panel-import" role="tabpanel">
+          <ImportEmployees />
+        </div>
+      )}
+      {((isNew && addMode === 'single') || (!isNew && tab === 'job')) && (
         <div
-          id="panel-job"
-          role={isNew ? undefined : 'tabpanel'}
+          id={isNew ? 'panel-single' : 'panel-job'}
+          role="tabpanel"
           className={sidePanels ? 'grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}
         >
           {isNew || editing ? (

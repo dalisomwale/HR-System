@@ -89,7 +89,7 @@ export default function DirectoryPage() {
         actions={
           canEdit && (
             <>
-              <ButtonLink to="/people/import">
+              <ButtonLink to={`${base}/employees/new?mode=import`}>
                 <FileUp className="size-4" aria-hidden /> Import
               </ButtonLink>
               <ButtonLink to={`${base}/employees/new`} variant="primary">
@@ -206,7 +206,9 @@ export default function DirectoryPage() {
               action={
                 canEdit && (
                   <>
-                    <ButtonLink to="/people/import">Import from a spreadsheet</ButtonLink>
+                    <ButtonLink to={`${base}/employees/new?mode=import`}>
+                      Import from a spreadsheet
+                    </ButtonLink>
                     <ButtonLink to={`${base}/employees/new`} variant="primary">
                       Add employee
                     </ButtonLink>
