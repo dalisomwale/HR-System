@@ -176,20 +176,8 @@ function OrganisationNav({ user, onNavigate }) {
   const companies = (org.data?.companies ?? []).filter((c) => c.isActive);
   const departments = (org.data?.departments ?? []).filter((d) => d.isActive);
   const canAdd = hasRole(user, 'HR_OFFICER');
-  // Departments are listed under their company when the group has more than one.
-  const deptGroups =
-    companies.length > 1
-      ? [
-          ...companies.map((c) => ({
-            heading: c.name,
-            items: departments.filter((d) => d.companyId === c.id),
-          })),
-          {
-            heading: 'No company',
-            items: departments.filter((d) => !companies.some((c) => c.id === d.companyId)),
-          },
-        ].filter((g) => g.items.length)
-      : [{ heading: null, items: departments }];
+  // One plain list of department names, A to Z (project owner, 21 Oct 2026).
+  const deptGroups = [{ heading: null, items: departments }];
   return (
     <>
       <ExpandNav
