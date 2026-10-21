@@ -34,8 +34,11 @@ const FILTER_KEYS = [
   'entryType',
 ];
 
-/** `base` picks the set of reports: the leave reports, or Employee management's (D53). */
-export default function ReportsPage({ base = '/api/reports' }) {
+/**
+ * `base` picks the set of reports: the leave reports, or Employee management's (D53).
+ * `listInMenu`: the menu already lists the reports (D64), so the page does not repeat them.
+ */
+export default function ReportsPage({ base = '/api/reports', listInMenu = false }) {
   const [params, setParams] = useSearchParams();
   const list = useQuery({ queryKey: ['reports', base], queryFn: () => api.get(base) });
   const selected = params.get('report');
@@ -60,40 +63,44 @@ export default function ReportsPage({ base = '/api/reports' }) {
     <div className="max-w-7xl">
       <PeopleTrail />
       <PageHeader title="Reports" />
-      <div className="grid gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]">
-        {/* Below extra-wide screens the list becomes a single dropdown above the report. */}
-        <Field id="reportPick" label="Report" className="xl:hidden">
-          <Select id="reportPick" value={report.id} onChange={(e) => choose(e.target.value)}>
-            {items.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.title}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <nav
-          aria-label="Reports"
-          className="hidden self-start rounded-md border border-rule bg-white py-2 xl:block"
-        >
-          <ul>
-            {items.map((r) => (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => choose(r.id)}
-                  aria-current={r.id === report.id ? 'page' : undefined}
-                  className={`block w-full border-l-[3px] px-3 py-1.5 text-left text-sm ${
-                    r.id === report.id
-                      ? 'border-brand bg-brand-soft font-medium text-brand'
-                      : 'border-transparent hover:bg-canvas'
-                  }`}
-                >
-                  {r.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+      <div className={listInMenu ? 'grid gap-6' : 'grid gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]'}>
+        {!listInMenu && (
+          <>
+            {/* Below extra-wide screens the list becomes a single dropdown above the report. */}
+            <Field id="reportPick" label="Report" className="xl:hidden">
+              <Select id="reportPick" value={report.id} onChange={(e) => choose(e.target.value)}>
+                {items.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <nav
+              aria-label="Reports"
+              className="hidden self-start rounded-md border border-rule bg-white py-2 xl:block"
+            >
+              <ul>
+                {items.map((r) => (
+                  <li key={r.id}>
+                    <button
+                      type="button"
+                      onClick={() => choose(r.id)}
+                      aria-current={r.id === report.id ? 'page' : undefined}
+                      className={`block w-full border-l-[3px] px-3 py-1.5 text-left text-sm ${
+                        r.id === report.id
+                          ? 'border-brand bg-brand-soft font-medium text-brand'
+                          : 'border-transparent hover:bg-canvas'
+                      }`}
+                    >
+                      {r.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </>
+        )}
         <ReportView
           key={report.id}
           base={base}

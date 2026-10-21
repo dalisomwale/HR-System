@@ -68,7 +68,6 @@ const PEOPLE = [
   { to: '/people/employees', label: 'Employees', icon: Users, except: '/people/employees/new' },
   { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, hrOnly: true },
 ];
-const PEOPLE_REPORTS = [{ to: '/people/reports', label: 'Reports', icon: FileBarChart }];
 
 const navLinkClass = ({ isActive }) =>
   [
@@ -160,6 +159,76 @@ function ExpandNav({
                 </ul>
               </div>
             ))}
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+/** Reports segment: opens to list each report; the chosen one is lit up (D64). */
+function ReportsNav({ onNavigate }) {
+  const { pathname, search } = useLocation();
+  const inside = pathname === '/people/reports';
+  const current = new URLSearchParams(search).get('report');
+  const [open, setOpen] = useState(inside);
+  useEffect(() => {
+    if (inside) setOpen(true);
+  }, [inside]);
+  const list = useQuery({
+    queryKey: ['reports', '/api/people/reports'],
+    queryFn: () => api.get('/api/people/reports'),
+  });
+  const items = list.data?.items ?? [];
+  const chosen = inside ? (current ?? items[0]?.id) : null;
+  return (
+    <div className="mb-6">
+      <p className="mb-1.5 px-3 text-xs font-medium text-muted">Reports</p>
+      <ul>
+        <li className="flex items-stretch">
+          {/* The chosen report below is the one lit up, so this stays plain. */}
+          <NavLink
+            to="/people/reports"
+            end
+            onClick={onNavigate}
+            className={`${navLinkClass({ isActive: false })} flex-1`}
+          >
+            <FileBarChart className="size-4 shrink-0" aria-hidden />
+            Reports
+          </NavLink>
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-controls="people-reports-list"
+            aria-label={open ? 'Hide reports list' : 'Show reports list'}
+            onClick={() => setOpen((o) => !o)}
+            className="px-3 text-muted hover:bg-canvas hover:text-ink"
+          >
+            <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+          </button>
+        </li>
+        {open && (
+          <li id="people-reports-list">
+            {list.isPending && <p className="py-1.5 pl-10 text-xs text-muted">Loading</p>}
+            <ul className="mb-1">
+              {items.map((r) => (
+                <li key={r.id}>
+                  <Link
+                    to={`/people/reports?report=${r.id}`}
+                    onClick={onNavigate}
+                    aria-current={chosen === r.id ? 'page' : undefined}
+                    className={[
+                      'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
+                      chosen === r.id
+                        ? 'border-brand bg-brand-soft font-medium text-brand'
+                        : 'border-transparent text-ink hover:bg-canvas',
+                    ].join(' ')}
+                  >
+                    {r.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </li>
         )}
       </ul>
@@ -345,7 +414,7 @@ export default function AppShell() {
             onNavigate={() => setMenuOpen(false)}
           />
           <OrganisationNav user={user} onNavigate={() => setMenuOpen(false)} />
-          <NavGroup title="Reports" items={PEOPLE_REPORTS} onNavigate={() => setMenuOpen(false)} />
+          <ReportsNav onNavigate={() => setMenuOpen(false)} />
           {hasRole(user, 'HR_ADMIN') && (
             <NavGroup
               title="Administration"

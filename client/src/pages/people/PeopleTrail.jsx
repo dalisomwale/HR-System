@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import { api } from '../../lib/api.js';
@@ -55,8 +55,19 @@ function useGroupName(section, id) {
   return null;
 }
 
+function useReportTitle(on, id) {
+  const q = useQuery({
+    queryKey: ['reports', '/api/people/reports'],
+    queryFn: () => api.get('/api/people/reports'),
+    enabled: on,
+  });
+  if (!on || !q.data) return null;
+  return (q.data.items.find((r) => r.id === id) ?? q.data.items[0])?.title ?? null;
+}
+
 export default function PeopleTrail() {
   const { pathname } = useLocation();
+  const [search] = useSearchParams();
   const parts = pathname
     .replace(/^\/people\/?/, '')
     .split('/')
@@ -66,12 +77,16 @@ export default function PeopleTrail() {
   const nested = (section === 'companies' || section === 'departments') && sub === 'employees';
   const groupName = useGroupName(section, rest);
   const employeeName = useEmployeeName(nested ? subId : section === 'employees' ? rest : null);
+  const reportTitle = useReportTitle(section === 'reports', search.get('report'));
   if (!pathname.startsWith('/people')) return null;
 
   const trail = [ROOT];
   if (!section) trail.push({ label: 'Home' });
   else if (section === 'import') trail.push(SECTIONS.employees, { label: 'Import employees' });
-  else if (nested) {
+  else if (section === 'reports') {
+    trail.push(reportTitle ? SECTIONS.reports : { label: 'Reports' });
+    if (reportTitle) trail.push({ label: reportTitle });
+  } else if (nested) {
     trail.push(SECTIONS[section], { label: groupName, to: `/people/${section}/${rest}` });
     if (!subId) trail.push({ label: 'Employees' });
     else {

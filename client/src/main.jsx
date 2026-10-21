@@ -128,7 +128,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="departments/:id" element={group(<DepartmentPage />)} />
               <Route path="departments/:departmentId/employees" element={group(<DirectoryPage />)} />
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
-              <Route path="reports" element={group(<ReportsPage base="/api/people/reports" />)} />
+              <Route path="reports" element={group(<ReportsPage base="/api/people/reports" listInMenu />)} />
               <Route path="import" element={hr(<ImportPage />)} />
             </Route>
             <Route path="admin">
