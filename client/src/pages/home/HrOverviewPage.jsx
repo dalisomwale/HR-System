@@ -5,7 +5,7 @@ import { hasRole, useMe } from '../../lib/auth.jsx';
 import { LoadError, Loading, PageHeader, Section, Select, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
 import { BarList } from '../../components/charts.jsx';
-import { LeaveTypeChart, OutcomesChart, PeopleOffChart } from './dashboard-charts.jsx';
+import { LeaveTypeChart, OutcomesDonut, PeopleOffChart, TypeDonut } from './dashboard-charts.jsx';
 
 export default function HrOverviewPage() {
   const [params, setParams] = useSearchParams();
@@ -64,14 +64,22 @@ function Body({ d }) {
         <Stat label="On leave today" value={d.onLeave.length} />
       </Stats>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Section title="Who is off in the next 30 days" className="xl:col-span-2">
-          <PeopleOffChart daily={d.charts.offDaily} />
-        </Section>
+      <div className="grid gap-6 xl:grid-cols-2">
         <Section title={`Requests for ${d.charts.year}`} description="Where each request stands now">
-          <OutcomesChart outcomes={d.charts.outcomes} />
+          <OutcomesDonut outcomes={d.charts.outcomes} />
+        </Section>
+        <Section title={`Days taken by leave type, ${d.charts.year}`} description="Approved days">
+          <TypeDonut
+            label={`Approved days by leave type, ${d.charts.year}`}
+            empty={`No approved leave yet in ${d.charts.year}.`}
+            items={d.charts.byType}
+          />
         </Section>
       </div>
+
+      <Section title="Who is off in the next 30 days">
+        <PeopleOffChart daily={d.charts.offDaily} />
+      </Section>
 
       <Section title={`Leave taken by month, ${d.charts.year}`} description="Approved days by leave type">
         <LeaveTypeChart byType={d.charts.monthlyByType} year={d.charts.year} />

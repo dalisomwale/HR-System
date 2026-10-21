@@ -1,4 +1,4 @@
-import { BarList, COLORS, ColumnChart, Legend, Meter } from '../../components/charts.jsx';
+import { COLORS, ColumnChart, Donut, Legend, Meter } from '../../components/charts.jsx';
 import { PERIOD_LABELS, days } from '../../lib/leave.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -113,19 +113,6 @@ export function LeaveTypeChart({ byType, year, empty }) {
   );
 }
 
-/** Requests in the year by where they stand now. */
-export function OutcomesChart({ outcomes }) {
-  const total = outcomes.reduce((s, o) => s + o.count, 0);
-  return (
-    <BarList
-      empty="No requests this year yet."
-      max={total}
-      format={(n) => `${n}${total ? ` · ${Math.round((n / total) * 100)}%` : ''}`}
-      items={outcomes.map((o) => ({ key: o.key, label: o.label, value: o.count }))}
-    />
-  );
-}
-
 /** Taken, waiting and available as one bar, with the figures beneath it. */
 export function BalanceMeter({ b, compact = false }) {
   let parts;
@@ -189,5 +176,88 @@ export function BalanceMeter({ b, compact = false }) {
       )}
       {b.eligibility && <p className="mt-2 text-xs text-pending">{b.eligibility}</p>}
     </div>
+  );
+}
+
+/** Annual leave as a ring: taken, waiting for a decision, and still available. */
+export function BalanceDonut({ b }) {
+  return (
+    <Donut
+      label={`${b.leaveType.name} ${b.year}`}
+      centre={b.available}
+      centreLabel="days available"
+      segments={[
+        { key: 'taken', name: 'Taken', value: b.taken, color: COLORS.taken },
+        { key: 'waiting', name: 'Waiting for a decision', value: b.pending, color: COLORS.waiting },
+        {
+          key: 'available',
+          name: 'Available',
+          value: Math.max(0, b.available),
+          color: COLORS.track,
+          outline: true,
+        },
+      ]}
+    />
+  );
+}
+
+/** Share of days by leave type: the three largest named, the rest together. */
+export function TypeDonut({ items, label, empty }) {
+  const ranked = items.filter((i) => i.value > 0).sort((a, b) => b.value - a.value);
+  const named = ranked.slice(0, 3).map((i, n) => ({ ...i, color: COLORS.series[n] }));
+  const rest = ranked.slice(3).reduce((s, i) => s + i.value, 0);
+  const segments =
+    rest > 0
+      ? [
+          ...named,
+          { key: 'other', name: 'Other types', value: Math.round(rest * 100) / 100, color: COLORS.other },
+        ]
+      : named;
+  return <Donut label={label} segments={segments} unit="days" empty={empty} />;
+}
+
+const OUTCOME_COLORS = {
+  approved: COLORS.taken,
+  waiting: COLORS.waiting,
+  rejected: '#b42318',
+  withdrawn: COLORS.other,
+};
+
+/** Requests in the year by where they stand now. */
+export function OutcomesDonut({ outcomes }) {
+  return (
+    <Donut
+      label="Requests by outcome"
+      unit="requests"
+      empty="No requests this year yet."
+      segments={outcomes.map((o) => ({
+        key: o.key,
+        name: o.label,
+        value: o.count,
+        color: OUTCOME_COLORS[o.key],
+      }))}
+    />
+  );
+}
+
+/** The team today: on approved leave, and at work. */
+export function TeamTodayDonut({ size, onLeave }) {
+  return (
+    <Donut
+      label="Your team today"
+      centre={size}
+      centreLabel={size === 1 ? 'person' : 'people'}
+      empty="Nobody reports to you yet."
+      segments={[
+        { key: 'leave', name: 'On leave today', value: onLeave, color: COLORS.taken },
+        {
+          key: 'work',
+          name: 'At work',
+          value: Math.max(0, size - onLeave),
+          color: COLORS.track,
+          outline: true,
+        },
+      ]}
+    />
   );
 }

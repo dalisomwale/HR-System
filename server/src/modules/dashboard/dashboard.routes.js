@@ -9,7 +9,13 @@ import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 import { hrQueue, managerQueue } from '../leave/queries.service.js';
 import { departmentMembers } from './members.service.js';
-import { monthlyByType, monthlyTakenBooked, peopleOffDaily, requestOutcomes } from './charts.service.js';
+import {
+  daysByType,
+  monthlyByType,
+  monthlyTakenBooked,
+  peopleOffDaily,
+  requestOutcomes,
+} from './charts.service.js';
 
 /*
  * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
@@ -560,6 +566,7 @@ export function dashboardRoutes({ db }) {
         year,
         offDaily: await peopleOffDaily(db, inCompany, today, 30),
         monthlyByType: await monthlyByType(db, inCompany, year, 3),
+        byType: await daysByType(db, inCompany, year),
         outcomes: await requestOutcomes(db, inCompany, year),
       };
 

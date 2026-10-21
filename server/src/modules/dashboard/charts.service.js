@@ -31,7 +31,9 @@ export async function monthlyTakenBooked(db, scope, year, today) {
   const months = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, taken: 0, booked: 0 }));
   for (const r of rows) {
     const slot = months[Number(r.m) - 1];
-    slot[Number(r.past) ? 'taken' : 'booked'] = round(slot[Number(r.past) ? 'taken' : 'booked'] + Number(r.days));
+    slot[Number(r.past) ? 'taken' : 'booked'] = round(
+      slot[Number(r.past) ? 'taken' : 'booked'] + Number(r.days),
+    );
   }
   return months;
 }
@@ -49,7 +51,8 @@ export async function monthlyByType(db, scope, year, top = 3) {
     .select(db.raw('MONTH(x.leave_date) as m'), 't.id', 't.name')
     .sum({ days: 'x.charged' });
   const totals = new Map();
-  for (const r of rows) totals.set(r.id, { name: r.name, days: (totals.get(r.id)?.days ?? 0) + Number(r.days) });
+  for (const r of rows)
+    totals.set(r.id, { name: r.name, days: (totals.get(r.id)?.days ?? 0) + Number(r.days) });
   const ranked = [...totals.entries()].sort((a, b) => b[1].days - a[1].days);
   const named = ranked.slice(0, top).map(([id, t]) => ({ key: `t${id}`, id, name: t.name }));
   const hasOther = ranked.length > top;
@@ -107,9 +110,28 @@ export async function requestOutcomes(db, scope, year) {
     {
       key: 'waiting',
       label: 'Waiting for a decision',
-      count: n('PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL', 'PENDING_EMPLOYEE_ACCEPTANCE', 'RETURNED_FOR_CORRECTION'),
+      count: n(
+        'PENDING_MANAGER_APPROVAL',
+        'PENDING_HR_APPROVAL',
+        'PENDING_EMPLOYEE_ACCEPTANCE',
+        'RETURNED_FOR_CORRECTION',
+      ),
     },
     { key: 'rejected', label: 'Rejected', count: n('REJECTED_BY_MANAGER', 'REJECTED_BY_HR') },
     { key: 'withdrawn', label: 'Withdrawn or cancelled', count: n('WITHDRAWN', 'CANCELLED') },
   ];
+}
+
+/** Approved leave days in a year for each leave type, largest first. */
+export async function daysByType(db, scope, year) {
+  const rows = await daysQuery(db, scope)
+    .join('leave_types as t', 't.id', 'r.leave_type_id')
+    .where('r.status', 'APPROVED')
+    .whereBetween('x.leave_date', [`${year}-01-01`, `${year}-12-31`])
+    .groupBy('t.id', 't.name')
+    .select('t.id', 't.name')
+    .sum({ days: 'x.charged' });
+  return rows
+    .map((r) => ({ key: r.id, name: r.name, value: round(Number(r.days)) }))
+    .sort((a, b) => b.value - a.value);
 }

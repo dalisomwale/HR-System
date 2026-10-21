@@ -339,6 +339,7 @@ describe('dashboards', () => {
 
     const group = (await as(hr).get('/api/dashboard/hr')).body.charts;
     expect(group.outcomes.find((o) => o.key === 'approved').count).toBe(1);
+    expect(group.byType).toEqual([expect.objectContaining({ value: expect.any(Number) })]);
     expect(group.monthlyByType.series).toEqual([expect.objectContaining({ name: expect.any(String) })]);
   });
 

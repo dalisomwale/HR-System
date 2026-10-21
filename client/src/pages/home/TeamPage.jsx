@@ -5,7 +5,7 @@ import { formatDate } from '../../lib/format.js';
 import { FileBarChart } from 'lucide-react';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
-import { MonthlyLeaveChart, PeopleOffChart } from './dashboard-charts.jsx';
+import { MonthlyLeaveChart, PeopleOffChart, TeamTodayDonut } from './dashboard-charts.jsx';
 
 export default function TeamPage() {
   const q = useQuery({
@@ -47,14 +47,18 @@ function Body({ d }) {
         <Stat label="People in your team" value={d.teamSize} />
       </Stats>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Section title="Who is off in the next 30 days">
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Section title="Your team today">
+          <TeamTodayDonut size={d.teamSize} onLeave={d.onLeave.length} />
+        </Section>
+        <Section title="Who is off in the next 30 days" className="xl:col-span-2">
           <PeopleOffChart daily={d.charts.offDaily} />
         </Section>
-        <Section title={`Team leave by month, ${d.charts.year}`}>
-          <MonthlyLeaveChart months={d.charts.monthly} year={d.charts.year} />
-        </Section>
       </div>
+
+      <Section title={`Team leave by month, ${d.charts.year}`}>
+        <MonthlyLeaveChart months={d.charts.monthly} year={d.charts.year} />
+      </Section>
 
       <Section
         title="Waiting for your review"

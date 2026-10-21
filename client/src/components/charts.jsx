@@ -326,3 +326,111 @@ export function Meter({ segments, total, label, height = 10 }) {
     </div>
   );
 }
+
+function arc(cx, cy, r, a0, a1) {
+  const p = (a) => [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  const [x0, y0] = p(a0);
+  const [x1, y1] = p(a1);
+  return `M${x0},${y0}A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1},${y1}`;
+}
+
+/**
+ * A ring split into parts of a whole, with the total in the middle and a legend beside it
+ * giving each part's figure and share. segments: [{ key, name, value, color }].
+ */
+export function Donut({ segments, label, centre, centreLabel, size = 148, unit, empty }) {
+  const [hover, setHover] = useState(null);
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  if (total === 0 && empty) return <p className="text-sm text-muted">{empty}</p>;
+  const stroke = 22;
+  const r = (size - stroke) / 2;
+  const c = size / 2;
+  const shown = segments.filter((s) => s.value > 0);
+  // 2px of surface between parts, as an angle at the ring's middle radius.
+  const gap = shown.length > 1 ? 2 / r : 0;
+  let a = 0;
+  const arcs = shown.map((s) => {
+    const sweep = (s.value / total) * Math.PI * 2;
+    const from = a + gap / 2;
+    const to = a + sweep - gap / 2;
+    a += sweep;
+    return { ...s, from, to, sweep };
+  });
+  // Whole percentages that add up to exactly 100 (largest remainder first).
+  const shares = new Map();
+  if (total) {
+    const raw = segments.map((x) => ({ key: x.key, exact: (x.value / total) * 100 }));
+    raw.forEach((x) => shares.set(x.key, Math.floor(x.exact)));
+    let left = 100 - [...shares.values()].reduce((a, b) => a + b, 0);
+    for (const x of [...raw].sort((p, q) => (q.exact % 1) - (p.exact % 1))) {
+      if (left <= 0) break;
+      if (x.exact % 1 > 0) {
+        shares.set(x.key, shares.get(x.key) + 1);
+        left -= 1;
+      }
+    }
+  }
+  const pctOf = (key) => shares.get(key) ?? 0;
+  const focus = hover ? segments.find((s) => s.key === hover) : null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`${label}: ${segments.map((s) => `${s.name} ${fmt(s.value)}`).join(', ')}`}
+        className="shrink-0"
+      >
+        <circle cx={c} cy={c} r={r} fill="none" stroke={COLORS.track} strokeWidth={stroke} />
+        {arcs.map((s) =>
+          s.sweep >= Math.PI * 2 - 1e-6 ? (
+            <circle key={s.key} cx={c} cy={c} r={r} fill="none" stroke={s.color} strokeWidth={stroke} />
+          ) : (
+            <path
+              key={s.key}
+              d={arc(c, c, r, s.from, Math.max(s.from + 0.001, s.to))}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={hover === s.key ? stroke + 4 : stroke}
+              onPointerEnter={() => setHover(s.key)}
+              onPointerLeave={() => setHover(null)}
+            >
+              <title>{`${s.name}: ${fmt(s.value)} (${pctOf(s.key)}%)`}</title>
+            </path>
+          ),
+        )}
+        <text x={c} y={c - 4} textAnchor="middle" className="fill-ink text-[22px] font-semibold">
+          {focus ? fmt(focus.value) : (centre ?? fmt(total))}
+        </text>
+        <text x={c} y={c + 15} textAnchor="middle" className="fill-muted text-[11px]">
+          {focus ? `${pctOf(focus.key)}%` : (centreLabel ?? unit ?? '')}
+        </text>
+      </svg>
+      <ul className="min-w-40 flex-1 space-y-2 text-sm">
+        {segments.map((s) => (
+          <li
+            key={s.key}
+            className={`flex items-center justify-between gap-3 rounded px-1 ${hover === s.key ? 'bg-canvas' : ''}`}
+            onPointerEnter={() => setHover(s.key)}
+            onPointerLeave={() => setHover(null)}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className="inline-block size-2.5 shrink-0 rounded-sm"
+                style={{ background: s.color, outline: s.outline ? '1px solid #c9cfe6' : undefined }}
+                aria-hidden
+              />
+              <span className="truncate">{s.name}</span>
+            </span>
+            <span className="shrink-0 tabular-nums">
+              <span className="font-semibold">{fmt(s.value)}</span>
+              <span className="text-xs text-muted"> · {pctOf(s.key)}%</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

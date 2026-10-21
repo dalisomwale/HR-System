@@ -6,8 +6,8 @@ import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
-import { Activity, RequestList } from './dashboard-ui.jsx';
-import { BalanceMeter, MonthlyLeaveChart } from './dashboard-charts.jsx';
+import { RequestList } from './dashboard-ui.jsx';
+import { BalanceDonut, MonthlyLeaveChart, TypeDonut } from './dashboard-charts.jsx';
 
 export default function HomePage() {
   const { data: me } = useMe();
@@ -76,7 +76,7 @@ function Body({ d }) {
         </Notice>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-6 xl:grid-cols-2">
         {main && (
           <Section
             title={`${main.leaveType.name}, ${d.year}`}
@@ -86,16 +86,25 @@ function Body({ d }) {
               </Link>
             }
           >
-            <BalanceMeter b={main} compact />
+            <BalanceDonut b={main} />
           </Section>
         )}
-        <Section
-          title={`Your leave by month, ${d.year}`}
-          className={main ? 'xl:col-span-2' : 'xl:col-span-3'}
-        >
-          <MonthlyLeaveChart months={d.charts.monthly} year={d.year} />
+        <Section title={`Days taken by leave type, ${d.year}`} className={main ? '' : 'xl:col-span-2'}>
+          <TypeDonut
+            label={`Days taken by leave type, ${d.year}`}
+            empty={`No leave taken yet in ${d.year}.`}
+            items={d.balances.map((b) => ({
+              key: b.leaveType.id,
+              name: b.leaveType.name,
+              value: b.taken ?? 0,
+            }))}
+          />
         </Section>
       </div>
+
+      <Section title={`Your leave by month, ${d.year}`}>
+        <MonthlyLeaveChart months={d.charts.monthly} year={d.year} />
+      </Section>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Section title="Waiting for a decision">
@@ -105,10 +114,6 @@ function Body({ d }) {
           <RequestList items={d.upcoming} empty="No approved leave coming up." />
         </Section>
       </div>
-
-      <Section title="Recent activity">
-        <Activity items={d.activity} />
-      </Section>
     </>
   );
 }
