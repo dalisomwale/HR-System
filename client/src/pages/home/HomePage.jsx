@@ -7,6 +7,7 @@ import { formatDate } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { Activity, RequestList } from './dashboard-ui.jsx';
+import { BalanceMeter, MonthlyLeaveChart } from './dashboard-charts.jsx';
 
 export default function HomePage() {
   const { data: me } = useMe();
@@ -56,6 +57,7 @@ function RoleLinks({ me }) {
 }
 
 function Body({ d }) {
+  const main = d.balances.find((b) => b.kind === 'BALANCE');
   return (
     <>
       <Insights i={d.insights} year={d.year} />
@@ -73,6 +75,27 @@ function Body({ d }) {
           </ul>
         </Notice>
       )}
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        {main && (
+          <Section
+            title={`${main.leaveType.name}, ${d.year}`}
+            actions={
+              <Link to="/leave/balances" className="text-sm text-brand hover:underline">
+                All balances
+              </Link>
+            }
+          >
+            <BalanceMeter b={main} compact />
+          </Section>
+        )}
+        <Section
+          title={`Your leave by month, ${d.year}`}
+          className={main ? 'xl:col-span-2' : 'xl:col-span-3'}
+        >
+          <MonthlyLeaveChart months={d.charts.monthly} year={d.year} />
+        </Section>
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Section title="Waiting for a decision">

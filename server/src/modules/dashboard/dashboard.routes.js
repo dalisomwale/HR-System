@@ -9,6 +9,7 @@ import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 import { hrQueue, managerQueue } from '../leave/queries.service.js';
 import { departmentMembers } from './members.service.js';
+import { monthlyByType, monthlyTakenBooked, peopleOffDaily, requestOutcomes } from './charts.service.js';
 
 /*
  * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
@@ -252,8 +253,13 @@ export function dashboardRoutes({ db }) {
         : [];
       const leftById = new Map(daysLeft.map((x) => [x.leave_request_id, Number(x.left_days)]));
 
+      const charts = {
+        monthly: await monthlyTakenBooked(db, (q) => q.where('r.employee_id', me), year, today),
+      };
+
       res.json({
         year,
+        charts,
         active: running.map((r) => ({ ...item(r), daysLeft: leftById.get(r.id) ?? 0 })),
         insights: {
           main: main
@@ -349,7 +355,16 @@ export function dashboardRoutes({ db }) {
         (r) => r.status === 'APPROVED' && r.start_date > today && !r.handover_contact_id,
       );
 
+      const inTeam = (q) => q.whereIn('r.employee_id', team.length ? team : [0]);
+      const year = Number(today.slice(0, 4));
+      const charts = {
+        year,
+        offDaily: await peopleOffDaily(db, inTeam, today, 30),
+        monthly: await monthlyTakenBooked(db, inTeam, year, today),
+      };
+
       res.json({
+        charts,
         teamSize: team.length,
         awaiting: await withAge(db, awaiting, today, 'overdue_manager_working_days'),
         awaitingChanges: Number(awaitingChanges.n),
@@ -541,7 +556,15 @@ export function dashboardRoutes({ db }) {
         }
       }
 
+      const charts = {
+        year,
+        offDaily: await peopleOffDaily(db, inCompany, today, 30),
+        monthlyByType: await monthlyByType(db, inCompany, year, 3),
+        outcomes: await requestOutcomes(db, inCompany, year),
+      };
+
       res.json({
+        charts,
         awaitingHr: hrAged,
         withManagers: mgrAged,
         exceptions: {

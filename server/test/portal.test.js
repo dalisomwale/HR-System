@@ -304,6 +304,44 @@ describe('dashboards', () => {
     expect(res.body.active).toEqual([expect.objectContaining({ id: r.id, daysLeft: r.chargeableDays })]);
   });
 
+  it('counts approved leave in the dashboard charts', async () => {
+    const today = todayInLusaka();
+    const r = await sickRequest(today, addDays(today, 6));
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
+    const year = Number(today.slice(0, 4));
+    const inYear = await db('leave_request_days')
+      .where({ leave_request_id: r.id })
+      .whereBetween('leave_date', [`${year}-01-01`, `${year}-12-31`])
+      .sum({ d: 'charged' })
+      .first();
+
+    const mine = (await as(emp).get('/api/dashboard/employee')).body.charts.monthly;
+    expect(mine).toHaveLength(12);
+    const total = mine.reduce((s, m) => s + m.taken + m.booked, 0);
+    expect(total).toBeCloseTo(Number(inYear.d));
+
+    const team = (await as(mgr).get('/api/dashboard/manager')).body.charts;
+    expect(team.offDaily).toHaveLength(30);
+    expect(team.offDaily[0].date).toBe(today);
+    const offDays = team.offDaily.filter((d) => d.approved === 1).length;
+    expect(offDays).toBe(
+      Number(
+        (
+          await db('leave_request_days')
+            .where({ leave_request_id: r.id })
+            .where('charged', '>', 0)
+            .count({ n: '*' })
+            .first()
+        ).n,
+      ),
+    );
+
+    const group = (await as(hr).get('/api/dashboard/hr')).body.charts;
+    expect(group.outcomes.find((o) => o.key === 'approved').count).toBe(1);
+    expect(group.monthlyByType.series).toEqual([expect.objectContaining({ name: expect.any(String) })]);
+  });
+
   it('shows a manager their department members without leave types, and refuses others', async () => {
     const today = todayInLusaka();
     const r = await sickRequest(today, addDays(today, 6));

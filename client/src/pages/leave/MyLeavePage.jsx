@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
 import { Activity } from '../home/dashboard-ui.jsx';
+import { BalanceMeter } from '../home/dashboard-charts.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
@@ -217,9 +218,27 @@ function Balances({ year, bare = false }) {
   ) : q.isError ? (
     <LoadError error={q.error} onRetry={() => q.refetch()} />
   ) : (
-    <BalanceCards items={q.data.items} />
+    <div className="space-y-6">
+      <Meters items={q.data.items} />
+      <BalanceCards items={q.data.items} />
+    </div>
   );
   return bare ? body : <Section title={`Balances ${year}`}>{body}</Section>;
+}
+
+/** One bar per leave type that has a limit: taken, waiting and what is left. */
+function Meters({ items }) {
+  const limited = items.filter((b) => b.kind === 'BALANCE' || b.kind === 'ALLOWANCE');
+  if (!limited.length) return null;
+  return (
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {limited.map((b) => (
+        <li key={b.leaveType.id}>
+          <BalanceMeter b={b} />
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Requests({ year, setYear }) {

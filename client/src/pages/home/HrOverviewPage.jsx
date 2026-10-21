@@ -4,6 +4,8 @@ import { api } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { LoadError, Loading, PageHeader, Section, Select, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
+import { BarList } from '../../components/charts.jsx';
+import { LeaveTypeChart, OutcomesChart, PeopleOffChart } from './dashboard-charts.jsx';
 
 export default function HrOverviewPage() {
   const [params, setParams] = useSearchParams();
@@ -62,6 +64,19 @@ function Body({ d }) {
         <Stat label="On leave today" value={d.onLeave.length} />
       </Stats>
 
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Section title="Who is off in the next 30 days" className="xl:col-span-2">
+          <PeopleOffChart daily={d.charts.offDaily} />
+        </Section>
+        <Section title={`Requests for ${d.charts.year}`} description="Where each request stands now">
+          <OutcomesChart outcomes={d.charts.outcomes} />
+        </Section>
+      </div>
+
+      <Section title={`Leave taken by month, ${d.charts.year}`} description="Approved days by leave type">
+        <LeaveTypeChart byType={d.charts.monthlyByType} year={d.charts.year} />
+      </Section>
+
       <Section title="Waiting for final approval">
         <RequestList
           items={d.awaitingHr}
@@ -111,29 +126,45 @@ function Body({ d }) {
         {d.utilisation.rows.length === 0 ? (
           <p className="text-sm text-muted">No active employees.</p>
         ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Department</Th>
-                <Th className="text-right">Staff</Th>
-                <Th className="text-right">Days approved</Th>
-                <Th className="text-right">Per person</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.utilisation.rows.map((u) => (
-                <tr key={`${u.company}|${u.department}`}>
-                  <Td>
-                    {u.department}
-                    {!d.companyId && <p className="text-xs text-muted">{u.company}</p>}
-                  </Td>
-                  <Td className="text-right">{u.headcount}</Td>
-                  <Td className="text-right">{u.annualDaysApproved}</Td>
-                  <Td className="text-right">{u.perPerson}</Td>
+          <div className="space-y-5">
+            <div className="max-w-2xl">
+              <p className="mb-3 text-xs text-muted">Annual leave days approved per person</p>
+              <BarList
+                format={(n) => `${n} days`}
+                items={[...d.utilisation.rows]
+                  .sort((a, b) => b.perPerson - a.perPerson)
+                  .map((u) => ({
+                    key: `${u.company}|${u.department}`,
+                    label: u.department,
+                    sub: d.companyId ? `${u.headcount} staff` : `${u.company} · ${u.headcount} staff`,
+                    value: u.perPerson,
+                  }))}
+              />
+            </div>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Department</Th>
+                  <Th className="text-right">Staff</Th>
+                  <Th className="text-right">Days approved</Th>
+                  <Th className="text-right">Per person</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {d.utilisation.rows.map((u) => (
+                  <tr key={`${u.company}|${u.department}`}>
+                    <Td>
+                      {u.department}
+                      {!d.companyId && <p className="text-xs text-muted">{u.company}</p>}
+                    </Td>
+                    <Td className="text-right">{u.headcount}</Td>
+                    <Td className="text-right">{u.annualDaysApproved}</Td>
+                    <Td className="text-right">{u.perPerson}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
         )}
       </Section>
     </>

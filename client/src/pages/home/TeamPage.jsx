@@ -5,6 +5,7 @@ import { formatDate } from '../../lib/format.js';
 import { FileBarChart } from 'lucide-react';
 import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
+import { MonthlyLeaveChart, PeopleOffChart } from './dashboard-charts.jsx';
 
 export default function TeamPage() {
   const q = useQuery({
@@ -45,6 +46,15 @@ function Body({ d }) {
         <Stat label="On leave today" value={d.onLeave.length} />
         <Stat label="People in your team" value={d.teamSize} />
       </Stats>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Section title="Who is off in the next 30 days">
+          <PeopleOffChart daily={d.charts.offDaily} />
+        </Section>
+        <Section title={`Team leave by month, ${d.charts.year}`}>
+          <MonthlyLeaveChart months={d.charts.monthly} year={d.charts.year} />
+        </Section>
+      </div>
 
       <Section
         title="Waiting for your review"
