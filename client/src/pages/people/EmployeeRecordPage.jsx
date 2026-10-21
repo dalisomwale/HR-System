@@ -347,7 +347,11 @@ function EmployeeDetails({ employee: e, saved }) {
   );
 }
 
-function EmployeeForm({ employee, isNew, onDone, onCancel }) {
+/**
+ * Add or edit an employee. `defaults` pre-fills a new record (e.g. the department it is added
+ * from); `onCreated` keeps the person where they are instead of opening the new record.
+ */
+export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCreated, title }) {
   const navigate = useNavigate();
   const invalidate = useInvalidateEmployee(employee?.id);
   const [message, setMessage] = useState(null);
@@ -373,7 +377,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
     setValue,
     watch,
     formState: { errors, dirtyFields, isDirty, isSubmitting },
-  } = useForm({ defaultValues: employee ? toForm(employee) : blank });
+  } = useForm({ defaultValues: employee ? toForm(employee) : { ...blank, ...defaults } });
   // Fill the form once the dropdown options exist, so selected values show correctly.
   const lookupsReady =
     departments.isSuccess && companies.isSuccess && people.isSuccess && schedules.isSuccess;
@@ -387,7 +391,8 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
       if (isNew) {
         const { id } = await api.post('/api/admin/employees', toPayload(values));
         invalidate();
-        navigate(`/people/employees/${id}`, { replace: true });
+        if (onCreated) onCreated(id, values);
+        else navigate(`/people/employees/${id}`, { replace: true });
       } else {
         await api.patch(`/api/admin/employees/${employee.id}`, toPayload(values, Object.keys(dirtyFields)));
         invalidate();
@@ -422,7 +427,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
   }
 
   return (
-    <Section title={isNew ? 'Employment details' : 'Edit employment details'}>
+    <Section title={title ?? (isNew ? 'Employment details' : 'Edit employment details')}>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-2">
         <Field id="firstName" label="First name" error={err('firstName')}>
           <Input
@@ -595,7 +600,7 @@ function EmployeeForm({ employee, isNew, onDone, onCancel }) {
           <Button type="submit" busy={isSubmitting} disabled={!isNew && !isDirty}>
             {isNew ? 'Create employee' : 'Save changes'}
           </Button>
-          {!isNew && (
+          {(!isNew || onCancel) && (
             <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </Button>
