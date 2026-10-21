@@ -27,7 +27,7 @@ The menu is in segments (D55):
 Each company in the list opens its own overview: headline figures, employment type, length of
 service, and its departments' charts and table. Each department opens its own overview too:
 headline figures, employment type, length of service and everyone in it. On a department's page HR Officers can add an employee (department and
-company filled in) and edit the department without leaving it (D57). Add employee, Add
+company filled in) and edit the department without leaving it (D57). Selecting anyone in the department opens their details in a side panel, where HR Officers can edit them (D59). Every page shows the path to it at the top (D60). Add employee, Add
 company and Add department are for HR Officers.
 
 - **Home**: active staff, starting and leaving in the next 30 days, contracts ending in 60 days;
