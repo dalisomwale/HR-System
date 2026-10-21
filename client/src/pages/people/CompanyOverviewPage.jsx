@@ -14,6 +14,15 @@ import {
   Section,
 } from '../../components/ui.jsx';
 import { TypeMeter } from './people-ui.jsx';
+import {
+  MovesByGroup,
+  ServiceChart,
+  TypeDonutChart,
+  TypesByGroup,
+  shortName,
+  sumBands,
+  sumTypes,
+} from './people-charts.jsx';
 
 /** Each company in the group side by side (D53). */
 export default function CompanyOverviewPage() {
@@ -55,6 +64,8 @@ export default function CompanyOverviewPage() {
               </Link>
             </Notice>
           )}
+          <Statistics companies={q.data.companies} year={q.data.year} />
+          <h2 className="pt-2 text-base font-semibold">Each company</h2>
           <div className="grid gap-6 xl:grid-cols-2">
             {q.data.companies.map((c) => (
               <CompanyCard key={c.id} c={c} year={q.data.year} />
@@ -126,5 +137,32 @@ export function Figures({ items }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+function Statistics({ companies, year }) {
+  const groups = companies.map((c) => ({
+    key: String(c.id),
+    tick: shortName(c),
+    title: c.name,
+    byType: c.byType,
+    joined: c.joinedThisYear,
+    left: c.leftThisYear,
+  }));
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Section title="Staff by company" description="Active staff, by employment type">
+        <TypesByGroup groups={groups} label="Active staff in each company by employment type" />
+      </Section>
+      <Section title="Employment type" description="Whole group">
+        <TypeDonutChart byType={sumTypes(companies)} />
+      </Section>
+      <Section title={`Joined and left in ${year}`} description="By company">
+        <MovesByGroup groups={groups} label={`Joined and left in ${year} by company`} />
+      </Section>
+      <Section title="Length of service" description="Whole group">
+        <ServiceChart bands={sumBands(companies)} />
+      </Section>
+    </div>
   );
 }

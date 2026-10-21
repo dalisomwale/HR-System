@@ -170,3 +170,22 @@ describe('overviews and reports', () => {
     ).toHaveLength(1);
   });
 });
+
+describe('statistics', () => {
+  it('counts staff at each month end and by length of service', async () => {
+    const today = todayInLusaka();
+    await post('/api/admin/employees', newEmployee({ employmentStartDate: addDays(today, -40) }));
+    await post('/api/admin/employees', newEmployee({ employmentStartDate: '2015-01-05' }));
+    const d = (await hr.agent.get('/api/people/dashboard')).body;
+    expect(d.headcountTrend).toHaveLength(12);
+    // Today's column counts everyone active now: the two above and the HR fixture.
+    expect(d.headcountTrend[11].headcount).toBe(d.headcount);
+    const bands = Object.fromEntries(d.serviceBands.map((b) => [b.key, b.count]));
+    expect(bands.gt10).toBe(1);
+    expect(Object.values(bands).reduce((s, n) => s + n, 0)).toBe(d.headcount);
+
+    const c = (await hr.agent.get('/api/people/companies-overview')).body;
+    const all = [...c.companies.map((x) => x.serviceBands)];
+    expect(all.every((b) => 'lt1' in b && 'gt10' in b)).toBe(true);
+  });
+});

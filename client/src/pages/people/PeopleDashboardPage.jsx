@@ -8,6 +8,7 @@ import { BarList, COLORS, ColumnChart, Donut, Legend } from '../../components/ch
 import { ButtonLink, LoadError, Loading, PageHeader, Section, Select } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { EMPLOYMENT_TYPES, FIELD_LABELS, PROBATION, historyValue } from './people-ui.jsx';
+import { HeadcountTrend, ServiceChart } from './people-charts.jsx';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const LONG = [
@@ -112,8 +113,8 @@ function Body({ d, companyId }) {
         />
       </Stats>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        {!companyId && d.byCompany.length > 1 ? (
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        {!companyId && d.byCompany.length > 1 && (
           <Section title="Staff by company">
             <Donut
               label="Active staff by company"
@@ -140,16 +141,15 @@ function Body({ d, companyId }) {
                 )}
             />
           </Section>
-        ) : (
-          <Section title="Staff by employment type">
-            <Donut
-              label="Active staff by employment type"
-              unit="people"
-              empty="No active staff yet."
-              segments={typeSegments}
-            />
-          </Section>
         )}
+        <Section title="Staff by employment type">
+          <Donut
+            label="Active staff by employment type"
+            unit="people"
+            empty="No active staff yet."
+            segments={typeSegments}
+          />
+        </Section>
         <Section title="Staff by department">
           <BarList
             empty="No active staff yet."
@@ -164,6 +164,15 @@ function Body({ d, companyId }) {
         </Section>
       </div>
 
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Section title="Staff over the last 12 months" className="xl:col-span-2">
+          <HeadcountTrend trend={d.headcountTrend} />
+        </Section>
+        <Section title="Length of service">
+          <ServiceChart bands={d.serviceBands} />
+        </Section>
+      </div>
+
       <Section title={`Joiners and leavers, ${d.year}`} description="By start date and leaving date">
         <div className="space-y-3">
           <Legend items={series} />
@@ -171,6 +180,7 @@ function Body({ d, companyId }) {
             label={`Joiners and leavers by month, ${d.year}`}
             unit="people"
             whole
+            grouped
             series={series}
             data={d.monthly.map((m) => ({
               key: m.month,

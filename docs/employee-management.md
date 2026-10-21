@@ -30,6 +30,9 @@ The menu is Home, Employees, Company overview, Department overview and Reports (
   service, no line manager, staff by department. HR Officers manage companies from here.
 - **Department overview**: every department compared on the same figures, with a company filter.
   HR Officers manage departments from here.
+- **Statistics** (D54): Home shows staff at each month end over the last 12 months and length
+  of service; both overview pages chart staff by employment type, joined and left this year,
+  and length of service, for the whole group or one company.
 - **Reports**: staff list, headcount by department, joiners and leavers, contracts ending,
   probation, length of service, missing details and record changes. Each can be filtered and
   downloaded as Excel or CSV; every download is recorded in the audit log.

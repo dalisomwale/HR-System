@@ -10,6 +10,23 @@ import { personalOf } from '../profile/profile.routes.js';
  */
 
 const name = (f, l) => (f ? `${f} ${l}` : null);
+
+/** Length-of-service bands used by the charts. */
+export const SERVICE_BANDS = [
+  { key: 'lt1', label: 'Under 1 year', max: 12 },
+  { key: 'y1to2', label: '1 to 2 years', max: 24 },
+  { key: 'y2to5', label: '2 to 5 years', max: 60 },
+  { key: 'y5to10', label: '5 to 10 years', max: 120 },
+  { key: 'gt10', label: 'Over 10 years', max: Infinity },
+];
+function monthsOfService(start, today) {
+  if (!start || start > today) return null;
+  const [y1, m1, d1] = start.split('-').map(Number);
+  const [y2, m2, d2] = today.split('-').map(Number);
+  return Math.max(0, (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0));
+}
+const bandOf = (months) => SERVICE_BANDS.find((b) => months < b.max).key;
+const emptyBands = () => Object.fromEntries(SERVICE_BANDS.map((b) => [b.key, 0]));
 const SOON_DAYS = 30;
 const CONTRACT_DAYS = 60;
 
@@ -331,6 +348,35 @@ export async function peopleDashboard(db, companyId = null) {
     .groupByRaw('MONTH(e.employment_end_date)')
     .select(db.raw('MONTH(e.employment_end_date) as m'))
     .count({ n: '*' });
+  // Headcount at the end of each of the last 12 months (this month: today), from start and end dates.
+  const dated = await db('employees as e')
+    .modify(inCompany)
+    .select('e.employment_start_date as s', 'e.employment_end_date as e2', 'e.status', 'e.deactivated_at');
+  // When someone stopped counting: their end date, else the day they were marked as left.
+  const endOf = (r) =>
+    r.e2 ??
+    (r.status !== 'ACTIVE' && r.deactivated_at
+      ? new Date(r.deactivated_at).toISOString().slice(0, 10)
+      : null);
+  const trend = [];
+  const [ty, tm] = today.split('-').map(Number);
+  for (let i = 11; i >= 0; i -= 1) {
+    const d = new Date(Date.UTC(ty, tm - 1 - i, 1));
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + 1;
+    const last = i === 0 ? today : new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+    const count = dated.filter((r) => {
+      const end = endOf(r);
+      return r.s <= last && (!end || end > last);
+    }).length;
+    trend.push({ year: y, month: m, headcount: count });
+  }
+  const bands = emptyBands();
+  for (const r of dated) {
+    if (r.status !== 'ACTIVE') continue;
+    const months = monthsOfService(r.s, today);
+    if (months !== null) bands[bandOf(months)] += 1;
+  }
   for (const r of joined) monthly[Number(r.m) - 1].joined = Number(r.n);
   for (const r of left) monthly[Number(r.m) - 1].left = Number(r.n);
 
@@ -367,6 +413,8 @@ export async function peopleDashboard(db, companyId = null) {
       .sort((a, b) => b.count - a.count),
     byType: byType.map((r) => ({ type: r.type, count: Number(r.n) })),
     monthly,
+    headcountTrend: trend,
+    serviceBands: SERVICE_BANDS.map((b) => ({ key: b.key, label: b.label, count: bands[b.key] })),
     recentChanges: recent.map((h) => ({
       id: h.id,
       employeeId: h.employee_id,
@@ -423,10 +471,10 @@ async function groupFigures(db, groupColumn, companyId = null) {
         g.contractsEnding += 1;
       if (managers.has(r.id)) g.managers += 1;
       if (!r.line_manager_id) g.noManager += 1;
-      if (r.employment_start_date <= today) {
-        const [y1, m1] = r.employment_start_date.split('-').map(Number);
-        const [y2, m2] = today.split('-').map(Number);
-        g.serviceMonths += Math.max(0, (y2 - y1) * 12 + (m2 - m1));
+      const months = monthsOfService(r.employment_start_date, today);
+      if (months !== null) {
+        g.serviceMonths += months;
+        g.serviceBands[bandOf(months)] += 1;
       }
     }
     by.set(r.gid ?? null, g);
@@ -441,6 +489,7 @@ async function groupFigures(db, groupColumn, companyId = null) {
 const emptyFigures = () => ({
   headcount: 0,
   byType: { PERMANENT: 0, FIXED_TERM: 0, TEMPORARY: 0, NONE: 0 },
+  serviceBands: emptyBands(),
   onProbation: 0,
   contractsEnding: 0,
   joinedThisYear: 0,

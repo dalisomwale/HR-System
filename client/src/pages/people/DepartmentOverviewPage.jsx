@@ -18,6 +18,15 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { TypeMeter } from './people-ui.jsx';
+import {
+  MovesByGroup,
+  ServiceChart,
+  TypeDonutChart,
+  TypesByGroup,
+  shortName,
+  sumBands,
+  sumTypes,
+} from './people-charts.jsx';
 
 /** Every department, compared on the same figures (D53). */
 export default function DepartmentOverviewPage() {
@@ -86,6 +95,8 @@ function Body({ d, companyId }) {
           title={`${d.withoutDepartment} active ${d.withoutDepartment === 1 ? 'person has' : 'people have'} no department set.`}
         />
       )}
+      <Statistics departments={sorted} year={d.year} companyId={companyId} />
+
       <Section title="Staff by department">
         <div className="max-w-3xl">
           <BarList
@@ -170,5 +181,35 @@ function Body({ d, companyId }) {
         </div>
       </Section>
     </>
+  );
+}
+
+function Statistics({ departments, year, companyId }) {
+  // The twelve largest departments keep the charts readable; the table below has them all.
+  const top = departments.filter((x) => x.headcount > 0 || x.joinedThisYear || x.leftThisYear).slice(0, 12);
+  const groups = top.map((x) => ({
+    key: String(x.id),
+    tick: shortName(x),
+    title: companyId ? x.name : `${x.name}, ${x.company ?? 'No company'}`,
+    byType: x.byType,
+    joined: x.joinedThisYear,
+    left: x.leftThisYear,
+  }));
+  const scope = companyId ? 'This company' : 'Whole group';
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Section title="Employment type by department" description="Active staff, largest departments">
+        <TypesByGroup groups={groups} label="Active staff in each department by employment type" />
+      </Section>
+      <Section title="Employment type" description={scope}>
+        <TypeDonutChart byType={sumTypes(departments)} />
+      </Section>
+      <Section title={`Joined and left in ${year}`} description="By department">
+        <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
+      </Section>
+      <Section title="Length of service" description={scope}>
+        <ServiceChart bands={sumBands(departments)} />
+      </Section>
+    </div>
   );
 }

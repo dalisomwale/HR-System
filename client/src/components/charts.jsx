@@ -75,10 +75,24 @@ export function Legend({ items }) {
  * Columns along a category axis, stacked when there is more than one series.
  * data: [{ key, tick, title, shade, ...values }]; series: [{ key, name, color }].
  */
-export function ColumnChart({ data, series, height = 200, label, unit = 'days', empty, whole = false }) {
+export function ColumnChart({
+  data,
+  series,
+  height = 200,
+  label,
+  unit = 'days',
+  empty,
+  whole = false,
+  grouped = false,
+}) {
   const [ref, width] = useWidth();
   const [hover, setHover] = useState(null);
-  const totals = data.map((d) => series.reduce((s, x) => s + (d[x.key] ?? 0), 0));
+  // Stacked columns add up their series; grouped ones (side by side) only need the tallest.
+  const totals = data.map((d) =>
+    grouped
+      ? Math.max(0, ...series.map((x) => d[x.key] ?? 0))
+      : series.reduce((s, x) => s + (d[x.key] ?? 0), 0),
+  );
   const max = Math.max(0, ...totals);
   if (max === 0 && empty) {
     return <p className="text-sm text-muted">{empty}</p>;
@@ -132,6 +146,26 @@ export function ColumnChart({ data, series, height = 200, label, unit = 'days', 
                 const h = Math.max(1, yBot - yTop - (j > 0 ? 2 : 0));
                 return { ...g, yTop, h, last };
               });
+            if (grouped) {
+              // One bar per series, 2px of surface between them, centred in the band.
+              const w = Math.max(3, Math.min(20, (band * 0.7 - 2 * (series.length - 1)) / series.length));
+              const span = w * series.length + 2 * (series.length - 1);
+              segs.length = 0;
+              series.forEach((s2, j) => {
+                const v = d[s2.key] ?? 0;
+                if (v > 0) {
+                  segs.push({
+                    s: s2,
+                    v,
+                    x: cx - span / 2 + j * (w + 2),
+                    w,
+                    yTop: y(v),
+                    h: Math.max(1, y(0) - y(v)),
+                    last: true,
+                  });
+                }
+              });
+            }
             return (
               <g key={d.key}>
                 {d.shade && <rect x={x0} y={8} width={band} height={plotH} fill={COLORS.weekend} />}
@@ -142,7 +176,13 @@ export function ColumnChart({ data, series, height = 200, label, unit = 'days', 
                   g.last ? (
                     <path
                       key={g.s.key}
-                      d={roundedTop(cx - barW / 2, g.yTop, barW, g.h, Math.min(4, barW / 2, g.h))}
+                      d={roundedTop(
+                        g.x ?? cx - barW / 2,
+                        g.yTop,
+                        g.w ?? barW,
+                        g.h,
+                        Math.min(4, (g.w ?? barW) / 2, g.h),
+                      )}
                       fill={g.s.color}
                     />
                   ) : (
@@ -229,33 +269,35 @@ function Tip({ x, width, title, rows }) {
 /** The same figures as a table, for screen readers. */
 function DataTable({ caption, head, rows }) {
   return (
-    <table className="sr-only">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {head.map((h, i) => (
-            <th key={i} scope="col">
-              {h}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r[0]}>
-            {r.map((c, i) =>
-              i === 0 ? (
-                <th key={i} scope="row">
-                  {c}
-                </th>
-              ) : (
-                <td key={i}>{c}</td>
-              ),
-            )}
+    <div className="sr-only">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {head.map((h, i) => (
+              <th key={i} scope="col">
+                {h}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r[0]}>
+              {r.map((c, i) =>
+                i === 0 ? (
+                  <th key={i} scope="row">
+                    {c}
+                  </th>
+                ) : (
+                  <td key={i}>{c}</td>
+                ),
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
