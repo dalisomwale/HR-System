@@ -254,20 +254,14 @@ export default function DepartmentPage() {
   );
 }
 
-/** Name, code and parent of the department, edited in place (D57). */
+/** Name, code and status of the department, edited in place (D57). */
 function EditDepartment({ d, onDone, onCancel }) {
-  const all = useQuery({ queryKey: ['departments'], queryFn: () => api.get('/api/admin/departments') });
-  const current = all.data?.items.find((x) => x.id === d.id);
-  const [form, setForm] = useState({ name: d.name, code: d.code, parentId: '', isActive: d.isActive });
-  useEffect(() => {
-    if (current) setForm((f) => ({ ...f, parentId: current.parentId ? String(current.parentId) : '' }));
-  }, [current]);
+  const [form, setForm] = useState({ name: d.name, code: d.code, isActive: d.isActive });
   const save = useMutation({
     mutationFn: () =>
       api.patch(`/api/admin/departments/${d.id}`, {
         name: form.name,
         code: form.code,
-        parentId: form.parentId ? Number(form.parentId) : null,
         isActive: form.isActive,
       }),
     onSuccess: onDone,
@@ -275,7 +269,7 @@ function EditDepartment({ d, onDone, onCancel }) {
   return (
     <Section title={`Edit ${d.name}`} description={d.company ?? undefined}>
       <form
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:items-end"
+        className="grid gap-4 sm:grid-cols-3 lg:items-end"
         onSubmit={(e) => {
           e.preventDefault();
           save.mutate();
@@ -299,22 +293,6 @@ function EditDepartment({ d, onDone, onCancel }) {
             required
           />
         </Field>
-        <Field id="editDeptParent" label="Part of">
-          <Select
-            id="editDeptParent"
-            value={form.parentId}
-            onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-          >
-            <option value="">None</option>
-            {all.data?.items
-              .filter((x) => x.id !== d.id && x.isActive && x.companyId === d.companyId)
-              .map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.name}
-                </option>
-              ))}
-          </Select>
-        </Field>
         <Field id="editDeptStatus" label="Status">
           <Select
             id="editDeptStatus"
@@ -325,7 +303,7 @@ function EditDepartment({ d, onDone, onCancel }) {
             <option value="inactive">Inactive</option>
           </Select>
         </Field>
-        <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-4">
+        <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
           <Button type="submit" busy={save.isPending}>
             Save changes
           </Button>

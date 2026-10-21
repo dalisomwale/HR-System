@@ -18,7 +18,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 
-const empty = { companyId: '', code: '', name: '', parentId: '' };
+const empty = { companyId: '', code: '', name: '' };
 
 export default function DepartmentsPage() {
   const qc = useQueryClient();
@@ -55,7 +55,6 @@ export default function DepartmentsPage() {
       companyId: d.companyId ? String(d.companyId) : '',
       code: d.code,
       name: d.name,
-      parentId: d.parentId ? String(d.parentId) : '',
     });
   };
 
@@ -65,14 +64,13 @@ export default function DepartmentsPage() {
       <div className="grid gap-6">
         <Section title={editingId ? 'Edit department' : 'Add a department'}>
           <form
-            className="grid gap-4 lg:grid-cols-[1fr_8rem_1fr_1fr_auto] lg:items-end sm:grid-cols-2"
+            className="grid gap-4 lg:grid-cols-[1fr_8rem_1fr_auto] lg:items-end sm:grid-cols-2"
             onSubmit={(e) => {
               e.preventDefault();
               save.mutate({
                 companyId: Number(form.companyId),
                 code: form.code,
                 name: form.name,
-                parentId: form.parentId ? Number(form.parentId) : null,
               });
             }}
           >
@@ -80,7 +78,7 @@ export default function DepartmentsPage() {
               <Select
                 id="deptCompany"
                 value={form.companyId}
-                onChange={(e) => setForm({ ...form, companyId: e.target.value, parentId: '' })}
+                onChange={(e) => setForm({ ...form, companyId: e.target.value })}
                 required
               >
                 <option value="">Choose</option>
@@ -110,24 +108,6 @@ export default function DepartmentsPage() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
-            </Field>
-            <Field id="deptParent" label="Part of">
-              <Select
-                id="deptParent"
-                value={form.parentId}
-                onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-              >
-                <option value="">None</option>
-                {list.data?.items
-                  .filter(
-                    (d) => d.id !== editingId && d.isActive && String(d.companyId ?? '') === form.companyId,
-                  )
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-              </Select>
             </Field>
             <div className="flex gap-2">
               <Button type="submit" busy={save.isPending}>
@@ -191,7 +171,6 @@ export default function DepartmentsPage() {
                   <Th>Company</Th>
                   <Th>Code</Th>
                   <Th>Name</Th>
-                  <Th>Part of</Th>
                   <Th className="text-right">Active staff</Th>
                   <Th>Status</Th>
                   <Th>
@@ -211,7 +190,6 @@ export default function DepartmentsPage() {
                       <Td>{d.company ?? <Badge tone="pending">Not set</Badge>}</Td>
                       <Td className="font-medium">{d.code}</Td>
                       <Td>{d.name}</Td>
-                      <Td>{d.parentName ?? <span className="text-muted">None</span>}</Td>
                       <Td className="text-right">{d.activeEmployees}</Td>
                       <Td>{d.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}</Td>
                       <Td className="text-right whitespace-nowrap">

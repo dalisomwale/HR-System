@@ -235,6 +235,18 @@ describe('companies in the group', () => {
       409,
     );
     expect((await post('/api/admin/departments', { code: 'X', name: 'No company' })).status).toBe(400);
+    // Departments have no parent (D58): an old screen sending one is ignored.
+    const ops = await post('/api/admin/departments', {
+      companyId: a,
+      code: 'OPS',
+      name: 'Operations',
+      parentId: 1,
+    });
+    expect(ops.status).toBe(201);
+    const listed = (await admin.agent.get('/api/admin/departments')).body.items.find(
+      (d) => d.id === ops.body.id,
+    );
+    expect(listed).not.toHaveProperty('parentId');
   });
 
   it('takes the company from the department and refuses a mismatch', async () => {
