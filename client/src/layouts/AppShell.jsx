@@ -104,6 +104,14 @@ function ExpandNav({
     <div className="mb-6">
       <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
       <ul>
+        {canAdd && (
+          <li>
+            <NavLink to={`${base}/manage`} onClick={onNavigate} className={navLinkClass}>
+              <Plus className="size-4 shrink-0" aria-hidden />
+              {addLabel}
+            </NavLink>
+          </li>
+        )}
         <li className="flex items-stretch">
           <NavLink to={base} end onClick={onNavigate} className={(a) => `${navLinkClass(a)} flex-1`}>
             <Icon className="size-4 shrink-0" aria-hidden />
@@ -152,14 +160,6 @@ function ExpandNav({
                 </ul>
               </div>
             ))}
-          </li>
-        )}
-        {canAdd && (
-          <li>
-            <NavLink to={`${base}/manage`} onClick={onNavigate} className={navLinkClass}>
-              <Plus className="size-4 shrink-0" aria-hidden />
-              {addLabel}
-            </NavLink>
           </li>
         )}
       </ul>
