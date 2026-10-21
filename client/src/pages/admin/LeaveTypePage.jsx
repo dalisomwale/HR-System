@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import {
@@ -44,12 +43,6 @@ export default function LeaveTypePage() {
 
   return (
     <div className="max-w-6xl">
-      <Link
-        to="/admin/leave-types"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> Leave types
-      </Link>
       <PageHeader
         title={
           <span className="flex flex-wrap items-center gap-2">

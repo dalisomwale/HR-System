@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { api, newActionKey } from '../../lib/api.js';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import {
@@ -71,7 +70,6 @@ export default function RequestPage() {
 
   return (
     <div className="max-w-6xl">
-      <BackLink />
       <PageHeader
         title={`${r.leaveType.name} · ${r.reference}`}
         description={`${r.employee.name} · ${dateRange(r)}`}
@@ -221,19 +219,6 @@ export default function RequestPage() {
         </>
       )}
     </div>
-  );
-}
-
-function BackLink() {
-  const navigate = useNavigate();
-  return (
-    <button
-      type="button"
-      onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/leave'))}
-      className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
-    >
-      <ArrowLeft className="size-4" aria-hidden /> Back
-    </button>
   );
 }
 

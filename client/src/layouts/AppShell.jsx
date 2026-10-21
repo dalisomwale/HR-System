@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import LeaveTrail from './LeaveTrail.jsx';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
@@ -58,7 +59,6 @@ const HR = [
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck },
   { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
   { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
-  { to: '/reports', label: 'Reports', icon: FileBarChart },
 ];
 // Employee management (D52): the central employee record, its own menu.
 // Employee management (D52, D55): its own menu, in segments.
@@ -167,38 +167,34 @@ function ExpandNav({
 }
 
 /** Reports segment: opens to list each report; the chosen one is lit up (D64). */
-function ReportsNav({ onNavigate }) {
+function ReportsNav({ onNavigate, to = '/people/reports', source = '/api/people/reports' }) {
   const { pathname, search } = useLocation();
-  const inside = pathname === '/people/reports';
+  const inside = pathname === to;
   const current = new URLSearchParams(search).get('report');
   const [open, setOpen] = useState(inside);
   useEffect(() => {
     if (inside) setOpen(true);
   }, [inside]);
   const list = useQuery({
-    queryKey: ['reports', '/api/people/reports'],
-    queryFn: () => api.get('/api/people/reports'),
+    queryKey: ['reports', source],
+    queryFn: () => api.get(source),
   });
   const items = list.data?.items ?? [];
+  const listId = `${to.replace(/\W/g, '-')}-list`;
   const chosen = inside ? (current ?? items[0]?.id) : null;
   return (
     <div className="mb-6">
       <ul>
         <li className="flex items-stretch">
           {/* The chosen report below is the one lit up, so this stays plain. */}
-          <NavLink
-            to="/people/reports"
-            end
-            onClick={onNavigate}
-            className={`${navLinkClass({ isActive: false })} flex-1`}
-          >
+          <NavLink to={to} end onClick={onNavigate} className={`${navLinkClass({ isActive: false })} flex-1`}>
             <FileBarChart className="size-4 shrink-0" aria-hidden />
             Reports
           </NavLink>
           <button
             type="button"
             aria-expanded={open}
-            aria-controls="people-reports-list"
+            aria-controls={listId}
             aria-label={open ? 'Hide reports list' : 'Show reports list'}
             onClick={() => setOpen((o) => !o)}
             className="px-3 text-muted hover:bg-canvas hover:text-ink"
@@ -207,13 +203,13 @@ function ReportsNav({ onNavigate }) {
           </button>
         </li>
         {open && (
-          <li id="people-reports-list">
+          <li id={listId}>
             {list.isPending && <p className="py-1.5 pl-10 text-xs text-muted">Loading</p>}
             <ul className="mb-1">
               {items.map((r) => (
                 <li key={r.id}>
                   <Link
-                    to={`/people/reports?report=${r.id}`}
+                    to={`${to}?report=${r.id}`}
                     onClick={onNavigate}
                     aria-current={chosen === r.id ? 'page' : undefined}
                     className={[
@@ -284,8 +280,7 @@ function OrganisationNav({ user, onNavigate }) {
   );
 }
 
-const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
-const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
+const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }];
 // System Administrators only. They also see everything in the HR menu.
 const ADMIN = [
   { to: '/admin/roles', label: 'Roles', icon: KeyRound },
@@ -340,15 +335,18 @@ function LeaveNav({ user, counts, onNavigate }) {
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
           title="Department Manager"
-          items={(seesWholeGroup(user) ? MANAGER : [...MANAGER, REPORTS]).filter(
-            (i) => !i.managersOnly || user.isManager,
-          )}
+          items={MANAGER.filter((i) => !i.managersOnly || user.isManager)}
           onNavigate={onNavigate}
         />
       )}
       {hasRole(user, 'HR_OFFICER') && <NavGroup title="HR" items={HR} onNavigate={onNavigate} />}
       {!hasRole(user, 'HR_OFFICER') && seesWholeGroup(user) && (
         <NavGroup title="Directors" items={DIRECTORS} onNavigate={onNavigate} />
+      )}
+      {/* Leave reports, for managers, delegates, HR and directors: the same dropdown as in
+          Employee management (D68). */}
+      {(user.isManager || user.isDelegate || seesWholeGroup(user)) && (
+        <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
       )}
       {hasRole(user, 'HR_ADMIN') && <NavGroup title="Administration" items={ADMIN} onNavigate={onNavigate} />}
     </>
@@ -500,6 +498,8 @@ export default function AppShell() {
             are overridden here so the gap never changes from page to page.
           */}
           <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
+            {/* Employee management pages show their own path; every other page gets this one. */}
+            {!inPeople && <LeaveTrail />}
             <Outlet />
           </div>
         </main>

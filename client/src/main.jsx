@@ -107,7 +107,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="hr" element={group(<HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
+            <Route path="reports" element={<ReportsPage listInMenu />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
             <Route path="leave/balances" element={<MyBalancesPage />} />
