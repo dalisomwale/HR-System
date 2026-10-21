@@ -166,97 +166,107 @@ export default function DepartmentPage() {
         />
       )}
 
-      <Stats>
-        <Stat label="Active staff" value={d.headcount} to={`/people/departments/${d.id}/employees`} />
-        <Stat label="Managers" value={d.managers} />
-        <Stat
-          label="On probation"
-          value={d.onProbation}
-          to={`/people/departments/${d.id}/employees?filter=probation`}
-        />
-        <Stat
-          label="Contracts ending in 60 days"
-          value={d.contractsEnding}
-          to={`/people/departments/${d.id}/employees?filter=contractEnding`}
-        />
-      </Stats>
+      {/* While the department is being edited, only the form shows (D67). */}
+      {panel !== 'edit' && (
+        <>
+          <Stats>
+            <Stat label="Active staff" value={d.headcount} to={`/people/departments/${d.id}/employees`} />
+            <Stat label="Managers" value={d.managers} />
+            <Stat
+              label="On probation"
+              value={d.onProbation}
+              to={`/people/departments/${d.id}/employees?filter=probation`}
+            />
+            <Stat
+              label="Contracts ending in 60 days"
+              value={d.contractsEnding}
+              to={`/people/departments/${d.id}/employees?filter=contractEnding`}
+            />
+          </Stats>
 
-      <Section title="At a glance">
-        <TypeMeter byType={d.byType} />
-        <Figures
-          items={[
-            [`Joined in ${year}`, d.joinedThisYear],
-            [`Left in ${year}`, d.leftThisYear],
-            ['Average service', d.headcount ? `${d.averageServiceYears} yrs` : '—'],
-            ['No line manager', d.noManager],
-          ]}
-        />
-      </Section>
+          <Section title="At a glance">
+            <TypeMeter byType={d.byType} />
+            <Figures
+              items={[
+                [`Joined in ${year}`, d.joinedThisYear],
+                [`Left in ${year}`, d.leftThisYear],
+                ['Average service', d.headcount ? `${d.averageServiceYears} yrs` : '—'],
+                ['No line manager', d.noManager],
+              ]}
+            />
+          </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        <Section title="Employment type">
-          <TypeDonutChart byType={d.byType} />
-        </Section>
-        <Section title="Gender">
-          <GenderDonutChart bySex={d.bySex} />
-        </Section>
-        <Section title="Length of service">
-          <ServiceChart bands={BANDS.map(([key, label]) => ({ key, label, count: d.serviceBands[key] }))} />
-        </Section>
-      </div>
+          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            <Section title="Employment type">
+              <TypeDonutChart byType={d.byType} />
+            </Section>
+            <Section title="Gender">
+              <GenderDonutChart bySex={d.bySex} />
+            </Section>
+            <Section title="Length of service">
+              <ServiceChart
+                bands={BANDS.map(([key, label]) => ({ key, label, count: d.serviceBands[key] }))}
+              />
+            </Section>
+          </div>
 
-      <Section
-        title="People"
-        description="Everyone active in this department. Select a name to see or edit their details."
-        className="scroll-mt-20"
-      >
-        <span id="department-people" />
-        {people.isPending ? (
-          <Loading />
-        ) : people.isError ? (
-          <LoadError error={people.error} onRetry={() => people.refetch()} />
-        ) : people.data.items.length === 0 ? (
-          <p className="text-sm text-muted">Nobody in this department yet.</p>
-        ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th>Employee</Th>
-                <Th>Job title</Th>
-                <Th>Line manager</Th>
-                <Th>Type</Th>
-                <Th>Started</Th>
-                <Th>Status</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {people.data.items.map((e) => (
-                <tr key={e.id}>
-                  <Td>
-                    <div className="flex items-center gap-3">
-                      <Initials first={e.firstName} last={e.lastName} />
-                      <button
-                        type="button"
-                        onClick={() => setViewing(e.id)}
-                        className="text-left font-medium text-brand hover:underline"
-                      >
-                        {e.firstName} {e.lastName}
-                      </button>
-                    </div>
-                  </Td>
-                  <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
-                  <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
-                  <Td>{EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}</Td>
-                  <Td className="whitespace-nowrap">{formatDate(e.employmentStartDate)}</Td>
-                  <Td>
-                    <StatusBadge e={e} />
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </Section>
+          <Section
+            title="People"
+            description="Everyone active in this department. Select a name to see or edit their details."
+            className="scroll-mt-20"
+          >
+            <span id="department-people" />
+            {people.isPending ? (
+              <Loading />
+            ) : people.isError ? (
+              <LoadError error={people.error} onRetry={() => people.refetch()} />
+            ) : people.data.items.length === 0 ? (
+              <p className="text-sm text-muted">Nobody in this department yet.</p>
+            ) : (
+              <Table>
+                <thead>
+                  <tr>
+                    <Th>Employee</Th>
+                    <Th>Job title</Th>
+                    <Th>Line manager</Th>
+                    <Th>Type</Th>
+                    <Th>Started</Th>
+                    <Th>Status</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {people.data.items.map((e) => (
+                    <tr key={e.id}>
+                      <Td>
+                        <div className="flex items-center gap-3">
+                          <Initials first={e.firstName} last={e.lastName} />
+                          <button
+                            type="button"
+                            onClick={() => setViewing(e.id)}
+                            className="text-left font-medium text-brand hover:underline"
+                          >
+                            {e.firstName} {e.lastName}
+                          </button>
+                        </div>
+                      </Td>
+                      <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
+                      <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
+                      <Td>
+                        {EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}
+                      </Td>
+                      <Td className="whitespace-nowrap">{formatDate(e.employmentStartDate)}</Td>
+                      <Td>
+                        <StatusBadge e={e} />
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </Section>
+        </>
+      )}
+
       {viewing && (
         <EmployeePanel
           employeeId={viewing}
