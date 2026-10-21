@@ -7,17 +7,11 @@ import logo from '../../assets/brand/altus-logo.png';
 
 /*
  * Pages seen before sign-in. On wide screens a navy field, cut at the angle of the "A" in the
- * Altus logo, carries the name and the three steps a request takes; the white panel holds the task.
+ * Altus logo, carries the system's name and its applications; the white panel holds the task.
  */
 
-const ROUTE = [
-  [
-    'You apply',
-    'Pick the leave type and dates. Working days are counted for you, with weekends and public holidays left out.',
-  ],
-  ['Your manager decides', 'Your manager approves or declines, or someone covering for them.'],
-  ['HR confirms', 'HR gives final approval and the days come off your balance.'],
-];
+// The applications the system holds today, listed under the name.
+const APPS = ['Leave management', 'Employee management', 'My profile'];
 
 function AuthLayout({ children }) {
   return (
@@ -29,14 +23,13 @@ function AuthLayout({ children }) {
       />
       <div className="relative mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-10 lg:grid-cols-2 lg:px-12">
         <div className="hidden text-white lg:block">
-          <p className="mb-4 text-sm font-medium tracking-[0.08em] text-white/70 uppercase">Altus Group</p>
           <p className="text-[clamp(2.5rem,4.5vw,3.75rem)] leading-[1.02] font-semibold tracking-[-0.03em]">
-            Leave
+            Altus Group
             <br />
-            Management
+            HR System
           </p>
           <ol className="mt-10 max-w-[18rem] space-y-4">
-            {ROUTE.map(([title], i) => (
+            {APPS.map((title, i) => (
               <li key={title} className="flex items-center gap-3">
                 <span aria-hidden className="text-sm font-semibold text-accent-orange tabular-nums">
                   0{i + 1}
