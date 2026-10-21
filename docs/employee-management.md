@@ -10,20 +10,29 @@ lifecycle from onboarding to offboarding (decision D52).
 | ------------------------------ | ------------------------------------------------------------------------------ |
 | HR Officer                     | Everything below: add, edit and import employees; companies and departments    |
 | System Administrator           | As HR Officer, plus Microsoft account links, roles and marking someone as left |
-| Executive or Managing Director | Read the dashboard, employee list and records; no changes                          |
+| Executive or Managing Director | Read the dashboard, employee list and records; no changes                      |
 | Everyone else                  | No access; they keep their own personal details on My profile                  |
 
 ## Screens (`/people`)
 
-- **Dashboard**: active staff, starting and leaving in the next 30 days, contracts ending in
-  60 days; staff by company and department; joiners and leavers by month; contracts and
-  probation ending; recent changes. Can be limited to one company.
+The menu is Home, Employees, Company overview, Department overview and Reports (D53).
+
+- **Home**: active staff, starting and leaving in the next 30 days, contracts ending in 60 days;
+  staff by company and department; joiners and leavers by month; contracts and probation
+  ending; recent changes. Can be limited to one company.
 - **Employees**: search by name, job title, number or email; filter by company, department,
   employment type and status; quick filters (on probation, contract ending soon, starting soon,
   leaving soon, no line manager, no Microsoft account linked).
 - **Employee record**: header with status and employment type; tabs for Overview (employment
   and personal details, direct reports, Microsoft account, roles), Leave (balances) and History.
-- **Companies** and **Departments**: moved here from the leave system.
+- **Company overview**: each company side by side: staff, employment type split, departments,
+  managers, on probation, contracts ending in 60 days, joined and left this year, average
+  service, no line manager, staff by department. HR Officers manage companies from here.
+- **Department overview**: every department compared on the same figures, with a company filter.
+  HR Officers manage departments from here.
+- **Reports**: staff list, headcount by department, joiners and leavers, contracts ending,
+  probation, length of service, missing details and record changes. Each can be filtered and
+  downloaded as Excel or CSV; every download is recorded in the audit log.
 
 ## The record
 
@@ -43,14 +52,14 @@ again are recorded too.
 
 ## API
 
-| Method | Path                                   | Notes                                                                                  |
-| ------ | -------------------------------------- | -------------------------------------------------------------------------------------- |
-| GET    | `/api/people/dashboard?companyId=`     | HR Officers and directors                                                              |
-| GET    | `/api/people/organisation`             | Companies and departments for filters                                                  |
+| Method | Path                                   | Notes                                                                                      |
+| ------ | -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| GET    | `/api/people/dashboard?companyId=`     | HR Officers and directors                                                                  |
+| GET    | `/api/people/organisation`             | Companies and departments for filters                                                      |
 | GET    | `/api/people/employees`                | Employee list; `search`, `companyId`, `departmentId`, `employmentType`, `status`, `filter` |
-| GET    | `/api/people/quick-filters?companyId=` | Count for each quick filter                                                            |
-| GET    | `/api/people/employees/:id`            | The full record                                                                        |
-| GET    | `/api/people/employees/:id/history`    | Newest first                                                                           |
+| GET    | `/api/people/quick-filters?companyId=` | Count for each quick filter                                                                |
+| GET    | `/api/people/employees/:id`            | The full record                                                                            |
+| GET    | `/api/people/employees/:id/history`    | Newest first                                                                               |
 
 Changes still go through `/api/admin/employees` (HR Officers).
 

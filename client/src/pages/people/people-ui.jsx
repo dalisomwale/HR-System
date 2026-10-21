@@ -84,3 +84,49 @@ export function StatusBadge({ e }) {
     return <Badge tone="brand">{PROBATION[e.probationStatus]}</Badge>;
   return <Badge tone="ok">Active</Badge>;
 }
+
+const TYPE_PARTS = [
+  { key: 'PERMANENT', name: 'Permanent', color: '#2a3fbf' },
+  { key: 'FIXED_TERM', name: 'Fixed-term', color: '#eb6834' },
+  { key: 'TEMPORARY', name: 'Temporary', color: '#1baf7a' },
+  { key: 'NONE', name: 'Not recorded', color: '#a3aab8' },
+];
+
+/** Staff split by employment type: one bar with the counts beneath it. */
+export function TypeMeter({ byType, compact = false }) {
+  const parts = TYPE_PARTS.map((p) => ({ ...p, value: byType?.[p.key] ?? 0 }));
+  const total = parts.reduce((s, p) => s + p.value, 0);
+  const shown = parts.filter((p) => p.value > 0);
+  return (
+    <div>
+      <div
+        className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded bg-[#eceef7]"
+        role="img"
+        aria-label={`Employment type: ${shown.map((p) => `${p.name} ${p.value}`).join(', ') || 'none'}`}
+      >
+        {total > 0 &&
+          shown.map((p) => (
+            <div
+              key={p.key}
+              title={`${p.name}: ${p.value}`}
+              style={{ width: `${(p.value / total) * 100}%`, background: p.color }}
+            />
+          ))}
+      </div>
+      {!compact && (
+        <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          {shown.map((p) => (
+            <li key={p.key} className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="inline-block size-2.5 rounded-sm"
+                style={{ background: p.color }}
+              />
+              {p.name} <span className="font-semibold text-ink">{p.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

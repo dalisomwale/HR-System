@@ -33,9 +33,10 @@ const FILTER_KEYS = [
   'entryType',
 ];
 
-export default function ReportsPage() {
+/** `base` picks the set of reports: the leave reports, or Employee management's (D53). */
+export default function ReportsPage({ base = '/api/reports' }) {
   const [params, setParams] = useSearchParams();
-  const list = useQuery({ queryKey: ['reports'], queryFn: () => api.get('/api/reports') });
+  const list = useQuery({ queryKey: ['reports', base], queryFn: () => api.get(base) });
   const selected = params.get('report');
   const applied = useMemo(
     () => Object.fromEntries(FILTER_KEYS.map((k) => [k, params.get(k) ?? ''])),
@@ -91,7 +92,14 @@ export default function ReportsPage() {
             ))}
           </ul>
         </nav>
-        <ReportView key={report.id} report={report} options={options} applied={applied} onApply={apply} />
+        <ReportView
+          key={report.id}
+          base={base}
+          report={report}
+          options={options}
+          applied={applied}
+          onApply={apply}
+        />
       </div>
     </div>
   );
@@ -229,13 +237,13 @@ function cell(c, value) {
   return String(value);
 }
 
-function ReportView({ report, options, applied, onApply }) {
+function ReportView({ base, report, options, applied, onApply }) {
   const query = Object.fromEntries(Object.entries(applied).filter(([, v]) => v !== ''));
   const q = useQuery({
-    queryKey: ['report', report.id, query],
-    queryFn: () => api.get(`/api/reports/${report.id}${qs(query)}`),
+    queryKey: ['report', base, report.id, query],
+    queryFn: () => api.get(`${base}/${report.id}${qs(query)}`),
   });
-  const exportUrl = (format) => `/api/reports/${report.id}/export${qs({ ...query, format })}`;
+  const exportUrl = (format) => `${base}/${report.id}/export${qs({ ...query, format })}`;
 
   return (
     <div className="min-w-0 space-y-4">

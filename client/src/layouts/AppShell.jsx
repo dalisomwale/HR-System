@@ -60,12 +60,11 @@ const HR = [
 ];
 // Employee management (D52): the central employee record, its own menu.
 const PEOPLE = [
-  { to: '/people', label: 'Dashboard', icon: LayoutGrid, end: true },
+  { to: '/people', label: 'Home', icon: House, end: true },
   { to: '/people/employees', label: 'Employees', icon: Users },
-];
-const ORGANISATION = [
-  { to: '/people/companies', label: 'Companies', icon: Landmark },
-  { to: '/people/departments', label: 'Departments', icon: Building2 },
+  { to: '/people/companies', label: 'Company overview', icon: Landmark },
+  { to: '/people/departments', label: 'Department overview', icon: Building2 },
+  { to: '/people/reports', label: 'Reports', icon: FileBarChart },
 ];
 const REPORTS = { to: '/reports', label: 'Reports', icon: FileBarChart };
 const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }, REPORTS];
@@ -186,9 +185,6 @@ export default function AppShell() {
       {inPeople ? (
         <>
           <NavGroup title="People" items={PEOPLE} onNavigate={() => setMenuOpen(false)} />
-          {hasRole(user, 'HR_OFFICER') && (
-            <NavGroup title="Organisation" items={ORGANISATION} onNavigate={() => setMenuOpen(false)} />
-          )}
           {hasRole(user, 'HR_ADMIN') && (
             <NavGroup
               title="Administration"

@@ -131,3 +131,42 @@ describe('directory and dashboard', () => {
     expect((await s.agent.get(`/api/people/employees/${id}`)).status).toBe(403);
   });
 });
+
+describe('overviews and reports', () => {
+  it('gives the same figures for each company and department', async () => {
+    await post('/api/admin/employees', newEmployee({ employmentType: 'PERMANENT' }));
+    await post(
+      '/api/admin/employees',
+      newEmployee({ employmentType: 'TEMPORARY', probationStatus: 'ON_PROBATION' }),
+    );
+    const c = (await hr.agent.get('/api/people/companies-overview')).body;
+    const total = c.companies.reduce((s, x) => s + x.headcount, 0) + c.withoutCompany;
+    expect(total).toBe(3);
+    const d = (await hr.agent.get('/api/people/departments-overview')).body;
+    const all = d.departments.reduce((s, x) => s + x.headcount, 0) + d.withoutDepartment;
+    expect(all).toBe(3);
+    const types = [...c.companies.map((x) => x.byType)];
+    expect(types.length + (c.withoutCompany ? 1 : 0)).toBeGreaterThan(0);
+  });
+
+  it('runs and exports every report', async () => {
+    await post('/api/admin/employees', newEmployee({ employmentType: 'FIXED_TERM' }));
+    const list = (await hr.agent.get('/api/people/reports')).body;
+    expect(list.items.length).toBe(8);
+    for (const r of list.items) {
+      const res = await hr.agent.get(`/api/people/reports/${r.id}`);
+      expect(res.status, r.id).toBe(200);
+      expect(res.body.columns.length, r.id).toBeGreaterThan(0);
+    }
+    const staffList = (await hr.agent.get('/api/people/reports/staff-list')).body;
+    expect(staffList.total).toBe(2);
+    const missing = (await hr.agent.get('/api/people/reports/missing-details')).body;
+    expect(missing.rows.find((x) => x.missing.includes('contract end'))).toBeTruthy();
+    const file = await hr.agent.get('/api/people/reports/staff-list/export?format=xlsx');
+    expect(file.status).toBe(200);
+    expect(file.headers['content-type']).toMatch(/spreadsheetml/);
+    expect(
+      await db('audit_log').where({ action: 'REPORT_EXPORTED', entity_id: 'people-staff-list' }),
+    ).toHaveLength(1);
+  });
+});

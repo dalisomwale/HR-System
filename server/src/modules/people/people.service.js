@@ -380,3 +380,129 @@ export async function peopleDashboard(db, companyId = null) {
     })),
   };
 }
+
+/*
+ * Company and department overviews (D53): the same figures for each company or department, so
+ * they can be compared side by side.
+ */
+async function groupFigures(db, groupColumn, companyId = null) {
+  const today = todayInLusaka();
+  const year = today.slice(0, 4);
+  const rows = await db('employees as e')
+    .modify((q) => companyId && q.where('e.company_id', companyId))
+    .select(
+      `e.${groupColumn} as gid`,
+      'e.status',
+      'e.employment_type',
+      'e.probation_status',
+      'e.contract_end_date',
+      'e.employment_start_date',
+      'e.employment_end_date',
+      'e.line_manager_id',
+      'e.id',
+    );
+  const managers = new Set(
+    await db('employees')
+      .where({ status: 'ACTIVE' })
+      .whereNotNull('line_manager_id')
+      .distinct()
+      .pluck('line_manager_id'),
+  );
+  const by = new Map();
+  const blank = () => ({ ...emptyFigures(), serviceMonths: 0 });
+  const soon = addDays(today, CONTRACT_DAYS);
+  for (const r of rows) {
+    const g = by.get(r.gid ?? null) ?? blank();
+    if (r.employment_start_date?.startsWith(year)) g.joinedThisYear += 1;
+    if (r.employment_end_date?.startsWith(year) && r.employment_end_date <= today) g.leftThisYear += 1;
+    if (r.status === 'ACTIVE') {
+      g.headcount += 1;
+      g.byType[r.employment_type ?? 'NONE'] += 1;
+      if (['ON_PROBATION', 'EXTENDED'].includes(r.probation_status)) g.onProbation += 1;
+      if (r.contract_end_date && r.contract_end_date >= today && r.contract_end_date <= soon)
+        g.contractsEnding += 1;
+      if (managers.has(r.id)) g.managers += 1;
+      if (!r.line_manager_id) g.noManager += 1;
+      if (r.employment_start_date <= today) {
+        const [y1, m1] = r.employment_start_date.split('-').map(Number);
+        const [y2, m2] = today.split('-').map(Number);
+        g.serviceMonths += Math.max(0, (y2 - y1) * 12 + (m2 - m1));
+      }
+    }
+    by.set(r.gid ?? null, g);
+  }
+  for (const g of by.values()) {
+    g.averageServiceYears = g.headcount ? Math.round((g.serviceMonths / g.headcount / 12) * 10) / 10 : 0;
+    delete g.serviceMonths;
+  }
+  return by;
+}
+
+const emptyFigures = () => ({
+  headcount: 0,
+  byType: { PERMANENT: 0, FIXED_TERM: 0, TEMPORARY: 0, NONE: 0 },
+  onProbation: 0,
+  contractsEnding: 0,
+  joinedThisYear: 0,
+  leftThisYear: 0,
+  managers: 0,
+  noManager: 0,
+  averageServiceYears: 0,
+});
+
+export async function companiesOverview(db) {
+  const figures = await groupFigures(db, 'company_id');
+  const companies = await db('companies').orderBy('name').select('id', 'code', 'name', 'is_active');
+  const depts = await db('employees as e')
+    .join('departments as d', 'd.id', 'e.department_id')
+    .where('e.status', 'ACTIVE')
+    .groupBy('e.company_id', 'd.id', 'd.name')
+    .select('e.company_id', 'd.id', 'd.name')
+    .count({ n: '*' });
+  return {
+    year: Number(todayInLusaka().slice(0, 4)),
+    companies: companies
+      .filter((c) => c.is_active || figures.get(c.id)?.headcount)
+      .map((c) => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        isActive: Boolean(c.is_active),
+        ...emptyFigures(),
+        ...(figures.get(c.id) ?? {}),
+        departments: depts
+          .filter((d) => d.company_id === c.id)
+          .map((d) => ({ id: d.id, name: d.name, count: Number(d.n) }))
+          .sort((x, y) => y.count - x.count),
+      })),
+    withoutCompany: figures.get(null)?.headcount ?? 0,
+  };
+}
+
+export async function departmentsOverview(db, companyId = null) {
+  const figures = await groupFigures(db, 'department_id', companyId);
+  const departments = await db('departments as d')
+    .leftJoin('companies as c', 'c.id', 'd.company_id')
+    .modify((q) => companyId && q.where('d.company_id', companyId))
+    .orderBy([{ column: 'c.name' }, { column: 'd.name' }])
+    .select('d.id', 'd.code', 'd.name', 'd.is_active', 'd.company_id', 'c.name as company');
+  const companies = await db('companies').where({ is_active: true }).orderBy('name').select('id', 'name');
+  return {
+    year: Number(todayInLusaka().slice(0, 4)),
+    companyId,
+    companies,
+    departments: departments
+      .filter((d) => d.is_active || figures.get(d.id)?.headcount)
+      .map((d) => ({
+        id: d.id,
+        code: d.code,
+        name: d.name,
+        isActive: Boolean(d.is_active),
+        companyId: d.company_id,
+        company: d.company,
+        ...emptyFigures(),
+        ...(figures.get(d.id) ?? {}),
+      })),
+    withoutDepartment: figures.get(null)?.headcount ?? 0,
+  };
+}

@@ -11,6 +11,8 @@ import ProfilePage from './pages/employee/ProfilePage.jsx';
 import DirectoryPage from './pages/people/DirectoryPage.jsx';
 import EmployeeRecordPage from './pages/people/EmployeeRecordPage.jsx';
 import PeopleDashboardPage from './pages/people/PeopleDashboardPage.jsx';
+import CompanyOverviewPage from './pages/people/CompanyOverviewPage.jsx';
+import DepartmentOverviewPage from './pages/people/DepartmentOverviewPage.jsx';
 import SignInRequestsPage from './pages/admin/SignInRequestsPage.jsx';
 import ImportPage from './pages/admin/ImportPage.jsx';
 import LeaveTypePage from './pages/admin/LeaveTypePage.jsx';
@@ -114,8 +116,11 @@ createRoot(document.getElementById('root')).render(
               <Route index element={group(<PeopleDashboardPage />)} />
               <Route path="employees" element={group(<DirectoryPage />)} />
               <Route path="employees/:id" element={group(<EmployeeRecordPage />)} />
-              <Route path="companies" element={hr(<CompaniesPage />)} />
-              <Route path="departments" element={hr(<DepartmentsPage />)} />
+              <Route path="companies" element={group(<CompanyOverviewPage />)} />
+              <Route path="companies/manage" element={hr(<CompaniesPage />)} />
+              <Route path="departments" element={group(<DepartmentOverviewPage />)} />
+              <Route path="departments/manage" element={hr(<DepartmentsPage />)} />
+              <Route path="reports" element={group(<ReportsPage base="/api/people/reports" />)} />
               <Route path="import" element={hr(<ImportPage />)} />
             </Route>
             <Route path="admin">
@@ -125,8 +130,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="sign-in-requests" element={admin(<SignInRequestsPage />)} />
               <Route path="import" element={<ToPeople base="/people/import" />} />
               <Route path="roles" element={admin(<RolesPage />)} />
-              <Route path="companies" element={<ToPeople base="/people/companies" />} />
-              <Route path="departments" element={<ToPeople base="/people/departments" />} />
+              <Route path="companies" element={<ToPeople base="/people/companies/manage" />} />
+              <Route path="departments" element={<ToPeople base="/people/departments/manage" />} />
               <Route path="holidays" element={hr(<HolidaysPage />)} />
               <Route path="schedules" element={hr(<SchedulesPage />)} />
               <Route path="settings" element={admin(<SettingsPage />)} />
