@@ -27,6 +27,7 @@ import {
   sumBands,
   sumTypes,
 } from './people-charts.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 /** Every department, compared on the same figures (D53). */
 export default function DepartmentOverviewPage() {
@@ -40,6 +41,7 @@ export default function DepartmentOverviewPage() {
   const companies = q.data?.companies ?? [];
   return (
     <div className="max-w-7xl space-y-6">
+      <PeopleTrail />
       <PageHeader
         title="Department overview"
         description="Every department compared on the same figures"

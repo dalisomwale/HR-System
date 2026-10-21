@@ -23,6 +23,7 @@ import {
   sumBands,
   sumTypes,
 } from './people-charts.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 /** Each company in the group side by side (D53). */
 export default function CompanyOverviewPage() {
@@ -33,6 +34,7 @@ export default function CompanyOverviewPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
+      <PeopleTrail />
       <PageHeader
         title="Company overview"
         description="Every company in the group, side by side"

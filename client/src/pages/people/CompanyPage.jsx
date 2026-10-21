@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Settings2, Users } from 'lucide-react';
+import { Settings2, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
@@ -9,6 +9,7 @@ import { Figures } from './CompanyOverviewPage.jsx';
 import { DepartmentStatistics, DepartmentTable } from './DepartmentOverviewPage.jsx';
 import { TypeDonutChart, ServiceChart } from './people-charts.jsx';
 import { TypeMeter } from './people-ui.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 /** One company's overview, opened from the Company menu (D55). */
 export default function CompanyPage() {
@@ -23,14 +24,7 @@ export default function CompanyPage() {
     queryFn: () => api.get(`/api/people/departments-overview${qs({ companyId: id })}`),
   });
 
-  const back = (
-    <Link
-      to="/people/companies"
-      className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
-    >
-      <ArrowLeft className="size-4" aria-hidden /> Company overview
-    </Link>
-  );
+  const back = <PeopleTrail />;
   if (companies.isPending || departments.isPending) return <Loading />;
   const failed = [companies, departments].find((q) => q.isError);
   if (failed) return <LoadError error={failed.error} onRetry={() => failed.refetch()} />;

@@ -17,6 +17,7 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
+import PeopleTrail from '../people/PeopleTrail.jsx';
 
 const empty = { code: '', name: '' };
 
@@ -57,6 +58,7 @@ export default function CompaniesPage() {
 
   return (
     <div className="max-w-5xl">
+      <PeopleTrail />
       <PageHeader title="Companies" />
       <div className="grid gap-6">
         <Section title={editingId ? 'Edit company' : 'Add a company'}>

@@ -20,6 +20,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 /** Everyone in the group, searchable and filterable (D52). */
 export default function DirectoryPage() {
@@ -73,6 +74,7 @@ export default function DirectoryPage() {
 
   return (
     <div className="max-w-7xl">
+      <PeopleTrail />
       <PageHeader
         title="Employees"
         description={

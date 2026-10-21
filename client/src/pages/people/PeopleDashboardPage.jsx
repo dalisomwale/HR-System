@@ -9,6 +9,7 @@ import { ButtonLink, LoadError, Loading, PageHeader, Section, Select } from '../
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { EMPLOYMENT_TYPES, FIELD_LABELS, PROBATION, historyValue } from './people-ui.jsx';
 import { HeadcountTrend, ServiceChart } from './people-charts.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const LONG = [
@@ -38,6 +39,7 @@ export default function PeopleDashboardPage() {
   const companies = q.data?.companies ?? [];
   return (
     <div className="max-w-6xl space-y-6">
+      <PeopleTrail />
       <PageHeader
         title="Employee management"
         description="The central record for every member of staff, from onboarding to offboarding"

@@ -19,6 +19,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
+import PeopleTrail from '../people/PeopleTrail.jsx';
 
 const thisYear = new Date().getFullYear();
 const FILTER_KEYS = [
@@ -57,6 +58,7 @@ export default function ReportsPage({ base = '/api/reports' }) {
 
   return (
     <div className="max-w-7xl">
+      <PeopleTrail />
       <PageHeader title="Reports" />
       <div className="grid gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]">
         {/* Below extra-wide screens the list becomes a single dropdown above the report. */}

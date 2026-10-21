@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Pencil, UserPlus, Users } from 'lucide-react';
+import { Pencil, UserPlus, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
@@ -26,6 +26,8 @@ import { Figures } from './CompanyOverviewPage.jsx';
 import { ServiceChart, TypeDonutChart } from './people-charts.jsx';
 import { EMPLOYMENT_TYPES, Initials, StatusBadge, TypeMeter } from './people-ui.jsx';
 import { EmployeeForm } from './EmployeeRecordPage.jsx';
+import EmployeePanel from './EmployeePanel.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 const BANDS = [
   ['lt1', 'Under 1 year'],
@@ -43,10 +45,13 @@ export default function DepartmentPage() {
   // Adding someone or editing the department happens here, in a panel under the header.
   const [panel, setPanel] = useState(null);
   const [added, setAdded] = useState(null);
+  // The person open in the side panel, if any.
+  const [viewing, setViewing] = useState(null);
   const qc = useQueryClient();
   useEffect(() => {
     setPanel(null);
     setAdded(null);
+    setViewing(null);
   }, [id]);
   const overview = useQuery({
     queryKey: ['people-departments', ''],
@@ -58,14 +63,7 @@ export default function DepartmentPage() {
       api.get(`/api/people/employees${qs({ departmentId: id, status: 'ACTIVE', pageSize: 500 })}`),
   });
 
-  const back = (
-    <Link
-      to="/people/departments"
-      className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
-    >
-      <ArrowLeft className="size-4" aria-hidden /> Department overview
-    </Link>
-  );
+  const back = <PeopleTrail />;
   if (overview.isPending) return <Loading />;
   if (overview.isError) return <LoadError error={overview.error} onRetry={() => overview.refetch()} />;
   const d = overview.data.departments.find((x) => String(x.id) === id);
@@ -101,9 +99,14 @@ export default function DepartmentPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {!d.isActive && <Badge>Inactive</Badge>}
-              <ButtonLink to={`/people/employees?departmentId=${d.id}`}>
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  document.getElementById('department-people')?.scrollIntoView({ behavior: 'smooth' })
+                }
+              >
                 <Users className="size-4" aria-hidden /> Employees
-              </ButtonLink>
+              </Button>
               {canEdit && (
                 <>
                   <Button
@@ -204,7 +207,12 @@ export default function DepartmentPage() {
         </Section>
       </div>
 
-      <Section title="People" description="Everyone active in this department">
+      <Section
+        title="People"
+        description="Everyone active in this department. Select a name to see or edit their details."
+        className="scroll-mt-20"
+      >
+        <span id="department-people" />
         {people.isPending ? (
           <Loading />
         ) : people.isError ? (
@@ -229,12 +237,13 @@ export default function DepartmentPage() {
                   <Td>
                     <div className="flex items-center gap-3">
                       <Initials first={e.firstName} last={e.lastName} />
-                      <Link
-                        to={`/people/employees/${e.id}`}
-                        className="font-medium text-brand hover:underline"
+                      <button
+                        type="button"
+                        onClick={() => setViewing(e.id)}
+                        className="text-left font-medium text-brand hover:underline"
                       >
                         {e.firstName} {e.lastName}
-                      </Link>
+                      </button>
                     </div>
                   </Td>
                   <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
@@ -250,6 +259,17 @@ export default function DepartmentPage() {
           </Table>
         )}
       </Section>
+      {viewing && (
+        <EmployeePanel
+          employeeId={viewing}
+          onClose={() => setViewing(null)}
+          onSaved={() => {
+            qc.invalidateQueries({ queryKey: ['employees'] });
+            qc.invalidateQueries({ queryKey: ['people-departments'] });
+            qc.invalidateQueries({ queryKey: ['people-companies'] });
+          }}
+        />
+      )}
     </div>
   );
 }

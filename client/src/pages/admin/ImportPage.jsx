@@ -14,6 +14,7 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
+import PeopleTrail from '../people/PeopleTrail.jsx';
 
 const COLUMNS = [
   ['employee_number', 'Required. Must be unique.'],
@@ -69,6 +70,7 @@ export default function ImportPage() {
 
   return (
     <div className="max-w-5xl">
+      <PeopleTrail />
       <PageHeader
         title="Import employees"
         actions={

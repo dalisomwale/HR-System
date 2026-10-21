@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import EmployeeBalances from '../admin/EmployeeBalances.jsx';
@@ -33,6 +33,7 @@ import {
 } from './people-ui.jsx';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import { PERSONAL_FIELDS } from '../employee/ProfilePage.jsx';
+import PeopleTrail from './PeopleTrail.jsx';
 
 const FIELDS = [
   'employeeNumber',
@@ -100,12 +101,7 @@ export default function EmployeeRecordPage() {
 
   return (
     <div className="max-w-6xl">
-      <Link
-        to="/people/employees"
-        className="mb-3 inline-flex items-center gap-1 text-sm text-brand hover:underline"
-      >
-        <ArrowLeft className="size-4" aria-hidden /> Employees
-      </Link>
+      <PeopleTrail />
       {isNew ? (
         <PageHeader title="Add employee" />
       ) : (
@@ -290,7 +286,7 @@ function useInvalidateEmployee(id) {
 const SEX = { FEMALE: 'Female', MALE: 'Male' };
 
 /** Read-only employment details; the pencil in the page header switches to the form. */
-function EmployeeDetails({ employee: e, saved }) {
+export function EmployeeDetails({ employee: e, saved }) {
   const none = <span className="text-muted">Not recorded</span>;
   const rows = [
     ['Employee number', e.employeeNumber],
