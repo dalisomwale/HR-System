@@ -493,9 +493,13 @@ export default function AppShell() {
             </nav>
           </>
         )}
-        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 xl:px-10">
-          {/* Pages set their own width; on wide screens they sit in the middle of the space. */}
-          <div className="mx-auto w-full max-w-7xl [&>*]:mx-auto">
+        <main id="main" className="min-w-0 flex-1 px-4 pt-5 pb-8 sm:px-6">
+          {/*
+            Every page starts the same 24px from the menu and uses the same width, up to 1,400px;
+            extra room on very wide screens stays on the right (D65). Pages' own width classes
+            are overridden here so the gap never changes from page to page.
+          */}
+          <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
             <Outlet />
           </div>
         </main>
