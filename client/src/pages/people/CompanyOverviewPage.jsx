@@ -124,7 +124,7 @@ function CompanyCard({ c, year }) {
           key: String(d.id),
           label: d.name,
           value: d.count,
-          to: `/people/departments?companyId=${c.id}`,
+          to: `/people/departments/${d.id}`,
         }))}
       />
     </Section>

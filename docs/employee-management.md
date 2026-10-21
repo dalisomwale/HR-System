@@ -25,7 +25,9 @@ The menu is in segments (D55):
 | Reports     | Reports                                                    |
 
 Each company in the list opens its own overview: headline figures, employment type, length of
-service, and its departments' charts and table.
+service, and its departments' charts and table. Each department opens its own overview too:
+headline figures, employment type, length of service and everyone in it. Add employee, Add
+company and Add department are for HR Officers.
 
 - **Home**: active staff, starting and leaving in the next 30 days, contracts ending in 60 days;
   staff by company and department; joiners and leavers by month; contracts and probation

@@ -64,11 +64,9 @@ const HR = [
 // Employee management (D52, D55): its own menu, in segments.
 const PEOPLE = [
   { to: '/people', label: 'Home', icon: House, end: true },
-  { to: '/people/employees', label: 'Employees', icon: Users },
-];
-const DEPARTMENTS = [
-  { to: '/people/departments', label: 'Department overview', icon: Building2, end: true },
-  { to: '/people/departments/manage', label: 'Add department', icon: Plus, hrOnly: true },
+  // Not lit up on the add form, which has its own item.
+  { to: '/people/employees', label: 'Employees', icon: Users, except: '/people/employees/new' },
+  { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, hrOnly: true },
 ];
 const PEOPLE_REPORTS = [{ to: '/people/reports', label: 'Reports', icon: FileBarChart }];
 
@@ -80,38 +78,42 @@ const navLinkClass = ({ isActive }) =>
       : 'border-transparent text-ink hover:bg-canvas',
   ].join(' ');
 
-/** Company segment: the overview, which opens to list each company, and Add company. */
-function CompanyNav({ user, onNavigate }) {
+/**
+ * A menu segment whose overview opens to list its items (companies or departments), with an
+ * Add link for HR Officers (D55, D56). `groups`: [{ heading, items: [{ to, label }] }].
+ */
+function ExpandNav({
+  title,
+  icon: Icon,
+  base,
+  overviewLabel,
+  groups,
+  loading,
+  addLabel,
+  canAdd,
+  onNavigate,
+}) {
   const { pathname } = useLocation();
-  const inCompanies = pathname.startsWith('/people/companies');
-  const [open, setOpen] = useState(inCompanies);
+  const inside = pathname.startsWith(base);
+  const [open, setOpen] = useState(inside);
   useEffect(() => {
-    if (inCompanies) setOpen(true);
-  }, [inCompanies]);
-  const org = useQuery({
-    queryKey: ['people-organisation'],
-    queryFn: () => api.get('/api/people/organisation'),
-  });
-  const companies = (org.data?.companies ?? []).filter((c) => c.isActive);
+    if (inside) setOpen(true);
+  }, [inside]);
+  const listId = `${base.replace(/\W/g, '-')}-list`;
   return (
     <div className="mb-6">
-      <p className="mb-1.5 px-3 text-xs font-medium text-muted">Company</p>
+      <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
       <ul>
         <li className="flex items-stretch">
-          <NavLink
-            to="/people/companies"
-            end
-            onClick={onNavigate}
-            className={(a) => `${navLinkClass(a)} flex-1`}
-          >
-            <Landmark className="size-4 shrink-0" aria-hidden />
-            Company overview
+          <NavLink to={base} end onClick={onNavigate} className={(a) => `${navLinkClass(a)} flex-1`}>
+            <Icon className="size-4 shrink-0" aria-hidden />
+            {overviewLabel}
           </NavLink>
           <button
             type="button"
             aria-expanded={open}
-            aria-controls="company-list"
-            aria-label={open ? 'Hide companies' : 'Show companies'}
+            aria-controls={listId}
+            aria-label={open ? `Hide ${title.toLowerCase()} list` : `Show ${title.toLowerCase()} list`}
             onClick={() => setOpen((o) => !o)}
             className="px-3 text-muted hover:bg-canvas hover:text-ink"
           >
@@ -119,40 +121,110 @@ function CompanyNav({ user, onNavigate }) {
           </button>
         </li>
         {open && (
-          <li id="company-list">
-            <ul className="mb-1">
-              {org.isPending && <li className="py-1.5 pl-10 text-xs text-muted">Loading</li>}
-              {companies.map((c) => (
-                <li key={c.id}>
-                  <NavLink
-                    to={`/people/companies/${c.id}`}
-                    onClick={onNavigate}
-                    className={({ isActive }) =>
-                      [
-                        'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
-                        isActive
-                          ? 'border-brand bg-brand-soft font-medium text-brand'
-                          : 'border-transparent text-ink hover:bg-canvas',
-                      ].join(' ')
-                    }
-                  >
-                    {c.name}
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
+          <li id={listId}>
+            {loading && <p className="py-1.5 pl-10 text-xs text-muted">Loading</p>}
+            {groups.map((g) => (
+              <div key={g.heading ?? 'all'} className="mb-1">
+                {g.heading && (
+                  <p className="truncate pt-1.5 pr-3 pb-0.5 pl-10 text-[11px] font-medium text-muted uppercase">
+                    {g.heading}
+                  </p>
+                )}
+                <ul>
+                  {g.items.map((it) => (
+                    <li key={it.to}>
+                      <NavLink
+                        to={it.to}
+                        onClick={onNavigate}
+                        className={({ isActive }) =>
+                          [
+                            'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
+                            isActive
+                              ? 'border-brand bg-brand-soft font-medium text-brand'
+                              : 'border-transparent text-ink hover:bg-canvas',
+                          ].join(' ')
+                        }
+                      >
+                        {it.label}
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </li>
         )}
-        {hasRole(user, 'HR_OFFICER') && (
+        {canAdd && (
           <li>
-            <NavLink to="/people/companies/manage" onClick={onNavigate} className={navLinkClass}>
+            <NavLink to={`${base}/manage`} onClick={onNavigate} className={navLinkClass}>
               <Plus className="size-4 shrink-0" aria-hidden />
-              Add company
+              {addLabel}
             </NavLink>
           </li>
         )}
       </ul>
     </div>
+  );
+}
+
+/** Company and Departments segments, each listing what is in the organisation. */
+function OrganisationNav({ user, onNavigate }) {
+  const org = useQuery({
+    queryKey: ['people-organisation'],
+    queryFn: () => api.get('/api/people/organisation'),
+  });
+  const companies = (org.data?.companies ?? []).filter((c) => c.isActive);
+  const departments = (org.data?.departments ?? []).filter((d) => d.isActive);
+  const canAdd = hasRole(user, 'HR_OFFICER');
+  // Departments are listed under their company when the group has more than one.
+  const deptGroups =
+    companies.length > 1
+      ? [
+          ...companies.map((c) => ({
+            heading: c.name,
+            items: departments.filter((d) => d.companyId === c.id),
+          })),
+          {
+            heading: 'No company',
+            items: departments.filter((d) => !companies.some((c) => c.id === d.companyId)),
+          },
+        ].filter((g) => g.items.length)
+      : [{ heading: null, items: departments }];
+  return (
+    <>
+      <ExpandNav
+        title="Company"
+        icon={Landmark}
+        base="/people/companies"
+        overviewLabel="Company overview"
+        loading={org.isPending}
+        groups={[
+          {
+            heading: null,
+            items: companies.map((c) => ({ to: `/people/companies/${c.id}`, label: c.name })),
+          },
+        ]}
+        addLabel="Add company"
+        canAdd={canAdd}
+        onNavigate={onNavigate}
+      />
+      <ExpandNav
+        title="Departments"
+        icon={Building2}
+        base="/people/departments"
+        overviewLabel="Department overview"
+        loading={org.isPending}
+        groups={deptGroups.map((g) => ({
+          heading: g.heading,
+          items: [...g.items]
+            .sort((x, y) => x.name.localeCompare(y.name))
+            .map((d) => ({ to: `/people/departments/${d.id}`, label: d.name })),
+        }))}
+        addLabel="Add department"
+        canAdd={canAdd}
+        onNavigate={onNavigate}
+      />
+    </>
   );
 }
 
@@ -168,11 +240,12 @@ const ADMIN = [
 ];
 
 function NavGroup({ title, items, onNavigate, counts = {} }) {
+  const { pathname } = useLocation();
   return (
     <div className="mb-6">
       <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
       <ul>
-        {items.map(({ to, label, icon: Icon, end, count }) => (
+        {items.map(({ to, label, icon: Icon, end, count, except }) => (
           <li key={to}>
             <NavLink
               to={to}
@@ -181,7 +254,7 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
               className={({ isActive }) =>
                 [
                   'flex items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-sm',
-                  isActive
+                  isActive && pathname !== except
                     ? 'border-brand bg-brand-soft font-medium text-brand'
                     : 'border-transparent text-ink hover:bg-canvas',
                 ].join(' ')
@@ -274,13 +347,12 @@ export default function AppShell() {
       </div>
       {inPeople ? (
         <>
-          <NavGroup title="People" items={PEOPLE} onNavigate={() => setMenuOpen(false)} />
-          <CompanyNav user={user} onNavigate={() => setMenuOpen(false)} />
           <NavGroup
-            title="Departments"
-            items={DEPARTMENTS.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER'))}
+            title="People"
+            items={PEOPLE.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER'))}
             onNavigate={() => setMenuOpen(false)}
           />
+          <OrganisationNav user={user} onNavigate={() => setMenuOpen(false)} />
           <NavGroup title="Reports" items={PEOPLE_REPORTS} onNavigate={() => setMenuOpen(false)} />
           {hasRole(user, 'HR_ADMIN') && (
             <NavGroup

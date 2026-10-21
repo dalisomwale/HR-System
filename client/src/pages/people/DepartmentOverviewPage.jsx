@@ -107,7 +107,7 @@ function Body({ d, companyId }) {
               label: x.name,
               sub: companyId ? undefined : x.company,
               value: x.headcount,
-              to: `/people/employees?departmentId=${x.id}`,
+              to: `/people/departments/${x.id}`,
             }))}
           />
         </div>
@@ -146,10 +146,7 @@ export function DepartmentTable({ departments, year, companyId }) {
           {sorted.map((x) => (
             <tr key={x.id}>
               <Td>
-                <Link
-                  to={`/people/employees?departmentId=${x.id}`}
-                  className="font-medium text-brand hover:underline"
-                >
+                <Link to={`/people/departments/${x.id}`} className="font-medium text-brand hover:underline">
                   {x.name}
                 </Link>
                 {!companyId && <p className="text-xs text-muted">{x.company ?? 'No company'}</p>}
