@@ -19,12 +19,15 @@ import {
 } from '../../components/ui.jsx';
 import { TypeMeter } from './people-ui.jsx';
 import {
+  GenderByGroup,
+  GenderDonutChart,
   MovesByGroup,
   ServiceChart,
   TypeDonutChart,
   TypesByGroup,
   shortName,
   sumBands,
+  sumSex,
   sumTypes,
 } from './people-charts.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
@@ -200,6 +203,7 @@ export function DepartmentStatistics({ departments, year, companyId }) {
     tick: shortName(x),
     title: companyId ? x.name : `${x.name}, ${x.company ?? 'No company'}`,
     byType: x.byType,
+    bySex: x.bySex,
     joined: x.joinedThisYear,
     left: x.leftThisYear,
   }));
@@ -211,6 +215,12 @@ export function DepartmentStatistics({ departments, year, companyId }) {
       </Section>
       <Section title="Employment type" description={scope}>
         <TypeDonutChart byType={sumTypes(departments)} />
+      </Section>
+      <Section title="Gender by department" description="Active staff, largest departments">
+        <GenderByGroup groups={groups} label="Active staff in each department by gender" />
+      </Section>
+      <Section title="Gender" description={scope}>
+        <GenderDonutChart bySex={sumSex(departments)} />
       </Section>
       <Section title={`Joined and left in ${year}`} description="By department">
         <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />

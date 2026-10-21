@@ -8,7 +8,7 @@ import { BarList, COLORS, ColumnChart, Donut, Legend } from '../../components/ch
 import { ButtonLink, LoadError, Loading, PageHeader, Section, Select } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { EMPLOYMENT_TYPES, FIELD_LABELS, PROBATION, historyValue } from './people-ui.jsx';
-import { HeadcountTrend, ServiceChart } from './people-charts.jsx';
+import { GenderDonutChart, HeadcountTrend, ServiceChart } from './people-charts.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -151,6 +151,9 @@ function Body({ d, companyId }) {
             empty="No active staff yet."
             segments={typeSegments}
           />
+        </Section>
+        <Section title="Staff by gender">
+          <GenderDonutChart bySex={d.bySex} />
         </Section>
         <Section title="Staff by department">
           <BarList

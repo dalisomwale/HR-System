@@ -151,6 +151,9 @@ export const PEOPLE_REPORTS = [
       { key: 'temporary', label: 'Temporary', type: 'number' },
       { key: 'notRecorded', label: 'Type not recorded', type: 'number' },
       { key: 'probation', label: 'On probation', type: 'number' },
+      { key: 'female', label: 'Female', type: 'number' },
+      { key: 'male', label: 'Male', type: 'number' },
+      { key: 'sexNotRecorded', label: 'Sex not recorded', type: 'number' },
     ],
     async run(db, f) {
       const rows = await staff(db, { companyId: f.companyId }).where('e.status', 'ACTIVE');
@@ -166,6 +169,9 @@ export const PEOPLE_REPORTS = [
           temporary: 0,
           notRecorded: 0,
           probation: 0,
+          female: 0,
+          male: 0,
+          sexNotRecorded: 0,
         };
         g.total += 1;
         if (r.employment_type === 'PERMANENT') g.permanent += 1;
@@ -173,6 +179,9 @@ export const PEOPLE_REPORTS = [
         else if (r.employment_type === 'TEMPORARY') g.temporary += 1;
         else g.notRecorded += 1;
         if (['ON_PROBATION', 'EXTENDED'].includes(r.probation_status)) g.probation += 1;
+        if (r.sex === 'FEMALE') g.female += 1;
+        else if (r.sex === 'MALE') g.male += 1;
+        else g.sexNotRecorded += 1;
         by.set(key, g);
       }
       return [...by.values()];

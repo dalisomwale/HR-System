@@ -507,7 +507,7 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
           id="sex"
           label="Sex"
           error={err('sex')}
-          hint="Used only for maternity, paternity and Mother’s Day leave eligibility."
+          hint="Used for maternity, paternity and Mother’s Day leave eligibility, and for staff statistics."
         >
           <Select id="sex" invalid={!!err('sex')} {...register('sex')}>
             <option value="">Not recorded</option>

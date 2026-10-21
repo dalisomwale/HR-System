@@ -329,6 +329,8 @@ export async function peopleDashboard(db, companyId = null) {
     .groupBy('e.department_id', 'd.name', 'c.name')
     .select('e.department_id as id', 'd.name', 'c.name as company')
     .count({ n: '*' });
+  // Recorded sex of active staff (D61): female, male, or not recorded.
+  const bySex = await active().groupBy('e.sex').select('e.sex as sex').count({ n: '*' });
   const byType = await active()
     .groupBy('e.employment_type')
     .select('e.employment_type as type')
@@ -412,6 +414,11 @@ export async function peopleDashboard(db, companyId = null) {
       .map((r) => ({ id: r.id, name: r.name ?? 'No department', company: r.company, count: Number(r.n) }))
       .sort((a, b) => b.count - a.count),
     byType: byType.map((r) => ({ type: r.type, count: Number(r.n) })),
+    bySex: {
+      FEMALE: Number(bySex.find((r) => r.sex === 'FEMALE')?.n ?? 0),
+      MALE: Number(bySex.find((r) => r.sex === 'MALE')?.n ?? 0),
+      NONE: Number(bySex.find((r) => r.sex == null)?.n ?? 0),
+    },
     monthly,
     headcountTrend: trend,
     serviceBands: SERVICE_BANDS.map((b) => ({ key: b.key, label: b.label, count: bands[b.key] })),
@@ -442,6 +449,7 @@ async function groupFigures(db, groupColumn, companyId = null) {
       `e.${groupColumn} as gid`,
       'e.status',
       'e.employment_type',
+      'e.sex',
       'e.probation_status',
       'e.contract_end_date',
       'e.employment_start_date',
@@ -466,6 +474,7 @@ async function groupFigures(db, groupColumn, companyId = null) {
     if (r.status === 'ACTIVE') {
       g.headcount += 1;
       g.byType[r.employment_type ?? 'NONE'] += 1;
+      g.bySex[r.sex ?? 'NONE'] += 1;
       if (['ON_PROBATION', 'EXTENDED'].includes(r.probation_status)) g.onProbation += 1;
       if (r.contract_end_date && r.contract_end_date >= today && r.contract_end_date <= soon)
         g.contractsEnding += 1;
@@ -489,6 +498,7 @@ async function groupFigures(db, groupColumn, companyId = null) {
 const emptyFigures = () => ({
   headcount: 0,
   byType: { PERMANENT: 0, FIXED_TERM: 0, TEMPORARY: 0, NONE: 0 },
+  bySex: { FEMALE: 0, MALE: 0, NONE: 0 },
   serviceBands: emptyBands(),
   onProbation: 0,
   contractsEnding: 0,

@@ -23,7 +23,7 @@ import {
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { Figures } from './CompanyOverviewPage.jsx';
-import { ServiceChart, TypeDonutChart } from './people-charts.jsx';
+import { GenderDonutChart, ServiceChart, TypeDonutChart } from './people-charts.jsx';
 import { EMPLOYMENT_TYPES, Initials, StatusBadge, TypeMeter } from './people-ui.jsx';
 import { EmployeeForm } from './EmployeeRecordPage.jsx';
 import EmployeePanel from './EmployeePanel.jsx';
@@ -198,9 +198,12 @@ export default function DepartmentPage() {
         />
       </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <Section title="Employment type">
           <TypeDonutChart byType={d.byType} />
+        </Section>
+        <Section title="Gender">
+          <GenderDonutChart bySex={d.bySex} />
         </Section>
         <Section title="Length of service">
           <ServiceChart bands={BANDS.map(([key, label]) => ({ key, label, count: d.serviceBands[key] }))} />

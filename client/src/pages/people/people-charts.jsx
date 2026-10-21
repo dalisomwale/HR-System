@@ -152,3 +152,48 @@ export function MovesByGroup({ groups, label }) {
 
 /** A short axis label: the code when there is one, else the name cut to fit. */
 export const shortName = (g) => g.code || (g.name.length > 12 ? `${g.name.slice(0, 11)}…` : g.name);
+
+/* Gender (D61), from the Female/Male recorded on each employee record. */
+export const SEX_SERIES = [
+  { key: 'FEMALE', name: 'Female', color: '#6250d6' },
+  { key: 'MALE', name: 'Male', color: '#eda100' },
+  { key: 'NONE', name: 'Not recorded', color: COLORS.other },
+];
+
+/** Staff by gender as a ring. */
+export function GenderDonutChart({ bySex, label = 'Active staff by gender' }) {
+  return (
+    <Donut
+      label={label}
+      unit="people"
+      empty="No active staff yet."
+      segments={SEX_SERIES.map((s) => ({ ...s, value: bySex?.[s.key] ?? 0 })).filter(
+        (s) => s.value > 0 || s.key !== 'NONE',
+      )}
+    />
+  );
+}
+
+/** Add up gender counts across groups. */
+export function sumSex(groups) {
+  const out = { FEMALE: 0, MALE: 0, NONE: 0 };
+  for (const g of groups) for (const k of Object.keys(out)) out[k] += g.bySex?.[k] ?? 0;
+  return out;
+}
+
+/** Staff in each group by gender. groups: [{ key, tick, title, bySex }]. */
+export function GenderByGroup({ groups, label }) {
+  return (
+    <div className="space-y-3">
+      <Legend items={SEX_SERIES} />
+      <ColumnChart
+        label={label}
+        unit="people"
+        whole
+        empty="No active staff yet."
+        series={SEX_SERIES}
+        data={groups.map((g) => ({ key: g.key, tick: g.tick, title: g.title, ...g.bySex }))}
+      />
+    </div>
+  );
+}

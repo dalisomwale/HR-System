@@ -178,6 +178,7 @@ describe('statistics', () => {
     await post('/api/admin/employees', newEmployee({ employmentStartDate: '2015-01-05' }));
     const d = (await hr.agent.get('/api/people/dashboard')).body;
     expect(d.headcountTrend).toHaveLength(12);
+    expect(d.bySex.FEMALE + d.bySex.MALE + d.bySex.NONE).toBe(d.headcount);
     // Today's column counts everyone active now: the two above and the HR fixture.
     expect(d.headcountTrend[11].headcount).toBe(d.headcount);
     const bands = Object.fromEntries(d.serviceBands.map((b) => [b.key, b.count]));
@@ -187,5 +188,6 @@ describe('statistics', () => {
     const c = (await hr.agent.get('/api/people/companies-overview')).body;
     const all = [...c.companies.map((x) => x.serviceBands)];
     expect(all.every((b) => 'lt1' in b && 'gt10' in b)).toBe(true);
+    expect(c.companies.every((x) => x.bySex && 'FEMALE' in x.bySex)).toBe(true);
   });
 });
