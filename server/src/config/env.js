@@ -40,6 +40,8 @@ const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']),
   PORT: intWithDefault(4000),
+  // Address to listen on. Set 127.0.0.1 on a server so only Nginx can reach the API.
+  HOST: optionalString.transform((v) => v ?? '0.0.0.0'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   TRUST_PROXY: intWithDefault(0),
 
@@ -165,6 +167,7 @@ export function buildConfig(env, { forTool = false } = {}) {
     isProduction: isProd,
     isTest: e.NODE_ENV === 'test',
     port: e.PORT,
+    host: e.HOST,
     logLevel: e.LOG_LEVEL,
     trustProxy: e.TRUST_PROXY,
     businessTimezone: 'Africa/Lusaka',
