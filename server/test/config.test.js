@@ -108,6 +108,22 @@ describe('configuration guards', () => {
     expect(() => buildConfig(env, { forTool: true })).not.toThrow();
   });
 
+  it('lets migrations run on a new production server before sign-in and email are set up', () => {
+    const env = {
+      ...productionEnv,
+      ENTRA_TENANT_ID: '',
+      ENTRA_CLIENT_ID: '',
+      ENTRA_CLIENT_SECRET: '',
+      MAIL_TRANSPORT: 'graph',
+      MAIL_SENDER_ADDRESS: '',
+      GRAPH_MAIL_CLIENT_ID: '',
+      GRAPH_MAIL_CLIENT_SECRET: '',
+    };
+    expect(() => buildConfig(env, { forTool: true })).not.toThrow();
+    // The running system still refuses the same settings.
+    expect(() => buildConfig(env)).toThrow(/ENTRA_TENANT_ID is required in production/);
+  });
+
   it('rejects a malformed tenant ID', () => {
     expect(problemsFor({ ...productionEnv, ENTRA_TENANT_ID: 'altus' })).toContain(
       'ENTRA_TENANT_ID must be a GUID',

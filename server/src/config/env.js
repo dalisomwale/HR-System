@@ -97,7 +97,8 @@ export class ConfigError extends Error {
  * Validate an environment object and return a frozen config.
  * Pure function: it never reads process.env itself, so it can be tested directly.
  * Command-line tools (migrations, bootstrap) pass { forTool: true }: they never create
- * sessions, so they do not need SESSION_SECRET.
+ * sessions, sign anyone in or send email, so they need only the database settings. That lets
+ * a new server create its tables before Microsoft sign-in and email are set up.
  */
 export function buildConfig(env, { forTool = false } = {}) {
   const parsed = schema.safeParse(env);
@@ -128,7 +129,9 @@ export function buildConfig(env, { forTool = false } = {}) {
   // Microsoft sign-in is the only way in. All four settings are needed together.
   const entraKeys = ['ENTRA_TENANT_ID', 'ENTRA_CLIENT_ID', 'ENTRA_CLIENT_SECRET', 'ENTRA_REDIRECT_URI'];
   const entraSet = entraKeys.filter((k) => e[k]);
-  if (isProd) {
+  if (forTool) {
+    // Not needed by migrations or bootstrap (bootstrap checks the tenant ID itself).
+  } else if (isProd) {
     for (const key of entraKeys) if (!e[key]) problems.push(`${key} is required in production`);
   } else if (entraSet.length > 0 && entraSet.length < entraKeys.length) {
     for (const key of entraKeys) {
@@ -139,7 +142,7 @@ export function buildConfig(env, { forTool = false } = {}) {
     problems.push('ENTRA_REDIRECT_URI must be a full URL');
   }
 
-  if (isProd) {
+  if (isProd && !forTool) {
     if (!e.COOKIE_SECURE) problems.push('COOKIE_SECURE must be true in production');
     if (!e.APP_BASE_URL.startsWith('https://')) problems.push('APP_BASE_URL must use https in production');
     if (!e.DOCUMENT_STORAGE_DIR) problems.push('DOCUMENT_STORAGE_DIR is required in production');
@@ -149,7 +152,7 @@ export function buildConfig(env, { forTool = false } = {}) {
   if (e.ENTRA_TENANT_ID && !guid.test(e.ENTRA_TENANT_ID)) {
     problems.push('ENTRA_TENANT_ID must be a GUID');
   }
-  if (e.MAIL_TRANSPORT === 'graph') {
+  if (e.MAIL_TRANSPORT === 'graph' && !forTool) {
     for (const key of [
       'ENTRA_TENANT_ID',
       'MAIL_SENDER_ADDRESS',
