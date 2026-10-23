@@ -71,6 +71,8 @@ const schema = z.object({
   ENTRA_CLIENT_SECRET: optionalString,
   ENTRA_REDIRECT_URI: optionalString,
 
+  // Lets a live server start with email off until Microsoft 365 mail is set up (D72).
+  MAIL_OFF_IN_PRODUCTION: bool,
   MAIL_TRANSPORT: z.preprocess(
     (v) => (v === '' ? undefined : v),
     z.enum(['graph', 'disabled']).default('disabled'),
@@ -146,7 +148,11 @@ export function buildConfig(env, { forTool = false } = {}) {
     if (!e.COOKIE_SECURE) problems.push('COOKIE_SECURE must be true in production');
     if (!e.APP_BASE_URL.startsWith('https://')) problems.push('APP_BASE_URL must use https in production');
     if (!e.DOCUMENT_STORAGE_DIR) problems.push('DOCUMENT_STORAGE_DIR is required in production');
-    if (e.MAIL_TRANSPORT === 'disabled') problems.push('MAIL_TRANSPORT must be configured in production');
+    if (e.MAIL_TRANSPORT === 'disabled' && !e.MAIL_OFF_IN_PRODUCTION) {
+      problems.push(
+        'MAIL_TRANSPORT must be configured in production (or set MAIL_OFF_IN_PRODUCTION=true to start with email off for now)',
+      );
+    }
   }
 
   if (e.ENTRA_TENANT_ID && !guid.test(e.ENTRA_TENANT_ID)) {

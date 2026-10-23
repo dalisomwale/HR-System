@@ -66,10 +66,16 @@ describe('configuration guards', () => {
     });
     expect(problems).toEqual(
       expect.arrayContaining([
-        'MAIL_TRANSPORT must be configured in production',
+        expect.stringMatching(/^MAIL_TRANSPORT must be configured in production/),
         'APP_BASE_URL must use https in production',
       ]),
     );
+  });
+
+  it('starts in production with email off only when that is asked for', () => {
+    const env = { ...productionEnv, MAIL_TRANSPORT: 'disabled' };
+    expect(problemsFor(env).join('\n')).toMatch(/MAIL_OFF_IN_PRODUCTION=true/);
+    expect(() => buildConfig({ ...env, MAIL_OFF_IN_PRODUCTION: 'true' })).not.toThrow();
   });
 
   it('keeps test and non-test databases apart', () => {

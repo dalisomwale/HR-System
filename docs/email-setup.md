@@ -40,7 +40,7 @@ This is Exchange Online's "RBAC for Applications". If the app was ever given Mai
 
 ## 4. Configure the server
 
-In `.env`:
+In `.env` (and remove `MAIL_OFF_IN_PRODUCTION` if it was set while email was off):
 
 ```
 MAIL_TRANSPORT=graph
