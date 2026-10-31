@@ -50,6 +50,31 @@ describe('Microsoft sign-in', () => {
     });
   });
 
+  it('links an unlinked account to the employee with the same work email and lets them in', async () => {
+    const emp = await fixtureEmployee(db, { linked: false, email: 'chanda.mumba@example.test' });
+    const oid = '22222222-3333-4444-5555-666666666666';
+    const s = await signIn(app, entra, { oid, preferred_username: 'Chanda.Mumba@Example.test' });
+    expect(s.redirect).toBe('http://localhost:5173/');
+    expect(s.me).toMatchObject({ id: emp.id });
+    const link = await db('identity_links').where({ employee_id: emp.id }).first();
+    expect(link).toMatchObject({ object_id: oid, linked_via: 'EMAIL' });
+    expect(
+      await db('audit_log').where({ action: 'IDENTITY_LINKED', entity_id: String(emp.id) }),
+    ).toHaveLength(1);
+    // The next sign-in uses the link.
+    expect((await signIn(app, entra, { oid })).me).toMatchObject({ id: emp.id });
+  });
+
+  it('does not take over an employee already linked to another Microsoft account', async () => {
+    const emp = await fixtureEmployee(db, { email: 'taken@example.test' });
+    const s = await signIn(app, entra, {
+      oid: '33333333-4444-5555-6666-777777777777',
+      email: 'taken@example.test',
+    });
+    expect(s.redirect).toBe('http://localhost:5173/access-not-configured?reason=not_configured');
+    expect(await db('identity_links').where({ employee_id: emp.id })).toHaveLength(1);
+  });
+
   it('refuses another tenant even when the object ID matches an employee', async () => {
     const emp = await fixtureEmployee(db);
     const s = await signIn(app, entra, { oid: emp.oid, tid: '99999999-9999-9999-9999-999999999999' });

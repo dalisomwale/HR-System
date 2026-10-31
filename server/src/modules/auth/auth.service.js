@@ -4,12 +4,19 @@ import { notify, hrAdministrators } from '../notifications/notify.service.js';
 
 /**
  * Decide whether validated Entra claims may sign in, and record the outcome.
- * Identity is matched only on tenant ID + object ID; email is never used to grant access.
+ * Identity is matched on tenant ID + object ID. On the first sign-in from the Altus tenant, an
+ * account with no link is linked to the one employee whose work email matches its email (D73).
  */
 export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
   const tid = String(claims.tid ?? '').toLowerCase();
   const oid = String(claims.oid ?? '').toLowerCase();
   const email = String(claims.email ?? claims.preferred_username ?? '').toLowerCase() || null;
+  // Both addresses Entra gives for this account; either may match the work email on the record.
+  const addresses = [
+    ...new Set(
+      [claims.email, claims.preferred_username].filter(Boolean).map((a) => String(a).trim().toLowerCase()),
+    ),
+  ].filter((a) => a.includes('@'));
   const name = claims.name ? String(claims.name).slice(0, 160) : null;
 
   const base = { actorType: 'SYSTEM', entityType: 'identity', entityId: oid || null, ...requestMeta };
@@ -20,7 +27,33 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
   }
 
   return db.transaction(async (trx) => {
-    const link = await trx('identity_links').where({ tenant_id: tid, object_id: oid }).first();
+    let link = await trx('identity_links').where({ tenant_id: tid, object_id: oid }).first();
+    if (!link && addresses.length) {
+      // Exactly one employee with that work email, and not already linked to another account.
+      const matches = await trx('employees as e')
+        .leftJoin('identity_links as l', 'l.employee_id', 'e.id')
+        .whereIn(trx.raw('LOWER(e.email)'), addresses)
+        .whereNull('l.id')
+        .forUpdate()
+        .select('e.id', 'e.email');
+      if (matches.length === 1) {
+        await trx('identity_links').insert({
+          employee_id: matches[0].id,
+          tenant_id: tid,
+          object_id: oid,
+          email_at_link: matches[0].email,
+          linked_via: 'EMAIL',
+        });
+        await writeAudit(trx, {
+          ...base,
+          action: 'IDENTITY_LINKED',
+          entityType: 'employee',
+          entityId: matches[0].id,
+          after: { objectId: oid, email: matches[0].email, via: 'work email matched at sign-in' },
+        });
+        link = await trx('identity_links').where({ tenant_id: tid, object_id: oid }).first();
+      }
+    }
     if (!link) {
       // System Administrators hear about a new person once a day at most, however often they retry.
       const recent = await trx('audit_log')

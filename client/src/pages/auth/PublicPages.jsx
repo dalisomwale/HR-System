@@ -102,12 +102,12 @@ export function AccessNotConfiguredPage() {
   return (
     <AuthLayout>
       <h1 className="text-[1.75rem] leading-tight font-semibold tracking-[-0.01em]">
-        {inactive ? 'Your access has ended' : 'Your account is not set up yet'}
+        {inactive ? 'Your access has ended' : 'No employee record found'}
       </h1>
       <p className="mt-3 text-[15px] leading-relaxed text-muted">
         {inactive
           ? 'Your employee record is inactive, so you cannot sign in. If this is wrong, contact HR.'
-          : 'You signed in with Microsoft. Contact the IT Administrator to accept your request.'}
+          : 'Your Microsoft account does not match an employee record. Ask HR to check the work email on your record.'}
       </p>
       <a
         href="/sign-in"
