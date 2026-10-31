@@ -15,7 +15,6 @@ import CompanyOverviewPage from './pages/people/CompanyOverviewPage.jsx';
 import CompanyPage from './pages/people/CompanyPage.jsx';
 import DepartmentPage from './pages/people/DepartmentPage.jsx';
 import DepartmentOverviewPage from './pages/people/DepartmentOverviewPage.jsx';
-import SignInRequestsPage from './pages/admin/SignInRequestsPage.jsx';
 import LeaveTypePage from './pages/admin/LeaveTypePage.jsx';
 import RolesPage from './pages/admin/RolesPage.jsx';
 import CompaniesPage from './pages/admin/CompaniesPage.jsx';
@@ -134,7 +133,7 @@ createRoot(document.getElementById('root')).render(
               <Route index element={<Navigate to="/people/employees" replace />} />
               <Route path="employees" element={<ToPeople base="/people/employees" />} />
               <Route path="employees/:id" element={<ToPeople base="/people/employees" />} />
-              <Route path="sign-in-requests" element={admin(<SignInRequestsPage />)} />
+              <Route path="sign-in-requests" element={<Navigate to="/people/employees" replace />} />
               <Route path="import" element={<ToPeople base="/people/import" />} />
               <Route path="roles" element={admin(<RolesPage />)} />
               <Route path="companies" element={<ToPeople base="/people/companies/manage" />} />

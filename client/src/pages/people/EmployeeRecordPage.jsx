@@ -762,11 +762,8 @@ function IdentityPanel({ employee }) {
           }}
         >
           <p className="text-sm text-muted">
-            Not linked. The easiest way: ask them to sign in once, then link them from{' '}
-            <Link to="/admin/sign-in-requests" className="text-brand underline">
-              Sign-in requests
-            </Link>
-            . Or enter their Object ID from the Microsoft Entra admin centre.
+            Not linked yet. It links by itself the first time they sign in, if the work email on this record
+            matches their Microsoft account. Or enter their Object ID from the Microsoft Entra admin centre.
           </p>
           <Field id="objectId" label="Entra Object ID" error={link.isError ? link.error.message : null}>
             <Input

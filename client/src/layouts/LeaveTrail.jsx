@@ -29,7 +29,6 @@ const PAGES = {
   '/admin/schedules': 'Working schedules',
   '/reports': 'Reports',
   '/admin/roles': 'Roles',
-  '/admin/sign-in-requests': 'Sign-in requests',
   '/admin/settings': 'Workflow settings',
   '/admin/emails': 'Emails',
   '/admin/audit': 'Audit log',

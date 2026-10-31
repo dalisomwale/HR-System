@@ -284,7 +284,6 @@ const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: 
 // System Administrators only. They also see everything in the HR menu.
 const ADMIN = [
   { to: '/admin/roles', label: 'Roles', icon: KeyRound },
-  { to: '/admin/sign-in-requests', label: 'Sign-in requests', icon: UserPlus },
   { to: '/admin/settings', label: 'Workflow settings', icon: Settings2 },
   { to: '/admin/emails', label: 'Emails', icon: Mail },
   { to: '/admin/audit', label: 'Audit log', icon: History },
@@ -415,7 +414,7 @@ export default function AppShell() {
           {hasRole(user, 'HR_ADMIN') && (
             <NavGroup
               title="Administration"
-              items={ADMIN.filter((i) => ['/admin/roles', '/admin/sign-in-requests'].includes(i.to))}
+              items={ADMIN.filter((i) => ['/admin/roles'].includes(i.to))}
               onNavigate={() => setMenuOpen(false)}
             />
           )}

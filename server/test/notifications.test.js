@@ -157,7 +157,7 @@ describe('workflow notifications', () => {
     expect(await db('notifications').count({ n: '*' }).first()).toEqual({ n: 0 });
   });
 
-  it('tells System Administrators once about a sign-in that is not linked', async () => {
+  it('sends no request to System Administrators when a sign-in has no employee record', async () => {
     for (let i = 0; i < 2; i += 1) {
       await signIn(app, entra, {
         oid: '99999999-0000-0000-0000-000000000001',
@@ -165,9 +165,7 @@ describe('workflow notifications', () => {
         tid: TENANT,
       });
     }
-    const n = await notes(admin.id);
-    expect(n).toHaveLength(1);
-    expect(n[0]).toMatchObject({ event_type: 'ACCESS_NOT_CONFIGURED', link_path: '/admin/sign-in-requests' });
+    expect(await notes(admin.id)).toHaveLength(0);
   });
 });
 

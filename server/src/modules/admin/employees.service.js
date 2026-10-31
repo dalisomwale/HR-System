@@ -406,33 +406,3 @@ export async function setRoles(trx, id, roles, audit) {
     });
   }
 }
-
-/** Microsoft accounts that tried to sign in but are not linked to any employee (last 30 days). */
-export async function pendingSignIns(db, tenantId) {
-  if (!tenantId) return [];
-  const rows = await db('audit_log')
-    .where({ action: 'SIGN_IN_NOT_CONFIGURED' })
-    .andWhere('created_at', '>=', db.raw('UTC_TIMESTAMP() - INTERVAL 30 DAY'))
-    .orderBy('created_at', 'desc')
-    .limit(500)
-    .select('after_data', 'created_at');
-  const linked = new Set(
-    await db('identity_links').where({ tenant_id: tenantId.toLowerCase() }).pluck('object_id'),
-  );
-  const byOid = new Map();
-  for (const r of rows) {
-    const d = typeof r.after_data === 'string' ? JSON.parse(r.after_data) : r.after_data;
-    if (!d?.oid || linked.has(d.oid)) continue;
-    const entry = byOid.get(d.oid);
-    if (entry) entry.attempts += 1;
-    else
-      byOid.set(d.oid, {
-        objectId: d.oid,
-        email: d.email,
-        name: d.name,
-        lastAttemptAt: r.created_at,
-        attempts: 1,
-      });
-  }
-  return [...byOid.values()];
-}

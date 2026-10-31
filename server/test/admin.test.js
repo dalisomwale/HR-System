@@ -163,24 +163,14 @@ describe('roles page', () => {
 });
 
 describe('linking Microsoft accounts', () => {
-  it('lists a refused sign-in and lets HR link it, after which the person can sign in', async () => {
+  it('lets an administrator link an account by Object ID, after which the person can sign in', async () => {
     const oid = '33333333-3333-3333-3333-333333333333';
     const first = await signIn(app, entra, { oid, email: 'chanda@example.test', name: 'Chanda Banda' });
     expect(first.status).toBe(401);
 
-    const pending = await admin.agent.get('/api/admin/employees/pending-sign-ins');
-    expect(pending.body.items).toEqual([
-      expect.objectContaining({
-        objectId: oid,
-        email: 'chanda@example.test',
-        name: 'Chanda Banda',
-        attempts: 1,
-      }),
-    ]);
-
-    const id = (await post('/api/admin/employees', newEmployee({ email: 'chanda@example.test' }))).body.id;
+    // A different email from the Microsoft account, so it cannot link by itself.
+    const id = (await post('/api/admin/employees', newEmployee({ email: 'c.banda@example.test' }))).body.id;
     expect((await put(`/api/admin/employees/${id}/identity`, { objectId: oid })).status).toBe(200);
-    expect((await admin.agent.get('/api/admin/employees/pending-sign-ins')).body.items).toHaveLength(0);
 
     const second = await signIn(app, entra, { oid });
     expect(second.status).toBe(200);

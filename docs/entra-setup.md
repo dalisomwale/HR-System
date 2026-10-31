@@ -66,19 +66,18 @@ This works only once, while no System Administrator exists. Everyone else is add
 
 ## 8. Linking everyone else
 
-1. Add staff under **Employees**, or import them under **Import employees**.
-2. Ask each person to open the system and sign in once. They will see "Your account is not set up yet".
-3. Under **Sign-in requests**, their attempt is listed. The matching employee is suggested when the work email matches. Select **Link**.
-4. They can now sign in.
+1. Add staff under **Add employee**, one at a time or from a file. Make sure each work email is right.
+2. Each person signs in with Microsoft. The first time, their account links to the record with the same work email, and they are in. There is no request to approve.
+3. Anyone with no matching record sees "No employee record found". Correct the work email on their record, or add them, and they sign in again.
 
-Alternatively, enter a person's Object ID directly on their employee page.
+A System Administrator can also enter a person's Object ID on their employee page, under Job details.
 
 ## Troubleshooting
 
-| What you see                                               | Cause                                                                                   |
-| ---------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| "Microsoft sign-in has not been set up on this server yet" | One or more `ENTRA_` values missing from `.env`; restart the server after adding them   |
-| Microsoft error AADSTS50011 (redirect URI mismatch)        | `ENTRA_REDIRECT_URI` does not exactly match a redirect URI in the app registration      |
-| Microsoft error AADSTS7000215 (invalid client secret)      | The secret _Value_ is wrong, or the _Secret ID_ was copied instead, or it has expired   |
-| "Your account is not set up yet"                           | Signed in successfully, but not linked to an employee. Link them under Sign-in requests |
-| "Your access has ended"                                    | The linked employee record is inactive                                                  |
+| What you see                                               | Cause                                                                                               |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| "Microsoft sign-in has not been set up on this server yet" | One or more `ENTRA_` values missing from `.env`; restart the server after adding them               |
+| Microsoft error AADSTS50011 (redirect URI mismatch)        | `ENTRA_REDIRECT_URI` does not exactly match a redirect URI in the app registration                  |
+| Microsoft error AADSTS7000215 (invalid client secret)      | The secret _Value_ is wrong, or the _Secret ID_ was copied instead, or it has expired               |
+| "No employee record found"                                 | Signed in successfully, but no employee record has that work email. Correct the email on the record |
+| "Your access has ended"                                    | The linked employee record is inactive                                                              |

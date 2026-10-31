@@ -22,7 +22,7 @@ const ACTION_LABELS = {
   BOOTSTRAP_ADMIN_CREATED: 'First administrator created',
   SIGN_IN: 'Signed in',
   SIGN_OUT: 'Signed out',
-  SIGN_IN_NOT_CONFIGURED: 'Sign-in refused: account not linked',
+  SIGN_IN_NOT_CONFIGURED: 'Sign-in refused: no employee record with that email',
   SIGN_IN_REJECTED_INACTIVE: 'Sign-in refused: employee inactive',
   SIGN_IN_REJECTED_TENANT: 'Sign-in refused: other organisation',
   EMPLOYEE_CREATED: 'Employee created',

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { useMe } from '../../lib/auth.jsx';
-import { Badge, Button, ButtonLink, Notice, Section, Table, Td, Th } from '../../components/ui.jsx';
+import { Badge, Button, Notice, Section, Table, Td, Th } from '../../components/ui.jsx';
 
 const COLUMNS = [
   ['employee_number', 'Required. Must be unique.'],
@@ -27,8 +26,6 @@ const COLUMNS = [
 
 /** Upload, check and import a CSV of employees. Also shown on Add employee (D69). */
 export function ImportEmployees() {
-  const { data: me } = useMe();
-  const isAdmin = me.roles.includes('HR_ADMIN');
   const qc = useQueryClient();
   const [file, setFile] = useState(null);
   const [csv, setCsv] = useState('');
@@ -114,16 +111,7 @@ export function ImportEmployees() {
             .map(([n, one, many]) => `, ${n} new ${n === 1 ? one : many}`)
             .join('')}.`}
         >
-          {isAdmin ? (
-            <>
-              Next, link their Microsoft accounts: ask them to sign in once, then use Sign-in requests.{' '}
-              <ButtonLink to="/admin/sign-in-requests" variant="ghost" className="h-auto px-1">
-                Open sign-in requests
-              </ButtonLink>
-            </>
-          ) : (
-            'Next, ask them to sign in once. A System Administrator then links their Microsoft accounts.'
-          )}
+          They can now sign in with Microsoft. Each account links to its record by the work email.
         </Notice>
       ) : (
         result && (

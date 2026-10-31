@@ -15,7 +15,6 @@ import {
   setRolesSchema,
   setRoles,
   mapEmployeeUniqueError,
-  pendingSignIns,
 } from './employees.service.js';
 import { validateImport, commitImport, IMPORT_COLUMNS } from './employees.import.js';
 import { employeeRecord, listEmployees } from '../people/people.service.js';
@@ -57,14 +56,6 @@ export function employeeRoutes({ db, config }) {
           label: `${r.first_name} ${r.last_name} (${r.employee_number})`,
         })),
       });
-    }),
-  );
-
-  router.get(
-    '/pending-sign-ins',
-    adminOnly,
-    asyncHandler(async (req, res) => {
-      res.json({ items: await pendingSignIns(db, tenantId), signInConfigured: Boolean(tenantId) });
     }),
   );
 

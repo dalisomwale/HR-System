@@ -553,13 +553,7 @@ describe('HR Officer administration rights', () => {
     });
     expect(person.status, JSON.stringify(person.body)).toBe(201);
 
-    for (const path of [
-      '/api/admin/roles',
-      '/api/admin/settings',
-      '/api/admin/audit',
-      '/api/admin/emails',
-      '/api/admin/employees/pending-sign-ins',
-    ]) {
+    for (const path of ['/api/admin/roles', '/api/admin/settings', '/api/admin/audit', '/api/admin/emails']) {
       expect((await as(hr).get(path)).status, path).toBe(403);
     }
     expect(
