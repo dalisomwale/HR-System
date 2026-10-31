@@ -19,6 +19,10 @@ GRANT ALL ON hr_system.*  TO 'hr_system'@'localhost';
 GRANT ALL ON hr_system_test.* TO 'hr_system_test'@'localhost';
 ```
 
+### MariaDB (for example XAMPP on Windows)
+
+MariaDB 10.11 also works: every migration and test passes on it. Use `utf8mb4_unicode_ci` in place of `utf8mb4_0900_ai_ci` (MariaDB does not have it) and `SET GLOBAL` in place of `SET PERSIST`. MariaDB older than 10.6 is not supported.
+
 ### Ubuntu: do not connect the app as root
 
 On Ubuntu, MySQL's `root` account usually authenticates through the operating system socket (`sudo mysql`). That works in a terminal but the application, which connects over TCP with a password, is refused with `Access denied for user 'root'@'localhost'`. Use the dedicated account above instead, and set `DB_HOST=127.0.0.1` in `.env` and `.env.test`.
