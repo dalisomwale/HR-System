@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { createTestDb, resetData } from './helpers/db.js';
 import { testApp, fixtureEmployee, signIn } from './helpers/app.js';
@@ -316,6 +317,42 @@ describe('employee import', () => {
     const ann = await db('employees').where({ employee_number: 'C1' }).first();
     expect(ben.line_manager_id).toBe(ann.id);
     expect(ben.company_id).toBe(afs);
+  });
+
+  it('imports an Excel workbook: first sheet, typed dates, commas and quotes kept', async () => {
+    const afs = await company('AFS', 'Altus Financial Services Limited');
+    await post('/api/admin/departments', { companyId: afs, code: 'CRD', name: 'Credit' });
+    const xlsx = fs.readFileSync(new URL('./fixtures/import.xlsx', import.meta.url)).toString('base64');
+    const preview = await post('/api/admin/employees/import/preview', { xlsx });
+    expect(preview.status, JSON.stringify(preview.body)).toBe(200);
+    expect(preview.body).toMatchObject({ totalRows: 2, validRows: 2 });
+    const res = await post('/api/admin/employees/import/commit', { xlsx });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    const ann = await db('employees').where({ employee_number: 'X1' }).first();
+    const ben = await db('employees').where({ employee_number: 'X2' }).first();
+    expect(String(ann.employment_start_date).slice(0, 10)).toBe('2024-03-01');
+    expect(ben).toMatchObject({
+      last_name: 'Two, Jr',
+      job_title: 'Officer "A"',
+      email: 'ben.two@example.test',
+    });
+    expect(ben.line_manager_id).toBe(ann.id);
+  });
+
+  it('refuses a file that is not an Excel workbook', async () => {
+    const res = await post('/api/admin/employees/import/preview', {
+      xlsx: Buffer.from('not a workbook').toString('base64'),
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error?.message ?? JSON.stringify(res.body)).toMatch(
+      /could not be read as an Excel workbook/,
+    );
+  });
+
+  it('offers the template as Excel as well as CSV', async () => {
+    const res = await admin.agent.get('/api/admin/employees/import/template?format=xlsx').buffer(true);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/spreadsheetml/);
   });
 
   const NEW_HEADER =

@@ -17,13 +17,25 @@ import {
   mapEmployeeUniqueError,
 } from './employees.service.js';
 import { validateImport, commitImport, IMPORT_COLUMNS } from './employees.import.js';
+import { xlsxImportToCsv } from './xlsx-read.js';
+import { toXlsx } from '../reports/export-files.js';
 import { employeeRecord, listEmployees } from '../people/people.service.js';
 
 const deactivateSchema = z.object({
   reason: optionalText(500),
   endDate: isoDate.nullish(),
 });
-const importSchema = z.object({ csv: z.string().min(1, 'is required').max(2_000_000) });
+// A CSV as text, or an Excel workbook as base64 (D78).
+const importSchema = z
+  .object({
+    csv: z.string().min(1).max(2_000_000).optional(),
+    xlsx: z.string().min(1).max(8_000_000).optional(),
+  })
+  .refine((v) => v.csv || v.xlsx, { message: 'Choose a CSV or Excel file', path: ['csv'] });
+const importText = (body) => {
+  const { csv, xlsx } = importSchema.parse(body);
+  return csv ?? xlsxImportToCsv(Buffer.from(xlsx, 'base64'));
+};
 
 export function employeeRoutes({ db, config }) {
   const router = Router();
@@ -60,6 +72,17 @@ export function employeeRoutes({ db, config }) {
   );
 
   router.get('/import/template', (req, res) => {
+    if (req.query.format === 'xlsx') {
+      const file = toXlsx(
+        IMPORT_COLUMNS.map((key) => ({ key, label: key })),
+        [],
+        { sheetName: 'Employees', title: 'Employee import template' },
+      );
+      return res
+        .set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .set('Content-Disposition', 'attachment; filename="employee-import-template.xlsx"')
+        .send(file);
+    }
     res
       .set('Content-Type', 'text/csv; charset=utf-8')
       .set('Content-Disposition', 'attachment; filename="employee-import-template.csv"')
@@ -68,9 +91,9 @@ export function employeeRoutes({ db, config }) {
 
   router.post(
     '/import/preview',
-    express.json({ limit: '2mb' }),
+    express.json({ limit: '12mb' }),
     asyncHandler(async (req, res) => {
-      const { csv } = importSchema.parse(req.body);
+      const csv = importText(req.body);
       // eslint-disable-next-line no-unused-vars
       const { _rows, _newDepartments, _adoptions, ...result } = await validateImport(db, csv);
       res.json(result);
@@ -79,9 +102,9 @@ export function employeeRoutes({ db, config }) {
 
   router.post(
     '/import/commit',
-    express.json({ limit: '2mb' }),
+    express.json({ limit: '12mb' }),
     asyncHandler(async (req, res) => {
-      const { csv } = importSchema.parse(req.body);
+      const csv = importText(req.body);
       res.status(201).json(await commitImport(db, csv, auditContext(req)));
     }),
   );

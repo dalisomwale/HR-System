@@ -28,12 +28,14 @@ const COLUMNS = [
 export function ImportEmployees() {
   const qc = useQueryClient();
   const [file, setFile] = useState(null);
-  const [csv, setCsv] = useState('');
+  // { csv } for a CSV file, { xlsx } (base64) for an Excel workbook (D78).
+  const [upload, setUpload] = useState(null);
+  const [fileError, setFileError] = useState(null);
   const preview = useMutation({
-    mutationFn: (text) => api.post('/api/admin/employees/import/preview', { csv: text }),
+    mutationFn: (body) => api.post('/api/admin/employees/import/preview', body),
   });
   const commit = useMutation({
-    mutationFn: () => api.post('/api/admin/employees/import/commit', { csv }),
+    mutationFn: () => api.post('/api/admin/employees/import/commit', upload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       qc.invalidateQueries({ queryKey: ['employee-options'] });
@@ -47,9 +49,23 @@ export function ImportEmployees() {
     commit.reset();
     if (!f) return;
     setFile(f);
-    const text = await f.text();
-    setCsv(text);
-    preview.mutate(text);
+    setFileError(null);
+    preview.reset();
+    const name = f.name.toLowerCase();
+    let body;
+    if (name.endsWith('.xlsx')) {
+      body = { xlsx: await toBase64(f) };
+    } else if (name.endsWith('.xls')) {
+      setUpload(null);
+      setFileError(
+        'Old Excel files (.xls) cannot be read. In Excel use Save As and choose Excel Workbook (.xlsx).',
+      );
+      return;
+    } else {
+      body = { csv: await f.text() };
+    }
+    setUpload(body);
+    preview.mutate(body);
   }
 
   const result = preview.data;
@@ -59,14 +75,22 @@ export function ImportEmployees() {
     <div className="grid gap-6">
       <Section
         title="Columns"
-        description="Save the spreadsheet as CSV (UTF-8). The first row must contain these column names."
+        description="Upload an Excel workbook (.xlsx) or a CSV file. The first row must contain these column names; in Excel, only the first sheet is read."
         actions={
-          <a
-            href="/api/admin/employees/import/template"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-rule bg-white px-3.5 text-sm font-medium whitespace-nowrap hover:border-muted"
-          >
-            <Download className="size-4" aria-hidden /> Download template
-          </a>
+          <div className="flex flex-wrap gap-2">
+            {[
+              ['xlsx', 'Excel template'],
+              ['csv', 'CSV template'],
+            ].map(([format, label]) => (
+              <a
+                key={format}
+                href={`/api/admin/employees/import/template${format === 'xlsx' ? '?format=xlsx' : ''}`}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-rule bg-white px-3.5 text-sm font-medium whitespace-nowrap hover:border-muted"
+              >
+                <Download className="size-4" aria-hidden /> {label}
+              </a>
+            ))}
+          </div>
         }
       >
         <table className="w-full text-sm">
@@ -83,15 +107,20 @@ export function ImportEmployees() {
 
       <Section title="Upload">
         <label className="block text-sm font-medium" htmlFor="csvFile">
-          CSV file
+          Excel or CSV file
         </label>
         <input
           id="csvFile"
           type="file"
-          accept=".csv,text/csv"
+          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={onFile}
           className="mt-1 block text-sm file:mr-3 file:h-9 file:rounded-md file:border file:border-rule file:bg-white file:px-3 file:text-sm file:font-medium"
         />
+        {fileError && (
+          <div className="mt-4">
+            <Notice tone="danger">{fileError}</Notice>
+          </div>
+        )}
         {preview.isPending && <p className="mt-3 text-sm text-muted">Checking {file?.name}…</p>}
         {preview.isError && (
           <div className="mt-4">
@@ -191,4 +220,14 @@ export function ImportEmployees() {
       )}
     </div>
   );
+}
+
+/** A file's bytes as base64, for sending an Excel workbook in JSON. */
+async function toBase64(file) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
 }
