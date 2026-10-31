@@ -21,6 +21,8 @@ import {
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import PeopleTrail from '../people/PeopleTrail.jsx';
 
+// Filters and the Run report / Clear filters buttons share one line where space allows (D80).
+const FIELD = 'w-full sm:w-52';
 const thisYear = new Date().getFullYear();
 const FILTER_KEYS = [
   'from',
@@ -124,20 +126,20 @@ function Filters({ report, options, applied, onApply }) {
         e.preventDefault();
         onApply(v);
       }}
-      className="grid gap-3 rounded-md border border-rule bg-white p-4 sm:grid-cols-2 xl:grid-cols-4"
+      className="flex flex-wrap items-end gap-3 rounded-md border border-rule bg-white p-4"
     >
       {has('from') && (
-        <Field id="from" label="From">
+        <Field className={FIELD} id="from" label="From">
           <Input id="from" type="date" value={v.from} onChange={set('from')} />
         </Field>
       )}
       {has('to') && (
-        <Field id="to" label="To">
+        <Field className={FIELD} id="to" label="To">
           <Input id="to" type="date" value={v.to} onChange={set('to')} />
         </Field>
       )}
       {has('year') && (
-        <Field id="year" label="Year">
+        <Field className={FIELD} id="year" label="Year">
           <Select id="year" value={v.year || String(thisYear)} onChange={set('year')}>
             {[thisYear + 1, thisYear, thisYear - 1, thisYear - 2, thisYear - 3].map((y) => (
               <option key={y} value={y}>
@@ -148,7 +150,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('employee') && (
-        <Field id="employeeId" label="Employee">
+        <Field className={FIELD} id="employeeId" label="Employee">
           <Select id="employeeId" value={v.employeeId} onChange={set('employeeId')}>
             <option value="">Everyone</option>
             {options.employees.map((e) => (
@@ -160,7 +162,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('company') && options.companies?.length > 1 && (
-        <Field id="companyId" label="Company">
+        <Field className={FIELD} id="companyId" label="Company">
           <Select
             id="companyId"
             value={v.companyId}
@@ -176,7 +178,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('department') && options.departments.length > 1 && (
-        <Field id="departmentId" label="Department">
+        <Field className={FIELD} id="departmentId" label="Department">
           <Select id="departmentId" value={v.departmentId} onChange={set('departmentId')}>
             <option value="">All departments</option>
             <DepartmentOptions
@@ -188,7 +190,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('leaveType') && (
-        <Field id="leaveTypeId" label="Leave type">
+        <Field className={FIELD} id="leaveTypeId" label="Leave type">
           <Select id="leaveTypeId" value={v.leaveTypeId} onChange={set('leaveTypeId')}>
             <option value="">All leave types</option>
             {options.leaveTypes.map((t) => (
@@ -200,7 +202,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('status') && (
-        <Field id="status" label="Status">
+        <Field className={FIELD} id="status" label="Status">
           <Select id="status" value={v.status} onChange={set('status')}>
             <option value="">All statuses</option>
             {options.statuses.map((s) => (
@@ -212,7 +214,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('entryType') && (
-        <Field id="entryType" label="Entry">
+        <Field className={FIELD} id="entryType" label="Entry">
           <Select id="entryType" value={v.entryType} onChange={set('entryType')}>
             <option value="">All entries</option>
             {options.entryTypes.map((s) => (
@@ -223,7 +225,7 @@ function Filters({ report, options, applied, onApply }) {
           </Select>
         </Field>
       )}
-      <div className="flex items-end gap-2 sm:col-span-2 xl:col-span-4">
+      <div className="flex items-end gap-2">
         <Button type="submit">Run report</Button>
         <Button
           variant="ghost"
