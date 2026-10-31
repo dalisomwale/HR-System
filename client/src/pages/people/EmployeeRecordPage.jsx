@@ -129,16 +129,19 @@ export default function EmployeeRecordPage() {
           action={
             canEdit &&
             !editing && (
-              <Button
-                variant="secondary"
+              <button
+                type="button"
+                aria-label="Edit details"
+                title="Edit details"
+                className="inline-flex size-9 items-center justify-center rounded-md text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
                 onClick={() => {
                   setTab('job');
                   setSaved(false);
                   setEditing(true);
                 }}
               >
-                <Pencil className="size-4" aria-hidden /> Edit details
-              </Button>
+                <Pencil className="size-5" aria-hidden />
+              </button>
             )
           }
         />
