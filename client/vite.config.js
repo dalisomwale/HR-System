@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
-import basicSsl from '@vitejs/plugin-basic-ssl';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -13,10 +12,12 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 // DEV_NETWORK_HOST in the project's .env (for example 192-168-1-20.sslip.io) opens the
 // development server to other devices on the network, over https, because Microsoft sign-in
 // accepts plain http only for localhost. For testing only (D74).
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const networkHost = loadEnv(mode, repoRoot, '').DEV_NETWORK_HOST?.trim();
+  // Loaded only when needed, so a copy without it installed still starts on localhost.
+  const ssl = networkHost ? (await import('@vitejs/plugin-basic-ssl')).default : null;
   return {
-    plugins: [react(), tailwindcss(), ...(networkHost ? [basicSsl()] : [])],
+    plugins: [react(), tailwindcss(), ...(ssl ? [ssl()] : [])],
     server: {
       port: 5173,
       strictPort: true,
