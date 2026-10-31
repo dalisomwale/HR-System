@@ -22,9 +22,9 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { Figures } from './CompanyOverviewPage.jsx';
+import { DepartmentTable } from './DepartmentOverviewPage.jsx';
 import { GenderDonutChart, ServiceChart, TypeDonutChart } from './people-charts.jsx';
-import { EMPLOYMENT_TYPES, Initials, StatusBadge, TypeMeter } from './people-ui.jsx';
+import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
 import { EmployeeForm } from './EmployeeRecordPage.jsx';
 import EmployeePanel from './EmployeePanel.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
@@ -184,17 +184,7 @@ export default function DepartmentPage() {
             />
           </Stats>
 
-          <Section title="At a glance">
-            <TypeMeter byType={d.byType} />
-            <Figures
-              items={[
-                [`Joined in ${year}`, d.joinedThisYear],
-                [`Left in ${year}`, d.leftThisYear],
-                ['Average service', d.headcount ? `${d.averageServiceYears} yrs` : '—'],
-                ['No line manager', d.noManager],
-              ]}
-            />
-          </Section>
+          <DepartmentTable departments={[d]} year={year} companyId={d.companyId ?? 'one'} />
 
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             <Section title="Employment type">

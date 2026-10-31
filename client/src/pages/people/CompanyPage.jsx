@@ -5,10 +5,8 @@ import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { Figures } from './CompanyOverviewPage.jsx';
 import { DepartmentStatistics, DepartmentTable } from './DepartmentOverviewPage.jsx';
 import { TypeDonutChart, ServiceChart } from './people-charts.jsx';
-import { TypeMeter } from './people-ui.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
 
 /** One company's overview, opened from the Company menu (D55). */
@@ -83,24 +81,18 @@ export default function CompanyPage() {
         />
       </Stats>
 
-      <Section title="At a glance">
-        <TypeMeter byType={c.byType} />
-        <Figures
-          items={[
-            ['Managers', c.managers],
-            [`Joined in ${year}`, c.joinedThisYear],
-            [`Left in ${year}`, c.leftThisYear],
-            ['Average service', c.headcount ? `${c.averageServiceYears} yrs` : '—'],
-            ['No line manager', c.noManager],
-            ['Without a department', departments.data.withoutDepartment],
-          ]}
+      {departments.data.withoutDepartment > 0 && (
+        <Notice
+          tone="pending"
+          title={`${departments.data.withoutDepartment} active ${departments.data.withoutDepartment === 1 ? 'person has' : 'people have'} no department set.`}
         />
-      </Section>
+      )}
 
       {depts.length > 0 ? (
         <>
-          <DepartmentStatistics departments={depts} year={year} companyId={id} />
+          {/* Department figures take the place of the old At a glance card (D76). */}
           <DepartmentTable departments={depts} year={year} companyId={id} />
+          <DepartmentStatistics departments={depts} year={year} companyId={id} />
         </>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
