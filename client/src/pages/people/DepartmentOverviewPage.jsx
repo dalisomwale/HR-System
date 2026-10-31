@@ -59,7 +59,7 @@ export default function DepartmentOverviewPage() {
                   setParams(e.target.value ? { companyId: e.target.value } : {}, { replace: true })
                 }
               >
-                <option value="">Whole company</option>
+                <option value="">Altus Group</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -207,7 +207,7 @@ export function DepartmentStatistics({ departments, year, companyId }) {
     joined: x.joinedThisYear,
     left: x.leftThisYear,
   }));
-  const scope = companyId ? 'This company' : 'Whole company';
+  const scope = companyId ? 'This company' : 'Altus Group';
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Section title="Employment type by department" description="Active staff, largest departments">

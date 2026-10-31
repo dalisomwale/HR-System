@@ -27,7 +27,7 @@ const LONG = [
   'December',
 ];
 
-/** Employee management home: the whole company's people at a glance (D52). */
+/** Employee management home: the whole Altus Group's people at a glance (D52). */
 export default function PeopleDashboardPage() {
   const { data: me } = useMe();
   const [params, setParams] = useSearchParams();
@@ -54,7 +54,7 @@ export default function PeopleDashboardPage() {
                   setParams(e.target.value ? { companyId: e.target.value } : {}, { replace: true })
                 }
               >
-                <option value="">Whole company</option>
+                <option value="">Altus Group</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
