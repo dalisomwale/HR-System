@@ -1,4 +1,5 @@
 import { useParams } from 'react-router';
+import { Briefcase, Building2, Hash, Landmark } from 'lucide-react';
 import { Badge } from '../../components/ui.jsx';
 import { formatDate } from '../../lib/format.js';
 
@@ -57,7 +58,12 @@ export function historyValue(field, value) {
 
 export function Initials({ first, last, size = 'sm' }) {
   const text = `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
-  const box = size === 'lg' ? 'size-14 text-lg' : 'size-9 text-xs';
+  const box =
+    size === 'xl'
+      ? 'size-20 text-2xl ring-4 ring-white'
+      : size === 'lg'
+        ? 'size-14 text-lg'
+        : 'size-9 text-xs';
   return (
     <span
       aria-hidden
@@ -142,4 +148,45 @@ export function useEmployeeBase() {
   if (companyId) return `/people/companies/${companyId}`;
   if (departmentId) return `/people/departments/${departmentId}`;
   return '/people';
+}
+
+/**
+ * The person at the top of an employee record and of My profile, centred under a navy band (D77).
+ * `person` has firstName, lastName, jobTitle, department, company, employeeNumber and the fields
+ * StatusBadge reads; `action` is an optional button shown on the band.
+ */
+export function ProfileHeader({ person: p, action }) {
+  const details = [
+    [Briefcase, p.jobTitle, 'Job title'],
+    [Building2, p.department, 'Department'],
+    [Landmark, p.company, 'Company'],
+    [Hash, p.employeeNumber, 'Employee number'],
+  ].filter(([, value]) => value);
+  return (
+    <section className="relative mb-6 overflow-hidden rounded-md border border-rule bg-white">
+      <div className="h-20 bg-brand" aria-hidden />
+      {action && <div className="absolute top-4 right-4">{action}</div>}
+      <div className="-mt-10 flex flex-col items-center px-4 pb-6 text-center">
+        <Initials first={p.firstName} last={p.lastName} size="xl" />
+        <h1 className="mt-3 text-2xl font-semibold tracking-[-0.01em]">
+          {p.firstName} {p.lastName}
+        </h1>
+        {details.length > 0 && (
+          <ul className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm text-muted">
+            {details.map(([Icon, value, label]) => (
+              <li key={label} className="flex items-center gap-1.5">
+                <Icon className="size-4 shrink-0" aria-hidden />
+                <span className="sr-only">{label}: </span>
+                {value}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <StatusBadge e={p} />
+          {p.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[p.employmentType]}</Badge>}
+        </div>
+      </div>
+    </section>
+  );
 }

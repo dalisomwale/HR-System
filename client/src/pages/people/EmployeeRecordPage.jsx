@@ -29,6 +29,7 @@ import {
   FIELD_LABELS,
   Initials,
   PROBATION,
+  ProfileHeader,
   StatusBadge,
   historyValue,
   useEmployeeBase,
@@ -123,33 +124,24 @@ export default function EmployeeRecordPage() {
           />
         </>
       ) : (
-        <section className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-rule bg-white p-4 sm:p-5">
-          <Initials first={e.firstName} last={e.lastName} size="lg" />
-          <div className="min-w-0 flex-1 basis-56">
-            <h1 className="text-xl font-semibold">
-              {e.firstName} {e.lastName}
-            </h1>
-            <p className="text-sm text-muted">
-              {[e.jobTitle, e.department, e.company, e.employeeNumber].filter(Boolean).join(' · ')}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <StatusBadge e={e} />
-              {e.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[e.employmentType]}</Badge>}
-            </div>
-          </div>
-          {canEdit && !editing && (
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setTab('job');
-                setSaved(false);
-                setEditing(true);
-              }}
-            >
-              <Pencil className="size-4" aria-hidden /> Edit details
-            </Button>
-          )}
-        </section>
+        <ProfileHeader
+          person={e}
+          action={
+            canEdit &&
+            !editing && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setTab('job');
+                  setSaved(false);
+                  setEditing(true);
+                }}
+              >
+                <Pencil className="size-4" aria-hidden /> Edit details
+              </Button>
+            )
+          }
+        />
       )}
       {!isNew && (
         <Tabs

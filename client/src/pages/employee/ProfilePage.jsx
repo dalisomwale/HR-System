@@ -24,7 +24,7 @@ import {
 import AppFrame from '../../layouts/AppFrame.jsx';
 import { Trail } from '../../layouts/LeaveTrail.jsx';
 import EmployeeOverview from '../people/EmployeeOverview.jsx';
-import { EMPLOYMENT_TYPES, Initials, PROBATION, StatusBadge } from '../people/people-ui.jsx';
+import { EMPLOYMENT_TYPES, PROBATION, ProfileHeader } from '../people/people-ui.jsx';
 import { Balances, YearSelect } from '../leave/MyLeavePage.jsx';
 
 /*
@@ -74,21 +74,7 @@ export default function ProfilePage() {
           <Trail
             items={[{ label: 'My profile', to: '/profile' }, { label: TABS.find((t) => t.id === tab).label }]}
           />
-          <section className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-rule bg-white p-4 sm:p-5">
-            <Initials first={p.firstName} last={p.lastName} size="lg" />
-            <div className="min-w-0 flex-1 basis-56">
-              <h1 className="text-xl font-semibold">
-                {p.firstName} {p.lastName}
-              </h1>
-              <p className="text-sm text-muted">
-                {[p.jobTitle, p.department, p.company, p.employeeNumber].filter(Boolean).join(' · ')}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <StatusBadge e={p} />
-                {p.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[p.employmentType]}</Badge>}
-              </div>
-            </div>
-          </section>
+          <ProfileHeader person={p} />
 
           <Tabs label="My profile" active={tab} onChange={setTab} tabs={TABS} />
 
