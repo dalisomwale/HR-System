@@ -13,7 +13,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 // development server to other devices on the network, over https, because Microsoft sign-in
 // accepts plain http only for localhost. For testing only (D74).
 export default defineConfig(async ({ mode }) => {
-  const networkHost = loadEnv(mode, repoRoot, '').DEV_NETWORK_HOST?.trim();
+  const networkHost = loadEnv(mode, repoRoot, 'DEV_').DEV_NETWORK_HOST?.trim();
   // Loaded only when needed, so a copy without it installed still starts on localhost.
   const ssl = networkHost ? (await import('@vitejs/plugin-basic-ssl')).default : null;
   return {
