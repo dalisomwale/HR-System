@@ -54,6 +54,19 @@ function useGroupName(section, id) {
   return null;
 }
 
+/** The company a department belongs to, shown before it in the path (D86). */
+function useDepartmentCompany(section, id) {
+  const departments = useQuery({
+    queryKey: ['people-departments', ''],
+    queryFn: () => api.get('/api/people/departments-overview'),
+    enabled: isId(id) && section === 'departments',
+  });
+  if (section !== 'departments' || !isId(id)) return null;
+  const d = departments.data?.departments.find((x) => String(x.id) === id);
+  if (!d?.companyId) return null;
+  return { label: d.companyCode ?? d.company, to: `/people/departments?companyId=${d.companyId}` };
+}
+
 function useReportTitle(on, id) {
   const q = useQuery({
     queryKey: ['reports', '/api/people/reports'],
@@ -75,6 +88,7 @@ export default function PeopleTrail() {
   // An employee opened inside a company or department keeps that place in the path (D62).
   const nested = (section === 'companies' || section === 'departments') && sub === 'employees';
   const groupName = useGroupName(section, rest);
+  const departmentCompany = useDepartmentCompany(section, rest);
   const employeeName = useEmployeeName(nested ? subId : section === 'employees' ? rest : null);
   const reportTitle = useReportTitle(section === 'reports', search.get('report'));
   if (!pathname.startsWith('/people')) return null;
@@ -86,7 +100,9 @@ export default function PeopleTrail() {
     trail.push(reportTitle ? SECTIONS.reports : { label: 'Reports' });
     if (reportTitle) trail.push({ label: reportTitle });
   } else if (nested) {
-    trail.push(SECTIONS[section], { label: groupName, to: `/people/${section}/${rest}` });
+    trail.push(SECTIONS[section]);
+    if (departmentCompany) trail.push(departmentCompany);
+    trail.push({ label: groupName, to: `/people/${section}/${rest}` });
     if (!subId) trail.push({ label: 'Employees' });
     else {
       trail.push({ label: 'Employees', to: `/people/${section}/${rest}/employees` });
@@ -95,6 +111,7 @@ export default function PeopleTrail() {
   } else {
     const s = SECTIONS[section];
     if (s) trail.push(rest ? s : { label: s.label });
+    if (departmentCompany) trail.push(departmentCompany);
     if (rest) {
       trail.push({
         label: FIXED[`${section}/${rest}`] ?? (section === 'employees' ? employeeName : groupName) ?? rest,

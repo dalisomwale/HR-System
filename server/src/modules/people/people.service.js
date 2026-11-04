@@ -547,7 +547,15 @@ export async function departmentsOverview(db, companyId = null) {
     .leftJoin('companies as c', 'c.id', 'd.company_id')
     .modify((q) => companyId && q.where('d.company_id', companyId))
     .orderBy([{ column: 'c.name' }, { column: 'd.name' }])
-    .select('d.id', 'd.code', 'd.name', 'd.is_active', 'd.company_id', 'c.name as company');
+    .select(
+      'd.id',
+      'd.code',
+      'd.name',
+      'd.is_active',
+      'd.company_id',
+      'c.name as company',
+      'c.code as company_code',
+    );
   const companies = await db('companies').where({ is_active: true }).orderBy('name').select('id', 'name');
   return {
     year: Number(todayInLusaka().slice(0, 4)),
@@ -562,6 +570,7 @@ export async function departmentsOverview(db, companyId = null) {
         isActive: Boolean(d.is_active),
         companyId: d.company_id,
         company: d.company,
+        companyCode: d.company_code,
         ...emptyFigures(),
         ...(figures.get(d.id) ?? {}),
       })),
