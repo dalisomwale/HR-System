@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
-import { BarList } from '../../components/charts.jsx';
 import {
   ButtonLink,
   EmptyState,
@@ -100,23 +99,13 @@ function Body({ d, companyId }) {
           title={`${d.withoutDepartment} active ${d.withoutDepartment === 1 ? 'person has' : 'people have'} no department set.`}
         />
       )}
-      <DepartmentStatistics departments={sorted} year={d.year} companyId={companyId} />
-
-      <Section title="Staff by department">
-        <div className="max-w-3xl">
-          <BarList
-            empty="No active staff yet."
-            format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
-            items={sorted.map((x) => ({
-              key: String(x.id),
-              label: x.name,
-              sub: companyId ? undefined : x.company,
-              value: x.headcount,
-              to: `/people/departments/${x.id}`,
-            }))}
-          />
-        </div>
-      </Section>
+      {/* Staff by department and Gender by department are left out here (D87). */}
+      <DepartmentStatistics
+        departments={sorted}
+        year={d.year}
+        companyId={companyId}
+        genderByDepartment={false}
+      />
 
       <DepartmentTable departments={sorted} year={d.year} companyId={companyId} />
     </>
@@ -195,7 +184,7 @@ export function DepartmentTable({ departments, year, companyId }) {
   );
 }
 
-export function DepartmentStatistics({ departments, year, companyId }) {
+export function DepartmentStatistics({ departments, year, companyId, genderByDepartment = true }) {
   // The twelve largest departments keep the charts readable; the table below has them all.
   const top = departments.filter((x) => x.headcount > 0 || x.joinedThisYear || x.leftThisYear).slice(0, 12);
   const groups = top.map((x) => ({
@@ -216,18 +205,33 @@ export function DepartmentStatistics({ departments, year, companyId }) {
       <Section title="Employment type" description={scope}>
         <TypeDonutChart byType={sumTypes(departments)} />
       </Section>
-      <Section title="Gender by department" description="Active staff, largest departments">
-        <GenderByGroup groups={groups} label="Active staff in each department by gender" />
-      </Section>
+      {genderByDepartment && (
+        <Section title="Gender by department" description="Active staff, largest departments">
+          <GenderByGroup groups={groups} label="Active staff in each department by gender" />
+        </Section>
+      )}
       <Section title="Gender" description={scope}>
         <GenderDonutChart bySex={sumSex(departments)} />
       </Section>
-      <Section title={`Joined and left in ${year}`} description="By department">
-        <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
-      </Section>
-      <Section title="Length of service" description={scope}>
-        <ServiceChart bands={sumBands(departments)} />
-      </Section>
+      {genderByDepartment ? (
+        <>
+          <Section title={`Joined and left in ${year}`} description="By department">
+            <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
+          </Section>
+          <Section title="Length of service" description={scope}>
+            <ServiceChart bands={sumBands(departments)} />
+          </Section>
+        </>
+      ) : (
+        <>
+          <Section title="Length of service" description={scope}>
+            <ServiceChart bands={sumBands(departments)} />
+          </Section>
+          <Section title={`Joined and left in ${year}`} description="By department" className="lg:col-span-2">
+            <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
+          </Section>
+        </>
+      )}
     </div>
   );
 }
