@@ -22,6 +22,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
+import { DepartmentTable } from './DepartmentOverviewPage.jsx';
 import { GenderDonutChart, ServiceChart, TypeDonutChart } from './people-charts.jsx';
 import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
 import { EmployeeForm } from './EmployeeRecordPage.jsx';
@@ -74,6 +75,7 @@ export default function DepartmentPage() {
       </div>
     );
   }
+  const year = overview.data.year;
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -181,6 +183,8 @@ export default function DepartmentPage() {
               to={`/people/departments/${d.id}/employees?filter=contractEnding`}
             />
           </Stats>
+
+          <DepartmentTable departments={[d]} year={year} companyId={d.companyId ?? 'one'} />
 
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             <Section title="Employment type">
