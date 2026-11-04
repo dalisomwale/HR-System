@@ -116,34 +116,6 @@ function Body({ d, companyId }) {
       </Stats>
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-        {!companyId && d.byCompany.length > 1 && (
-          <Section title="Staff by company">
-            <Donut
-              label="Active staff by company"
-              unit="people"
-              segments={d.byCompany
-                .slice(0, 3)
-                .map((c, i) => ({
-                  key: String(c.id),
-                  name: c.name,
-                  value: c.count,
-                  color: COLORS.series[i],
-                }))
-                .concat(
-                  d.byCompany.length > 3
-                    ? [
-                        {
-                          key: 'other',
-                          name: 'Other companies',
-                          value: d.byCompany.slice(3).reduce((s, c) => s + c.count, 0),
-                          color: COLORS.other,
-                        },
-                      ]
-                    : [],
-                )}
-            />
-          </Section>
-        )}
         <Section title="Staff by employment type">
           <Donut
             label="Active staff by employment type"
@@ -155,48 +127,76 @@ function Body({ d, companyId }) {
         <Section title="Staff by gender">
           <GenderDonutChart bySex={d.bySex} />
         </Section>
-        <Section title="Staff by department">
-          <BarList
-            empty="No active staff yet."
-            format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
-            items={d.byDepartment.slice(0, 8).map((x) => ({
-              key: `${x.id}`,
-              label: x.name,
-              sub: companyId ? undefined : x.company,
-              value: x.count,
-            }))}
-          />
-        </Section>
+        {/* Altus Group: staff by company. One company: staff by department (D90). */}
+        {companyId ? (
+          <Section title="Staff by department">
+            <BarList
+              empty="No active staff yet."
+              format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
+              items={d.byDepartment.slice(0, 8).map((x) => ({
+                key: `${x.id}`,
+                label: x.name,
+                value: x.count,
+              }))}
+            />
+          </Section>
+        ) : (
+          <Section title="Staff by company">
+            <BarList
+              empty="No active staff yet."
+              format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
+              items={d.byCompany.map((c) => ({
+                key: `${c.id}`,
+                label: c.name,
+                value: c.count,
+                to: c.id ? `/people/companies/${c.id}` : undefined,
+              }))}
+            />
+          </Section>
+        )}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Section title="Staff over the last 12 months" className="xl:col-span-2">
-          <HeadcountTrend trend={d.headcountTrend} />
-        </Section>
-        <Section title="Length of service">
-          <ServiceChart bands={d.serviceBands} />
-        </Section>
-      </div>
-
-      <Section title={`Joiners and leavers, ${d.year}`} description="By start date and leaving date">
-        <div className="space-y-3">
-          <Legend items={series} />
-          <ColumnChart
-            label={`Joiners and leavers by month, ${d.year}`}
-            unit="people"
-            whole
-            grouped
-            series={series}
-            data={d.monthly.map((m) => ({
-              key: m.month,
-              tick: MONTHS[m.month - 1],
-              title: `${LONG[m.month - 1]} ${d.year}`,
-              joined: m.joined,
-              left: m.left,
-            }))}
-          />
+      {companyId ? (
+        <div className="grid gap-6 xl:grid-cols-3">
+          <Section title="Staff over the last 12 months" className="xl:col-span-2">
+            <HeadcountTrend trend={d.headcountTrend} />
+          </Section>
+          <Section title="Length of service">
+            <ServiceChart bands={d.serviceBands} />
+          </Section>
         </div>
-      </Section>
+      ) : null}
+
+      <div className={companyId ? '' : 'grid gap-6 xl:grid-cols-3'}>
+        {!companyId && (
+          <Section title="Length of service">
+            <ServiceChart bands={d.serviceBands} />
+          </Section>
+        )}
+        <Section
+          title={`Joiners and leavers, ${d.year}`}
+          description="By start date and leaving date"
+          className={companyId ? undefined : 'xl:col-span-2'}
+        >
+          <div className="space-y-3">
+            <Legend items={series} />
+            <ColumnChart
+              label={`Joiners and leavers by month, ${d.year}`}
+              unit="people"
+              whole
+              grouped
+              series={series}
+              data={d.monthly.map((m) => ({
+                key: m.month,
+                tick: MONTHS[m.month - 1],
+                title: `${LONG[m.month - 1]} ${d.year}`,
+                joined: m.joined,
+                left: m.left,
+              }))}
+            />
+          </div>
+        </Section>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <PeopleList
@@ -228,41 +228,43 @@ function Body({ d, companyId }) {
         />
       </div>
 
-      <Section
-        title="Recent changes"
-        actions={
-          <Link to={`/people/employees${qs({ companyId })}`} className="text-sm text-brand hover:underline">
-            All employees
-          </Link>
-        }
-      >
-        {d.recentChanges.length === 0 ? (
-          <p className="text-sm text-muted">No changes recorded yet.</p>
-        ) : (
-          <ol className="divide-y divide-rule text-sm">
-            {d.recentChanges.map((h) => (
-              <li key={h.id} className="flex gap-3 py-2.5">
-                <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
-                <div className="min-w-0">
-                  <p>
-                    <Link
-                      to={`/people/employees/${h.employeeId}`}
-                      className="font-medium text-brand hover:underline"
-                    >
-                      {h.employee}
-                    </Link>
-                    {': '}
-                    {change(h)}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {h.by} · {formatDateTime(h.at)}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        )}
-      </Section>
+      {companyId && (
+        <Section
+          title="Recent changes"
+          actions={
+            <Link to={`/people/employees${qs({ companyId })}`} className="text-sm text-brand hover:underline">
+              All employees
+            </Link>
+          }
+        >
+          {d.recentChanges.length === 0 ? (
+            <p className="text-sm text-muted">No changes recorded yet.</p>
+          ) : (
+            <ol className="divide-y divide-rule text-sm">
+              {d.recentChanges.map((h) => (
+                <li key={h.id} className="flex gap-3 py-2.5">
+                  <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" />
+                  <div className="min-w-0">
+                    <p>
+                      <Link
+                        to={`/people/employees/${h.employeeId}`}
+                        className="font-medium text-brand hover:underline"
+                      >
+                        {h.employee}
+                      </Link>
+                      {': '}
+                      {change(h)}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {h.by} · {formatDateTime(h.at)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Section>
+      )}
     </>
   );
 }
