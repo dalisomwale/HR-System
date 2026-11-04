@@ -1,11 +1,11 @@
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2, UserPlus, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { DepartmentStatistics, DepartmentTable } from './DepartmentOverviewPage.jsx';
+import { DepartmentStatistics } from './DepartmentOverviewPage.jsx';
 import { TypeDonutChart, ServiceChart } from './people-charts.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
 
@@ -90,8 +90,6 @@ export default function CompanyPage() {
 
       {depts.length > 0 ? (
         <>
-          {/* Department figures take the place of the old At a glance card (D76). */}
-          <DepartmentTable departments={depts} year={year} companyId={id} />
           <DepartmentStatistics departments={depts} year={year} companyId={id} />
         </>
       ) : (

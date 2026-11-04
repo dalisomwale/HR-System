@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Settings2 } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
@@ -13,11 +13,7 @@ import {
   PageHeader,
   Section,
   Select,
-  Table,
-  Td,
-  Th,
 } from '../../components/ui.jsx';
-import { TypeMeter } from './people-ui.jsx';
 import {
   GenderByGroup,
   GenderDonutChart,
@@ -117,81 +113,7 @@ function Body({ d, companyId }) {
           />
         </div>
       </Section>
-
-      <DepartmentTable departments={sorted} year={d.year} companyId={companyId} />
     </>
-  );
-}
-
-/** Every department compared on the same figures. */
-export function DepartmentTable({ departments, year, companyId }) {
-  const sorted = departments;
-  const d = { year };
-  return (
-    <Section
-      title="Department figures"
-      description={`Joined and left are for ${d.year}; contracts ending are the next 60 days`}
-    >
-      <Table>
-        <thead>
-          <tr>
-            <Th>Department</Th>
-            <Th className="text-right">Staff</Th>
-            <Th>Employment type</Th>
-            <Th className="text-right">Managers</Th>
-            <Th className="text-right">On probation</Th>
-            <Th className="text-right">Contracts ending</Th>
-            <Th className="text-right">Joined</Th>
-            <Th className="text-right">Left</Th>
-            <Th className="text-right">Average service</Th>
-            <Th className="text-right">No manager</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((x) => (
-            <tr key={x.id}>
-              <Td>
-                <Link to={`/people/departments/${x.id}`} className="font-medium text-brand hover:underline">
-                  {x.name}
-                </Link>
-                {!companyId && <p className="text-xs text-muted">{x.company ?? 'No company'}</p>}
-                {!x.isActive && <p className="text-xs text-muted">Inactive</p>}
-              </Td>
-              <Td className="text-right font-semibold">{x.headcount}</Td>
-              <Td className="min-w-32">
-                <TypeMeter byType={x.byType} compact />
-              </Td>
-              <Td className="text-right">{x.managers}</Td>
-              <Td className="text-right">{x.onProbation}</Td>
-              <Td className={`text-right ${x.contractsEnding ? 'font-semibold text-pending' : ''}`}>
-                {x.contractsEnding}
-              </Td>
-              <Td className="text-right">{x.joinedThisYear}</Td>
-              <Td className="text-right">{x.leftThisYear}</Td>
-              <Td className="text-right whitespace-nowrap">
-                {x.headcount ? `${x.averageServiceYears} yrs` : '—'}
-              </Td>
-              <Td className={`text-right ${x.noManager ? 'font-semibold text-pending' : ''}`}>
-                {x.noManager}
-              </Td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-        {[
-          ['#2a3fbf', 'Permanent'],
-          ['#eb6834', 'Fixed-term'],
-          ['#1baf7a', 'Temporary'],
-          ['#a3aab8', 'Not recorded'],
-        ].map(([c, n]) => (
-          <span key={n} className="flex items-center gap-1.5">
-            <span aria-hidden className="inline-block size-2.5 rounded-sm" style={{ background: c }} />
-            {n}
-          </span>
-        ))}
-      </div>
-    </Section>
   );
 }
 
