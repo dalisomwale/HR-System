@@ -59,15 +59,36 @@ export function employeeRoutes({ db, config }) {
   router.get(
     '/options',
     asyncHandler(async (req, res) => {
-      const rows = await db('employees')
-        .where({ status: 'ACTIVE' })
-        .orderBy(['last_name', 'first_name'])
-        .select('id', 'employee_number', 'first_name', 'last_name', 'department_id');
+      const rows = await db('employees as e')
+        .leftJoin('departments as d', 'd.id', 'e.department_id')
+        .where('e.status', 'ACTIVE')
+        .orderBy(['e.last_name', 'e.first_name'])
+        .select(
+          'e.id',
+          'e.employee_number',
+          'e.first_name',
+          'e.last_name',
+          'e.department_id',
+          'd.name as department_name',
+          'd.code as department_code',
+        );
+      // Executives can manage anyone (D85): directors by role, and anyone in an Executive department.
+      const directors = new Set(
+        (
+          await db('employee_roles as er')
+            .join('roles as r', 'r.id', 'er.role_id')
+            .whereIn('r.code', ['EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'])
+            .select('er.employee_id')
+        ).map((x) => x.employee_id),
+      );
+      const executiveDepartment = (r) =>
+        /\bexec/i.test(r.department_name ?? '') || /^EXE/i.test(r.department_code ?? '');
       res.json({
         items: rows.map((r) => ({
           id: r.id,
           label: `${r.first_name} ${r.last_name} (${r.employee_number})`,
           departmentId: r.department_id,
+          executive: directors.has(r.id) || executiveDepartment(r),
         })),
       });
     }),

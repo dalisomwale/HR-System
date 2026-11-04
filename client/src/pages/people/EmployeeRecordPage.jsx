@@ -504,14 +504,15 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
     ) ?? [];
   const companyField = register('companyId', req);
   const departmentField = register('departmentId');
-  // Managers come from the chosen department only (D84). With no department, anyone can be
-  // chosen; someone already set as manager stays in the list so the record never loses them.
+  // Managers come from the chosen department, plus the executives (D84, D85). With no department,
+  // anyone can be chosen; someone already set as manager stays in the list so it is never lost.
   const departmentId = watch('departmentId');
   const currentManagerId = String(watch('lineManagerId') ?? '');
   const managerChoices = (people.data?.items ?? []).filter(
     (p) =>
       p.id !== employee?.id &&
       (!departmentId ||
+        p.executive ||
         String(p.departmentId) === String(departmentId) ||
         String(p.id) === String(employee?.lineManagerId ?? '')),
   );
@@ -585,7 +586,12 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
               departmentField.onChange(ev);
               // A manager from another department no longer fits, so clear them.
               const manager = people.data?.items.find((p) => String(p.id) === currentManagerId);
-              if (manager && ev.target.value && String(manager.departmentId) !== ev.target.value) {
+              if (
+                manager &&
+                ev.target.value &&
+                !manager.executive &&
+                String(manager.departmentId) !== ev.target.value
+              ) {
                 setValue('lineManagerId', '', { shouldDirty: true });
               }
               // A department belongs to one company, so choosing it also sets the company.
@@ -607,17 +613,36 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
             departmentId
               ? managerChoices.length === 0
                 ? 'Nobody else is in this department yet.'
-                : 'People in the chosen department.'
+                : 'People in the chosen department, and the executives.'
               : 'Choose a department to list its people.'
           }
         >
           <Select id="lineManagerId" invalid={!!err('lineManagerId')} {...register('lineManagerId')}>
             <option value="">No manager</option>
-            {managerChoices.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.label}
-              </option>
-            ))}
+            {departmentId ? (
+              <>
+                {[
+                  ['This department', managerChoices.filter((p) => !p.executive)],
+                  ['Executives', managerChoices.filter((p) => p.executive)],
+                ]
+                  .filter(([, list]) => list.length > 0)
+                  .map(([group, list]) => (
+                    <optgroup key={group} label={group}>
+                      {list.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+              </>
+            ) : (
+              managerChoices.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))
+            )}
           </Select>
         </Field>
         <Field

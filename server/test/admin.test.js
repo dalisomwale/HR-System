@@ -268,6 +268,26 @@ describe('companies in the group', () => {
   });
 });
 
+describe('manager choices', () => {
+  it('marks directors and people in an Executive department as executives', async () => {
+    const co = (await post('/api/admin/companies', { code: 'AFS', name: 'Altus Financial Services' })).body
+      .id;
+    const exec = (await post('/api/admin/departments', { companyId: co, code: 'EXE', name: 'Executive' }))
+      .body.id;
+    const sales = (await post('/api/admin/departments', { companyId: co, code: 'SLS', name: 'Sales' })).body
+      .id;
+    const inExec = await fixtureEmployee(db, { first_name: 'Ella', department_id: exec });
+    const director = await fixtureEmployee(db, { first_name: 'Dan', roles: ['MANAGING_DIRECTOR'] });
+    const seller = await fixtureEmployee(db, { first_name: 'Sam', department_id: sales });
+    const items = (await admin.agent.get('/api/admin/employees/options')).body.items;
+    const flag = (id) => items.find((i) => i.id === id)?.executive;
+    expect(flag(inExec.id)).toBe(true);
+    expect(flag(director.id)).toBe(true);
+    expect(flag(seller.id)).toBe(false);
+    expect(items.find((i) => i.id === seller.id).departmentId).toBe(sales);
+  });
+});
+
 describe('employee import', () => {
   const header =
     'employee_number,first_name,last_name,email,job_title,company_code,department_code,manager_employee_number,employment_start_date,employment_end_date';
