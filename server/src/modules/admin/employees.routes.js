@@ -62,11 +62,12 @@ export function employeeRoutes({ db, config }) {
       const rows = await db('employees')
         .where({ status: 'ACTIVE' })
         .orderBy(['last_name', 'first_name'])
-        .select('id', 'employee_number', 'first_name', 'last_name');
+        .select('id', 'employee_number', 'first_name', 'last_name', 'department_id');
       res.json({
         items: rows.map((r) => ({
           id: r.id,
           label: `${r.first_name} ${r.last_name} (${r.employee_number})`,
+          departmentId: r.department_id,
         })),
       });
     }),

@@ -504,6 +504,17 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
     ) ?? [];
   const companyField = register('companyId', req);
   const departmentField = register('departmentId');
+  // Managers come from the chosen department only (D84). With no department, anyone can be
+  // chosen; someone already set as manager stays in the list so the record never loses them.
+  const departmentId = watch('departmentId');
+  const currentManagerId = String(watch('lineManagerId') ?? '');
+  const managerChoices = (people.data?.items ?? []).filter(
+    (p) =>
+      p.id !== employee?.id &&
+      (!departmentId ||
+        String(p.departmentId) === String(departmentId) ||
+        String(p.id) === String(employee?.lineManagerId ?? '')),
+  );
 
   if (!lookupsReady) {
     const failed = [departments, companies, people, schedules].find((q) => q.isError);
@@ -572,6 +583,11 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
             {...departmentField}
             onChange={(ev) => {
               departmentField.onChange(ev);
+              // A manager from another department no longer fits, so clear them.
+              const manager = people.data?.items.find((p) => String(p.id) === currentManagerId);
+              if (manager && ev.target.value && String(manager.departmentId) !== ev.target.value) {
+                setValue('lineManagerId', '', { shouldDirty: true });
+              }
               // A department belongs to one company, so choosing it also sets the company.
               const dept = departments.data.items.find((d) => String(d.id) === ev.target.value);
               if (dept?.companyId && String(dept.companyId) !== String(watch('companyId'))) {
@@ -583,16 +599,25 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
             <DepartmentOptions departments={activeDepartments} />
           </Select>
         </Field>
-        <Field id="lineManagerId" label="Manager" error={err('lineManagerId')}>
+        <Field
+          id="lineManagerId"
+          label="Manager"
+          error={err('lineManagerId')}
+          hint={
+            departmentId
+              ? managerChoices.length === 0
+                ? 'Nobody else is in this department yet.'
+                : 'People in the chosen department.'
+              : 'Choose a department to list its people.'
+          }
+        >
           <Select id="lineManagerId" invalid={!!err('lineManagerId')} {...register('lineManagerId')}>
             <option value="">No manager</option>
-            {people.data?.items
-              .filter((p) => p.id !== employee?.id)
-              .map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
+            {managerChoices.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label}
+              </option>
+            ))}
           </Select>
         </Field>
         <Field
