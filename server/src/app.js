@@ -144,7 +144,15 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   const clientDist = path.join(REPO_ROOT, 'client', 'dist');
   if (config.isProduction && fs.existsSync(path.join(clientDist, 'index.html'))) {
     app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
-    app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+    // Page addresses get the app; anything that looks like a file (/.env, /wp-login.php,
+    // a missing asset) gets a plain 404, so scanners on the internet get nothing back (D82).
+    app.get('*', (req, res) => {
+      const last = req.path.split('/').pop();
+      if (req.path.split('/').some((seg) => seg.startsWith('.')) || last.includes('.')) {
+        return res.status(404).type('text/plain').send('Not found');
+      }
+      return res.sendFile(path.join(clientDist, 'index.html'));
+    });
   }
 
   app.use(errorHandler);
