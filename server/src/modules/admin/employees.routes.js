@@ -77,7 +77,7 @@ export function employeeRoutes({ db, config }) {
         (
           await db('employee_roles as er')
             .join('roles as r', 'r.id', 'er.role_id')
-            .whereIn('r.code', ['EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'])
+            .whereIn('r.code', ['EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR', 'ACCOUNTS_DIRECTOR'])
             .select('er.employee_id')
         ).map((x) => x.employee_id),
       );

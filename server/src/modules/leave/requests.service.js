@@ -14,6 +14,7 @@ import {
   PENDING_STATES,
 } from './balance.service.js';
 import { getSetting, loadCalendarInputs, policyOn } from './policy.service.js';
+import { departmentManagersOf, managesEmployee } from '../org/department-manager.js';
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const OPEN_STATES = [...PENDING_STATES, 'APPROVED'];
@@ -298,9 +299,13 @@ async function lockEmployee(trx, id) {
 }
 
 async function resolveManager(trx, employee) {
-  if (!employee.line_manager_id) return null;
-  const m = await trx('employees').where({ id: employee.line_manager_id }).first('id', 'status');
-  return m && m.status === 'ACTIVE' ? m.id : null;
+  if (employee.line_manager_id) {
+    const m = await trx('employees').where({ id: employee.line_manager_id }).first('id', 'status');
+    if (m && m.status === 'ACTIVE') return m.id;
+  }
+  // No line manager: the department's Department Manager decides (D88).
+  const [departmentManager] = await departmentManagersOf(trx, employee);
+  return departmentManager ?? null;
 }
 
 async function insertDays(trx, requestId, calc) {
@@ -413,6 +418,10 @@ export async function submitRequest(db, actor, input, audit) {
 export async function managerAuthority(db, actor, req) {
   if (actor.id === req.employee_id) return null;
   if (req.assigned_manager_id === actor.id) return { actingAs: 'MANAGER', onBehalfOfId: null };
+  // A Department Manager can decide for anyone in their department (D88).
+  if (req.employee_id !== actor.id && (await managesEmployee(db, actor.id, req.employee_id))) {
+    return { actingAs: 'MANAGER', onBehalfOfId: null };
+  }
   const today = todayInLusaka();
   if (req.assigned_manager_id) {
     const delegation = await db('delegations')

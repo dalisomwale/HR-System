@@ -4,7 +4,14 @@ import { revokeEmployeeSessions } from '../auth/session-store.js';
 import { conflict, notFound, badRequest } from '../../utils/errors.js';
 import { GUID_RE, isoDate, optionalId, optionalText, requiredText } from '../../utils/validation.js';
 
-export const ASSIGNABLE_ROLES = ['HR_OFFICER', 'HR_ADMIN', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
+export const ASSIGNABLE_ROLES = [
+  'HR_OFFICER',
+  'HR_ADMIN',
+  'DEPARTMENT_MANAGER',
+  'EXECUTIVE_DIRECTOR',
+  'MANAGING_DIRECTOR',
+  'ACCOUNTS_DIRECTOR',
+];
 
 const baseFields = {
   employeeNumber: requiredText(30),

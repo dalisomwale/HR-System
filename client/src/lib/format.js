@@ -29,6 +29,8 @@ export const ROLE_LABELS = {
   HR_ADMIN: 'System Administrator',
   EXECUTIVE_DIRECTOR: 'Executive Director',
   MANAGING_DIRECTOR: 'Managing Director',
+  ACCOUNTS_DIRECTOR: 'Accounts Director',
+  DEPARTMENT_MANAGER: 'Department Manager',
 };
 
 export const fullName = (p) => [p?.firstName, p?.lastName].filter(Boolean).join(' ');

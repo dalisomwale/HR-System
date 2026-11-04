@@ -5,6 +5,7 @@ import { managerAuthority } from './requests.service.js';
 import { PENDING_STATES } from './balance.service.js';
 import { getSetting } from './policy.service.js';
 import { listDocuments } from '../documents/documents.routes.js';
+import { managedMembers } from '../org/department-manager.js';
 
 const name = (f, l) => (f ? `${f} ${l}` : null);
 
@@ -218,13 +219,23 @@ export async function managerQueue(db, viewer) {
     }
     managers = [...new Set([...managers, ...below])];
   }
+  // A Department Manager also sees requests from everyone in their department (D88).
+  const members = await managedMembers(db, viewer.id);
   const requests = await baseRequestQuery(db)
     .where('r.status', 'PENDING_MANAGER_APPROVAL')
-    .whereIn('r.assigned_manager_id', managers)
+    .where((q) => {
+      q.whereIn('r.assigned_manager_id', managers);
+      if (members.length) q.orWhereIn('r.employee_id', members);
+    })
     .whereNot('r.employee_id', viewer.id)
     .orderBy('r.submitted_at');
   const changes = await changeQueue(db, 'PENDING_MANAGER_APPROVAL', (q) =>
-    q.whereIn('c.assigned_manager_id', managers).whereNot('r.employee_id', viewer.id),
+    q
+      .where((w) => {
+        w.whereIn('c.assigned_manager_id', managers);
+        if (members.length) w.orWhereIn('r.employee_id', members);
+      })
+      .whereNot('r.employee_id', viewer.id),
   );
   return { requests: requests.map(requestSummary), changes };
 }

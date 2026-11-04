@@ -32,7 +32,12 @@ export function requireAuth(req, res, next) {
 
 /** Allow if the user holds any of the given application roles. */
 /** Roles that may see leave across the whole Altus Group (read-only for directors). */
-export const GROUP_VIEW_ROLES = ['HR_OFFICER', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
+export const GROUP_VIEW_ROLES = [
+  'HR_OFFICER',
+  'EXECUTIVE_DIRECTOR',
+  'MANAGING_DIRECTOR',
+  'ACCOUNTS_DIRECTOR',
+];
 export const seesWholeGroup = (user) => GROUP_VIEW_ROLES.some((r) => user?.roles.includes(r));
 
 export function requireRole(...codes) {

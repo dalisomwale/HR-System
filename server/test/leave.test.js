@@ -225,6 +225,68 @@ describe('calculating and validating a request', () => {
   });
 });
 
+describe('Department Manager', () => {
+  async function departmentWith() {
+    const [deptId] = await db('departments').insert({ code: 'ITD', name: 'Information Technology' });
+    const dmE = await fixtureEmployee(db, {
+      first_name: 'Dee',
+      roles: ['DEPARTMENT_MANAGER'],
+      department_id: deptId,
+    });
+    // Ezra has a line manager (Mona); Nora has none. Both are in the department.
+    await db('employees').where({ id: empId }).update({ department_id: deptId });
+    const noraE = await fixtureEmployee(db, { first_name: 'Nora', department_id: deptId });
+    await opening(noraE.id, ids.ANNUAL, Y, 10);
+    const dm = { ...(await signIn(app, entra, { oid: dmE.oid })), id: dmE.id };
+    const nora = { ...(await signIn(app, entra, { oid: noraE.oid })), id: noraE.id };
+    return { dm, nora, deptId };
+  }
+
+  it('gets the request of someone in their department who has no line manager', async () => {
+    const { dm, nora } = await departmentWith();
+    const res = await as(nora).post('/api/leave/requests', annual());
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    const row = await db('leave_requests').where({ id: res.body.id }).first();
+    expect(row).toMatchObject({ status: 'PENDING_MANAGER_APPROVAL', assigned_manager_id: dm.id });
+    const ok = await as(dm).post(`/api/approvals/requests/${res.body.id}/manager`, { action: 'APPROVE' });
+    expect(ok.body.status).toBe('PENDING_HR_APPROVAL');
+  });
+
+  it('can also decide for someone in their department who has a line manager', async () => {
+    const { dm } = await departmentWith();
+    const { id } = await submitted();
+    expect((await db('leave_requests').where({ id }).first()).assigned_manager_id).toBe(mgr.id);
+    const queue = await dm.agent.get('/api/approvals/manager');
+    expect(queue.body.requests.map((r) => r.id)).toContain(id);
+    const ok = await as(dm).post(`/api/approvals/requests/${id}/manager`, { action: 'APPROVE' });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(200);
+    expect(ok.body.status).toBe('PENDING_HR_APPROVAL');
+  });
+
+  it('is a manager, sees the department as their team, and cannot act outside it', async () => {
+    const { dm } = await departmentWith();
+    expect((await dm.agent.get('/api/auth/me')).body.user.isManager).toBe(true);
+    const outsider = await fixtureEmployee(db, { first_name: 'Otto' });
+    await opening(outsider.id, ids.ANNUAL, Y, 10);
+    const o = { ...(await signIn(app, entra, { oid: outsider.oid })), id: outsider.id };
+    const { body } = await as(o).post('/api/leave/requests', annual());
+    const denied = await as(dm).post(`/api/approvals/requests/${body.id}/manager`, { action: 'APPROVE' });
+    expect(denied.status).toBeGreaterThanOrEqual(400);
+  });
+});
+
+describe('Accounts Director', () => {
+  it('sees the whole group like the other directors, and cannot approve', async () => {
+    const adE = await fixtureEmployee(db, { first_name: 'Ada', roles: ['ACCOUNTS_DIRECTOR'] });
+    const ad = { ...(await signIn(app, entra, { oid: adE.oid })), id: adE.id };
+    const { id } = await submitted();
+    expect((await ad.agent.get(`/api/leave/requests/${id}`)).status).toBe(200);
+    expect((await ad.agent.get('/api/people/dashboard')).status).toBe(200);
+    const approve = await as(ad).post(`/api/approvals/requests/${id}/manager`, { action: 'APPROVE' });
+    expect(approve.status).toBeGreaterThanOrEqual(400);
+  });
+});
+
 describe('two-stage approval', () => {
   it('goes employee → manager → HR, and deducts only at HR approval', async () => {
     const { id } = await submitted();

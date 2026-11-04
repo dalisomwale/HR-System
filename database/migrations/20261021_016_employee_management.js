@@ -13,7 +13,9 @@ export async function up(knex) {
     t.enu('employment_type', ['PERMANENT', 'FIXED_TERM', 'TEMPORARY']).nullable().after('job_title');
     t.date('contract_end_date').nullable().after('employment_end_date');
     t.date('probation_end_date').nullable().after('contract_end_date');
-    t.enu('probation_status', ['ON_PROBATION', 'CONFIRMED', 'EXTENDED']).nullable().after('probation_end_date');
+    t.enu('probation_status', ['ON_PROBATION', 'CONFIRMED', 'EXTENDED'])
+      .nullable()
+      .after('probation_end_date');
     // Seen only by HR and directors.
     t.string('pay_grade', 20).nullable().after('probation_status');
     t.index(['status', 'contract_end_date']);

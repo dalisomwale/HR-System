@@ -2,6 +2,7 @@ import { todayInLusaka } from '../../utils/dates.js';
 import { addDays } from '../leave/calendar.js';
 import { employeeBalances, PENDING_STATES } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
+import { managedMembers } from '../org/department-manager.js';
 
 /*
  * Department members (D49). Used by the manager's Department members page and the
@@ -28,6 +29,8 @@ export async function reportsOf(db, managerId) {
     ids.push(...frontier);
     if (scope !== 'REPORTING_LINE') break;
   }
+  // A Department Manager's department counts as their team (D88).
+  for (const id of await managedMembers(db, managerId)) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
 

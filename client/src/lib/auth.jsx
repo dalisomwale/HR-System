@@ -59,5 +59,10 @@ export function RequireRole({ role, children }) {
 export const hasRole = (user, role) => Boolean(user?.roles?.includes(role));
 
 /** Roles that see leave across the whole Altus Group. Directors can look but not approve. */
-export const GROUP_VIEW_ROLES = ['HR_OFFICER', 'EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR'];
+export const GROUP_VIEW_ROLES = [
+  'HR_OFFICER',
+  'EXECUTIVE_DIRECTOR',
+  'MANAGING_DIRECTOR',
+  'ACCOUNTS_DIRECTOR',
+];
 export const seesWholeGroup = (user) => GROUP_VIEW_ROLES.some((r) => hasRole(user, r));

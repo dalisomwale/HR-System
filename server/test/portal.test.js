@@ -435,8 +435,10 @@ describe('directors', () => {
     expect(roles.body.roles.map((r) => r.name)).toEqual([
       'HR Officer',
       'System Administrator',
+      'Department Manager',
       'Executive Director',
       'Managing Director',
+      'Accounts Director',
     ]);
     const res = await as(admin).post('/api/admin/roles/MANAGING_DIRECTOR/holders', { employeeId: other.id });
     expect(res.status).toBe(201);

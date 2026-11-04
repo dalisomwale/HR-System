@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   ListChecks,
   ShieldCheck,
+  UserCog,
   CalendarDays,
   Building2,
   Landmark,
@@ -289,6 +290,61 @@ const ADMIN = [
   { to: '/admin/audit', label: 'Audit log', icon: History },
 ];
 
+/** Administration as one menu item that opens to list its pages (D89). */
+function AdminNav({ items, onNavigate }) {
+  const { pathname } = useLocation();
+  const inside = items.some((i) => pathname.startsWith(i.to));
+  const [open, setOpen] = useState(inside);
+  useEffect(() => {
+    if (inside) setOpen(true);
+  }, [inside]);
+  return (
+    <div className="mb-6">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="admin-menu"
+        onClick={() => setOpen((o) => !o)}
+        className={[
+          'flex w-full items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-left text-sm',
+          inside && !open
+            ? 'border-brand bg-brand-soft font-medium text-brand'
+            : 'border-transparent text-ink hover:bg-canvas',
+        ].join(' ')}
+      >
+        <UserCog className="size-4 shrink-0" aria-hidden />
+        <span className="flex-1">Administration</span>
+        <ChevronDown
+          className={`size-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <ul id="admin-menu">
+          {items.map(({ to, label }) => (
+            <li key={to}>
+              <NavLink
+                to={to}
+                onClick={onNavigate}
+                className={({ isActive }) =>
+                  [
+                    'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
+                    isActive
+                      ? 'border-brand bg-brand-soft font-medium text-brand'
+                      : 'border-transparent text-ink hover:bg-canvas',
+                  ].join(' ')
+                }
+              >
+                {label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function NavGroup({ title, items, onNavigate, counts = {} }) {
   const { pathname } = useLocation();
   return (
@@ -347,7 +403,7 @@ function LeaveNav({ user, counts, onNavigate }) {
       {(user.isManager || user.isDelegate || seesWholeGroup(user)) && (
         <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
       )}
-      {hasRole(user, 'HR_ADMIN') && <NavGroup title="Administration" items={ADMIN} onNavigate={onNavigate} />}
+      {hasRole(user, 'HR_ADMIN') && <AdminNav items={ADMIN} onNavigate={onNavigate} />}
     </>
   );
 }
@@ -412,8 +468,7 @@ export default function AppShell() {
           <OrganisationNav user={user} onNavigate={() => setMenuOpen(false)} />
           <ReportsNav onNavigate={() => setMenuOpen(false)} />
           {hasRole(user, 'HR_ADMIN') && (
-            <NavGroup
-              title="Administration"
+            <AdminNav
               items={ADMIN.filter((i) => ['/admin/roles'].includes(i.to))}
               onNavigate={() => setMenuOpen(false)}
             />

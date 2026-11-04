@@ -8,6 +8,7 @@ import { annualPosition, daysTaken } from '../leave/balance.service.js';
 import { getSetting } from '../leave/policy.service.js';
 import { workingCalendar, stageSince } from '../leave/working-days.js';
 import { describeMembers, groupPeople, managerMembers } from '../dashboard/members.service.js';
+import { managedMembers } from '../org/department-manager.js';
 
 /*
  * Report definitions. Every query is limited to the people the viewer may see BEFORE rows are
@@ -88,6 +89,7 @@ export async function reportScope(db, user) {
       if (!reportingLine) break;
     }
   }
+  for (const id of await managedMembers(db, user.id)) ids.add(id); // D88
   ids.delete(user.id);
   return { level: 'MANAGER', ids: [...ids], userId: user.id, isManager: !!user.isManager };
 }

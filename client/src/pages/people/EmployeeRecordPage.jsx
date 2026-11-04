@@ -846,8 +846,13 @@ function RolesPanel({ employee }) {
         {[
           ['HR_OFFICER', 'Gives final approval and manages leave balances.'],
           ['HR_ADMIN', 'Every right in the system, including settings and roles.'],
+          [
+            'DEPARTMENT_MANAGER',
+            'Approves leave and sees the team pages for everyone in their own department.',
+          ],
           ['EXECUTIVE_DIRECTOR', 'Sees leave across the group and every report. Cannot approve.'],
           ['MANAGING_DIRECTOR', 'Sees leave across the group and every report. Cannot approve.'],
+          ['ACCOUNTS_DIRECTOR', 'Sees leave across the group and every report. Cannot approve.'],
         ].map(([code, help]) => (
           <label key={code} className="flex gap-2.5 text-sm">
             <input

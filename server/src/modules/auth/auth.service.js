@@ -1,5 +1,6 @@
 import { todayInLusaka } from '../../utils/dates.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { managedMembers } from '../org/department-manager.js';
 
 /**
  * Decide whether validated Entra claims may sign in, and record the outcome.
@@ -136,7 +137,7 @@ export async function loadUser(db, employeeId) {
     company: employee.company_name,
     department: employee.department_name,
     roles,
-    isManager: Number(reports.n) > 0,
+    isManager: Number(reports.n) > 0 || (await managedMembers(db, employee.id)).length > 0,
     isDelegate: Number(covering.n) > 0,
   };
 }

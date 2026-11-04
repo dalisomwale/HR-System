@@ -16,6 +16,7 @@ import {
   peopleOffDaily,
   requestOutcomes,
 } from './charts.service.js';
+import { managedMembers } from '../org/department-manager.js';
 
 /*
  * Dashboards. Every figure is a query scoped to what the viewer may see; nothing is estimated.
@@ -106,6 +107,8 @@ async function teamOf(db, managerId) {
     ids.push(...frontier);
     if (scope !== 'REPORTING_LINE') break;
   }
+  // A Department Manager's department counts as their team (D88).
+  for (const id of await managedMembers(db, managerId)) if (!ids.includes(id)) ids.push(id);
   return ids;
 }
 
