@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { Badge, Button, Notice, Section, Table, Td, Th } from '../../components/ui.jsx';
 
@@ -35,7 +35,8 @@ export function ImportEmployees() {
     mutationFn: (body) => api.post('/api/admin/employees/import/preview', body),
   });
   const commit = useMutation({
-    mutationFn: () => api.post('/api/admin/employees/import/commit', upload),
+    mutationFn: (skipInvalid) =>
+      api.post('/api/admin/employees/import/commit', { ...upload, skipInvalid: skipInvalid === true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employees'] });
       qc.invalidateQueries({ queryKey: ['employee-options'] });
@@ -46,6 +47,8 @@ export function ImportEmployees() {
 
   async function onFile(e) {
     const f = e.target.files?.[0];
+    // Clear the field so choosing the same file again, after fixing it, checks it again.
+    e.target.value = '';
     commit.reset();
     if (!f) return;
     setFile(f);
@@ -106,16 +109,26 @@ export function ImportEmployees() {
       </Section>
 
       <Section title="Upload">
-        <label className="block text-sm font-medium" htmlFor="csvFile">
-          Excel or CSV file
-        </label>
-        <input
-          id="csvFile"
-          type="file"
-          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          onChange={onFile}
-          className="mt-1 block text-sm file:mr-3 file:h-9 file:rounded-md file:border file:border-rule file:bg-white file:px-3 file:text-sm file:font-medium"
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <label
+            htmlFor="csvFile"
+            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white hover:bg-brand/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand"
+          >
+            <Upload className="size-4" aria-hidden />{' '}
+            {file ? 'Choose another file' : 'Upload Excel or CSV file'}
+            <input
+              id="csvFile"
+              type="file"
+              accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={onFile}
+              className="sr-only"
+            />
+          </label>
+          <span className="text-sm text-muted">{file ? file.name : 'No file chosen yet'}</span>
+        </div>
+        <p className="mt-2 text-sm text-muted">
+          The file is checked first. Nothing is saved until you confirm the import.
+        </p>
         {fileError && (
           <div className="mt-4">
             <Notice tone="danger">{fileError}</Notice>
@@ -132,7 +145,7 @@ export function ImportEmployees() {
       {commit.isSuccess ? (
         <Notice
           tone="ok"
-          title={`${commit.data.imported} employees imported${[
+          title={`${commit.data.imported} ${commit.data.imported === 1 ? 'employee' : 'employees'} imported${[
             [commit.data.companiesCreated, 'company', 'companies'],
             [commit.data.departmentsCreated, 'department', 'departments'],
           ]
@@ -140,6 +153,10 @@ export function ImportEmployees() {
             .map(([n, one, many]) => `, ${n} new ${n === 1 ? one : many}`)
             .join('')}.`}
         >
+          {commit.data.skipped > 0 &&
+            `${commit.data.skipped} ${commit.data.skipped === 1 ? 'row was' : 'rows were'} left out; fix ${commit.data.skipped === 1 ? 'it' : 'them'} and import just ${commit.data.skipped === 1 ? 'that row' : 'those rows'} later. `}
+          {commit.data.managersLeftBlank > 0 &&
+            `${commit.data.managersLeftBlank} ${commit.data.managersLeftBlank === 1 ? 'person has' : 'people have'} no manager yet, because their manager was in a row left out. `}
           They can now sign in with Microsoft. Each account links to its record by the work email.
         </Notice>
       ) : (
@@ -153,13 +170,21 @@ export function ImportEmployees() {
             description={
               ready
                 ? 'Check the list, then confirm.'
-                : 'Fix these rows in your spreadsheet and upload the file again.'
+                : result.validRows > 0
+                  ? 'Fix these rows in your spreadsheet and upload it again, or import the rows that are ready now and add the rest later.'
+                  : 'Fix these rows in your spreadsheet and upload the file again.'
             }
             actions={
-              ready && (
-                <Button busy={commit.isPending} onClick={() => commit.mutate()}>
+              ready ? (
+                <Button busy={commit.isPending} onClick={() => commit.mutate(false)}>
                   Import {result.totalRows} employees
                 </Button>
+              ) : (
+                result.validRows > 0 && (
+                  <Button variant="secondary" busy={commit.isPending} onClick={() => commit.mutate(true)}>
+                    Import the {result.validRows} ready {result.validRows === 1 ? 'row' : 'rows'}
+                  </Button>
+                )
               )
             }
           >

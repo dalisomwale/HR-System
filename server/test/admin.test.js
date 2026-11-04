@@ -339,6 +339,40 @@ describe('employee import', () => {
     expect(ben.line_manager_id).toBe(ann.id);
   });
 
+  it('imports only the ready rows when asked, leaving the rest and what only they needed', async () => {
+    const csv = [
+      NEW_HEADER,
+      // Ready; their manager (P2) is in a row with an error, so the manager is left blank.
+      'P1,Ann,One,,Officer,Altus Capital,ACL,Sales,SLS,,2025-01-06',
+      // Not ready: bad date. Its company and department must not be created.
+      'P2,Ben,Two,,Head,Altus Insurance,AIN,Claims,CLM,,2025-13-01',
+      'P3,Cara,Three,,Officer,Altus Capital,ACL,Sales,SLS,Ann One,2025-02-03',
+    ].join('\n');
+    const all = await post('/api/admin/employees/import/commit', { csv });
+    expect(all.status).toBe(400);
+    const res = await post('/api/admin/employees/import/commit', { csv, skipInvalid: true });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({ imported: 2, skipped: 1, companiesCreated: 1, departmentsCreated: 1 });
+    expect(await db('companies').where({ code: 'AIN' }).first()).toBeUndefined();
+    expect(await db('departments').where({ code: 'CLM' }).first()).toBeUndefined();
+    const ann = await db('employees').where({ employee_number: 'P1' }).first();
+    const cara = await db('employees').where({ employee_number: 'P3' }).first();
+    expect(cara.line_manager_id).toBe(ann.id);
+    expect(await db('employees').where({ employee_number: 'P2' }).first()).toBeUndefined();
+  });
+
+  it('leaves a manager blank when they were in a row that was left out', async () => {
+    const csv = [
+      NEW_HEADER,
+      'Q1,Dan,Four,,Officer,Altus Capital,ACL,Sales,SLS,Eve Five,2025-01-06',
+      'Q2,Eve,Five,,Head,Altus Capital,ACL,Sales,SLS,,2025-13-01',
+    ].join('\n');
+    const res = await post('/api/admin/employees/import/commit', { csv, skipInvalid: true });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect(res.body).toMatchObject({ imported: 1, skipped: 1, managersLeftBlank: 1 });
+    expect((await db('employees').where({ employee_number: 'Q1' }).first()).line_manager_id).toBeNull();
+  });
+
   it('refuses a file that is not an Excel workbook', async () => {
     const res = await post('/api/admin/employees/import/preview', {
       xlsx: Buffer.from('not a workbook').toString('base64'),

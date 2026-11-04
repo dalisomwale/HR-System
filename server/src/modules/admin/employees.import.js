@@ -321,17 +321,40 @@ export async function validateImport(db, csvText) {
   };
 }
 
-/** Commit a fully valid import in one transaction. Any error means nothing is written. */
-export async function commitImport(db, csvText, audit) {
+/**
+ * Commit an import in one transaction. Normally every row must be valid, or nothing is written.
+ * With skipInvalid, only the valid rows are imported and the rest are left out (D83); a manager
+ * who was in a left-out row is left blank for now, and only companies and departments that an
+ * imported row uses are created.
+ */
+export async function commitImport(db, csvText, audit, { skipInvalid = false } = {}) {
   const result = await validateImport(db, csvText);
-  if (result.validRows !== result.totalRows) {
+  const valid = result._rows.filter((r) => r.errors.length === 0);
+  if (valid.length === 0) {
+    throw badRequest('No row is ready to import. Fix the rows with errors and upload the file again.', {
+      rows: result.rows.filter((r) => r.errors.length),
+    });
+  }
+  if (!skipInvalid && result.validRows !== result.totalRows) {
     throw badRequest('Fix the rows with errors and upload the file again. Nothing was imported.', {
       rows: result.rows.filter((r) => r.errors.length),
     });
   }
+  // What the imported rows actually use.
+  const usedDepartments = new Set(valid.map((r) => r.newDepartment).filter(Boolean));
+  const usedCompanies = new Set([
+    ...valid.map((r) => r.companyKey),
+    ...[...usedDepartments].map((k) => result._newDepartments.get(k)?.companyKey),
+  ]);
+  const usedExistingDepartments = new Set(valid.map((r) => r.input.departmentId).filter(Boolean));
+  const newCompanies = result.newCompanies.filter((c) => usedCompanies.has(`new:${c.code}`));
+  const newDepartments = [...result._newDepartments].filter(([key]) => usedDepartments.has(key));
+  const adoptions = [...result._adoptions].filter(([deptId]) => usedExistingDepartments.has(deptId));
+  const importedNumbers = new Set(valid.map((r) => r.employeeNumber));
+
   return db.transaction(async (trx) => {
     const companyIdByKey = new Map();
-    for (const c of result.newCompanies) {
+    for (const c of newCompanies) {
       const [id] = await trx('companies').insert({ code: c.code, name: c.name });
       companyIdByKey.set(`new:${c.code}`, id);
       await writeAudit(trx, {
@@ -343,7 +366,7 @@ export async function commitImport(db, csvText, audit) {
       });
     }
     const companyId = (key) => (typeof key === 'number' ? key : companyIdByKey.get(key));
-    for (const [deptId, key] of result._adoptions) {
+    for (const [deptId, key] of adoptions) {
       await trx('departments')
         .where({ id: deptId })
         .whereNull('company_id')
@@ -358,7 +381,7 @@ export async function commitImport(db, csvText, audit) {
       });
     }
     const deptIdByKey = new Map();
-    for (const [key, d] of result._newDepartments) {
+    for (const [key, d] of newDepartments) {
       const [id] = await trx('departments').insert({
         company_id: companyId(d.companyKey),
         code: d.code,
@@ -374,7 +397,7 @@ export async function commitImport(db, csvText, audit) {
       });
     }
     const idByNumber = new Map();
-    for (const row of result._rows) {
+    for (const row of valid) {
       const departmentId = row.newDepartment ? deptIdByKey.get(row.newDepartment) : row.input.departmentId;
       const id = await createEmployee(
         trx,
@@ -383,8 +406,13 @@ export async function commitImport(db, csvText, audit) {
       );
       idByNumber.set(row.employeeNumber, id);
     }
-    for (const row of result._rows) {
+    let managersLeftBlank = 0;
+    for (const row of valid) {
       if (!row.manager) continue;
+      if (row.manager.inFile && !importedNumbers.has(row.manager.inFile)) {
+        managersLeftBlank += 1;
+        continue;
+      }
       const managerId = row.manager.existingId ?? idByNumber.get(row.manager.inFile);
       await trx('employees')
         .where({ id: idByNumber.get(row.employeeNumber) })
@@ -395,15 +423,18 @@ export async function commitImport(db, csvText, audit) {
       action: 'EMPLOYEES_IMPORTED',
       entityType: 'employee',
       after: {
-        count: result.totalRows,
-        companiesCreated: result.newCompanies.length,
-        departmentsCreated: result.newDepartments.length,
+        count: valid.length,
+        skipped: result.totalRows - valid.length,
+        companiesCreated: newCompanies.length,
+        departmentsCreated: newDepartments.length,
       },
     });
     return {
-      imported: result.totalRows,
-      companiesCreated: result.newCompanies.length,
-      departmentsCreated: result.newDepartments.length,
+      imported: valid.length,
+      skipped: result.totalRows - valid.length,
+      managersLeftBlank,
+      companiesCreated: newCompanies.length,
+      departmentsCreated: newDepartments.length,
     };
   });
 }

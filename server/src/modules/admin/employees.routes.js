@@ -30,6 +30,7 @@ const importSchema = z
   .object({
     csv: z.string().min(1).max(2_000_000).optional(),
     xlsx: z.string().min(1).max(8_000_000).optional(),
+    skipInvalid: z.boolean().optional(),
   })
   .refine((v) => v.csv || v.xlsx, { message: 'Choose a CSV or Excel file', path: ['csv'] });
 const importText = (body) => {
@@ -105,7 +106,8 @@ export function employeeRoutes({ db, config }) {
     express.json({ limit: '12mb' }),
     asyncHandler(async (req, res) => {
       const csv = importText(req.body);
-      res.status(201).json(await commitImport(db, csv, auditContext(req)));
+      const skipInvalid = req.body?.skipInvalid === true;
+      res.status(201).json(await commitImport(db, csv, auditContext(req), { skipInvalid }));
     }),
   );
 
