@@ -11,6 +11,7 @@ import { formatDate, formatDateTime, ROLE_LABELS } from '../../lib/format.js';
 import {
   Badge,
   Button,
+  ConfirmDialog,
   Details,
   Field,
   Input,
@@ -105,7 +106,9 @@ export default function EmployeeRecordPage() {
   if (!isNew && employee.isError)
     return <LoadError error={employee.error} onRetry={() => employee.refetch()} />;
   const e = employee.data;
-  const sidePanels = !isNew && (me.roles.includes('HR_ADMIN') || e.directReports.length > 0);
+  const sidePanels =
+    !isNew &&
+    (me.roles.includes('HR_OFFICER') || me.roles.includes('HR_ADMIN') || e.directReports.length > 0);
 
   return (
     <div className="max-w-6xl">
@@ -247,12 +250,14 @@ export default function EmployeeRecordPage() {
                   </ul>
                 </Section>
               )}
-              {/* Microsoft account, roles and deactivation are for System Administrators (D46). */}
+              {/* Employment status is for HR (D91); Microsoft account and roles for System Administrators (D46). */}
+              {(me.roles.includes('HR_OFFICER') || me.roles.includes('HR_ADMIN')) && (
+                <StatusPanel employee={e} />
+              )}
               {me.roles.includes('HR_ADMIN') && (
                 <>
                   <IdentityPanel employee={e} />
                   <RolesPanel employee={e} />
-                  <StatusPanel employee={e} />
                 </>
               )}
             </div>
@@ -886,59 +891,114 @@ function RolesPanel({ employee }) {
   );
 }
 
+/** Active or Left: HR records a leaver with their leaving date, or makes them active again (D91). */
 function StatusPanel({ employee }) {
   const invalidate = useInvalidateEmployee(employee.id);
   const { data: me } = useMe();
   const [reason, setReason] = useState('');
+  // Today on this computer's calendar, not UTC, so late evening still gives today's date.
+  const [endDate, setEndDate] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [confirming, setConfirming] = useState(null);
   const deactivate = useMutation({
-    mutationFn: () => api.post(`/api/admin/employees/${employee.id}/deactivate`, { reason }),
+    mutationFn: () => api.post(`/api/admin/employees/${employee.id}/deactivate`, { reason, endDate }),
     onSuccess: () => {
       setReason('');
+      setConfirming(null);
       invalidate();
     },
   });
   const reactivate = useMutation({
     mutationFn: () => api.post(`/api/admin/employees/${employee.id}/reactivate`),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setConfirming(null);
+      invalidate();
+    },
   });
-  if (me?.id === employee.id) return null;
+  const name = `${employee.firstName} ${employee.lastName}`;
+  const active = employee.status === 'ACTIVE';
 
-  return employee.status === 'ACTIVE' ? (
+  return (
     <Section
-      title="Deactivate"
-      description="Use when someone leaves. They are signed out and cannot sign in. History is kept."
+      title="Employment status"
+      actions={active ? <Badge tone="ok">Active</Badge> : <Badge>Left</Badge>}
     >
-      <Field id="deactivateReason" label="Reason">
-        <Textarea id="deactivateReason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
-      </Field>
-      {deactivate.isError && (
-        <div className="mt-3">
-          <Notice tone="danger">{deactivate.error.message}</Notice>
-        </div>
+      {me?.id === employee.id ? (
+        <p className="text-sm text-muted">You cannot change the status of your own record.</p>
+      ) : active ? (
+        <>
+          <p className="mb-3 text-sm text-muted">
+            When someone leaves, mark them as left. They are signed out and can no longer sign in; their
+            record and history are kept.
+          </p>
+          <div className="grid gap-3">
+            <Field id="endDate" label="Leaving date">
+              <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            </Field>
+            <Field id="deactivateReason" label="Reason">
+              <Textarea
+                id="deactivateReason"
+                rows={2}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </Field>
+          </div>
+          {deactivate.isError && (
+            <div className="mt-3">
+              <Notice tone="danger">{deactivate.error.message}</Notice>
+            </div>
+          )}
+          <Button className="mt-3" variant="danger" onClick={() => setConfirming('leave')}>
+            Mark as left
+          </Button>
+        </>
+      ) : (
+        <>
+          <dl className="mb-3 grid gap-1 text-sm">
+            {employee.employmentEndDate && (
+              <div>
+                <dt className="inline text-muted">Leaving date: </dt>
+                <dd className="inline">{formatDate(employee.employmentEndDate)}</dd>
+              </div>
+            )}
+            {employee.deactivatedAt && (
+              <div>
+                <dt className="inline text-muted">Recorded: </dt>
+                <dd className="inline">{formatDateTime(employee.deactivatedAt)}</dd>
+              </div>
+            )}
+          </dl>
+          {reactivate.isError && (
+            <div className="mb-3">
+              <Notice tone="danger">{reactivate.error.message}</Notice>
+            </div>
+          )}
+          <Button variant="secondary" onClick={() => setConfirming('return')}>
+            Make active again
+          </Button>
+        </>
       )}
-      <Button
-        className="mt-3"
-        variant="danger"
+      <ConfirmDialog
+        open={confirming === 'leave'}
+        title={`Mark ${name} as left?`}
+        confirmLabel="Mark as left"
+        tone="danger"
         busy={deactivate.isPending}
-        onClick={() =>
-          window.confirm(`Deactivate ${employee.firstName} ${employee.lastName}?`) && deactivate.mutate()
-        }
+        onConfirm={() => deactivate.mutate()}
+        onCancel={() => setConfirming(null)}
       >
-        Deactivate employee
-      </Button>
-    </Section>
-  ) : (
-    <Section
-      title="Inactive"
-      description={employee.deactivatedAt ? `Deactivated ${formatDateTime(employee.deactivatedAt)}.` : null}
-    >
-      {employee.employmentEndDate && (
-        <p className="mb-3 text-sm">End date: {formatDate(employee.employmentEndDate)}</p>
-      )}
-      {reactivate.isError && <Notice tone="danger">{reactivate.error.message}</Notice>}
-      <Button variant="secondary" busy={reactivate.isPending} onClick={() => reactivate.mutate()}>
-        Reactivate employee
-      </Button>
+        They will be signed out and will not be able to sign in. Leaving date: {formatDate(endDate)}.
+      </ConfirmDialog>
+      <ConfirmDialog
+        open={confirming === 'return'}
+        title={`Make ${name} active again?`}
+        confirmLabel="Make active"
+        busy={reactivate.isPending}
+        onConfirm={() => reactivate.mutate()}
+        onCancel={() => setConfirming(null)}
+      >
+        They will be able to sign in again.
+      </ConfirmDialog>
     </Section>
   );
 }

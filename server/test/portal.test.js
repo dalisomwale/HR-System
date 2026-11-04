@@ -575,9 +575,17 @@ describe('HR Officer administration rights', () => {
       ).status,
     ).toBe(403);
 
-    expect((await as(hr).post(`/api/admin/employees/${person.body.id}/deactivate`, {})).status).toBe(403);
-    expect((await as(admin).post(`/api/admin/employees/${person.body.id}/deactivate`, {})).status).toBe(200);
-    expect((await as(hr).post(`/api/admin/employees/${person.body.id}/reactivate`, {})).status).toBe(403);
+    // HR Officers record leavers and returners (D91), with the leaving date.
+    const left = await as(hr).post(`/api/admin/employees/${person.body.id}/deactivate`, {
+      endDate: '2026-10-31',
+      reason: 'Resigned',
+    });
+    expect(left.status, JSON.stringify(left.body)).toBe(200);
+    const row = await db('employees').where({ id: person.body.id }).first();
+    expect(row.status).toBe('INACTIVE');
+    expect(String(row.employment_end_date).slice(0, 10)).toBe('2026-10-31');
+    expect((await as(hr).post(`/api/admin/employees/${person.body.id}/reactivate`, {})).status).toBe(200);
+    expect((await db('employees').where({ id: person.body.id }).first()).status).toBe('ACTIVE');
 
     // Ordinary employees still reach none of it.
     expect((await as(emp).get('/api/admin/employees')).status).toBe(403);

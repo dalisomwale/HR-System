@@ -159,9 +159,9 @@ export function employeeRoutes({ db, config }) {
     }),
   );
 
+  // HR Officers (and System Administrators) record leavers and returners (D91).
   router.post(
     '/:id/deactivate',
-    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const input = deactivateSchema.parse(req.body ?? {});
@@ -172,7 +172,6 @@ export function employeeRoutes({ db, config }) {
 
   router.post(
     '/:id/reactivate',
-    adminOnly,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       await tx((trx) => reactivateEmployee(trx, id, auditContext(req)));
