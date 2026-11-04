@@ -109,3 +109,13 @@ The test runner rolls back and re-applies all migrations on the `_test` database
 npm run lint
 npm run format:check
 ```
+
+## Publishing a Windows server through Cloudflare Tunnel
+
+Used for `https://hrdesktop.online` (D81). The system runs as the production build on the server and listens only on `127.0.0.1:4000`; Cloudflare's `cloudflared` service carries traffic from the domain to it, so no router port needs opening and Cloudflare provides the certificate.
+
+1. In Cloudflare: Zero Trust → Networks → Tunnels → Create a tunnel (Cloudflared), choose Windows, and run the install command it gives on the server (it installs `cloudflared` as a Windows service). Add a public hostname: the domain, service type HTTP, URL `localhost:4000`.
+2. Settings, with `npm run set-env` so nothing else in `.env` changes:
+   `NODE_ENV=production HOST=127.0.0.1 TRUST_PROXY=1 COOKIE_SECURE=true MAIL_OFF_IN_PRODUCTION=true`, the three URLs on the domain, and `DOCUMENT_STORAGE_DIR` outside the project; remove `DEV_NETWORK_HOST`.
+3. Add `https://<domain>/api/auth/callback` to the app registration in Entra.
+4. `npm run build`, then `npm start`.

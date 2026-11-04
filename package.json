@@ -18,7 +18,9 @@
     "migrate": "npm run migrate --workspace server",
     "bootstrap:admin": "npm run bootstrap:admin --workspace server --",
     "dev": "node scripts/dev.mjs",
-    "build": "npm run build --workspace client"
+    "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
+    "set-env": "node scripts/set-env.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
