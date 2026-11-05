@@ -53,6 +53,7 @@ export default function DirectoryPage() {
     queryFn: () => api.get('/api/people/organisation'),
   });
   const quick = useQuery({
+    enabled: Boolean(filters.filter),
     queryKey: ['people-quick', filters.companyId, filters.departmentId],
     queryFn: () =>
       api.get(
@@ -174,22 +175,18 @@ export default function DirectoryPage() {
         </Select>
       </form>
 
-      {quick.data && (
-        <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Quick filters">
-          <Chip active={!filters.filter} onClick={() => update({ filter: '' })}>
-            All
+      {/* The quick filter row is removed (D93). A link from Home can still open the list
+          filtered, e.g. to people on probation; that shows here and can be cleared. */}
+      {filters.filter && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted">Showing:</span>
+          <Chip active onClick={() => update({ filter: '' })}>
+            {quick.data?.[filters.filter]?.label ?? 'Filtered'}
+            <span aria-hidden className="ml-1.5">
+              ×
+            </span>
+            <span className="sr-only"> (clear)</span>
           </Chip>
-          {Object.entries(quick.data)
-            .filter(([k, f]) => f.count > 0 || filters.filter === k)
-            .map(([k, f]) => (
-              <Chip
-                key={k}
-                active={filters.filter === k}
-                onClick={() => update({ filter: k, status: 'ACTIVE' })}
-              >
-                {f.label} <span className="ml-1 font-semibold">{f.count}</span>
-              </Chip>
-            ))}
         </div>
       )}
 
