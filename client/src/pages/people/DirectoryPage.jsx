@@ -33,7 +33,8 @@ export default function DirectoryPage() {
   const [search, setSearch] = useState(params.get('search') ?? '');
   const filters = {
     search: params.get('search') ?? '',
-    status: params.get('status') ?? 'ACTIVE',
+    // Everyone by default, so people who have left stay visible, marked Left (D92).
+    status: params.get('status') ?? 'ALL',
     companyId: fixed.companyId ?? params.get('companyId') ?? '',
     departmentId: fixed.departmentId ?? params.get('departmentId') ?? '',
     employmentType: params.get('employmentType') ?? '',
@@ -73,7 +74,7 @@ export default function DirectoryPage() {
     filters.departmentId ||
     filters.employmentType ||
     filters.filter ||
-    filters.status !== 'ACTIVE';
+    filters.status !== 'ALL';
   const departmentChoices = (org.data?.departments ?? []).filter(
     (d) => !filters.companyId || String(d.companyId ?? 'none') === filters.companyId,
   );
@@ -167,9 +168,9 @@ export default function DirectoryPage() {
           value={filters.status}
           onChange={(e) => update({ status: e.target.value })}
         >
+          <option value="ALL">Everyone</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Left</option>
-          <option value="ALL">Everyone</option>
         </Select>
       </form>
 

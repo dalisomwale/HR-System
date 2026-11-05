@@ -57,9 +57,9 @@ export default function DepartmentPage() {
     queryFn: () => api.get('/api/people/departments-overview'),
   });
   const people = useQuery({
-    queryKey: ['employees', { departmentId: id, status: 'ACTIVE', pageSize: 500 }],
-    queryFn: () =>
-      api.get(`/api/people/employees${qs({ departmentId: id, status: 'ACTIVE', pageSize: 500 })}`),
+    // Everyone in the department, including people who have left (marked Left, listed last) (D92).
+    queryKey: ['employees', { departmentId: id, pageSize: 500 }],
+    queryFn: () => api.get(`/api/people/employees${qs({ departmentId: id, pageSize: 500 })}`),
   });
 
   const back = <PeopleTrail />;
@@ -198,7 +198,7 @@ export default function DepartmentPage() {
 
           <Section
             title="People"
-            description="Everyone active in this department. Select a name to see or edit their details."
+            description="Everyone in this department; people who have left are marked Left. Select a name to see or edit their details."
             className="scroll-mt-20"
           >
             <span id="department-people" />
@@ -221,31 +221,33 @@ export default function DepartmentPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {people.data.items.map((e) => (
-                    <tr key={e.id}>
-                      <Td>
-                        <div className="flex items-center gap-3">
-                          <Initials first={e.firstName} last={e.lastName} />
-                          <button
-                            type="button"
-                            onClick={() => setViewing(e.id)}
-                            className="text-left font-medium text-brand hover:underline"
-                          >
-                            {e.firstName} {e.lastName}
-                          </button>
-                        </div>
-                      </Td>
-                      <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
-                      <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
-                      <Td>
-                        {EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}
-                      </Td>
-                      <Td className="whitespace-nowrap">{formatDate(e.employmentStartDate)}</Td>
-                      <Td>
-                        <StatusBadge e={e} />
-                      </Td>
-                    </tr>
-                  ))}
+                  {[...people.data.items]
+                    .sort((a, b) => (a.status === 'ACTIVE' ? 0 : 1) - (b.status === 'ACTIVE' ? 0 : 1))
+                    .map((e) => (
+                      <tr key={e.id}>
+                        <Td>
+                          <div className="flex items-center gap-3">
+                            <Initials first={e.firstName} last={e.lastName} />
+                            <button
+                              type="button"
+                              onClick={() => setViewing(e.id)}
+                              className="text-left font-medium text-brand hover:underline"
+                            >
+                              {e.firstName} {e.lastName}
+                            </button>
+                          </div>
+                        </Td>
+                        <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
+                        <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
+                        <Td>
+                          {EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}
+                        </Td>
+                        <Td className="whitespace-nowrap">{formatDate(e.employmentStartDate)}</Td>
+                        <Td>
+                          <StatusBadge e={e} />
+                        </Td>
+                      </tr>
+                    ))}
                 </tbody>
               </Table>
             )}
