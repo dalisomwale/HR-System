@@ -216,14 +216,6 @@ export function LeaveForm({
                 ))}
               </Select>
             </Field>
-            {types.data.sexMissing && (
-              <div className="sm:col-span-2">
-                <Notice tone="neutral">
-                  Leave types for one gender, such as maternity or paternity leave, appear once HR records
-                  your gender on your employee record.
-                </Notice>
-              </div>
-            )}
             {type?.notAvailableReason && (
               <div className="sm:col-span-2">
                 <Notice tone="pending">{type.notAvailableReason}</Notice>
@@ -292,9 +284,7 @@ export function LeaveForm({
               label="Who will cover your work?"
               error={err('handoverContactId')}
               hint={
-                colleagues.data.items.length === 0
-                  ? 'No one else in your department to choose.'
-                  : 'Someone in your department.'
+                colleagues.data.items.length === 0 ? 'No one else in your department to choose.' : undefined
               }
             >
               <Select
