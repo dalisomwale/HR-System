@@ -34,6 +34,7 @@ const policyChangeSchema = z
     handoverRequired: z.boolean(),
     documentRequired: z.boolean(),
     documentDescription: optionalText(255),
+    sensitiveAllowed: z.boolean(),
     note: z.string().trim().min(3, 'is required').max(500),
   })
   .partial()
@@ -58,6 +59,7 @@ const COLUMNS = {
   handoverRequired: 'handover_required',
   documentRequired: 'document_required',
   documentDescription: 'document_description',
+  sensitiveAllowed: 'sensitive_allowed',
 };
 
 async function typeWithPolicy(db, t) {

@@ -57,6 +57,7 @@ export function summary(p) {
       : 'Not allowed',
   ]);
   if (p.documentRequired) rows.push(['Document', p.documentDescription ?? 'Required']);
+  rows.push(['Sensitive', p.sensitiveAllowed ? 'Can be marked sensitive' : 'Not offered']);
   if (p.extraRules?.eligibleSex)
     rows.push(['Eligible', p.extraRules.eligibleSex === 'FEMALE' ? 'Female employees' : 'Male employees']);
   return rows;
@@ -78,6 +79,7 @@ const BOOL_FIELDS = [
   'allowBackdate',
   'handoverRequired',
   'documentRequired',
+  'sensitiveAllowed',
 ];
 const ALL = [
   ...NUMBER_FIELDS,
@@ -212,6 +214,7 @@ export function PolicyForm({ type: t, onDone }) {
         {check('allowHalfDay', 'Half days allowed')}
         {check('allowBackdate', 'Back-dating allowed')}
         {check('documentRequired', 'Supporting document required')}
+        {check('sensitiveAllowed', 'Can be marked sensitive')}
         {p.consumesBalance && check('accrualConfirmed', 'Accrual rule confirmed by HR')}
       </div>
       <Field id={`${t.id}-documentDescription`} label="Document needed" className="sm:col-span-3">

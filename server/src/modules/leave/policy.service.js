@@ -35,6 +35,7 @@ export function toPolicy(row) {
     minConsecutiveDaysTarget: num(row.min_consecutive_days_target),
     handoverRequired: Boolean(row.handover_required),
     documentRequired: Boolean(row.document_required),
+    sensitiveAllowed: Boolean(row.sensitive_allowed),
     documentDescription: row.document_description,
     extraRules: parseJson(row.extra_rules) ?? {},
     sourceReference: row.source_reference,

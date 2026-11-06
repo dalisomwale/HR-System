@@ -135,6 +135,11 @@ export function LeaveForm({
     }
   }, [values.startDate, values.endDate, setValue]);
 
+  // Sensitive only on leave types whose rules allow it (D100).
+  useEffect(() => {
+    if (type && !type.sensitiveAllowed && !initial?.sensitive) setValue('sensitive', false);
+  }, [type, initial, setValue]);
+
   const canPreview = Boolean(values.leaveTypeId && values.startDate && values.endDate);
   const payload = canPreview
     ? { ...toLeavePayload(values), handoverSheetAttached: Boolean(handoverFile || hasHandoverSheet) }
@@ -307,22 +312,24 @@ export function LeaveForm({
               </div>
             )}
 
-            <label className="flex items-start gap-2.5 text-sm sm:col-span-2">
-              <input
-                type="checkbox"
-                className="mt-0.5 size-4 accent-brand"
-                disabled={Boolean(initial?.sensitive)}
-                {...register('sensitive')}
-              />
-              <span>
-                <span className="font-medium">Sensitive</span>
-                <span className="block text-xs text-muted">
-                  {values.sensitive
-                    ? 'Goes straight to HR, not your manager. Only you and HR see the reason and documents.'
-                    : 'Tick to send this request straight to HR instead of your manager.'}
+            {(type?.sensitiveAllowed || initial?.sensitive) && (
+              <label className="flex items-start gap-2.5 text-sm sm:col-span-2">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 accent-brand"
+                  disabled={Boolean(initial?.sensitive)}
+                  {...register('sensitive')}
+                />
+                <span>
+                  <span className="font-medium">Sensitive</span>
+                  <span className="block text-xs text-muted">
+                    {values.sensitive
+                      ? 'Goes straight to HR, not your manager. Only you and HR see the reason and documents.'
+                      : 'Tick to send this request straight to HR instead of your manager.'}
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            )}
 
             {message && (
               <div className="sm:col-span-2">

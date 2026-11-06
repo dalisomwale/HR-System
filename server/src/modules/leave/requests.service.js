@@ -151,6 +151,10 @@ export async function evaluateRequest(
         err('handoverSheet', 'Attach your handover sheet: download the template, fill it in and attach it.'),
       );
     }
+    // Sensitive only on leave types whose rules allow it (D100).
+    if (input.sensitive && !policy.sensitiveAllowed) {
+      errors.push(err('sensitive', `${type.name} cannot be marked sensitive.`));
+    }
     if (input.handoverContactId && input.handoverContactId === employee.id) {
       errors.push(err('handoverContactId', 'Choose someone other than yourself to cover.'));
     }
@@ -897,7 +901,13 @@ export async function resubmitRequest(db, actor, requestId, input, audit, { hand
           .whereNull('deleted_at')
           .first('id'),
       );
-    const values = { ...input, leaveTypeId: r.leave_type_id, handoverSheetAttached: hasSheet };
+    const values = {
+      ...input,
+      leaveTypeId: r.leave_type_id,
+      handoverSheetAttached: hasSheet,
+      // Already sensitive stays sensitive (D44); only a new marking is checked against the rules.
+      sensitive: Boolean(input.sensitive && !r.is_sensitive),
+    };
     const ev = await evaluateRequest(trx, employee, values, { excludeRequestId: r.id });
     if (ev.errors.length) throw new RequestInvalid(ev);
 

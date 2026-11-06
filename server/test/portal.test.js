@@ -521,7 +521,24 @@ describe('HR approvals page', () => {
 });
 
 describe('sensitive requests', () => {
+  it('are refused on leave types whose rules do not allow them (D100)', async () => {
+    const res = await as(emp).post('/api/leave/requests', {
+      leaveTypeId: ids.ANNUAL,
+      startDate: '2027-03-01',
+      endDate: '2027-03-05',
+      handoverSheet: HANDOVER,
+      sensitive: true,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields.map((f) => f.path)).toContain('sensitive');
+    const types = (await as(emp).get('/api/leave/types')).body.items;
+    expect(types.find((t) => t.id === ids.ANNUAL).sensitiveAllowed).toBe(false);
+  });
+
   it('go straight to HR, and the manager never sees the reason or documents', async () => {
+    await db('leave_policy_versions')
+      .where({ leave_type_id: ids.ANNUAL })
+      .update({ sensitive_allowed: true });
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.ANNUAL,
       startDate: '2027-03-01',

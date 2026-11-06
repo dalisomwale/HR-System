@@ -96,6 +96,7 @@ export function leaveRoutes({ db, config }) {
           eventRequired: p.extraRules.eventRequired ?? null,
           multipleBirthAllowed: Boolean(p.extraRules.multipleBirthMaxDays),
           documentRequired: p.documentRequired,
+          sensitiveAllowed: p.sensitiveAllowed,
           documentDescription: p.documentDescription,
           minNoticeDays: p.minNoticeDays,
           notAvailableReason: eligibilityProblem(me, p, today),
