@@ -54,15 +54,17 @@ function serial(iso) {
 }
 
 function sheetXml(columns, rows) {
-  const widths = columns.map((c) =>
-    Math.min(
-      60,
-      Math.max(
-        c.label.length,
-        ...rows.slice(0, 500).map((r) => String(r[c.key] ?? '').length),
-        c.type === 'date' ? 11 : 6,
-      ) + 2,
-    ),
+  const widths = columns.map(
+    (c) =>
+      c.width ??
+      Math.min(
+        60,
+        Math.max(
+          c.label.length,
+          ...rows.slice(0, 500).map((r) => String(r[c.key] ?? '').length),
+          c.type === 'date' ? 11 : 6,
+        ) + 2,
+      ),
   );
   const head = columns
     .map((c, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t>${xml(c.label)}</t></is></c>`)

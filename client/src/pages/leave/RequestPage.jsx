@@ -61,9 +61,10 @@ export default function RequestPage() {
               : can.cancel
                 ? 'Cancel leave'
                 : null;
+  const handoverSheet = r.documents.find((d) => d.kind === 'HANDOVER');
   const tabs = [
     { id: 'request', label: 'Request' },
-    { id: 'documents', label: 'Supporting documents', count: r.documents.length },
+    { id: 'documents', label: 'Documents', count: r.documents.length },
     { id: 'history', label: 'History' },
     ...(actionLabel ? [{ id: 'action', label: actionLabel }] : []),
   ];
@@ -102,9 +103,7 @@ export default function RequestPage() {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
-                <p className="mt-1">
-                  Your request was still submitted. Upload them again under Supporting documents.
-                </p>
+                <p className="mt-1">Your request was still submitted. Upload them again under Documents.</p>
               </Notice>
             </div>
           )}
@@ -169,6 +168,23 @@ export default function RequestPage() {
                       ...(r.noticeShortfallReason ? [['Short notice reason', r.noticeShortfallReason]] : []),
                       ['Covering', r.handoverContact],
                       ['Handover notes', r.handoverNotes],
+                      [
+                        'Handover sheet',
+                        handoverSheet ? (
+                          handoverSheet.restricted ? (
+                            <span className="font-normal text-muted">Visible to HR only</span>
+                          ) : (
+                            <a
+                              href={`/api/documents/${handoverSheet.id}/download`}
+                              className="text-brand hover:underline"
+                            >
+                              {handoverSheet.name}
+                            </a>
+                          )
+                        ) : (
+                          <span className="font-normal text-muted">None attached</span>
+                        ),
+                      ],
                       [
                         'Manager',
                         r.sensitive
@@ -341,8 +357,8 @@ function TransferForm({ request: r, onCancel }) {
   const [v, setV] = useState({
     startDate: r.startDate,
     endDate: r.endDate,
-    startPortion: r.startPortion,
-    endPortion: r.endPortion,
+    startPortion: 'FULL',
+    endPortion: 'FULL',
     comment: '',
   });
   const [missing, setMissing] = useState(null);
@@ -366,18 +382,6 @@ function TransferForm({ request: r, onCancel }) {
       </Field>
       <Field id="tEnd" label="Last day">
         <Input id="tEnd" type="date" value={v.endDate} onChange={set('endDate')} />
-      </Field>
-      <Field id="tStartPortion" label="First day is">
-        <Select id="tStartPortion" value={v.startPortion} onChange={set('startPortion')}>
-          <option value="FULL">A full day</option>
-          <option value="PM_ONLY">Afternoon only</option>
-        </Select>
-      </Field>
-      <Field id="tEndPortion" label="Last day is">
-        <Select id="tEndPortion" value={v.endPortion} onChange={set('endPortion')}>
-          <option value="FULL">A full day</option>
-          <option value="AM_ONLY">Morning only</option>
-        </Select>
       </Field>
       <Field id="tComment" label="Reason" error={missing} className="sm:col-span-2">
         <Textarea id="tComment" rows={2} value={v.comment} invalid={!!missing} onChange={set('comment')} />
@@ -637,15 +641,19 @@ function ResubmitForm({ request: r, onDone }) {
     noticeShortfallReason: r.noticeShortfallReason ?? '',
     sensitive: r.sensitive,
   }));
-  const submit = async (payload, idempotencyKey, files = []) => {
+  const hasSheet = r.documents.some((d) => d.kind === 'HANDOVER');
+  const submit = async (payload, idempotencyKey, files = [], handoverFile = null) => {
     await api.post(
       `/api/leave/requests/${r.id}/resubmit`,
       { ...payload, version: r.version },
       { idempotencyKey },
     );
-    // Files that fail here can be uploaded again from the Supporting documents panel.
+    // Files that fail here can be uploaded again from the Documents tab.
     for (const file of files) {
       await api.upload(`/api/documents/requests/${r.id}`, file).catch(() => {});
+    }
+    if (handoverFile) {
+      await api.upload(`/api/documents/requests/${r.id}?kind=handover`, handoverFile).catch(() => {});
     }
     refresh();
     onDone();
@@ -654,6 +662,7 @@ function ResubmitForm({ request: r, onDone }) {
     <LeaveForm
       initial={initial}
       lockType
+      hasHandoverSheet={hasSheet}
       submitLabel="Resubmit request"
       onSubmit={submit}
       onCancel={onDone}

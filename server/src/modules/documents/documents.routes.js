@@ -11,8 +11,12 @@ import { AppError, badRequest, conflict, notFound } from '../../utils/errors.js'
 import { REPO_ROOT } from '../../config/env.js';
 import { managerAuthority } from '../leave/requests.service.js';
 import { seesWholeGroup } from '../../middleware/auth.js';
+import { readFirstSheet } from '../admin/xlsx-read.js';
 
 const MAX_PER_REQUEST = 10;
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+/** Types a browser may open in place; anything else is always downloaded. */
+const VIEWABLE = ['application/pdf', 'image/jpeg', 'image/png'];
 const CLOSED_STATES = ['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'];
 
 /** File type from its first bytes. The declared type and file name are never trusted. */
@@ -22,6 +26,17 @@ export function sniffType(buf) {
   const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (buf.length >= 8 && png.every((b, i) => buf[i] === b)) return 'image/png';
   return null;
+}
+
+/** An Excel workbook (.xlsx): a ZIP package whose first worksheet can actually be read. */
+export function isXlsx(buf) {
+  if (buf.length < 4 || buf.readUInt32LE(0) !== 0x04034b50) return false;
+  try {
+    readFirstSheet(buf);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Keep a readable, harmless file name for display and download. */
@@ -38,9 +53,9 @@ function cleanName(raw, mime) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 120);
-  const ext = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png' }[mime];
-  if (!n || n.startsWith('.')) n = `document${ext}`;
-  if (!/\.(pdf|jpe?g|png)$/i.test(n)) n += ext;
+  const ext = { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', [XLSX]: '.xlsx' }[mime];
+  if (!n || n.startsWith('.')) n = mime === XLSX ? `handover${ext}` : `document${ext}`;
+  if (mime === XLSX ? !/\.xlsx$/i.test(n) : !/\.(pdf|jpe?g|png)$/i.test(n)) n += ext;
   return n;
 }
 
@@ -78,6 +93,7 @@ function docView(d, seesMedical) {
   const restricted = d.is_medical && !seesMedical;
   return {
     id: d.id,
+    kind: d.kind,
     name: restricted ? null : d.original_name,
     type: restricted ? null : d.mime_type,
     sizeBytes: restricted ? null : d.size_bytes,
@@ -146,8 +162,17 @@ export function documentRoutes({ db, config, logger }) {
       if (CLOSED_STATES.includes(r.status)) throw conflict('Documents cannot be added to a closed request.');
       const buf = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
       if (buf.length === 0) throw badRequest('Choose a file to upload.');
-      const mime = sniffType(buf);
-      if (!mime) throw badRequest('Only PDF, JPEG and PNG files can be uploaded.');
+      // A handover sheet is the Excel handover template filled in (D98); anything else is a
+      // supporting document.
+      const kind = req.query.kind === 'handover' ? 'HANDOVER' : 'SUPPORTING';
+      const mime = kind === 'HANDOVER' ? (isXlsx(buf) ? XLSX : null) : sniffType(buf);
+      if (!mime) {
+        throw badRequest(
+          kind === 'HANDOVER'
+            ? 'The handover sheet must be an Excel workbook (.xlsx). Use the handover template.'
+            : 'Only PDF, JPEG and PNG files can be uploaded.',
+        );
+      }
 
       const storedName = crypto.randomBytes(24).toString('hex');
       const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
@@ -162,10 +187,13 @@ export function documentRoutes({ db, config, logger }) {
         const id = await db.transaction(async (trx) => {
           await trx('leave_requests').where({ id: requestId }).forUpdate().first('id');
           const count = await trx('documents')
-            .where({ leave_request_id: requestId })
+            .where({ leave_request_id: requestId, kind })
             .whereNull('deleted_at')
             .count({ n: '*' })
             .first();
+          if (kind === 'HANDOVER' && Number(count.n) > 0) {
+            throw conflict('This request already has a handover sheet. Remove it to attach a new one.');
+          }
           if (Number(count.n) >= MAX_PER_REQUEST) {
             throw conflict(`A request can have at most ${MAX_PER_REQUEST} documents.`);
           }
@@ -177,15 +205,17 @@ export function documentRoutes({ db, config, logger }) {
             mime_type: mime,
             size_bytes: buf.length,
             sha256,
-            // HR-only: confidential leave types and requests the employee marked sensitive.
-            is_medical: Boolean(r.is_confidential || r.is_sensitive),
+            kind,
+            // HR-only: confidential leave types and requests the employee marked sensitive. A
+            // handover sheet is work, not medical, so only a sensitive request hides it.
+            is_medical: Boolean(kind === 'HANDOVER' ? r.is_sensitive : r.is_confidential || r.is_sensitive),
           });
           await writeAudit(trx, {
             ...auditContext(req),
             action: 'DOCUMENT_UPLOADED',
             entityType: 'document',
             entityId: docId,
-            after: { leaveRequestId: requestId, name: originalName, type: mime, sizeBytes: buf.length },
+            after: { leaveRequestId: requestId, kind, name: originalName, type: mime, sizeBytes: buf.length },
           });
           return docId;
         });
@@ -217,7 +247,7 @@ export function documentRoutes({ db, config, logger }) {
       }
       // ?view=1 opens the file in the browser instead of saving it. The type was checked from the
       // file's content at upload (PDF, JPEG or PNG only), and nosniff stops any reinterpretation.
-      const view = req.query.view === '1';
+      const view = req.query.view === '1' && VIEWABLE.includes(d.mime_type);
       await writeAudit(db, {
         ...auditContext(req),
         action: view ? 'DOCUMENT_VIEWED' : 'DOCUMENT_DOWNLOADED',

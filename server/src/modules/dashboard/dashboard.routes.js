@@ -141,7 +141,7 @@ async function documentsMissing(db, requestIds) {
   const rows = await db('leave_requests as r')
     .join('leave_policy_versions as p', 'p.id', 'r.policy_version_id')
     .leftJoin('documents as d', function joinDocs() {
-      this.on('d.leave_request_id', 'r.id').andOnNull('d.deleted_at');
+      this.on('d.leave_request_id', 'r.id').andOnNull('d.deleted_at').andOnVal('d.kind', '=', 'SUPPORTING');
     })
     .whereIn('r.id', requestIds)
     .where('p.document_required', true)

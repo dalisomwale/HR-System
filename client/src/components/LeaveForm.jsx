@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { FileText, Paperclip, X } from 'lucide-react';
+import { FileSpreadsheet, FileText, Paperclip, X } from 'lucide-react';
+import { HANDOVER_TEMPLATE_URL } from './DocumentsPanel.jsx';
 import { api, newActionKey } from '../lib/api.js';
 import { formatDate } from '../lib/format.js';
 import { days } from '../lib/leave.js';
@@ -54,8 +55,9 @@ export function toLeavePayload(v) {
     leaveTypeId: Number(v.leaveTypeId),
     startDate: v.startDate,
     endDate: v.endDate,
-    startPortion: v.startPortion,
-    endPortion: v.endPortion,
+    // Half days are not offered when applying (D98); every request is for whole days.
+    startPortion: 'FULL',
+    endPortion: 'FULL',
     eventDate: v.eventDate || null,
     multipleBirth: Boolean(v.multipleBirth),
     reason: text(v.reason),
@@ -78,10 +80,17 @@ function useDebounced(value, ms) {
 /**
  * Leave request form with a live calculation from the server. The server repeats every check
  * on submit; the preview only helps the employee see the result before sending.
- * `onSubmit(payload, idempotencyKey, files)` should send the request (then upload `files`) and
- * throw ApiError if the request itself is refused.
+ * `onSubmit(payload, idempotencyKey, files, handoverFile)` should send the request (then upload
+ * `files` and the handover sheet) and throw ApiError if the request itself is refused.
  */
-export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, onCancel }) {
+export function LeaveForm({
+  initial,
+  lockType = false,
+  hasHandoverSheet = false,
+  submitLabel,
+  onSubmit,
+  onCancel,
+}) {
   const types = useQuery({ queryKey: ['leave-types'], queryFn: () => api.get('/api/leave/types') });
   const colleagues = useQuery({
     queryKey: ['colleagues'],
@@ -99,6 +108,7 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
   } = useForm({ defaultValues: { ...BLANK, ...initial } });
   const [message, setMessage] = useState(null);
   const [files, setFiles] = useState([]);
+  const [handoverFile, setHandoverFile] = useState(null);
   const actionKey = useRef(newActionKey());
 
   const ready = types.isSuccess && colleagues.isSuccess;
@@ -108,7 +118,6 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
 
   const values = useWatch({ control });
   const type = types.data?.items.find((t) => String(t.id) === String(values.leaveTypeId));
-  const sameDay = values.startDate && values.startDate === values.endDate;
 
   // Keep the end date sensible when the start date moves past it.
   useEffect(() => {
@@ -116,13 +125,6 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
       setValue('endDate', values.startDate);
     }
   }, [values.startDate, values.endDate, setValue]);
-  // Half days only where the policy allows them.
-  useEffect(() => {
-    if (type && !type.allowHalfDay) {
-      setValue('startPortion', 'FULL');
-      setValue('endPortion', 'FULL');
-    }
-  }, [type, setValue]);
 
   const canPreview = Boolean(values.leaveTypeId && values.startDate && values.endDate);
   const payload = canPreview ? toLeavePayload(values) : null;
@@ -144,7 +146,8 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
   const send = async (v) => {
     setMessage(null);
     try {
-      await onSubmit(toLeavePayload(v), actionKey.current, files);
+      // Supporting documents only go with leave types that require one.
+      await onSubmit(toLeavePayload(v), actionKey.current, type?.documentRequired ? files : [], handoverFile);
     } catch (err) {
       // A definite refusal means the same key may be reused safely with corrected input,
       // but a new key avoids a "different body" refusal from the server.
@@ -223,32 +226,6 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
               />
             </Field>
 
-            {type?.allowHalfDay && (
-              <>
-                <Field
-                  id="startPortion"
-                  label={sameDay ? 'Part of day' : 'First day is'}
-                  error={err('startPortion')}
-                >
-                  <Select id="startPortion" {...register('startPortion')}>
-                    <option value="FULL">Full day</option>
-                    <option value="PM_ONLY">Afternoon only</option>
-                  </Select>
-                </Field>
-                <Field
-                  id="endPortion"
-                  label={sameDay ? 'Or' : 'Last day is'}
-                  error={err('endPortion')}
-                  hint={sameDay ? 'For a morning off, choose "Morning only" here.' : undefined}
-                >
-                  <Select id="endPortion" {...register('endPortion')}>
-                    <option value="FULL">Full day</option>
-                    <option value="AM_ONLY">Morning only</option>
-                  </Select>
-                </Field>
-              </>
-            )}
-
             {type?.multipleBirthAllowed && (
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" className="size-4" {...register('multipleBirth')} />
@@ -308,15 +285,35 @@ export function LeaveForm({ initial, lockType = false, submitLabel, onSubmit, on
             </Field>
 
             <div className="sm:col-span-2">
-              <AttachmentPicker
-                files={files}
-                onChange={setFiles}
-                type={type}
-                sensitiveField={register('sensitive')}
-                sensitive={Boolean(values.sensitive)}
-                lockSensitive={Boolean(initial?.sensitive)}
+              <HandoverSheetPicker
+                file={handoverFile}
+                onChange={setHandoverFile}
+                attached={hasHandoverSheet}
               />
             </div>
+
+            {type?.documentRequired && (
+              <div className="sm:col-span-2">
+                <AttachmentPicker files={files} onChange={setFiles} type={type} />
+              </div>
+            )}
+
+            <label className="flex items-start gap-2.5 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-brand"
+                disabled={Boolean(initial?.sensitive)}
+                {...register('sensitive')}
+              />
+              <span>
+                <span className="font-medium">Sensitive</span>
+                <span className="block text-xs text-muted">
+                  {values.sensitive
+                    ? 'Goes straight to HR, not your manager. Only you and HR see the reason and documents.'
+                    : 'Tick to send this request straight to HR instead of your manager.'}
+                </span>
+              </span>
+            </label>
 
             {message && (
               <div className="sm:col-span-2">
@@ -433,7 +430,7 @@ const size = (n) =>
  * Files chosen while applying. They are uploaded straight after the request is created; the
  * server checks each file's real type and size again.
  */
-function AttachmentPicker({ files, onChange, type, sensitiveField, sensitive, lockSensitive }) {
+function AttachmentPicker({ files, onChange, type }) {
   const input = useRef(null);
   const [problem, setProblem] = useState(null);
 
@@ -464,9 +461,8 @@ function AttachmentPicker({ files, onChange, type, sensitiveField, sensitive, lo
     <div className="rounded-md border border-rule p-4">
       <p className="text-sm font-medium">Supporting documents</p>
       <p className="mt-1 text-xs text-muted">
-        {type?.documentRequired
-          ? `Required: ${type.documentDescription ?? 'a supporting document'}. If you do not have it yet, you can upload it later from the request page.`
-          : 'PDF, JPEG or PNG, up to 5 MB each.'}
+        Required: {type.documentDescription ?? 'a supporting document'}. PDF, JPEG or PNG, up to {MAX_MB} MB
+        each. If you do not have it yet, you can upload it later from the request page.
       </p>
       {files.length > 0 && (
         <ul className="mt-3 divide-y divide-rule rounded-md border border-rule">
@@ -501,22 +497,74 @@ function AttachmentPicker({ files, onChange, type, sensitiveField, sensitive, lo
       <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
         <Paperclip className="size-4" aria-hidden /> {files.length ? 'Add another file' : 'Attach files'}
       </Button>
-      <label className="mt-4 flex items-start gap-2.5 border-t border-rule pt-3 text-sm">
-        <input
-          type="checkbox"
-          className="mt-0.5 size-4 accent-brand"
-          disabled={lockSensitive}
-          {...sensitiveField}
-        />
-        <span>
-          <span className="font-medium">Sensitive</span>
-          <span className="block text-xs text-muted">
-            {sensitive
-              ? 'Goes straight to HR, not your manager. Only you and HR see the reason and documents.'
-              : 'Tick to send this request straight to HR instead of your manager.'}
-          </span>
-        </span>
-      </label>
+    </div>
+  );
+}
+
+/**
+ * The handover sheet (D98): the Excel handover template, filled in and attached. Uploaded straight
+ * after the request is created; the server checks it is a real Excel workbook.
+ */
+function HandoverSheetPicker({ file, onChange, attached }) {
+  const input = useRef(null);
+  const [problem, setProblem] = useState(null);
+  const pick = (f) => {
+    setProblem(null);
+    if (input.current) input.current.value = '';
+    if (!f) return;
+    if (!/\.xlsx$/i.test(f.name))
+      return setProblem('Choose an Excel file (.xlsx). Use the handover template.');
+    if (f.size > MAX_MB * 1024 * 1024) return setProblem(`${f.name} is larger than ${MAX_MB} MB.`);
+    onChange(f);
+  };
+  return (
+    <div className="rounded-md border border-rule p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Handover sheet</p>
+          <p className="mt-1 text-xs text-muted">
+            Download the Excel template, list your tasks, deadlines and contacts, then attach it.
+          </p>
+        </div>
+        <a href={HANDOVER_TEMPLATE_URL} className="text-sm text-brand hover:underline">
+          Download template
+        </a>
+      </div>
+      {attached && !file ? (
+        <p className="mt-3 text-sm text-muted">
+          A handover sheet is already attached. To replace it, remove it from the request's Documents tab.
+        </p>
+      ) : file ? (
+        <div className="mt-3 flex items-center gap-3 rounded-md border border-rule px-3 py-2 text-sm">
+          <FileSpreadsheet className="size-4 shrink-0 text-muted" aria-hidden />
+          <span className="min-w-0 flex-1 truncate">{file.name}</span>
+          <span className="text-xs text-muted">{size(file.size)}</span>
+          <button
+            type="button"
+            className="rounded-sm p-1 text-muted hover:bg-canvas hover:text-danger"
+            aria-label={`Remove ${file.name}`}
+            onClick={() => onChange(null)}
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+      {problem && <p className="mt-2 text-xs text-danger">{problem}</p>}
+      <input
+        ref={input}
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => pick(e.target.files?.[0])}
+      />
+      {!attached && (
+        <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
+          <Paperclip className="size-4" aria-hidden />{' '}
+          {file ? 'Choose another file' : 'Attach handover sheet'}
+        </Button>
+      )}
     </div>
   );
 }

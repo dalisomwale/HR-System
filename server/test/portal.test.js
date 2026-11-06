@@ -5,6 +5,8 @@ import { testApp, fixtureEmployee, signIn } from './helpers/app.js';
 import { todayInLusaka } from '../src/utils/dates.js';
 import { addDays } from '../src/modules/leave/calendar.js';
 import { storageDir } from '../src/modules/documents/documents.routes.js';
+import { toXlsx } from '../src/modules/reports/export-files.js';
+import { readFirstSheet } from '../src/modules/admin/xlsx-read.js';
 
 let db;
 let app;
@@ -247,6 +249,37 @@ describe('supporting documents', () => {
 
     await as(emp).post(`/api/leave/requests/${r.id}/withdraw`);
     expect((await as(emp).upload(`/api/documents/requests/${r.id}`, PDF, 'y.pdf')).status).toBe(409);
+  });
+
+  it('offers an Excel handover template and takes one filled-in handover sheet per request (D98)', async () => {
+    const tpl = await emp.agent
+      .get('/api/leave/handover-template')
+      .buffer(true)
+      .parse((res, cb) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => cb(null, Buffer.concat(chunks)));
+      });
+    expect(tpl.status).toBe(200);
+    expect(tpl.headers['content-type']).toMatch(/spreadsheetml/);
+    expect(readFirstSheet(tpl.body)[0]).toContain('Task or responsibility');
+
+    const r = await annualRequest();
+    const url = `/api/documents/requests/${r.id}?kind=handover`;
+    expect((await as(emp).upload(url, PDF, 'handover.pdf')).status).toBe(400);
+    const sheet = toXlsx([{ key: 'a', label: 'Task or responsibility' }], [{ a: 'Month-end report' }]);
+    const up = await as(emp).upload(url, sheet, 'my handover');
+    expect(up.status, JSON.stringify(up.body)).toBe(201);
+    expect((await as(emp).upload(url, sheet, 'again.xlsx')).status).toBe(409);
+
+    const detail = await as(mgr).get(`/api/leave/requests/${r.id}`);
+    expect(detail.body.documents[0]).toMatchObject({ kind: 'HANDOVER', name: 'my handover.xlsx' });
+    const dl = await as(mgr).get(`/api/documents/${up.body.id}/download?view=1`);
+    expect(dl.status).toBe(200);
+    expect(dl.headers['content-disposition']).toMatch(/^attachment/);
+
+    // A handover sheet does not count as a supporting document, nor against the limit.
+    expect((await as(emp).upload(`/api/documents/requests/${r.id}`, PDF, 'x.pdf')).status).toBe(201);
   });
 });
 

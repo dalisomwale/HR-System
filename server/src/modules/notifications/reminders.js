@@ -125,6 +125,7 @@ export async function remindDocumentsDue(db, today = todayInLusaka()) {
         .select(db.raw(1))
         .from('documents as d')
         .whereRaw('d.leave_request_id = r.id')
+        .where('d.kind', 'SUPPORTING')
         .whereNull('d.deleted_at'),
     )
     .whereNotExists((q) =>

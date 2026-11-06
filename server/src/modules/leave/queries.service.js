@@ -134,7 +134,10 @@ export async function requestDetail(db, viewer, id) {
     days: days.map((d) => ({ ...d, charged: Number(d.charged) })),
     documents,
     documentRequirement: policy?.document_required
-      ? { description: policy.document_description, provided: documents.length > 0 }
+      ? {
+          description: policy.document_description,
+          provided: documents.some((d) => d.kind === 'SUPPORTING'),
+        }
       : null,
     history: actions.map((a) => ({
       at: a.created_at,

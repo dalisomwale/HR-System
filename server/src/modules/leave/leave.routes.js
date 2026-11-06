@@ -24,6 +24,18 @@ import {
 import { myRequests, requestDetail, managerQueue, hrQueue } from './queries.service.js';
 import { appliesTo, employeeBalances, eligibilityProblem, recordAdjustment } from './balance.service.js';
 import { policyOn } from './policy.service.js';
+import { toXlsx } from '../reports/export-files.js';
+
+/** Columns of the Excel handover template (D98). */
+export const HANDOVER_COLUMNS = [
+  'Task or responsibility',
+  'Current status',
+  'What needs doing while I am away',
+  'Deadline',
+  'Key contacts',
+  'Files or where to find them',
+  'Covered by',
+];
 
 const yearParam = (q) => {
   const y = Number(q.year);
@@ -33,6 +45,20 @@ const yearParam = (q) => {
 /** Leave for the signed-in employee. Employee IDs never come from the client. */
 export function leaveRoutes({ db }) {
   const router = Router();
+
+  // The blank handover template; the employee fills it in and attaches it to the request.
+  router.get('/handover-template', (req, res) => {
+    const file = toXlsx(
+      HANDOVER_COLUMNS.map((label, i) => ({ key: `c${i}`, label, width: i === 3 ? 14 : 32 })),
+      [],
+      { sheetName: 'Handover', title: 'Leave handover' },
+    );
+    res
+      .set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .set('Content-Disposition', 'attachment; filename="leave-handover-template.xlsx"')
+      .set('Cache-Control', 'private, no-store')
+      .send(file);
+  });
 
   router.get(
     '/types',
