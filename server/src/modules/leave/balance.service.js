@@ -199,13 +199,12 @@ export async function employeeBalances(db, employeeId, year, { activeOnly = true
 
 /**
  * Does this leave type apply to the employee at all? Types for one sex (maternity, paternity,
- * Mother's Day, pregnancy loss) are left out for employees of the other sex everywhere they
- * are listed. If the employee's sex is not recorded, the type is still listed, with a note
- * that HR must complete the record.
+ * Mother's Day, pregnancy loss) are listed only for employees of that sex (D101). If the
+ * employee's sex is not recorded, those types are left out until HR completes the record.
  */
 export function appliesTo(emp, policy) {
   const sex = policy.extraRules?.eligibleSex;
-  return !sex || !emp.sex || emp.sex === sex;
+  return !sex || emp.sex === sex;
 }
 
 /** Why an employee cannot use a leave type on a date, or null if they can. */

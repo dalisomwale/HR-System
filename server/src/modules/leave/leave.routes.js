@@ -81,8 +81,10 @@ export function leaveRoutes({ db, config }) {
       const today = todayInLusaka();
       const types = await db('leave_types').where({ is_active: true }).orderBy('display_order');
       const items = [];
+      let sexMissing = false;
       for (const t of types) {
         const p = await policyOn(db, t.id, today);
+        if (p?.extraRules?.eligibleSex && !me.sex) sexMissing = true;
         if (!p || !appliesTo(me, p)) continue;
         items.push({
           id: t.id,
@@ -102,7 +104,8 @@ export function leaveRoutes({ db, config }) {
           notAvailableReason: eligibilityProblem(me, p, today),
         });
       }
-      res.json({ items });
+      // Leave types for one gender are hidden until HR records the employee's gender.
+      res.json({ items, sexMissing });
     }),
   );
 

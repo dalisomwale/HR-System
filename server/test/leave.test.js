@@ -174,14 +174,14 @@ describe('calculating and validating a request', () => {
     expect(hers).toContain('MATERNITY');
     expect(hers).not.toContain('PATERNITY');
 
-    // Sex not recorded: everything is listed, with a note that HR must complete the record.
+    // Sex not recorded: types for one gender are left out until HR completes the record (D101).
     const unknown = await fixtureEmployee(db, {});
     const u = await signIn(app, entra, { oid: unknown.oid });
-    const types = (await as(u).get('/api/leave/types')).body.items;
-    expect(types.map((t) => t.code)).toEqual(expect.arrayContaining(['MATERNITY', 'PATERNITY']));
-    expect(types.find((t) => t.code === 'PATERNITY').notAvailableReason).toMatch(
-      /complete your employee record/,
-    );
+    const res = await as(u).get('/api/leave/types');
+    expect(res.body.items.map((t) => t.code)).not.toContain('MATERNITY');
+    expect(res.body.items.map((t) => t.code)).not.toContain('PATERNITY');
+    expect(res.body.sexMissing).toBe(true);
+    expect((await as(emp).get('/api/leave/types')).body.sexMissing).toBe(false);
   });
 
   it("limits Mother's Day to one day a calendar month", async () => {
