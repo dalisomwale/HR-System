@@ -77,15 +77,19 @@ export async function reportScope(db, user) {
   const reportingLine = (await getSetting(db, 'manager_scope', 'DIRECT_REPORTS')) === 'REPORTING_LINE';
   const ids = new Set();
   for (const root of [user.id, ...delegators]) {
+    // A manager's reports cover their own department only (D94): people on their team who sit
+    // in another department are left out. A manager with no department keeps their whole team.
+    const rootDept = (await db('employees').where({ id: root }).first('department_id'))?.department_id;
     let frontier = [root];
     const seen = new Set(frontier);
     while (frontier.length) {
-      const next = await db('employees').whereIn('line_manager_id', frontier).pluck('id');
-      frontier = next.filter((id) => !seen.has(id));
-      frontier.forEach((id) => {
-        seen.add(id);
-        ids.add(id);
-      });
+      const next = await db('employees').whereIn('line_manager_id', frontier).select('id', 'department_id');
+      frontier = next.map((r) => r.id).filter((id) => !seen.has(id));
+      for (const r of next) {
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        if (!rootDept || r.department_id === rootDept) ids.add(r.id);
+      }
       if (!reportingLine) break;
     }
   }

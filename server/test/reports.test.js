@@ -122,6 +122,28 @@ describe('who can run reports', () => {
   });
 });
 
+describe('manager reports stay inside their own department', () => {
+  it('leaves out a team member who sits in another department', async () => {
+    const [sales] = await db('departments').insert({ company_id: company, code: 'SLS', name: 'Sales' });
+    // Ezra (Credit) and Sam (Sales) both report to Mona (Credit).
+    const samE = await fixtureEmployee(db, {
+      first_name: 'Sam',
+      managerId: mgr.id,
+      department_id: sales,
+      company_id: company,
+    });
+    await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    await approved(samE.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
+    const list = await as(mgr).get('/api/reports');
+    expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
+    expect(list.body.options.departments.map((d) => d.name)).toEqual(['Credit']);
+    const rows = (await as(mgr).get('/api/reports/requests?year=2027')).body.rows;
+    expect(rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    const sneaky = await as(mgr).get(`/api/reports/requests?year=2027&employeeId=${samE.id}`);
+    expect(sneaky.body.rows).toEqual([]);
+  });
+});
+
 describe('every report for managers, limited to their team', () => {
   it('runs the HR-style reports on the team only', async () => {
     for (const who of [emp.id, outsider.id]) {
