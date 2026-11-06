@@ -85,6 +85,8 @@ function Body({ d }) {
           <thead>
             <tr>
               <Th>Name</Th>
+              <Th>Job title</Th>
+              <Th>Employee number</Th>
               <Th>Contact</Th>
               <Th>Today</Th>
               <Th className="text-right">Annual leave available</Th>
@@ -96,15 +98,10 @@ function Body({ d }) {
           <tbody>
             {rows.map((m) => (
               <tr key={m.id}>
-                <Td>
-                  <p className="font-medium">{m.name}</p>
-                  <p className="text-xs text-muted">
-                    {[m.jobTitle, m.employeeNumber].filter(Boolean).join(' · ')}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {m.reportsToYou ? 'Reports to you' : m.lineManager ? `Reports to ${m.lineManager}` : ''}
-                    {m.startDate ? ` · Since ${formatDate(m.startDate)}` : ''}
-                  </p>
+                <Td className="font-medium">{m.name}</Td>
+                <Td>{m.jobTitle || <span className="text-muted">—</span>}</Td>
+                <Td className="whitespace-nowrap">
+                  {m.employeeNumber || <span className="text-muted">—</span>}
                 </Td>
                 <Td>
                   {m.email && (
