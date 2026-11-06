@@ -28,7 +28,7 @@ export const LEAVE_FIELDS = [
   'eventDate',
   'multipleBirth',
   'reason',
-  'handoverNotes',
+  'handoverSheet',
   'handoverContactId',
   'noticeShortfallReason',
   'sensitive',
@@ -43,7 +43,6 @@ const BLANK = {
   eventDate: '',
   multipleBirth: false,
   reason: '',
-  handoverNotes: '',
   handoverContactId: '',
   noticeShortfallReason: '',
   sensitive: false,
@@ -61,11 +60,20 @@ export function toLeavePayload(v) {
     eventDate: v.eventDate || null,
     multipleBirth: Boolean(v.multipleBirth),
     reason: text(v.reason),
-    handoverNotes: text(v.handoverNotes),
     handoverContactId: v.handoverContactId ? Number(v.handoverContactId) : null,
     noticeShortfallReason: text(v.noticeShortfallReason),
     sensitive: Boolean(v.sensitive),
   };
+}
+
+/** A chosen file as base64, to send with the request. */
+function readBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+    r.onerror = () => reject(new Error('The handover sheet could not be read. Choose it again.'));
+    r.readAsDataURL(file);
+  });
 }
 
 function useDebounced(value, ms) {
@@ -80,8 +88,8 @@ function useDebounced(value, ms) {
 /**
  * Leave request form with a live calculation from the server. The server repeats every check
  * on submit; the preview only helps the employee see the result before sending.
- * `onSubmit(payload, idempotencyKey, files, handoverFile)` should send the request (then upload
- * `files` and the handover sheet) and throw ApiError if the request itself is refused.
+ * `onSubmit(payload, idempotencyKey, files)` should send the request, which carries the handover
+ * sheet (D99), then upload `files`; it throws ApiError if the request itself is refused.
  */
 export function LeaveForm({
   initial,
@@ -101,6 +109,7 @@ export function LeaveForm({
     register,
     handleSubmit,
     setError,
+    clearErrors,
     setValue,
     control,
     reset,
@@ -127,7 +136,9 @@ export function LeaveForm({
   }, [values.startDate, values.endDate, setValue]);
 
   const canPreview = Boolean(values.leaveTypeId && values.startDate && values.endDate);
-  const payload = canPreview ? toLeavePayload(values) : null;
+  const payload = canPreview
+    ? { ...toLeavePayload(values), handoverSheetAttached: Boolean(handoverFile || hasHandoverSheet) }
+    : null;
   const debounced = useDebounced(payload, 350);
   const preview = useQuery({
     queryKey: ['leave-preview', debounced],
@@ -145,9 +156,19 @@ export function LeaveForm({
   const available = types.data.items;
   const send = async (v) => {
     setMessage(null);
+    if (!handoverFile && !hasHandoverSheet) {
+      setError('handoverSheet', {
+        message: 'Attach your handover sheet: download the template, fill it in and attach it.',
+      });
+      return;
+    }
     try {
+      const payload = toLeavePayload(v);
+      if (handoverFile) {
+        payload.handoverSheet = { name: handoverFile.name, data: await readBase64(handoverFile) };
+      }
       // Supporting documents only go with leave types that require one.
-      await onSubmit(toLeavePayload(v), actionKey.current, type?.documentRequired ? files : [], handoverFile);
+      await onSubmit(payload, actionKey.current, type?.documentRequired ? files : []);
     } catch (err) {
       // A definite refusal means the same key may be reused safely with corrected input,
       // but a new key avoids a "different body" refusal from the server.
@@ -267,28 +288,16 @@ export function LeaveForm({
                 ))}
               </Select>
             </Field>
-            <Field
-              id="handoverNotes"
-              label="Handover notes"
-              error={err('handoverNotes')}
-              className="sm:col-span-2"
-            >
-              <Textarea
-                id="handoverNotes"
-                rows={3}
-                invalid={!!err('handoverNotes')}
-                {...register('handoverNotes', {
-                  validate: (v) =>
-                    !!v?.trim() || 'Add handover notes: what needs covering and who will cover it.',
-                })}
-              />
-            </Field>
 
             <div className="sm:col-span-2">
               <HandoverSheetPicker
                 file={handoverFile}
-                onChange={setHandoverFile}
+                onChange={(f) => {
+                  setHandoverFile(f);
+                  if (f) clearErrors('handoverSheet');
+                }}
                 attached={hasHandoverSheet}
+                error={err('handoverSheet')}
               />
             </div>
 
@@ -505,7 +514,7 @@ function AttachmentPicker({ files, onChange, type }) {
  * The handover sheet (D98): the Excel handover template, filled in and attached. Uploaded straight
  * after the request is created; the server checks it is a real Excel workbook.
  */
-function HandoverSheetPicker({ file, onChange, attached }) {
+function HandoverSheetPicker({ file, onChange, attached, error }) {
   const input = useRef(null);
   const [problem, setProblem] = useState(null);
   const pick = (f) => {
@@ -518,10 +527,10 @@ function HandoverSheetPicker({ file, onChange, attached }) {
     onChange(f);
   };
   return (
-    <div className="rounded-md border border-rule p-4">
+    <div className={`rounded-md border p-4 ${error ? 'border-danger' : 'border-rule'}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">Handover sheet</p>
+          <p className="text-sm font-medium">Handover</p>
           <p className="mt-1 text-xs text-muted">
             Download the Excel template, list your tasks, deadlines and contacts, then attach it.
           </p>
@@ -532,7 +541,7 @@ function HandoverSheetPicker({ file, onChange, attached }) {
       </div>
       {attached && !file ? (
         <p className="mt-3 text-sm text-muted">
-          A handover sheet is already attached. To replace it, remove it from the request's Documents tab.
+          Your handover sheet is already attached. Attach a new one only to replace it.
         </p>
       ) : file ? (
         <div className="mt-3 flex items-center gap-3 rounded-md border border-rule px-3 py-2 text-sm">
@@ -549,7 +558,7 @@ function HandoverSheetPicker({ file, onChange, attached }) {
           </button>
         </div>
       ) : null}
-      {problem && <p className="mt-2 text-xs text-danger">{problem}</p>}
+      {(problem || error) && <p className="mt-2 text-xs text-danger">{problem || error}</p>}
       <input
         ref={input}
         type="file"
@@ -559,12 +568,10 @@ function HandoverSheetPicker({ file, onChange, attached }) {
         aria-hidden
         onChange={(e) => pick(e.target.files?.[0])}
       />
-      {!attached && (
-        <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
-          <Paperclip className="size-4" aria-hidden />{' '}
-          {file ? 'Choose another file' : 'Attach handover sheet'}
-        </Button>
-      )}
+      <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
+        <Paperclip className="size-4" aria-hidden />{' '}
+        {file ? 'Choose another file' : attached ? 'Replace handover sheet' : 'Attach handover sheet'}
+      </Button>
     </div>
   );
 }

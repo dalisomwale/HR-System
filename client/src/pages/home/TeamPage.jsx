@@ -109,9 +109,7 @@ function Body({ d }) {
             items={d.handoversOutstanding}
             showEmployee
             empty="Every upcoming absence has cover named."
-            extra={(r) =>
-              !r.hasNotes ? <span className="text-xs text-muted">No handover notes</span> : null
-            }
+            extra={(r) => (!r.hasNotes ? <span className="text-xs text-muted">No handover</span> : null)}
           />
         </Section>
       </div>

@@ -3,6 +3,13 @@ import request from 'supertest';
 import { buildConfig } from '../../src/config/env.js';
 import { createApp } from '../../src/app.js';
 import { KnexSessionStore } from '../../src/modules/auth/session-store.js';
+import { toXlsx } from '../../src/modules/reports/export-files.js';
+
+/** A filled-in handover sheet, as the leave form sends it (D99). */
+export const HANDOVER = {
+  name: 'handover.xlsx',
+  data: toXlsx([{ key: 'a', label: 'Task or responsibility' }], [{ a: 'Credit queue' }]).toString('base64'),
+};
 
 export const TENANT = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
 

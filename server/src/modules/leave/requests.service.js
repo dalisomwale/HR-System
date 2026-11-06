@@ -15,6 +15,7 @@ import {
 } from './balance.service.js';
 import { getSetting, loadCalendarInputs, policyOn } from './policy.service.js';
 import { departmentManagersOf, managesEmployee } from '../org/department-manager.js';
+import { attachHandoverSheet } from '../documents/handover-file.js';
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const OPEN_STATES = [...PENDING_STATES, 'APPROVED'];
@@ -26,7 +27,14 @@ export const requestInputSchema = z.object({
   startPortion: z.enum(['FULL', 'PM_ONLY']).default('FULL'),
   endPortion: z.enum(['FULL', 'AM_ONLY']).default('FULL'),
   reason: optionalText(2000),
+  // Kept for requests made before D99; new requests carry the handover sheet instead.
   handoverNotes: optionalText(4000),
+  // The filled-in Excel handover template, base64 (D99). Checked and stored by the route.
+  handoverSheet: z
+    .object({ name: z.string().max(255).optional(), data: z.string().max(8_000_000) })
+    .nullish(),
+  // Preview only: a sheet has been chosen but not sent yet. Never trusted on submit.
+  handoverSheetAttached: z.boolean().default(false),
   handoverContactId: optionalId,
   noticeShortfallReason: optionalText(1000),
   eventDate: isoDate.nullish().or(z.literal('').transform(() => null)),
@@ -137,9 +145,11 @@ export async function evaluateRequest(
 
     if (policy.extraRules.reasonRequired && !input.reason)
       errors.push(err('reason', 'Give a reason for this request.'));
-    // Handover notes are required for every leave type (project owner, 12 Oct 2026; D43).
-    if (!input.handoverNotes) {
-      errors.push(err('handoverNotes', 'Add handover notes: what needs covering and who will cover it.'));
+    // A handover is required for every leave type (D43), as the Excel handover sheet (D99).
+    if (!input.handoverSheet?.data && !input.handoverSheetAttached) {
+      errors.push(
+        err('handoverSheet', 'Attach your handover sheet: download the template, fill it in and attach it.'),
+      );
     }
     if (input.handoverContactId && input.handoverContactId === employee.id) {
       errors.push(err('handoverContactId', 'Choose someone other than yourself to cover.'));
@@ -335,11 +345,14 @@ async function recordAction(trx, a) {
 }
 
 /** Submit a new leave request for the signed-in employee. */
-export async function submitRequest(db, actor, input, audit) {
+export async function submitRequest(db, actor, input, audit, { handoverFile = null } = {}) {
   return db.transaction(async (trx) => {
     // Serialise this employee's submissions so two at once cannot over-commit the balance.
     const employee = await lockEmployee(trx, actor.id);
-    const ev = await evaluateRequest(trx, employee, input);
+    const ev = await evaluateRequest(trx, employee, {
+      ...input,
+      handoverSheetAttached: Boolean(handoverFile),
+    });
     if (ev.errors.length) throw new RequestInvalid(ev);
 
     const sensitive = Boolean(input.sensitive);
@@ -370,6 +383,15 @@ export async function submitRequest(db, actor, input, audit) {
     const reference = `LR-${input.startDate.slice(0, 4)}-${String(id).padStart(6, '0')}`;
     await trx('leave_requests').where({ id }).update({ reference });
     await insertDays(trx, id, ev.calc);
+    if (handoverFile) {
+      await attachHandoverSheet(trx, {
+        requestId: id,
+        actorId: actor.id,
+        file: handoverFile,
+        sensitive,
+        audit,
+      });
+    }
     await recordAction(trx, {
       requestId: id,
       stage: 'EMPLOYEE',
@@ -860,13 +882,22 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
 }
 
 /** Employee corrects a request HR returned, and resubmits it. */
-export async function resubmitRequest(db, actor, requestId, input, audit) {
+export async function resubmitRequest(db, actor, requestId, input, audit, { handoverFile = null } = {}) {
   return db.transaction(async (trx) => {
     const r = await lockRequest(trx, requestId, input.version);
     if (r.employee_id !== actor.id) throw forbidden('You can only resubmit your own requests.');
     requireState(r, 'RETURNED_FOR_CORRECTION');
     const employee = await lockEmployee(trx, actor.id);
-    const values = { ...input, leaveTypeId: r.leave_type_id };
+    // The sheet already on the request counts; a new one replaces it.
+    const hasSheet =
+      Boolean(handoverFile) ||
+      Boolean(
+        await trx('documents')
+          .where({ leave_request_id: r.id, kind: 'HANDOVER' })
+          .whereNull('deleted_at')
+          .first('id'),
+      );
+    const values = { ...input, leaveTypeId: r.leave_type_id, handoverSheetAttached: hasSheet };
     const ev = await evaluateRequest(trx, employee, values, { excludeRequestId: r.id });
     if (ev.errors.length) throw new RequestInvalid(ev);
 
@@ -888,7 +919,7 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
         chargeable_days: ev.calc.chargeableDays,
         calendar_days: ev.calc.calendarDays,
         reason: values.reason,
-        handover_notes: values.handoverNotes,
+        handover_notes: values.handoverNotes ?? r.handover_notes,
         handover_contact_id: values.handoverContactId,
         notice_shortfall_reason: values.noticeShortfallReason,
         is_sensitive: sensitive,
@@ -906,6 +937,15 @@ export async function resubmitRequest(db, actor, requestId, input, audit) {
     }
     await trx('leave_request_days').where({ leave_request_id: r.id }).del();
     await insertDays(trx, r.id, ev.calc);
+    if (handoverFile) {
+      await attachHandoverSheet(trx, {
+        requestId: r.id,
+        actorId: actor.id,
+        file: handoverFile,
+        sensitive,
+        audit,
+      });
+    }
     await recordAction(trx, {
       requestId: r.id,
       stage: 'EMPLOYEE',

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { createTestDb, resetData } from './helpers/db.js';
-import { testApp, fixtureEmployee, signIn } from './helpers/app.js';
+import { testApp, fixtureEmployee, signIn, HANDOVER } from './helpers/app.js';
 import { todayInLusaka } from '../src/utils/dates.js';
 import { addDays } from '../src/modules/leave/calendar.js';
 import { storageDir } from '../src/modules/documents/documents.routes.js';
@@ -89,7 +89,7 @@ async function annualRequest() {
     leaveTypeId: ids.ANNUAL,
     startDate: '2027-03-01',
     endDate: '2027-03-05',
-    handoverNotes: 'Covered.',
+    handoverSheet: HANDOVER,
   });
   expect(res.status, JSON.stringify(res.body)).toBe(201);
   return res.body;
@@ -98,7 +98,7 @@ async function annualRequest() {
 async function sickRequest(startDate = '2027-03-01', endDate = '2027-03-02') {
   const res = await as(emp).post('/api/leave/requests', {
     leaveTypeId: ids.SICK,
-    handoverNotes: 'Covered.',
+    handoverSheet: HANDOVER,
     startDate,
     endDate,
     reason: 'Unwell',
@@ -199,7 +199,10 @@ describe('supporting documents', () => {
     expect(big.status).toBe(413);
 
     const list = await as(emp).get(`/api/documents/requests/${r.id}`);
-    expect(list.body.items.map((d) => d.name)).toEqual(['ticket.pdf', 'photo.png']);
+    expect(list.body.items.filter((d) => d.kind === 'SUPPORTING').map((d) => d.name)).toEqual([
+      'ticket.pdf',
+      'photo.png',
+    ]);
     const row = await db('documents').where({ id: ok.body.id }).first();
     expect(row.stored_name).toMatch(/^[0-9a-f]{48}$/);
     expect(fs.existsSync(`${storageDir(config)}/${row.stored_name}`)).toBe(true);
@@ -211,7 +214,11 @@ describe('supporting documents', () => {
     expect(up.status).toBe(201);
 
     const mgrView = await as(mgr).get(`/api/leave/requests/${r.id}`);
-    expect(mgrView.body.documents[0]).toMatchObject({ restricted: true, name: null, medical: true });
+    expect(mgrView.body.documents.find((d) => d.kind === 'SUPPORTING')).toMatchObject({
+      restricted: true,
+      name: null,
+      medical: true,
+    });
     expect(mgrView.body.documentRequirement).toMatchObject({ provided: true });
     expect((await as(mgr).get(`/api/documents/${up.body.id}/download`)).status).toBe(404);
     expect((await as(other).get(`/api/documents/requests/${r.id}`)).status).toBe(404);
@@ -245,13 +252,15 @@ describe('supporting documents', () => {
     expect((await as(mgr).post(`/api/documents/${up.body.id}/remove`)).status).toBe(404);
     expect((await as(hr).post(`/api/documents/${up.body.id}/remove`)).status).toBe(404);
     expect((await as(emp).post(`/api/documents/${up.body.id}/remove`)).status).toBe(200);
-    expect((await as(emp).get(`/api/documents/requests/${r.id}`)).body.items).toHaveLength(0);
+    expect((await as(emp).get(`/api/documents/requests/${r.id}`)).body.items.map((d) => d.kind)).toEqual([
+      'HANDOVER',
+    ]);
 
     await as(emp).post(`/api/leave/requests/${r.id}/withdraw`);
     expect((await as(emp).upload(`/api/documents/requests/${r.id}`, PDF, 'y.pdf')).status).toBe(409);
   });
 
-  it('offers an Excel handover template and takes one filled-in handover sheet per request (D98)', async () => {
+  it('offers an Excel handover template and keeps one handover sheet per request (D98, D99)', async () => {
     const tpl = await emp.agent
       .get('/api/leave/handover-template')
       .buffer(true)
@@ -270,11 +279,17 @@ describe('supporting documents', () => {
     const sheet = toXlsx([{ key: 'a', label: 'Task or responsibility' }], [{ a: 'Month-end report' }]);
     const up = await as(emp).upload(url, sheet, 'my handover');
     expect(up.status, JSON.stringify(up.body)).toBe(201);
-    expect((await as(emp).upload(url, sheet, 'again.xlsx')).status).toBe(409);
+    // A new sheet replaces the one sent with the request; it cannot simply be removed.
+    const again = await as(emp).upload(url, sheet, 'again.xlsx');
+    expect(again.status).toBe(201);
+    expect((await as(emp).post(`/api/documents/${up.body.id}/remove`)).status).toBe(404);
+    expect((await as(emp).post(`/api/documents/${again.body.id}/remove`)).status).toBe(409);
 
     const detail = await as(mgr).get(`/api/leave/requests/${r.id}`);
-    expect(detail.body.documents[0]).toMatchObject({ kind: 'HANDOVER', name: 'my handover.xlsx' });
-    const dl = await as(mgr).get(`/api/documents/${up.body.id}/download?view=1`);
+    expect(detail.body.documents.filter((d) => d.kind === 'HANDOVER')).toEqual([
+      expect.objectContaining({ name: 'again.xlsx' }),
+    ]);
+    const dl = await as(mgr).get(`/api/documents/${again.body.id}/download?view=1`);
     expect(dl.status).toBe(200);
     expect(dl.headers['content-disposition']).toMatch(/^attachment/);
 
@@ -306,7 +321,7 @@ describe('System Administrator rights', () => {
       leaveTypeId: ids.ANNUAL,
       startDate: '2027-03-01',
       endDate: '2027-03-05',
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
     });
     expect(own.status, JSON.stringify(own.body)).toBe(201);
     expect(
@@ -511,7 +526,7 @@ describe('sensitive requests', () => {
       leaveTypeId: ids.ANNUAL,
       startDate: '2027-03-01',
       endDate: '2027-03-05',
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       reason: 'Private family matter',
       sensitive: true,
     });
@@ -535,7 +550,10 @@ describe('sensitive requests', () => {
     const mgrView = await as(mgr).get(`/api/leave/requests/${res.body.id}`);
     expect(mgrView.status).toBe(200);
     expect(mgrView.body).toMatchObject({ sensitive: true, reason: null });
-    expect(mgrView.body.documents[0]).toMatchObject({ restricted: true, name: null });
+    expect(mgrView.body.documents.find((d) => d.kind === 'SUPPORTING')).toMatchObject({
+      restricted: true,
+      name: null,
+    });
     expect((await as(mgr).get(`/api/documents/${up.body.id}/download`)).status).toBe(404);
     expect((await as(other).get(`/api/leave/requests/${res.body.id}`)).status).toBe(404);
 

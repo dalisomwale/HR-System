@@ -93,9 +93,14 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
 
   // Small JSON bodies everywhere except the employee import, which parses its own (2 MB).
   const smallJson = express.json({ limit: '100kb' });
-  app.use((req, res, next) =>
-    req.path.startsWith('/api/admin/employees/import/') ? next() : smallJson(req, res, next),
-  );
+  // A leave request carries its Excel handover sheet (D99), so it may be larger.
+  const requestJson = express.json({ limit: '8mb' });
+  const carriesSheet = (p) =>
+    p === '/api/leave/requests' || /^\/api\/leave\/requests\/\d+\/resubmit$/.test(p);
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/admin/employees/import/')) return next();
+    return (carriesSheet(req.path) ? requestJson : smallJson)(req, res, next);
+  });
 
   app.use(
     '/api',

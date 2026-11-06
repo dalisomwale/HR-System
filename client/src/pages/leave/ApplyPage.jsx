@@ -7,7 +7,7 @@ import { LeaveForm } from '../../components/LeaveForm.jsx';
 export default function ApplyPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const submit = async (payload, idempotencyKey, files = [], handoverFile = null) => {
+  const submit = async (payload, idempotencyKey, files = []) => {
     const created = await api.post('/api/leave/requests', payload, { idempotencyKey });
     // The request exists now; a file that fails to upload can be added from the request page.
     const uploadFailed = [];
@@ -18,15 +18,7 @@ export default function ApplyPage() {
         uploadFailed.push(`${file.name}: ${err.message}`);
       }
     }
-    let uploaded = files.length - uploadFailed.length;
-    if (handoverFile) {
-      try {
-        await api.upload(`/api/documents/requests/${created.id}?kind=handover`, handoverFile);
-        uploaded += 1;
-      } catch (err) {
-        uploadFailed.push(`${handoverFile.name}: ${err.message}`);
-      }
-    }
+    const uploaded = files.length - uploadFailed.length;
     qc.invalidateQueries({ queryKey: ['my-requests'] });
     qc.invalidateQueries({ queryKey: ['balances'] });
     qc.invalidateQueries({ queryKey: ['dashboard'] });

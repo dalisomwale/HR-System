@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { createTestDb, resetData } from './helpers/db.js';
-import { testApp, fixtureEmployee, signIn, TENANT } from './helpers/app.js';
+import { testApp, fixtureEmployee, signIn, TENANT, HANDOVER } from './helpers/app.js';
 import { todayInLusaka } from '../src/utils/dates.js';
 import { addDays } from '../src/modules/leave/calendar.js';
 import { notify } from '../src/modules/notifications/notify.service.js';
@@ -81,7 +81,7 @@ async function submitAnnual() {
     leaveTypeId: ids.ANNUAL,
     startDate: '2027-03-01',
     endDate: '2027-03-05',
-    handoverNotes: 'Covered.',
+    handoverSheet: HANDOVER,
   });
   expect(res.status, JSON.stringify(res.body)).toBe(201);
   return res.body;
@@ -103,7 +103,7 @@ describe('workflow notifications', () => {
   it('never names a confidential leave type or includes the reason in an email', async () => {
     await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: '2027-03-01',
       endDate: '2027-03-02',
       reason: 'Private medical detail',
@@ -151,7 +151,7 @@ describe('workflow notifications', () => {
       leaveTypeId: ids.ANNUAL,
       startDate: '2027-03-01',
       endDate: '2027-03-31',
-      handoverNotes: 'x',
+      handoverSheet: HANDOVER,
     });
     expect(bad.status).toBe(400);
     expect(await db('notifications').count({ n: '*' }).first()).toEqual({ n: 0 });
@@ -274,7 +274,7 @@ describe('reminders and escalation', () => {
     const start = todayInLusaka();
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: start,
       endDate: addDays(start, 1),
       reason: 'Unwell',

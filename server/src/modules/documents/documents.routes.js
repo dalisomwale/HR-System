@@ -11,10 +11,9 @@ import { AppError, badRequest, conflict, notFound } from '../../utils/errors.js'
 import { REPO_ROOT } from '../../config/env.js';
 import { managerAuthority } from '../leave/requests.service.js';
 import { seesWholeGroup } from '../../middleware/auth.js';
-import { readFirstSheet } from '../admin/xlsx-read.js';
+import { isXlsx, XLSX_MIME as XLSX } from './handover-file.js';
 
 const MAX_PER_REQUEST = 10;
-const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 /** Types a browser may open in place; anything else is always downloaded. */
 const VIEWABLE = ['application/pdf', 'image/jpeg', 'image/png'];
 const CLOSED_STATES = ['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'];
@@ -26,17 +25,6 @@ export function sniffType(buf) {
   const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
   if (buf.length >= 8 && png.every((b, i) => buf[i] === b)) return 'image/png';
   return null;
-}
-
-/** An Excel workbook (.xlsx): a ZIP package whose first worksheet can actually be read. */
-export function isXlsx(buf) {
-  if (buf.length < 4 || buf.readUInt32LE(0) !== 0x04034b50) return false;
-  try {
-    readFirstSheet(buf);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Keep a readable, harmless file name for display and download. */
@@ -191,8 +179,12 @@ export function documentRoutes({ db, config, logger }) {
             .whereNull('deleted_at')
             .count({ n: '*' })
             .first();
-          if (kind === 'HANDOVER' && Number(count.n) > 0) {
-            throw conflict('This request already has a handover sheet. Remove it to attach a new one.');
+          // A new handover sheet replaces the one before (D99).
+          if (kind === 'HANDOVER') {
+            await trx('documents')
+              .where({ leave_request_id: requestId, kind })
+              .whereNull('deleted_at')
+              .update({ deleted_at: trx.fn.now(), deleted_by: req.user.id });
           }
           if (Number(count.n) >= MAX_PER_REQUEST) {
             throw conflict(`A request can have at most ${MAX_PER_REQUEST} documents.`);
@@ -282,6 +274,8 @@ export function documentRoutes({ db, config, logger }) {
       const ownUpload = isOwner && d.uploaded_by === req.user.id;
       // Only the employee can remove a document they uploaded themselves; HR keeps every file.
       if (!ownUpload) throw notFound('Document not found.');
+      // Every request keeps a handover sheet; it can be replaced, not removed (D99).
+      if (d.kind === 'HANDOVER') throw conflict('Attach a new handover sheet to replace this one.');
       if (!PENDING_STATES.includes(r.status)) {
         throw conflict('Documents can only be removed while the request is waiting for a decision.');
       }

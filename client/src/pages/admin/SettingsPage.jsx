@@ -35,7 +35,7 @@ const HELP = {
     'Whether a manager approves only the people who report to them directly, or everyone below them.',
   no_manager_routing: 'Requests from someone with no manager, for example the Executive Director.',
   resubmission_routing: 'Where a corrected request goes after HR sends it back.',
-  handover_signoff_by: 'The policy says handover notes are signed off by the Head of Department.',
+  handover_signoff_by: 'The policy says handovers are signed off by the Head of Department.',
   weekend_holiday_substitution:
     'When a public holiday falls on a weekend, any substitute day is added under Public holidays.',
   overdue_manager_working_days: 'After this, the request is flagged as overdue for the manager.',

@@ -167,7 +167,8 @@ export default function RequestPage() {
                       ],
                       ...(r.noticeShortfallReason ? [['Short notice reason', r.noticeShortfallReason]] : []),
                       ['Covering', r.handoverContact],
-                      ['Handover notes', r.handoverNotes],
+                      // Requests made before the handover sheet (D99) kept written notes.
+                      ...(r.handoverNotes ? [['Handover notes', r.handoverNotes]] : []),
                       [
                         'Handover sheet',
                         handoverSheet ? (
@@ -636,13 +637,12 @@ function ResubmitForm({ request: r, onDone }) {
     eventDate: r.eventDate ?? '',
     multipleBirth: r.multipleBirth,
     reason: r.reason ?? '',
-    handoverNotes: r.handoverNotes ?? '',
     handoverContactId: r.handoverContactId ? String(r.handoverContactId) : '',
     noticeShortfallReason: r.noticeShortfallReason ?? '',
     sensitive: r.sensitive,
   }));
   const hasSheet = r.documents.some((d) => d.kind === 'HANDOVER');
-  const submit = async (payload, idempotencyKey, files = [], handoverFile = null) => {
+  const submit = async (payload, idempotencyKey, files = []) => {
     await api.post(
       `/api/leave/requests/${r.id}/resubmit`,
       { ...payload, version: r.version },
@@ -651,9 +651,6 @@ function ResubmitForm({ request: r, onDone }) {
     // Files that fail here can be uploaded again from the Documents tab.
     for (const file of files) {
       await api.upload(`/api/documents/requests/${r.id}`, file).catch(() => {});
-    }
-    if (handoverFile) {
-      await api.upload(`/api/documents/requests/${r.id}?kind=handover`, handoverFile).catch(() => {});
     }
     refresh();
     onDone();

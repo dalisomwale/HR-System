@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { createTestDb, resetData } from './helpers/db.js';
-import { testApp, fixtureEmployee, signIn } from './helpers/app.js';
+import { testApp, fixtureEmployee, signIn, HANDOVER } from './helpers/app.js';
 import { todayInLusaka } from '../src/utils/dates.js';
 import { addDays } from '../src/modules/leave/calendar.js';
 
@@ -73,7 +73,7 @@ const annual = (over = {}) => ({
   leaveTypeId: ids.ANNUAL,
   startDate: MON,
   endDate: FRI,
-  handoverNotes: 'Mutale covers the credit queue.',
+  handoverSheet: HANDOVER,
   ...over,
 });
 
@@ -189,14 +189,14 @@ describe('calculating and validating a request', () => {
     const s = await signIn(app, entra, { oid: her.oid });
     const first = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: '2027-03-01',
       endDate: '2027-03-01',
     });
     expect(first.status).toBe(201);
     const second = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: '2027-03-15',
       endDate: '2027-03-15',
     });
@@ -204,24 +204,41 @@ describe('calculating and validating a request', () => {
     expect(second.body.error.fields[0].message).toMatch(/1 days in a calendar month/);
     const nextMonth = await as(s).post('/api/leave/requests', {
       leaveTypeId: ids.MOTHERS_DAY,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: '2027-04-01',
       endDate: '2027-04-01',
     });
     expect(nextMonth.status).toBe(201);
   });
 
-  it('requires handover notes for every leave type', async () => {
-    const res = await as(emp).post('/api/leave/requests', annual({ handoverNotes: '' }));
-    expect(res.body.error.fields.map((f) => f.path)).toContain('handoverNotes');
+  it('requires the Excel handover sheet for every leave type (D99)', async () => {
+    const res = await as(emp).post('/api/leave/requests', annual({ handoverSheet: null }));
+    expect(res.body.error.fields.map((f) => f.path)).toContain('handoverSheet');
+    // The preview flag is never trusted on submit.
+    const claimed = await as(emp).post(
+      '/api/leave/requests',
+      annual({ handoverSheet: null, handoverSheetAttached: true }),
+    );
+    expect(claimed.body.error.fields.map((f) => f.path)).toContain('handoverSheet');
     const sick = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
       startDate: addDays(todayInLusaka(), -2),
       endDate: addDays(todayInLusaka(), -1),
-      handoverNotes: '   ',
     });
     expect(sick.status).toBe(400);
-    expect(sick.body.error.fields.map((f) => f.path)).toContain('handoverNotes');
+    expect(sick.body.error.fields.map((f) => f.path)).toContain('handoverSheet');
+    // Not an Excel workbook.
+    const fake = await as(emp).post(
+      '/api/leave/requests',
+      annual({ handoverSheet: { name: 'h.xlsx', data: Buffer.from('%PDF-1.4').toString('base64') } }),
+    );
+    expect(fake.status).toBe(400);
+    expect(fake.body.error.fields.map((f) => f.path)).toContain('handoverSheet');
+    // Sent with the request, the sheet is stored on it.
+    const ok = await as(emp).post('/api/leave/requests', annual());
+    expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+    const docs = (await as(emp).get(`/api/leave/requests/${ok.body.id}`)).body.documents;
+    expect(docs).toEqual([expect.objectContaining({ kind: 'HANDOVER', name: 'handover.xlsx' })]);
   });
 });
 
@@ -413,7 +430,7 @@ describe('two-stage approval', () => {
     const re = await as(emp).post(`/api/leave/requests/${id}/resubmit`, {
       startDate: MON,
       endDate: '2027-03-04',
-      handoverNotes: 'Mutale covers; queue handed over on Friday.',
+      handoverSheet: HANDOVER,
     });
     expect(re.status, JSON.stringify(re.body)).toBe(200);
     expect(re.body.status).toBe('PENDING_MANAGER_APPROVAL');
@@ -466,7 +483,7 @@ describe('balances table figures', () => {
   it('reports approved and waiting days separately for every leave type', async () => {
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: addDays(todayInLusaka(), -2),
       endDate: addDays(todayInLusaka(), -1),
     });
@@ -488,7 +505,7 @@ describe('who can see a request', () => {
   it('hides requests from unrelated staff and confidential reasons from managers', async () => {
     const res = await as(emp).post('/api/leave/requests', {
       leaveTypeId: ids.SICK,
-      handoverNotes: 'Covered.',
+      handoverSheet: HANDOVER,
       startDate: addDays(todayInLusaka(), -2),
       endDate: addDays(todayInLusaka(), -1),
       reason: 'Diagnosis details',

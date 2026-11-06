@@ -55,6 +55,9 @@ function requestsQuery(db) {
       'co.name as company_name',
       't.name as type_name',
       't.is_confidential',
+      db.raw(
+        "EXISTS (SELECT 1 FROM documents hs WHERE hs.leave_request_id = r.id AND hs.kind = 'HANDOVER' AND hs.deleted_at IS NULL) as has_sheet",
+      ),
     );
 }
 
@@ -382,7 +385,7 @@ export function dashboardRoutes({ db }) {
         overlaps: overlaps(teamRequests, today, horizon),
         handoversOutstanding: handovers.map((r) => ({
           ...item(r),
-          hasNotes: Boolean(r.handover_notes),
+          hasNotes: Boolean(r.handover_notes || r.has_sheet),
         })),
         coveringFor: delegators.length
           ? (await db('employees').whereIn('id', delegators).select('first_name', 'last_name')).map((e) =>

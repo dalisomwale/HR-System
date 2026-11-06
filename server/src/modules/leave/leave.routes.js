@@ -25,6 +25,8 @@ import { myRequests, requestDetail, managerQueue, hrQueue } from './queries.serv
 import { appliesTo, employeeBalances, eligibilityProblem, recordAdjustment } from './balance.service.js';
 import { policyOn } from './policy.service.js';
 import { toXlsx } from '../reports/export-files.js';
+import { storeHandoverSheet } from '../documents/handover-file.js';
+import { storageDir } from '../documents/documents.routes.js';
 
 /** Columns of the Excel handover template (D98). */
 export const HANDOVER_COLUMNS = [
@@ -43,8 +45,20 @@ const yearParam = (q) => {
 };
 
 /** Leave for the signed-in employee. Employee IDs never come from the client. */
-export function leaveRoutes({ db }) {
+export function leaveRoutes({ db, config }) {
   const router = Router();
+  // Store the handover sheet first; remove it again if the request is not saved.
+  const withSheet = async (sheet, save) => {
+    const file = config
+      ? await storeHandoverSheet(storageDir(config), config.documents.maxBytes, sheet)
+      : null;
+    try {
+      return await save(file);
+    } catch (e) {
+      await file?.discard();
+      throw e;
+    }
+  };
 
   // The blank handover template; the employee fills it in and attaches it to the request.
   router.get('/handover-template', (req, res) => {
@@ -129,7 +143,10 @@ export function leaveRoutes({ db }) {
     '/requests',
     asyncHandler(async (req, res) => {
       const input = requestInputSchema.parse(req.body);
-      res.status(201).json(await submitRequest(db, req.user, input, auditContext(req)));
+      const out = await withSheet(input.handoverSheet, (handoverFile) =>
+        submitRequest(db, req.user, input, auditContext(req), { handoverFile }),
+      );
+      res.status(201).json(out);
     }),
   );
 
@@ -186,7 +203,10 @@ export function leaveRoutes({ db }) {
     '/requests/:id/resubmit',
     asyncHandler(async (req, res) => {
       const input = requestInputSchema.omit({ leaveTypeId: true }).merge(versionSchema).parse(req.body);
-      res.json(await resubmitRequest(db, req.user, idParam(req), input, auditContext(req)));
+      const out = await withSheet(input.handoverSheet, (handoverFile) =>
+        resubmitRequest(db, req.user, idParam(req), input, auditContext(req), { handoverFile }),
+      );
+      res.json(out);
     }),
   );
 
