@@ -120,8 +120,11 @@ export function leaveRoutes({ db, config }) {
   router.get(
     '/colleagues',
     asyncHandler(async (req, res) => {
+      // Only people in the employee's own department can cover (D103).
+      const me = await db('employees').where({ id: req.user.id }).first('department_id');
+      if (!me?.department_id) return res.json({ items: [] });
       const rows = await db('employees')
-        .where({ status: 'ACTIVE' })
+        .where({ status: 'ACTIVE', department_id: me.department_id })
         .whereNot('id', req.user.id)
         .orderBy(['last_name', 'first_name'])
         .select('id', 'first_name', 'last_name', 'job_title');

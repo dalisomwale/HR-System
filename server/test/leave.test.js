@@ -97,6 +97,25 @@ describe('calculating and validating a request', () => {
     expect(res.body.holidaysExcluded).toEqual([{ date: '2027-03-03', name: 'Test holiday' }]);
   });
 
+  it("takes cover only from the employee's own department (D103)", async () => {
+    // No department: nobody to choose.
+    expect((await as(emp).get('/api/leave/colleagues')).body.items).toEqual([]);
+    const [deptId] = await db('departments').insert({ code: 'CRD', name: 'Credit' });
+    await db('employees').where({ id: empId }).update({ department_id: deptId });
+    const inDept = await fixtureEmployee(db, { first_name: 'Ina', department_id: deptId });
+    const left = await fixtureEmployee(db, { first_name: 'Lee', department_id: deptId, status: 'INACTIVE' });
+    const outside = await fixtureEmployee(db, { first_name: 'Otto' });
+    const listed = (await as(emp).get('/api/leave/colleagues')).body.items.map((c) => c.id);
+    expect(listed).toEqual([inDept.id]);
+    expect(listed).not.toContain(left.id);
+    const fields = async (id) =>
+      (await as(emp).post('/api/leave/requests/preview', annual({ handoverContactId: id }))).body.errors.map(
+        (e) => e.field,
+      );
+    expect(await fields(outside.id)).toContain('handoverContactId');
+    expect(await fields(inDept.id)).not.toContain('handoverContactId');
+  });
+
   it('asks for a reason when notice is shorter than two weeks', async () => {
     const soon = addDays(todayInLusaka(), 3);
     await opening(empId, ids.ANNUAL, Number(soon.slice(0, 4)), 10);

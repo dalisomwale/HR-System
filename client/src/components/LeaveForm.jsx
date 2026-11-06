@@ -287,7 +287,16 @@ export function LeaveForm({
               <Textarea id="reason" rows={3} invalid={!!err('reason')} {...register('reason')} />
             </Field>
 
-            <Field id="handoverContactId" label="Who will cover your work?" error={err('handoverContactId')}>
+            <Field
+              id="handoverContactId"
+              label="Who will cover your work?"
+              error={err('handoverContactId')}
+              hint={
+                colleagues.data.items.length === 0
+                  ? 'No one else in your department to choose.'
+                  : 'Someone in your department.'
+              }
+            >
               <Select
                 id="handoverContactId"
                 invalid={!!err('handoverContactId')}
@@ -302,7 +311,7 @@ export function LeaveForm({
               </Select>
             </Field>
 
-            <div className="sm:col-span-2">
+            <div>
               <HandoverSheetPicker
                 file={handoverFile}
                 onChange={(f) => {
@@ -541,52 +550,64 @@ function HandoverSheetPicker({ file, onChange, attached, error }) {
     if (f.size > MAX_MB * 1024 * 1024) return setProblem(`${f.name} is larger than ${MAX_MB} MB.`);
     onChange(f);
   };
+  const message = problem || error;
   return (
-    <div className={`rounded-md border p-4 ${error ? 'border-danger' : 'border-rule'}`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-medium">Handover</p>
-          <p className="mt-1 text-xs text-muted">
-            Download the Excel template, list your tasks, deadlines and contacts, then attach it.
-          </p>
-        </div>
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-2">
+        <label htmlFor="handoverSheet" className="text-sm font-medium">
+          Handover
+        </label>
         <a href={HANDOVER_TEMPLATE_URL} className="text-sm text-brand hover:underline">
           Download template
         </a>
       </div>
-      {attached && !file ? (
-        <p className="mt-3 text-sm text-muted">
-          Your handover sheet is already attached. Attach a new one only to replace it.
-        </p>
-      ) : file ? (
-        <div className="mt-3 flex items-center gap-3 rounded-md border border-rule px-3 py-2 text-sm">
+      <input
+        ref={input}
+        id="handoverSheet"
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="sr-only"
+        onChange={(e) => pick(e.target.files?.[0])}
+      />
+      {file ? (
+        <div
+          className={`flex h-[34px] items-center gap-2 rounded-md border bg-white px-3 text-sm ${message ? 'border-danger' : 'border-rule'}`}
+        >
           <FileSpreadsheet className="size-4 shrink-0 text-muted" aria-hidden />
           <span className="min-w-0 flex-1 truncate">{file.name}</span>
           <span className="text-xs text-muted">{size(file.size)}</span>
           <button
             type="button"
-            className="rounded-sm p-1 text-muted hover:bg-canvas hover:text-danger"
+            className="rounded-sm p-0.5 text-muted hover:bg-canvas hover:text-danger"
             aria-label={`Remove ${file.name}`}
             onClick={() => onChange(null)}
           >
             <X className="size-4" aria-hidden />
           </button>
         </div>
-      ) : null}
-      {(problem || error) && <p className="mt-2 text-xs text-danger">{problem || error}</p>}
-      <input
-        ref={input}
-        type="file"
-        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        onChange={(e) => pick(e.target.files?.[0])}
-      />
-      <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
-        <Paperclip className="size-4" aria-hidden />{' '}
-        {file ? 'Choose another file' : attached ? 'Replace handover sheet' : 'Attach handover sheet'}
-      </Button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => input.current?.click()}
+          className={`flex h-[34px] w-full items-center gap-2 rounded-md border bg-white px-3 text-left text-sm hover:border-muted ${message ? 'border-danger' : 'border-rule'}`}
+        >
+          <Paperclip className="size-4 shrink-0 text-muted" aria-hidden />
+          <span className={attached ? '' : 'text-muted'}>
+            {attached
+              ? 'Handover sheet attached. Choose a file to replace it'
+              : 'Attach your handover sheet (.xlsx)'}
+          </span>
+        </button>
+      )}
+      {message ? (
+        <p role="alert" className="mt-1 text-xs text-danger">
+          {message}
+        </p>
+      ) : (
+        <p className="mt-1 text-xs text-muted">
+          Fill in the Excel template with your tasks, deadlines and contacts.
+        </p>
+      )}
     </div>
   );
 }

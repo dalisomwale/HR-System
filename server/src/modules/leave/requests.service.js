@@ -157,6 +157,19 @@ export async function evaluateRequest(
     }
     if (input.handoverContactId && input.handoverContactId === employee.id) {
       errors.push(err('handoverContactId', 'Choose someone other than yourself to cover.'));
+    } else if (input.handoverContactId) {
+      // Cover comes from the employee's own department (D103).
+      const cover = await db('employees')
+        .where({ id: input.handoverContactId })
+        .first('status', 'department_id');
+      if (
+        !cover ||
+        cover.status !== 'ACTIVE' ||
+        !employee.department_id ||
+        cover.department_id !== employee.department_id
+      ) {
+        errors.push(err('handoverContactId', 'Choose someone in your department to cover.'));
+      }
     }
 
     // Leave tied to an event (paternity: the birth)
