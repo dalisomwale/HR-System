@@ -2,8 +2,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
-import { FileBarChart } from 'lucide-react';
-import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
+import { LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
 import { MonthlyLeaveChart, PeopleOffChart, TeamTodayDonut } from './dashboard-charts.jsx';
 
@@ -14,14 +13,7 @@ export default function TeamPage() {
   });
   return (
     <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title="Departmental overview"
-        actions={
-          <ButtonLink to="/reports">
-            <FileBarChart className="size-4" aria-hidden /> Team reports
-          </ButtonLink>
-        }
-      />
+      <PageHeader title="Departmental overview" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
