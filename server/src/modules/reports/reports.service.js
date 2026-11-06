@@ -347,7 +347,7 @@ export const REPORTS = [
     id: 'utilisation-company',
     title: 'Utilisation by company',
     description: 'Approved days taken in the period per company in the group, against current headcount.',
-    levels: ['HR', 'MANAGER'],
+    levels: ['HR'], // not for managers (D95)
     filters: ['from', 'to', 'company', 'leaveType'],
     columns: [
       { key: 'company', label: 'Company', type: 'text' },
@@ -364,7 +364,7 @@ export const REPORTS = [
     id: 'utilisation',
     title: 'Utilisation by department',
     description: 'Approved days taken in the period per department, against current headcount.',
-    levels: ['HR', 'MANAGER'],
+    levels: ['HR'], // not for managers (D95)
     filters: ['from', 'to', 'company', 'department', 'leaveType'],
     columns: [
       { key: 'company', label: 'Company', type: 'text' },

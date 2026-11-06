@@ -107,7 +107,7 @@ describe('who can run reports', () => {
 
     const list = await as(mgr).get('/api/reports');
     expect(list.body.scope).toBe('MANAGER');
-    expect(list.body.items).toHaveLength(14);
+    expect(list.body.items).toHaveLength(12);
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
 
     const mine = await as(mgr).get('/api/reports/requests?year=2027');
@@ -164,11 +164,10 @@ describe('every report for managers, limited to their team', () => {
     expect(ledger.status).toBe(200);
     expect(ledger.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
 
-    const util = await as(mgr).get('/api/reports/utilisation-company?year=2027');
-    expect(util.body.rows).toEqual([
-      { company: 'Altus Financial Services Limited', headcount: 1, days: 5, perPerson: 5 },
-    ]);
-    for (const id of ['carry-forward', 'approval-activity', 'utilisation']) {
+    // The two utilisation reports are for HR and directors only (D95).
+    expect((await as(mgr).get('/api/reports/utilisation-company?year=2027')).status).toBe(404);
+    expect((await as(mgr).get('/api/reports/utilisation?year=2027')).status).toBe(404);
+    for (const id of ['carry-forward', 'approval-activity']) {
       expect((await as(mgr).get(`/api/reports/${id}?year=2027`)).status).toBe(200);
     }
     const options = (await as(mgr).get('/api/reports')).body.options;
