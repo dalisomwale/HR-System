@@ -32,10 +32,19 @@ import {
   X,
   ChevronDown,
   Plus,
+  ShoppingCart,
+  FilePlus2,
+  Boxes,
+  PackagePlus,
+  PackageMinus,
+  ArrowLeftRight,
+  Tags,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import LeaveTrail from './LeaveTrail.jsx';
+import RequisitionsTrail from './RequisitionsTrail.jsx';
+import { useRq } from '../pages/requisitions/rq.js';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
@@ -371,7 +380,7 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
               {count && counts[count] > 0 && (
                 <span className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white">
                   {counts[count] > 99 ? '99+' : counts[count]}
-                  <span className="sr-only"> unread</span>
+                  <span className="sr-only">{count === 'unread' ? ' unread' : ' waiting'}</span>
                 </span>
               )}
             </NavLink>
@@ -379,6 +388,60 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** The Requisitions menu (D105), from what the person can do there. */
+function RequisitionsNav({ onNavigate }) {
+  const rq = useRq();
+  const a = rq.data;
+  if (!a) return rq.isPending ? <p className="px-3 text-xs text-muted">Loading</p> : null;
+  const work = [
+    { to: '/requisitions', label: 'Home', icon: House, end: true },
+    {
+      to: '/requisitions/requests',
+      label: 'Requisitions',
+      icon: ShoppingCart,
+      count: 'waiting',
+      except: '/requisitions/requests/new',
+    },
+    ...(a.canRaise
+      ? [{ to: '/requisitions/requests/new', label: 'Raise a requisition', icon: FilePlus2 }]
+      : []),
+  ];
+  const stock = a.stock
+    ? [
+        {
+          to: '/requisitions/stock',
+          label: a.stockDepartment ? 'Department stock' : 'Stock',
+          icon: Boxes,
+          except: '/requisitions/stock/new',
+        },
+        ...(a.stores
+          ? [
+              { to: '/requisitions/receive', label: 'Receive stock', icon: PackagePlus },
+              { to: '/requisitions/issue', label: 'Issue stock', icon: PackageMinus },
+            ]
+          : []),
+        { to: '/requisitions/transactions', label: 'Transactions', icon: ArrowLeftRight },
+        { to: '/requisitions/reports', label: 'Monthly reports', icon: FileBarChart },
+        ...(a.stockDepartment ? [] : [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]),
+      ]
+    : [];
+  return (
+    <>
+      <NavGroup title="My work" items={work} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
+      {stock.length > 0 && <NavGroup title="Stock" items={stock} onNavigate={onNavigate} />}
+      {a.admin && (
+        <AdminNav
+          items={[
+            { to: '/requisitions/branches', label: 'Branches' },
+            { to: '/requisitions/settings', label: 'Requisition departments' },
+          ]}
+          onNavigate={onNavigate}
+        />
+      )}
+    </>
   );
 }
 
@@ -412,6 +475,7 @@ export default function AppShell() {
   const { data: user } = useMe();
   const { pathname } = useLocation();
   const inPeople = pathname === '/people' || pathname.startsWith('/people/');
+  const inRequisitions = pathname === '/requisitions' || pathname.startsWith('/requisitions/');
   const placeBase = pathname.match(/^\/people\/(companies|departments)\/\d+/)?.[0] ?? null;
   const [menuOpen, setMenuOpen] = useState(false);
   // Unread notifications, refreshed every minute and when the window regains focus.
@@ -455,7 +519,9 @@ export default function AppShell() {
           <ArrowLeft className="size-3.5" aria-hidden /> Back to applications
         </Link>
       </div>
-      {inPeople ? (
+      {inRequisitions ? (
+        <RequisitionsNav onNavigate={() => setMenuOpen(false)} />
+      ) : inPeople ? (
         <>
           <NavGroup
             title="People"
@@ -492,7 +558,7 @@ export default function AppShell() {
           <Link to="/" className="flex items-center gap-3">
             <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
             <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
-              {inPeople ? 'Employee Management' : 'Leave Management'}
+              {inRequisitions ? 'Requisitions' : inPeople ? 'Employee Management' : 'Leave Management'}
             </span>
           </Link>
           <Link
@@ -553,7 +619,7 @@ export default function AppShell() {
           */}
           <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
             {/* Employee management pages show their own path; every other page gets this one. */}
-            {!inPeople && <LeaveTrail />}
+            {inRequisitions ? <RequisitionsTrail /> : !inPeople && <LeaveTrail />}
             <Outlet />
           </div>
         </main>

@@ -8,9 +8,11 @@ import {
   UserRound,
   Users,
   Wallet,
+  ShoppingCart,
 } from 'lucide-react';
 import AppFrame, { LogOutButton } from '../layouts/AppFrame.jsx';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
+import { useRq } from './requisitions/rq.js';
 
 /*
  * The first page after sign-in: the Altus Group HR applications. Leave management is live
@@ -33,6 +35,15 @@ const APPS = [
     description: 'The central record for every member of staff, from onboarding to offboarding.',
     icon: Users,
     to: '/people',
+  },
+  {
+    // Brought in from the Altus inventory system (D105); open to everyone with a part in it.
+    id: 'requisitions',
+    name: 'Requisitions',
+    description: 'Raise and approve purchase requisitions, and look after stock.',
+    icon: ShoppingCart,
+    to: '/requisitions',
+    requisitions: true,
   },
   {
     id: 'recruitment',
@@ -84,7 +95,8 @@ function greeting() {
 export default function LauncherPage() {
   const { data: me } = useMe();
   const seesAll = seesWholeGroup(me) || hasRole(me, 'HR_ADMIN');
-  const apps = APPS.filter((a) => a.everyone || seesAll);
+  const rq = useRq();
+  const apps = APPS.filter((a) => (a.requisitions ? Boolean(rq.data) : a.everyone || seesAll));
 
   return (
     <AppFrame>

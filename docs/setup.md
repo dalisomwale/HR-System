@@ -119,3 +119,34 @@ Used for `https://hrdesktop.online` (D81). The system runs as the production bui
    `NODE_ENV=production HOST=127.0.0.1 TRUST_PROXY=1 COOKIE_SECURE=true MAIL_OFF_IN_PRODUCTION=true`, the three URLs on the domain, and `DOCUMENT_STORAGE_DIR` outside the project; remove `DEV_NETWORK_HOST`.
 3. Add `https://<domain>/api/auth/callback` to the app registration in Entra.
 4. `npm run build`, then `npm start`.
+
+## Requisitions (D105, D106)
+
+The Requisitions module (requisitions and stock, brought in from the Altus inventory system) needs
+three things set up by the System Administrator, in Requisitions › Administration:
+
+1. **Requisition departments**: tick the departments that do the IT, Accounts and Stores steps.
+   Staff in those departments get those steps; the Department Manager (or line manager) of an
+   Accounts department is the Accounts Manager. Directors approve, and the Accounts Director gives
+   final approval as CFO.
+2. **Branches**: add the branches (stock locations) of each company. Stock is received at and
+   issued from a branch.
+3. Categories start with the inventory system's seven; Stores can change them under Categories.
+
+### Copying the data from the inventory system
+
+The import reads the inventory database and copies its branches, categories, items, stock,
+deliveries, issues, requisitions, files and history. Companies are matched by name, departments by
+name within their company, and people by email. Nothing is created in Employee management; a
+department or person with no match keeps their name on the records.
+
+On the Windows server, from `C:\Users\Administrator\HR-System`, first a dry run (it changes
+nothing and lists what does not match):
+
+```
+npm run import-inventory -- --database inventory_system --user root --password "your-root-password" --files "C:\xampp\htdocs\inventory_system\storage\requisitions"
+```
+
+If a company is named differently in the two systems, add `--map "Inventory name=HR name"` (once
+per company). When the report looks right, run the same command with `--apply` at the end. The
+import runs once; running it again is refused.

@@ -20,7 +20,8 @@
     "dev": "node scripts/dev.mjs",
     "build": "npm run build --workspace client",
     "start": "npm run start --workspace server",
-    "set-env": "node scripts/set-env.mjs"
+    "set-env": "node scripts/set-env.mjs",
+    "import-inventory": "npm run import-inventory --workspace server --"
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",

@@ -36,6 +36,21 @@ import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/Deleg
 import NotificationsPage from './pages/notifications/NotificationsPage.jsx';
 import EmailsPage from './pages/admin/EmailsPage.jsx';
 import ReportsPage from './pages/reports/ReportsPage.jsx';
+import RequisitionsHomePage from './pages/requisitions/RequisitionsHomePage.jsx';
+import RequisitionsListPage from './pages/requisitions/RequisitionsListPage.jsx';
+import RaisePage from './pages/requisitions/RaisePage.jsx';
+import RequisitionPage from './pages/requisitions/RequisitionPage.jsx';
+import StockPage from './pages/requisitions/StockPage.jsx';
+import ItemPage from './pages/requisitions/ItemPage.jsx';
+import ItemFormPage from './pages/requisitions/ItemFormPage.jsx';
+import ReceivePage from './pages/requisitions/ReceivePage.jsx';
+import IssuePage from './pages/requisitions/IssuePage.jsx';
+import TransactionsPage from './pages/requisitions/TransactionsPage.jsx';
+import StockReportsPage from './pages/requisitions/StockReportsPage.jsx';
+import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
+import BranchesPage from './pages/requisitions/BranchesPage.jsx';
+import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
+import { useRq } from './pages/requisitions/rq.js';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +68,27 @@ function ToPeople({ base }) {
   const { search } = useLocation();
   return <Navigate to={`${base}${id ? `/${id}` : ''}${search}`} replace />;
 }
+
+/** Requisitions pages open only for people with a part in it (D105); `need` narrows further. */
+function RqGate({ need, children }) {
+  const rq = useRq();
+  if (rq.isPending) return null;
+  if (!rq.data || (need && !need(rq.data))) {
+    return (
+      <div className="max-w-xl">
+        <h1 className="text-xl font-semibold">You don't have access to this page</h1>
+        <p className="mt-2 text-sm text-muted">
+          Requisitions are open to the people who take part in them.{' '}
+          <Link to="/" className="text-brand underline">
+            Back to applications
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return children;
+}
+const rqPage = (el, need) => <RqGate need={need}>{el}</RqGate>;
 
 function NotFound() {
   return (
@@ -128,6 +164,23 @@ createRoot(document.getElementById('root')).render(
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="reports" element={group(<ReportsPage base="/api/people/reports" listInMenu />)} />
               <Route path="import" element={<Navigate to="/people/employees/new?mode=import" replace />} />
+            </Route>
+            <Route path="requisitions">
+              <Route index element={rqPage(<RequisitionsHomePage />)} />
+              <Route path="requests" element={rqPage(<RequisitionsListPage />)} />
+              <Route path="requests/new" element={rqPage(<RaisePage />, (a) => a.canRaise)} />
+              <Route path="requests/:id" element={rqPage(<RequisitionPage />)} />
+              <Route path="stock" element={rqPage(<StockPage />, (a) => a.stock)} />
+              <Route path="stock/new" element={rqPage(<ItemFormPage />, (a) => a.stores)} />
+              <Route path="stock/:id" element={rqPage(<ItemPage />, (a) => a.stock)} />
+              <Route path="stock/:id/edit" element={rqPage(<ItemFormPage />, (a) => a.stores)} />
+              <Route path="receive" element={rqPage(<ReceivePage />, (a) => a.stores)} />
+              <Route path="issue" element={rqPage(<IssuePage />, (a) => a.stores)} />
+              <Route path="transactions" element={rqPage(<TransactionsPage />, (a) => a.stock)} />
+              <Route path="reports" element={rqPage(<StockReportsPage />, (a) => a.stock)} />
+              <Route path="categories" element={rqPage(<CategoriesPage />, (a) => a.stock)} />
+              <Route path="branches" element={rqPage(<BranchesPage />, (a) => a.admin)} />
+              <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.admin)} />
             </Route>
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />

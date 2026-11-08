@@ -10,6 +10,7 @@
     "migrate:rollback": "knex --knexfile knexfile.js migrate:rollback",
     "migrate:status": "knex --knexfile knexfile.js migrate:status",
     "bootstrap:admin": "node scripts/bootstrap-admin.js",
+    "import-inventory": "node scripts/import-inventory.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },

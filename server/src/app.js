@@ -20,6 +20,9 @@ import { peopleRoutes } from './modules/people/people.routes.js';
 import { notificationRoutes } from './modules/notifications/notifications.routes.js';
 import { configureNotifications } from './modules/notifications/notify.service.js';
 import { reportRoutes } from './modules/reports/reports.routes.js';
+import { loadRequisitionContext, need } from './modules/requisitions/access.js';
+import { requisitionRoutes } from './modules/requisitions/requisitions.routes.js';
+import { stockRoutes } from './modules/requisitions/stock.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -138,6 +141,14 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/hr', hrRoutes(deps));
   app.use('/api/delegations', delegationRoutes(deps));
   app.use('/api/documents', documentRoutes(deps));
+  // Requisitions and stock (D105), brought in from the Altus inventory system.
+  app.use('/api/requisitions', loadRequisitionContext(deps), requisitionRoutes(deps));
+  app.use(
+    '/api/stock',
+    loadRequisitionContext(deps),
+    need((c) => c.canOpen, 'You do not have access to Requisitions.'),
+    stockRoutes(deps),
+  );
   app.use('/api/dashboard', dashboardRoutes(deps));
   app.use('/api/people', peopleRoutes(deps));
   app.use('/api/notifications', notificationRoutes(deps));
