@@ -1081,45 +1081,46 @@
 
 @layer components {
   /*
-   * Coloured headline tiles: each tile in a row takes the next of the action-tile colours
-   * (navy, green, orange, teal). A figure that needs attention turns its tile red or amber.
+   * Coloured headline tiles, only where a page asks for them (<KpiRow color>): each tile in the
+   * row takes the next of the action-tile colours (navy, green, orange, teal). A figure that
+   * needs attention turns its tile red or amber. Other rows keep the white inventory tiles.
    */
-  .kpi {
+  .kpi-row.colored > .kpi {
     --tone: #25398d;
     background: var(--tone);
     border-color: var(--tone);
     color: #fff;
     transition: filter 0.12s;
   }
-  .kpi-row > .kpi:nth-child(4n + 2) {
+  .kpi-row.colored > .kpi:nth-child(4n + 2) {
     --tone: #0e7a53;
   }
-  .kpi-row > .kpi:nth-child(4n + 3) {
+  .kpi-row.colored > .kpi:nth-child(4n + 3) {
     --tone: #b25e08;
   }
-  .kpi-row > .kpi:nth-child(4n + 4) {
+  .kpi-row.colored > .kpi:nth-child(4n + 4) {
     --tone: #116e7a;
   }
-  .kpi-row > .kpi.kpi-bad {
+  .kpi-row.colored > .kpi.kpi-bad {
     --tone: #c53030;
   }
-  .kpi-row > .kpi.kpi-warn {
+  .kpi-row.colored > .kpi.kpi-warn {
     --tone: #8a6200;
   }
-  a.kpi:hover {
+  .kpi-row.colored > a.kpi:hover {
     border-color: var(--tone);
     filter: brightness(1.1);
   }
-  .kpi .kpi-label {
+  .kpi-row.colored .kpi-label {
     color: rgb(255 255 255 / 0.88);
   }
-  .kpi .kpi-value,
-  .kpi .kpi-value.is-bad,
-  .kpi .kpi-value.is-warn {
+  .kpi-row.colored .kpi-value,
+  .kpi-row.colored .kpi-value.is-bad,
+  .kpi-row.colored .kpi-value.is-warn {
     color: #fff;
   }
-  .kpi .kpi-unit,
-  .kpi .kpi-note {
+  .kpi-row.colored .kpi-unit,
+  .kpi-row.colored .kpi-note {
     color: rgb(255 255 255 / 0.85);
   }
 }

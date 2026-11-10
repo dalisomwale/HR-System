@@ -58,7 +58,7 @@ function Body({ d }) {
   const ex = d.exceptions;
   return (
     <>
-      <Stats cols={3}>
+      <Stats cols={3} color>
         <Stat label="Waiting for HR" value={d.awaitingHr.length} to={approvals} />
         <Stat label="Overdue" value={ex.overdue} tone="danger" />
         <Stat label="On leave today" value={d.onLeave.length} />

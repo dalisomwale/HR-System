@@ -103,7 +103,7 @@ function Body({ d, companyId }) {
 
   return (
     <>
-      <Stats>
+      <Stats color>
         <Stat label="Active staff" value={d.headcount} to={`/people/employees${qs({ companyId })}`} />
         <Stat label="Starting in the next 30 days" value={d.counts.startingSoon} to={link('startingSoon')} />
         <Stat label="Leaving in the next 30 days" value={d.counts.leavingSoon} to={link('leavingSoon')} />

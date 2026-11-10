@@ -82,9 +82,9 @@ export function Section({ title, description, actions, children, className }) {
   );
 }
 
-/** Headline figures: a row of four (or three) large numbers. */
-export function KpiRow({ children, cols = 4 }) {
-  return <div className={cx('kpi-row', cols === 3 && 'cols-3')}>{children}</div>;
+/** Headline figures: a row of four (or three) large numbers; `color` gives solid coloured tiles. */
+export function KpiRow({ children, cols = 4, color = false }) {
+  return <div className={cx('kpi-row', cols === 3 && 'cols-3', color && 'colored')}>{children}</div>;
 }
 export function Kpi({ label, value, unit, note, to, tone, small }) {
   const body = (

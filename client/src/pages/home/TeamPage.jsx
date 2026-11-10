@@ -32,7 +32,7 @@ function Body({ d }) {
       {d.coveringFor.length > 0 && (
         <Notice tone="neutral" title={`You are covering approvals for ${d.coveringFor.join(', ')}.`} />
       )}
-      <Stats>
+      <Stats color>
         <Stat label="Waiting for you" value={d.awaiting.length + d.awaitingChanges} to="/approvals" />
         <Stat label="Overdue" value={overdue} tone="danger" to="/approvals" />
         <Stat label="On leave today" value={d.onLeave.length} />

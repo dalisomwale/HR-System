@@ -11,8 +11,12 @@ export function Stat({ label, value, to, tone }) {
   );
 }
 
-export function Stats({ children, cols = 4 }) {
-  return <KpiRow cols={cols}>{children}</KpiRow>;
+export function Stats({ children, cols = 4, color = false }) {
+  return (
+    <KpiRow cols={cols} color={color}>
+      {children}
+    </KpiRow>
+  );
 }
 
 /** Compact list of requests with a link to each. */
