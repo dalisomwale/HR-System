@@ -1,6 +1,5 @@
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2 } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import {
@@ -67,9 +66,7 @@ export default function DepartmentOverviewPage() {
               </Select>
             )}
             {hasRole(me, 'HR_OFFICER') && (
-              <ButtonLink to="/people/departments/manage">
-                <Settings2 className="size-4" aria-hidden /> Manage departments
-              </ButtonLink>
+              <ButtonLink to="/people/departments/manage"> Manage departments</ButtonLink>
             )}
           </div>
         }
@@ -79,7 +76,7 @@ export default function DepartmentOverviewPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.departments.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title="No departments yet." />
         </div>
       ) : (
@@ -169,9 +166,9 @@ export function DepartmentTable({ departments, year, companyId }) {
       </Table>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         {[
-          ['#2a3fbf', 'Permanent'],
-          ['#eb6834', 'Fixed-term'],
-          ['#1baf7a', 'Temporary'],
+          ['#3a54b4', 'Permanent'],
+          ['#d0700c', 'Fixed-term'],
+          ['#6f9a2e', 'Temporary'],
           ['#a3aab8', 'Not recorded'],
         ].map(([c, n]) => (
           <span key={n} className="flex items-center gap-1.5">
@@ -198,7 +195,7 @@ export function DepartmentStatistics({ departments, year, companyId, genderByDep
   }));
   const scope = companyId ? 'This company' : 'Altus Group';
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid-2">
       <Section title="Employment type by department" description="Active staff, largest departments">
         <TypesByGroup groups={groups} label="Active staff in each department by employment type" />
       </Section>

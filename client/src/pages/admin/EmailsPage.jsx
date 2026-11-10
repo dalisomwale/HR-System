@@ -56,7 +56,7 @@ export default function EmailsPage() {
 
   const d = q.data;
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader
         title="Emails"
         actions={
@@ -81,7 +81,7 @@ export default function EmailsPage() {
         <Notice tone="pending" title="Email is switched off on this server." />
       )}
       {d?.transport === 'graph' && (
-        <p className="text-sm text-muted">
+        <p className="muted-text">
           Sending through Microsoft 365 as <span className="font-medium text-ink">{d.sender}</span>.
         </p>
       )}
@@ -106,7 +106,7 @@ export default function EmailsPage() {
           ))}
         </Select>
         {d && (
-          <p className="text-sm text-muted">
+          <p className="muted-text">
             {Object.entries(STATUS)
               .map(([k, [, label]]) => `${label}: ${d.counts[k] ?? 0}`)
               .join(' · ')}
@@ -119,7 +119,7 @@ export default function EmailsPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : d.items.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title="No emails found." />
         </div>
       ) : (

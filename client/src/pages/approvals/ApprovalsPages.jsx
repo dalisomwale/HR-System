@@ -24,11 +24,11 @@ import { RequestTable } from '../leave/MyLeavePage.jsx';
 function Block({ title, children, empty, count }) {
   return (
     <div>
-      <h2 className="mb-2 text-[15px] font-semibold">
+      <h2 className="mb-3 font-head text-base font-semibold text-ink">
         {title} <span className="font-normal text-muted">({count})</span>
       </h2>
       {count === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title={empty} />
         </div>
       ) : (
@@ -92,7 +92,7 @@ export function ManagerApprovalsPage() {
     queryFn: () => api.get('/api/approvals/manager'),
   });
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="Approvals" />
       {q.isPending ? (
         <Loading />
@@ -219,7 +219,7 @@ export function HrApprovalsPage() {
   );
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="HR approvals" />
       {q.isPending ? (
         <Loading />
@@ -307,7 +307,7 @@ export function HrApprovalsPage() {
           </div>
 
           {shown.length === 0 ? (
-            <div className="rounded-md border border-rule bg-white">
+            <div className="card p-0">
               <EmptyState
                 title={term || leaveType || from || to ? 'Nothing matches these filters.' : 'Nothing here.'}
               />

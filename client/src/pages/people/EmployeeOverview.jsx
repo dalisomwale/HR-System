@@ -50,7 +50,7 @@ export default function EmployeeOverview({ employee, source }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="stack">
       <Stats>
         <Stat
           label={o.service.started ? `With the group since ${formatDate(o.service.startDate)}` : 'Start date'}
@@ -68,7 +68,7 @@ export default function EmployeeOverview({ employee, source }) {
         <Timeline o={o} />
       </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid-2">
         <Section title={o.annual ? `${o.annual.leaveType}, ${o.year}` : 'Annual leave'}>
           {o.annual ? (
             <Donut
@@ -93,7 +93,7 @@ export default function EmployeeOverview({ employee, source }) {
               ]}
             />
           ) : (
-            <p className="text-sm text-muted">Annual leave is not active yet.</p>
+            <p className="muted-text">Annual leave is not active yet.</p>
           )}
         </Section>
         <Section
@@ -101,8 +101,10 @@ export default function EmployeeOverview({ employee, source }) {
           description={`${done} of ${o.completeness.length} details recorded`}
         >
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-semibold tabular-nums">{pct}%</span>
-            <span className="text-sm text-muted">complete</span>
+            <span className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
+              {pct}%
+            </span>
+            <span className="muted-text">complete</span>
           </div>
           <div className="mt-2">
             <Meter
@@ -131,7 +133,7 @@ export default function EmployeeOverview({ employee, source }) {
         <MonthlyLeaveChart months={o.monthly} year={o.year} />
       </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid-2">
         <Section title={`Days by leave type, ${o.year}`} description="Approved days">
           <TypeDonut
             label={`Approved days by leave type, ${o.year}`}
@@ -168,7 +170,7 @@ export default function EmployeeOverview({ employee, source }) {
 
 function Fact({ label, children }) {
   return (
-    <div className="rounded-md border border-rule bg-white px-4 py-3">
+    <div className="rounded-md border border-rule bg-white shadow-card px-4 py-3">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className="mt-0.5 text-sm font-medium">{children}</dd>
     </div>
@@ -193,7 +195,7 @@ function Timeline({ o }) {
       label: PROBATION[o.probation.status] === 'Confirmed' ? 'Probation confirmed' : 'Probation ends',
       color: COLORS.series[2],
     },
-    { key: 'today', date: o.today, label: 'Today', color: '#1d2433' },
+    { key: 'today', date: o.today, label: 'Today', color: '#1c2333' },
     end && {
       key: 'end',
       date: end,

@@ -66,7 +66,7 @@ export default function RequisitionSettingsPage() {
         title="Requisition departments"
         description="Choose the departments that do the IT, Accounts and Stores steps. Each department serves its own company; a company with none is served by all the departments with that step."
       />
-      <div className="space-y-6">
+      <div className="stack">
         {FUNCTIONS.map((f) => (
           <Section key={f.code} title={f.title} description={f.text}>
             <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">

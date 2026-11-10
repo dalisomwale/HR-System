@@ -1,144 +1,178 @@
 import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
+// Button classes, the same as in the Altus Inventory System (.btn, .btn-primary, …).
 const BUTTON = {
-  primary: 'bg-brand text-white hover:bg-brand-strong border border-brand',
-  secondary: 'bg-white text-ink border border-rule hover:border-muted',
-  danger: 'bg-white text-danger border border-danger/40 hover:bg-danger-bg',
-  ghost: 'bg-transparent text-brand border border-transparent hover:bg-brand-soft',
+  primary: 'btn btn-primary',
+  secondary: 'btn',
+  danger: 'btn btn-danger-outline',
+  dangerSolid: 'btn btn-danger',
+  ghost: 'btn btn-ghost',
 };
 
-export function Button({ variant = 'primary', busy = false, className, children, ...props }) {
+export function Button({ variant = 'primary', size, busy = false, className, children, ...props }) {
   return (
     <button
       type="button"
       {...props}
       disabled={props.disabled || busy}
-      className={cx(
-        'inline-flex h-9 items-center justify-center gap-2 rounded-md px-3.5 text-sm font-medium whitespace-nowrap',
-        'disabled:cursor-not-allowed disabled:opacity-60',
-        BUTTON[variant],
-        className,
-      )}
+      className={cx(BUTTON[variant], size === 'sm' && 'btn-sm', className)}
     >
-      {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
+      {busy && <Loader2 className="animate-spin" aria-hidden />}
       {children}
     </button>
   );
 }
 
-export function ButtonLink({ to, variant = 'secondary', className, children }) {
+export function ButtonLink({ to, variant = 'secondary', size, className, children }) {
   return (
-    <Link
-      to={to}
-      className={cx(
-        'inline-flex h-9 items-center justify-center gap-2 rounded-md px-3.5 text-sm font-medium whitespace-nowrap',
-        BUTTON[variant],
-        className,
-      )}
-    >
+    <Link to={to} className={cx(BUTTON[variant], size === 'sm' && 'btn-sm', className)}>
       {children}
     </Link>
   );
 }
 
+/** Page title on the left, buttons (or the date) on the right. */
 export function PageHeader({ title, description, actions }) {
   return (
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-rule pb-4">
-      <div>
-        <h1 className="text-xl font-semibold">{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-sm text-muted">{description}</p>}
+    <div className="page-header">
+      <div className="min-w-0">
+        <h1 className="page-title">{title}</h1>
+        {description && <p className="page-sub">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="page-actions">{actions}</div>}
     </div>
   );
 }
 
+/** Today's date, as shown at the right of a dashboard's title. */
+export function TodayDate() {
+  return (
+    <span className="page-date">
+      {new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Africa/Lusaka',
+      }).format(new Date())}
+    </span>
+  );
+}
+
+/** A card with a small uppercase heading, as on the inventory dashboard. */
 export function Section({ title, description, actions, children, className }) {
   return (
-    <section className={cx('rounded-md border border-rule bg-white', className)}>
+    <section className={cx('card', className)}>
       {(title || actions) && (
-        <div className="flex items-start justify-between gap-4 border-b border-rule px-4 py-3">
-          <div>
-            <h2 className="text-[15px] font-semibold">{title}</h2>
-            {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+        <div className="card-head">
+          <div className="min-w-0">
+            {title && <h2>{title}</h2>}
+            {description && actions && <p className="card-hint">{description}</p>}
           </div>
-          {actions}
+          {actions ?? (description && <span className="card-hint">{description}</span>)}
         </div>
       )}
-      <div className="p-4">{children}</div>
+      {children}
     </section>
   );
 }
 
-// Full width unless the caller sets a width.
-const width = (className) => (/(^|\s)w-/.test(className ?? '') ? '' : 'w-full');
-const inputBase =
-  'h-9 rounded-md border bg-white px-3 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:bg-canvas';
+/** Headline figures: a row of four (or three) large numbers. */
+export function KpiRow({ children, cols = 4 }) {
+  return <div className={cx('kpi-row', cols === 3 && 'cols-3')}>{children}</div>;
+}
+export function Kpi({ label, value, unit, note, to, tone, small }) {
+  const body = (
+    <>
+      <div className="kpi-label">{label}</div>
+      <div
+        className={cx(
+          'kpi-value',
+          small && 'small',
+          tone === 'bad' && 'is-bad',
+          tone === 'warn' && 'is-warn',
+        )}
+      >
+        {value}
+        {unit && <span className="kpi-unit"> {unit}</span>}
+      </div>
+      {note && <div className="kpi-note">{note}</div>}
+    </>
+  );
+  const box = cx('kpi', tone === 'bad' && 'kpi-bad', tone === 'warn' && 'kpi-warn');
+  return to ? (
+    <Link to={to} className={box}>
+      {body}
+    </Link>
+  ) : (
+    <div className={box}>{body}</div>
+  );
+}
+
+/** Big solid-colour shortcut buttons. tone: stock (navy), receive (green), issue (orange), request (gold), reports (teal). */
+export function ActionTiles({ children }) {
+  return <div className="action-tiles">{children}</div>;
+}
+export function ActionTile({ to, icon: Icon, title, desc, badge, tone = 'stock', off = false }) {
+  const body = (
+    <>
+      <span className="at-icon">
+        <Icon aria-hidden />
+      </span>
+      <span className="flex flex-col items-center gap-px">
+        <span className="at-title">{title}</span>
+        {desc && <span className="at-desc">{desc}</span>}
+      </span>
+      {badge && <span className="at-badge">{badge}</span>}
+    </>
+  );
+  return off ? (
+    <div className={cx('action-tile is-off')} aria-disabled="true">
+      {body}
+    </div>
+  ) : (
+    <Link to={to} className={cx('action-tile', `tone-${tone}`)}>
+      {body}
+    </Link>
+  );
+}
 
 export const Input = forwardRef(function Input({ invalid, className, ...props }, ref) {
-  return (
-    <input
-      ref={ref}
-      {...props}
-      className={cx(inputBase, width(className), invalid ? 'border-danger' : 'border-rule', className)}
-    />
-  );
+  return <input ref={ref} {...props} className={cx('field', invalid && 'is-invalid', className)} />;
 });
 
 export const Select = forwardRef(function Select({ invalid, className, children, ...props }, ref) {
   return (
-    <select
-      ref={ref}
-      {...props}
-      className={cx(
-        inputBase,
-        width(className),
-        'pr-8',
-        invalid ? 'border-danger' : 'border-rule',
-        className,
-      )}
-    >
+    <select ref={ref} {...props} className={cx('field', invalid && 'is-invalid', className)}>
       {children}
     </select>
   );
 });
 
 export const Textarea = forwardRef(function Textarea({ invalid, className, ...props }, ref) {
-  return (
-    <textarea
-      ref={ref}
-      {...props}
-      className={cx(
-        inputBase,
-        width(className),
-        'h-auto min-h-20 py-2',
-        invalid ? 'border-danger' : 'border-rule',
-        className,
-      )}
-    />
-  );
+  return <textarea ref={ref} {...props} className={cx('field', invalid && 'is-invalid', className)} />;
 });
 
 /** Label, control, hint and error, wired together for screen readers. */
 export function Field({ id, label, hint, error, optional, children, className }) {
   return (
-    <div className={className}>
-      <label htmlFor={id} className="mb-1 block text-sm font-medium">
+    <div className={cx('form-group', className)}>
+      <label htmlFor={id}>
         {label}
         {optional && <span className="ml-1 font-normal text-muted">(optional)</span>}
       </label>
       {children}
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-muted">
+        <p id={`${id}-hint`} className="field-hint">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1 text-xs text-danger">
+        <p id={`${id}-error`} role="alert" className="field-error">
           {error}
         </p>
       )}
@@ -146,48 +180,29 @@ export function Field({ id, label, hint, error, optional, children, className })
   );
 }
 
-const STATUS = {
-  ok: 'bg-ok-bg text-ok',
-  pending: 'bg-pending-bg text-pending',
-  danger: 'bg-danger-bg text-danger',
-  neutral: 'bg-neutral-bg text-neutral',
-  brand: 'bg-brand-soft text-brand',
-};
 export function Badge({ tone = 'neutral', children }) {
-  return (
-    <span
-      className={cx('inline-flex items-center rounded-sm px-1.5 py-0.5 text-xs font-medium', STATUS[tone])}
-    >
-      {children}
-    </span>
-  );
+  return <span className={`pill pill-${tone}`}>{children}</span>;
 }
 
+// Alerts, and the navy-edged note for neutral messages.
+const NOTICE = {
+  ok: 'alert alert-success',
+  danger: 'alert alert-danger',
+  pending: 'alert alert-warning',
+  neutral: 'info-note',
+};
 export function Notice({ tone = 'neutral', title, children }) {
-  const Icon = tone === 'ok' ? CheckCircle2 : AlertCircle;
-  const colors = {
-    ok: 'border-ok/30 bg-ok-bg text-ok',
-    danger: 'border-danger/30 bg-danger-bg text-danger',
-    pending: 'border-pending/30 bg-pending-bg text-pending',
-    neutral: 'border-rule bg-white text-ink',
-  }[tone];
   return (
-    <div
-      role={tone === 'danger' ? 'alert' : 'status'}
-      className={cx('flex gap-3 rounded-md border px-4 py-3 text-sm', colors)}
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <div>
-        {title && <p className="font-medium">{title}</p>}
-        {children && <div className={title ? 'mt-0.5' : ''}>{children}</div>}
-      </div>
+    <div role={tone === 'danger' ? 'alert' : 'status'} className={NOTICE[tone]}>
+      {title && <p className="alert-title">{title}</p>}
+      {children && <div>{children}</div>}
     </div>
   );
 }
 
 export function Loading({ label = 'Loading' }) {
   return (
-    <div className="flex items-center gap-2 py-10 text-sm text-muted" role="status">
+    <div className="flex items-center gap-2 py-10 text-[0.9rem] text-muted" role="status">
       <Loader2 className="size-4 animate-spin" aria-hidden /> {label}…
     </div>
   );
@@ -199,7 +214,7 @@ export function LoadError({ error, onRetry }) {
     <Notice tone="danger" title="This information could not be loaded.">
       <p>{error?.message}</p>
       {onRetry && (
-        <button type="button" onClick={onRetry} className="mt-2 font-medium underline">
+        <button type="button" onClick={onRetry} className="mt-1 font-semibold underline">
           Try again
         </button>
       )}
@@ -209,18 +224,18 @@ export function LoadError({ error, onRetry }) {
 
 export function EmptyState({ title, children, action }) {
   return (
-    <div className="px-4 py-10 text-center">
-      <p className="font-medium">{title}</p>
-      {children && <p className="mx-auto mt-1 max-w-md text-sm text-muted">{children}</p>}
-      {action && <div className="mt-4 flex justify-center gap-2">{action}</div>}
+    <div className="empty-state">
+      <strong>{title}</strong>
+      {children && <p className="mx-auto max-w-md">{children}</p>}
+      {action && <div className="mt-3 flex justify-center gap-2">{action}</div>}
     </div>
   );
 }
 
 /**
- * Data table. On phones each row stacks into a card (see .rtable in styles.css): the column
- * headings are copied onto each cell as data-label after every render. `stack={false}` keeps
- * a real grid that scrolls sideways instead, for tables read across, such as a week of days.
+ * Data table in a card. On phones each row stacks into a card (see .rtable in styles.css):
+ * the column headings are copied onto each cell as data-label after every render.
+ * `stack={false}` keeps a real grid that scrolls sideways instead.
  */
 export function Table({ children, stack = true }) {
   const ref = useRef(null);
@@ -248,30 +263,21 @@ export function Table({ children, stack = true }) {
     }
   });
   return (
-    <div className="overflow-x-auto rounded-md border border-rule bg-white">
-      <table
-        ref={ref}
-        className={cx(
-          'w-full border-collapse text-left text-sm [&_tbody_tr:last-child>td]:border-b-0',
-          stack && 'rtable',
-        )}
-      >
-        {children}
-      </table>
+    <div className="card table-card">
+      <div className="table-container">
+        <table ref={ref} className={cx('data-table', stack && 'rtable')}>
+          {children}
+        </table>
+      </div>
     </div>
   );
 }
 export const Th = ({ children, className }) => (
-  <th
-    scope="col"
-    className={cx('border-b border-rule bg-canvas px-3 py-2 text-xs font-semibold text-muted', className)}
-  >
+  <th scope="col" className={className}>
     {children}
   </th>
 );
-export const Td = ({ children, className }) => (
-  <td className={cx('border-b border-rule px-3 py-2.5 align-top', className)}>{children}</td>
-);
+export const Td = ({ children, className }) => <td className={className}>{children}</td>;
 
 export function Pagination({ page, pageSize, total, onPage }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
@@ -279,15 +285,15 @@ export function Pagination({ page, pageSize, total, onPage }) {
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   return (
-    <div className="mt-3 flex items-center justify-between text-sm text-muted">
+    <div className="mt-3 flex items-center justify-between text-[0.88rem] text-muted">
       <span>
         {from}–{to} of {total}
       </span>
       <div className="flex gap-2">
-        <Button variant="secondary" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)}>
           Previous
         </Button>
-        <Button variant="secondary" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+        <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>
           Next
         </Button>
       </div>
@@ -295,16 +301,14 @@ export function Pagination({ page, pageSize, total, onPage }) {
   );
 }
 
-/** Two-column definition list for record details. */
+/** Label-over-value pairs for record details, two across. */
 export function Details({ items }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[12rem_1fr]">
+    <dl className="detail-list">
       {items.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted">{label}</dt>
-          <dd className="font-medium">
-            {value || <span className="font-normal text-muted">Not recorded</span>}
-          </dd>
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value || <span className="not-set">Not recorded</span>}</dd>
         </div>
       ))}
     </dl>
@@ -351,17 +355,17 @@ export function ConfirmDialog({
         if (!busy) onCancel();
       }}
       aria-labelledby="confirm-title"
-      className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-lg border border-rule bg-white p-6 text-ink backdrop:bg-ink/40"
+      className="confirm-box"
     >
-      <h2 id="confirm-title" className="text-lg font-semibold">
+      <h2 id="confirm-title" className="confirm-title">
         {title}
       </h2>
-      {children && <div className="mt-2 text-sm text-muted">{children}</div>}
-      <div className="mt-6 flex justify-end gap-2">
+      {children && <div className="confirm-text">{children}</div>}
+      <div className="confirm-actions">
         <Button variant="secondary" onClick={onCancel} disabled={busy} autoFocus>
           Cancel
         </Button>
-        <Button variant={tone} busy={busy} onClick={onConfirm}>
+        <Button variant={tone === 'danger' ? 'dangerSolid' : tone} busy={busy} onClick={onConfirm}>
           {confirmLabel}
         </Button>
       </div>
@@ -384,7 +388,7 @@ export function Tabs({ tabs, active, onChange, label }) {
     <div
       role="tablist"
       aria-label={label}
-      className="mb-6 flex gap-1 overflow-x-auto border-b border-rule"
+      className="pill-tabs mb-[18px] border-0 bg-transparent p-0"
       onKeyDown={(e) => {
         if (e.key === 'ArrowRight') move(1);
         if (e.key === 'ArrowLeft') move(-1);
@@ -402,13 +406,10 @@ export function Tabs({ tabs, active, onChange, label }) {
             aria-controls={`panel-${t.id}`}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(t.id)}
-            className={cx(
-              '-mb-px border-b-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap sm:px-4',
-              selected ? 'border-brand text-brand' : 'border-transparent text-muted hover:text-ink',
-            )}
+            className="pill-tab"
           >
             {t.label}
-            {t.count != null && <span className="ml-1.5 font-normal text-muted">({t.count})</span>}
+            {t.count != null && <span className="count">({t.count})</span>}
           </button>
         );
       })}

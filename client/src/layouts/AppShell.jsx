@@ -21,12 +21,10 @@ import {
   Landmark,
   KeyRound,
   Clock,
-  FileUp,
   History,
   Menu,
   Scale,
   Settings2,
-  UserRound,
   Users,
   UserPlus,
   X,
@@ -43,6 +41,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import LeaveTrail from './LeaveTrail.jsx';
+import { LogOutButton, PageFooter, UserAvatar } from './AppFrame.jsx';
 import RequisitionsTrail from './RequisitionsTrail.jsx';
 import { useRq } from '../pages/requisitions/rq.js';
 import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
@@ -79,13 +78,21 @@ const PEOPLE = [
   { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, hrOnly: true },
 ];
 
-const navLinkClass = ({ isActive }) =>
-  [
-    'flex items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-sm',
-    isActive
-      ? 'border-brand bg-brand-soft font-medium text-brand'
-      : 'border-transparent text-ink hover:bg-canvas',
-  ].join(' ');
+// Side menu, as in the Altus Inventory System: an orange bar marks the page you are on.
+const NAV_LINK =
+  'relative mb-px flex items-center gap-[9px] rounded-sm py-2 pr-2.5 pl-3 text-[0.94rem] font-medium transition-colors [&>svg]:size-4 [&>svg]:shrink-0';
+const NAV_ON =
+  'bg-brand-soft font-semibold text-brand before:absolute before:top-[7px] before:bottom-[7px] before:left-0 before:w-[3px] before:rounded-r-sm before:bg-accent-orange [&>svg]:opacity-100';
+const NAV_OFF = 'text-ink-2 hover:bg-hover hover:text-brand [&>svg]:opacity-70';
+const navLinkClass = ({ isActive }) => `${NAV_LINK} ${isActive ? NAV_ON : NAV_OFF}`;
+const subLinkClass = (on) =>
+  `block truncate rounded-sm px-2.5 py-1.5 text-[0.88rem] transition-colors ${
+    on ? 'bg-brand-soft font-semibold text-brand' : 'text-ink-2 hover:bg-hover hover:text-brand'
+  }`;
+const SECTION_LABEL = 'px-2.5 pt-3.5 pb-1.5 text-[0.7rem] font-medium tracking-[0.1em] text-faint uppercase';
+const SUB_LIST = 'mt-0.5 mb-1.5 ml-[21px] flex flex-col gap-px border-l border-rule pl-2.5';
+const TOGGLE =
+  'mb-px flex w-8 shrink-0 items-center justify-center rounded-sm text-muted transition-colors hover:bg-hover hover:text-brand';
 
 /**
  * A menu segment whose overview opens to list its items (companies or departments), with an
@@ -110,20 +117,20 @@ function ExpandNav({
   }, [inside]);
   const listId = `${base.replace(/\W/g, '-')}-list`;
   return (
-    <div className="mb-6">
-      <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
+    <div>
+      <p className={SECTION_LABEL}>{title}</p>
       <ul>
         {canAdd && (
           <li>
             <NavLink to={`${base}/manage`} onClick={onNavigate} className={navLinkClass}>
-              <Plus className="size-4 shrink-0" aria-hidden />
+              <Plus aria-hidden />
               {addLabel}
             </NavLink>
           </li>
         )}
         <li className="flex items-stretch">
           <NavLink to={base} end onClick={onNavigate} className={(a) => `${navLinkClass(a)} flex-1`}>
-            <Icon className="size-4 shrink-0" aria-hidden />
+            <Icon aria-hidden />
             {overviewLabel}
           </NavLink>
           <button
@@ -132,35 +139,31 @@ function ExpandNav({
             aria-controls={listId}
             aria-label={open ? `Hide ${title.toLowerCase()} list` : `Show ${title.toLowerCase()} list`}
             onClick={() => setOpen((o) => !o)}
-            className="px-3 text-muted hover:bg-canvas hover:text-ink"
+            className={TOGGLE}
           >
-            <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+            <ChevronDown
+              className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
           </button>
         </li>
         {open && (
           <li id={listId}>
-            {loading && <p className="py-1.5 pl-10 text-xs text-muted">Loading</p>}
+            {loading && <p className={`${SUB_LIST} py-1.5 text-xs text-muted`}>Loading</p>}
             {groups.map((g) => (
-              <div key={g.heading ?? 'all'} className="mb-1">
+              <div key={g.heading ?? 'all'}>
                 {g.heading && (
-                  <p className="truncate pt-1.5 pr-3 pb-0.5 pl-10 text-[11px] font-medium text-muted uppercase">
+                  <p className="mt-1.5 mb-0.5 ml-[31px] truncate text-[0.7rem] font-bold tracking-[0.06em] text-muted uppercase">
                     {g.heading}
                   </p>
                 )}
-                <ul>
+                <ul className={SUB_LIST}>
                   {g.items.map((it) => (
                     <li key={it.to}>
                       <NavLink
                         to={it.to}
                         onClick={onNavigate}
-                        className={({ isActive }) =>
-                          [
-                            'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
-                            isActive
-                              ? 'border-brand bg-brand-soft font-medium text-brand'
-                              : 'border-transparent text-ink hover:bg-canvas',
-                          ].join(' ')
-                        }
+                        className={({ isActive }) => subLinkClass(isActive)}
                       >
                         {it.label}
                       </NavLink>
@@ -193,12 +196,12 @@ function ReportsNav({ onNavigate, to = '/people/reports', source = '/api/people/
   const listId = `${to.replace(/\W/g, '-')}-list`;
   const chosen = inside ? (current ?? items[0]?.id) : null;
   return (
-    <div className="mb-6">
+    <div className="mt-2.5">
       <ul>
         <li className="flex items-stretch">
           {/* The chosen report below is the one lit up, so this stays plain. */}
           <NavLink to={to} end onClick={onNavigate} className={`${navLinkClass({ isActive: false })} flex-1`}>
-            <FileBarChart className="size-4 shrink-0" aria-hidden />
+            <FileBarChart aria-hidden />
             Reports
           </NavLink>
           <button
@@ -207,27 +210,25 @@ function ReportsNav({ onNavigate, to = '/people/reports', source = '/api/people/
             aria-controls={listId}
             aria-label={open ? 'Hide reports list' : 'Show reports list'}
             onClick={() => setOpen((o) => !o)}
-            className="px-3 text-muted hover:bg-canvas hover:text-ink"
+            className={TOGGLE}
           >
-            <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+            <ChevronDown
+              className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+              aria-hidden
+            />
           </button>
         </li>
         {open && (
           <li id={listId}>
-            {list.isPending && <p className="py-1.5 pl-10 text-xs text-muted">Loading</p>}
-            <ul className="mb-1">
+            {list.isPending && <p className={`${SUB_LIST} py-1.5 text-xs text-muted`}>Loading</p>}
+            <ul className={SUB_LIST}>
               {items.map((r) => (
                 <li key={r.id}>
                   <Link
                     to={`${to}?report=${r.id}`}
                     onClick={onNavigate}
                     aria-current={chosen === r.id ? 'page' : undefined}
-                    className={[
-                      'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
-                      chosen === r.id
-                        ? 'border-brand bg-brand-soft font-medium text-brand'
-                        : 'border-transparent text-ink hover:bg-canvas',
-                    ].join(' ')}
+                    className={subLinkClass(chosen === r.id)}
                   >
                     {r.title}
                   </Link>
@@ -308,42 +309,26 @@ function AdminNav({ items, onNavigate }) {
     if (inside) setOpen(true);
   }, [inside]);
   return (
-    <div className="mb-6">
+    <div className="mt-2.5">
       <button
         type="button"
         aria-expanded={open}
         aria-controls="admin-menu"
         onClick={() => setOpen((o) => !o)}
-        className={[
-          'flex w-full items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-left text-sm',
-          inside && !open
-            ? 'border-brand bg-brand-soft font-medium text-brand'
-            : 'border-transparent text-ink hover:bg-canvas',
-        ].join(' ')}
+        className={`${navLinkClass({ isActive: inside && !open })} w-full text-left`}
       >
-        <UserCog className="size-4 shrink-0" aria-hidden />
+        <UserCog aria-hidden />
         <span className="flex-1">Administration</span>
         <ChevronDown
-          className={`size-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`size-3.5! text-muted transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden
         />
       </button>
       {open && (
-        <ul id="admin-menu">
+        <ul id="admin-menu" className={SUB_LIST}>
           {items.map(({ to, label }) => (
             <li key={to}>
-              <NavLink
-                to={to}
-                onClick={onNavigate}
-                className={({ isActive }) =>
-                  [
-                    'block border-l-[3px] py-1.5 pr-3 pl-10 text-sm',
-                    isActive
-                      ? 'border-brand bg-brand-soft font-medium text-brand'
-                      : 'border-transparent text-ink hover:bg-canvas',
-                  ].join(' ')
-                }
-              >
+              <NavLink to={to} onClick={onNavigate} className={({ isActive }) => subLinkClass(isActive)}>
                 {label}
               </NavLink>
             </li>
@@ -357,8 +342,8 @@ function AdminNav({ items, onNavigate }) {
 function NavGroup({ title, items, onNavigate, counts = {} }) {
   const { pathname } = useLocation();
   return (
-    <div className="mb-6">
-      <p className="mb-1.5 px-3 text-xs font-medium text-muted">{title}</p>
+    <div>
+      <p className={SECTION_LABEL}>{title}</p>
       <ul>
         {items.map(({ to, label, icon: Icon, end, count, except }) => (
           <li key={to}>
@@ -366,19 +351,12 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
               to={to}
               end={end}
               onClick={onNavigate}
-              className={({ isActive }) =>
-                [
-                  'flex items-center gap-2.5 border-l-[3px] px-3 py-1.5 text-sm',
-                  isActive && pathname !== except
-                    ? 'border-brand bg-brand-soft font-medium text-brand'
-                    : 'border-transparent text-ink hover:bg-canvas',
-                ].join(' ')
-              }
+              className={({ isActive }) => navLinkClass({ isActive: isActive && pathname !== except })}
             >
-              <Icon className="size-4 shrink-0" aria-hidden />
+              <Icon aria-hidden />
               {label}
               {count && counts[count] > 0 && (
-                <span className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[11px] leading-5 font-semibold text-white">
+                <span className="ml-auto min-w-5 rounded-full bg-danger px-1.5 text-center text-[0.7rem] leading-5 font-semibold text-white">
                   {counts[count] > 99 ? '99+' : counts[count]}
                   <span className="sr-only">{count === 'unread' ? ' unread' : ' waiting'}</span>
                 </span>
@@ -395,7 +373,7 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
 function RequisitionsNav({ onNavigate }) {
   const rq = useRq();
   const a = rq.data;
-  if (!a) return rq.isPending ? <p className="px-3 text-xs text-muted">Loading</p> : null;
+  if (!a) return rq.isPending ? <p className="px-2.5 pt-3.5 text-xs text-muted">Loading</p> : null;
   const work = [
     { to: '/requisitions', label: 'Home', icon: House, end: true },
     {
@@ -507,20 +485,17 @@ export default function AppShell() {
       ].join(', ')
     : [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
       'Employee';
+  const close = () => setMenuOpen(false);
+  const appName = inRequisitions ? 'Requisitions' : inPeople ? 'Employee Management' : 'Leave Management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
-      <div className="mb-4 px-3">
-        <Link
-          to="/"
-          onClick={() => setMenuOpen(false)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand/40 px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand-soft"
-        >
-          <ArrowLeft className="size-3.5" aria-hidden /> Back to applications
-        </Link>
-      </div>
+      <Link to="/" onClick={close} className={`${navLinkClass({ isActive: false })} mt-1`}>
+        <ArrowLeft aria-hidden />
+        All applications
+      </Link>
       {inRequisitions ? (
-        <RequisitionsNav onNavigate={() => setMenuOpen(false)} />
+        <RequisitionsNav onNavigate={close} />
       ) : inPeople ? (
         <>
           <NavGroup
@@ -529,101 +504,110 @@ export default function AppShell() {
               // Inside a company or department, Add employee adds to it and keeps the path (D62).
               i.to === '/people/employees/new' && placeBase ? { ...i, to: `${placeBase}/employees/new` } : i,
             )}
-            onNavigate={() => setMenuOpen(false)}
+            onNavigate={close}
           />
-          <OrganisationNav user={user} onNavigate={() => setMenuOpen(false)} />
-          <ReportsNav onNavigate={() => setMenuOpen(false)} />
+          <OrganisationNav user={user} onNavigate={close} />
+          <ReportsNav onNavigate={close} />
           {hasRole(user, 'HR_ADMIN') && (
-            <AdminNav
-              items={ADMIN.filter((i) => ['/admin/roles'].includes(i.to))}
-              onNavigate={() => setMenuOpen(false)}
-            />
+            <AdminNav items={ADMIN.filter((i) => ['/admin/roles'].includes(i.to))} onNavigate={close} />
           )}
         </>
       ) : (
-        <LeaveNav user={user} counts={counts} onNavigate={() => setMenuOpen(false)} />
+        <LeaveNav user={user} counts={counts} onNavigate={close} />
       )}
     </>
   );
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-canvas">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-2"
       >
         Skip to content
       </a>
-      <header className="sticky top-0 z-30 border-t-[3px] border-b border-t-brand border-b-rule bg-white">
-        <div className="flex h-14 items-center gap-4 px-4">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="Altus Group" className="h-8 w-auto sm:h-10" />
-            <span className="hidden border-l border-rule pl-3 text-sm font-medium text-brand sm:inline">
-              {inRequisitions ? 'Requisitions' : inPeople ? 'Employee Management' : 'Leave Management'}
-            </span>
-          </Link>
-          <Link
-            to="/profile"
-            className="ml-auto rounded-md px-2 py-1 text-right leading-tight hover:bg-canvas lg:-mr-1"
-            aria-label={`${fullName(user)}, ${roleText}. My profile`}
-          >
-            <p className="text-sm font-medium">{fullName(user)}</p>
-            <p className="hidden text-xs text-muted sm:block">{roleText}</p>
-          </Link>
-          <button
-            type="button"
-            className="relative -mr-1 rounded-sm p-1 text-ink lg:hidden"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((o) => !o)}
-          >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            {!menuOpen && counts.unread > 0 && (
-              <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-danger" />
-            )}
-          </button>
-        </div>
+
+      {/* Phones and tablets: a slim bar with the logo and the menu button. */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-rule bg-white px-4 lg:hidden">
+        <Link to="/" className="flex items-center">
+          <img src={logo} alt="Altus Group" className="h-7 w-auto" />
+        </Link>
+        <span className="truncate text-[0.72rem] font-semibold tracking-[0.04em] text-muted uppercase">
+          {appName}
+        </span>
+        <button
+          type="button"
+          className="relative ml-auto rounded-sm p-1 text-ink-2 hover:bg-hover"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          {!menuOpen && counts.unread > 0 && (
+            <span aria-hidden className="absolute top-0.5 right-0.5 size-2 rounded-full bg-danger" />
+          )}
+        </button>
       </header>
 
-      <div className="flex min-h-[calc(100vh-60px)]">
-        {/* The white column runs the full page height; the menu inside stays in view while scrolling. */}
-        <div className="hidden w-60 shrink-0 border-r border-rule bg-white lg:block">
-          <nav
-            aria-label="Main"
-            className="sticky top-[60px] max-h-[calc(100vh-60px)] overflow-y-auto pt-5 pb-5"
-          >
-            {nav}
-          </nav>
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          className="fixed inset-0 z-30 bg-black/35 lg:hidden"
+          onClick={close}
+        />
+      )}
+
+      {/* The side menu: fixed on wide screens, sliding in from the left on smaller ones. */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 max-w-[85vw] flex-col border-r border-rule bg-white transition-transform duration-200 lg:translate-x-0 ${
+          menuOpen ? 'translate-x-0 shadow-pop' : '-translate-x-full'
+        }`}
+      >
+        <div className="border-b border-rule px-5 pt-[22px] pb-[18px]">
+          <Link to="/" onClick={close} className="block">
+            <img src={logo} alt="Altus Group" className="block h-auto w-full max-w-[180px]" />
+          </Link>
+          <p className="mt-2.5 text-[0.72rem] font-semibold tracking-[0.04em] text-muted uppercase">
+            {appName}
+          </p>
         </div>
-        {menuOpen && (
-          <>
-            {/* Phones and tablets: the menu slides over the page and scrolls on its own. */}
-            <button
-              type="button"
-              aria-label="Close menu"
-              className="fixed inset-0 top-[60px] z-20 bg-ink/30 lg:hidden"
-              onClick={() => setMenuOpen(false)}
-            />
-            <nav
-              aria-label="Main"
-              className="fixed top-[60px] right-0 bottom-0 z-30 w-72 max-w-[85vw] overflow-y-auto border-l border-rule bg-white pt-4 pb-6 shadow-lg lg:hidden"
-            >
-              {nav}
-            </nav>
-          </>
-        )}
-        <main id="main" className="min-w-0 flex-1 px-4 pt-5 pb-8 sm:px-6">
-          {/*
-            Every page starts the same 24px from the menu and uses the same width, up to 1,400px;
-            extra room on very wide screens stays on the right (D65). Pages' own width classes
-            are overridden here so the gap never changes from page to page.
-          */}
-          <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
-            {/* Employee management pages show their own path; every other page gets this one. */}
-            {inRequisitions ? <RequisitionsTrail /> : !inPeople && <LeaveTrail />}
-            <Outlet />
-          </div>
-        </main>
-      </div>
+        <nav aria-label="Main" className="flex-1 overflow-y-auto px-2 pt-1.5 pb-2.5">
+          {nav}
+        </nav>
+        <div className="flex items-center gap-[9px] border-t border-rule p-3">
+          <Link
+            to="/profile"
+            onClick={close}
+            className="flex min-w-0 flex-1 items-center gap-[9px] rounded-sm"
+            aria-label={`${fullName(user)}, ${roleText}. My profile`}
+            title="My profile"
+          >
+            <UserAvatar person={user} />
+            <span className="min-w-0 flex-1 leading-snug">
+              <span className="block truncate text-[0.88rem] font-semibold text-ink">{fullName(user)}</span>
+              <span className="block truncate text-[0.78rem] text-muted">{roleText}</span>
+            </span>
+          </Link>
+          <LogOutButton icon />
+        </div>
+      </aside>
+
+      <main
+        id="main"
+        className="flex min-h-screen min-w-0 flex-col px-3.5 py-[18px] sm:px-6 lg:ml-60 lg:px-8 lg:py-7"
+      >
+        {/*
+          Every page starts the same distance from the menu and uses the same width, up to 1,400px;
+          extra room on very wide screens stays on the right (D65). Pages' own width classes
+          are overridden here so the gap never changes from page to page.
+        */}
+        <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
+          {/* Employee management pages show their own path; every other page gets this one. */}
+          {inRequisitions ? <RequisitionsTrail /> : !inPeople && <LeaveTrail />}
+          <Outlet />
+        </div>
+        <PageFooter />
+      </main>
     </div>
   );
 }

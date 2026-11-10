@@ -45,7 +45,7 @@ export function RequireRole({ role, children }) {
     const who = { HR_OFFICER: 'HR Officers', HR_ADMIN: 'System Administrators' };
     return (
       <div className="max-w-xl">
-        <h1 className="text-xl font-semibold">You don’t have access to this page</h1>
+        <h1 className="text-[1.3rem] leading-snug">You don’t have access to this page</h1>
         <p className="mt-2 text-sm text-muted">
           It is available to {who[allowed[0]] ?? 'HR Officers and directors'}. If you need access, ask a
           System Administrator to grant you the role.

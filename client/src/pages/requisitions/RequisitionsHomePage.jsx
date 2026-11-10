@@ -1,10 +1,12 @@
+import { Boxes, FileBarChart, FilePlus2, PackageMinus, PackagePlus, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
 import {
+  ActionTile,
+  ActionTiles,
   Badge,
-  ButtonLink,
   LoadError,
   Loading,
   PageHeader,
@@ -12,6 +14,7 @@ import {
   Table,
   Td,
   Th,
+  TodayDate,
 } from '../../components/ui.jsx';
 import { BarList, COLORS, ColumnChart, Donut, Legend } from '../../components/charts.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
@@ -42,28 +45,8 @@ export default function RequisitionsHomePage() {
   const mine = waiting.data?.tab === 'mine' ? waiting.data.items : [];
   return (
     <div>
-      <PageHeader
-        title="Requisitions"
-        description={new Intl.DateTimeFormat('en-GB', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-          timeZone: 'Africa/Lusaka',
-        }).format(new Date())}
-        actions={
-          <>
-            {a.canRaise && (
-              <ButtonLink to="/requisitions/requests/new" variant="primary">
-                Raise a requisition
-              </ButtonLink>
-            )}
-            {a.stores && <ButtonLink to="/requisitions/receive">Receive stock</ButtonLink>}
-            {a.stores && <ButtonLink to="/requisitions/issue">Issue stock</ButtonLink>}
-          </>
-        }
-      />
-      <div className="space-y-6">
+      <PageHeader title="Requisitions" actions={<TodayDate />} />
+      <div className="stack">
         {d?.scope === 'all' && (
           <Stats>
             <Stat label="Stock value" value={kwachaShort(d.stockValue)} to="/requisitions/stock?sort=value" />
@@ -111,10 +94,67 @@ export default function RequisitionsHomePage() {
           </Stats>
         )}
 
+        {/* Shortcuts, as on the inventory system's dashboard. */}
+        <ActionTiles>
+          {a.stores && (
+            <ActionTile
+              to="/requisitions/receive"
+              icon={PackagePlus}
+              title="Receive stock"
+              desc="Record a delivery"
+              tone="receive"
+            />
+          )}
+          {a.stores && (
+            <ActionTile
+              to="/requisitions/issue"
+              icon={PackageMinus}
+              title="Issue stock"
+              desc="Give items to a department"
+              tone="issue"
+            />
+          )}
+          {a.stock && (
+            <ActionTile
+              to="/requisitions/stock"
+              icon={Boxes}
+              title={a.stockDepartment ? 'Stock' : 'Manage stock'}
+              desc={a.stockDepartment ? "Your department's items" : 'All items and levels'}
+              tone="stock"
+            />
+          )}
+          {a.canRaise && (
+            <ActionTile
+              to="/requisitions/requests/new"
+              icon={FilePlus2}
+              title="Raise a requisition"
+              desc="Ask for something to be bought"
+              tone="request"
+            />
+          )}
+          <ActionTile
+            to="/requisitions/requests"
+            icon={ShoppingCart}
+            title="Requisitions"
+            desc="What needs buying"
+            badge={a.waiting > 0 ? `${a.waiting} waiting` : undefined}
+            tone="stock"
+          />
+          {a.stock && (
+            <ActionTile
+              to="/requisitions/reports"
+              icon={FileBarChart}
+              title="Monthly reports"
+              desc="View and export to Excel"
+              tone="reports"
+            />
+          )}
+        </ActionTiles>
+
         <Section
           title="Waiting for you"
           actions={
-            <Link to="/requisitions/requests" className="text-sm text-brand hover:underline">
+            <Link to="/requisitions/requests" className="card-link">
               All requisitions
             </Link>
           }
@@ -122,7 +162,7 @@ export default function RequisitionsHomePage() {
           {waiting.isPending ? (
             <Loading />
           ) : mine.length === 0 ? (
-            <p className="text-sm text-muted">Nothing is waiting for you.</p>
+            <p className="muted-text">Nothing is waiting for you.</p>
           ) : (
             <ul className="divide-y divide-rule">
               {mine.slice(0, 8).map((r) => (
@@ -153,7 +193,7 @@ export default function RequisitionsHomePage() {
         {dash.isError && <LoadError error={dash.error} onRetry={dash.refetch} />}
         {d?.scope === 'all' && (
           <>
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
               <Section title="Stock movement, last 8 weeks" description="Units received and issued each week">
                 <div className="space-y-3">
                   <Legend items={MOVEMENT} />
@@ -184,12 +224,12 @@ export default function RequisitionsHomePage() {
                   segments={[
                     { key: 'ok', name: 'In stock', value: d.health.ok, color: COLORS.series[2] },
                     { key: 'low', name: 'Below reorder', value: d.health.low, color: COLORS.waiting },
-                    { key: 'out', name: 'Out of stock', value: d.health.out, color: '#b42318' },
+                    { key: 'out', name: 'Out of stock', value: d.health.out, color: '#c53030' },
                   ]}
                 />
               </Section>
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid-2">
               <Section title="Issued by category, last 30 days" description="Units">
                 <BarList
                   items={d.byCategoryIssued.map((r) => ({ key: r.label, label: r.label, value: r.value }))}
@@ -211,7 +251,7 @@ export default function RequisitionsHomePage() {
               description="Days left is based on how much was issued in the last 30 days."
             >
               {d.runningLow.length === 0 ? (
-                <p className="text-sm text-muted">Nothing is running low.</p>
+                <p className="muted-text">Nothing is running low.</p>
               ) : (
                 <Table>
                   <thead>
@@ -261,7 +301,7 @@ export default function RequisitionsHomePage() {
                           {a.canRaise && r.suggest > 0 && (
                             <Link
                               to={`/requisitions/requests/new?${new URLSearchParams({ item: r.name, category: String(r.categoryId), qty: String(r.suggest) })}`}
-                              className="text-sm text-brand hover:underline"
+                              className="card-link"
                             >
                               Raise
                             </Link>
@@ -276,7 +316,7 @@ export default function RequisitionsHomePage() {
           </>
         )}
         {d?.scope === 'department' && (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid-2">
             <Section title="Issued by category, last 30 days" description="Units">
               <BarList
                 items={d.byCategoryIssued.map((r) => ({ key: r.label, label: r.label, value: r.value }))}

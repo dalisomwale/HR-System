@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { FileUp, Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
@@ -19,7 +19,7 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { EMPLOYMENT_TYPES, Initials, StatusBadge, useEmployeeBase } from './people-ui.jsx';
+import { EMPLOYMENT_TYPES, StatusBadge, useEmployeeBase } from './people-ui.jsx';
 import PeopleTrail from './PeopleTrail.jsx';
 
 /** Everyone in the group, searchable and filterable (D52). */
@@ -91,11 +91,9 @@ export default function DirectoryPage() {
         actions={
           canEdit && (
             <>
-              <ButtonLink to={`${base}/employees/new?mode=import`}>
-                <FileUp className="size-4" aria-hidden /> Import
-              </ButtonLink>
+              <ButtonLink to={`${base}/employees/new?mode=import`}> Import</ButtonLink>
               <ButtonLink to={`${base}/employees/new`} variant="primary">
-                <Plus className="size-4" aria-hidden /> Add employee
+                Add employee
               </ButtonLink>
             </>
           )
@@ -195,7 +193,7 @@ export default function DirectoryPage() {
       ) : list.isError ? (
         <LoadError error={list.error} onRetry={() => list.refetch()} />
       ) : list.data.items.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           {filtered ? (
             <EmptyState title="Nobody matches these filters." />
           ) : (
@@ -234,10 +232,9 @@ export default function DirectoryPage() {
             </thead>
             <tbody>
               {list.data.items.map((e) => (
-                <tr key={e.id} className="hover:bg-canvas">
+                <tr key={e.id}>
                   <Td>
                     <div className="flex items-center gap-3">
-                      <Initials first={e.firstName} last={e.lastName} />
                       <div className="min-w-0">
                         <Link
                           to={`${base}/employees/${e.id}`}
@@ -289,11 +286,7 @@ function Chip({ active, onClick, children }) {
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-xs ${
-        active
-          ? 'border-brand bg-brand-soft font-medium text-brand'
-          : 'border-rule bg-white text-ink hover:border-muted'
-      }`}
+      className={`pill-tab ${active ? 'active' : ''}`}
     >
       {children}
     </button>

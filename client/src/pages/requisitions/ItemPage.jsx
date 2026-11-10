@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { api, downloadFile } from '../../lib/api.js';
 import { formatDateTime } from '../../lib/format.js';
 import {
@@ -48,7 +47,7 @@ export default function ItemPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-rule pb-4">
         <div>
-          <h1 className="text-xl font-semibold">{it.name}</h1>
+          <h1 className="text-[1.3rem] leading-snug">{it.name}</h1>
           <p className="mt-1 flex items-center gap-2 text-sm text-muted">
             {it.category}
             {!it.scoped && <Badge tone={STATE_TONES[it.state]}>{STATE_LABELS[it.state]}</Badge>}
@@ -73,7 +72,7 @@ export default function ItemPage() {
           <Notice tone="danger">{error}</Notice>
         </div>
       )}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid-2">
         <Section title={it.scoped ? 'Issued to your department' : 'Stock'}>
           {it.scoped ? (
             <Details
@@ -134,7 +133,7 @@ export default function ItemPage() {
 
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold">Stock history</h2>
+          <h2 className="mb-3 font-head text-base font-semibold text-ink">Stock history</h2>
           {it.history.length > 0 && (
             <Button
               variant="secondary"
@@ -142,12 +141,13 @@ export default function ItemPage() {
                 downloadFile(`/api/stock/items/${it.id}?format=xlsx`).catch((e) => setError(e.message))
               }
             >
-              <Download className="size-4" aria-hidden /> Export to Excel
+              {' '}
+              Export to Excel
             </Button>
           )}
         </div>
         {it.history.length === 0 ? (
-          <div className="rounded-md border border-rule bg-white">
+          <div className="card p-0">
             <EmptyState title="No stock received or issued yet." />
           </div>
         ) : (

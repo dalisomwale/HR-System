@@ -122,7 +122,7 @@ export default function RequestPage() {
           />
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === 'request' && (
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 {r.offer && (
                   <Notice
                     tone="pending"
@@ -203,13 +203,13 @@ export default function RequestPage() {
             )}
             {tab === 'documents' && <DocumentsPanel request={r} />}
             {tab === 'history' && (
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 <History items={r.history} />
                 {r.changes.length > 0 && <Changes items={r.changes} />}
               </div>
             )}
             {tab === 'action' && (
-              <div className="grid max-w-xl gap-6">
+              <div className="grid max-w-xl gap-4">
                 {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
                 {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
                 {openChange && can.changeManagerDecide && (
@@ -671,7 +671,7 @@ function History({ items }) {
   return (
     <Section title="History">
       {items.length === 0 ? (
-        <p className="text-sm text-muted">No actions yet.</p>
+        <p className="muted-text">No actions yet.</p>
       ) : (
         <ol className="space-y-3 text-sm">
           {items.map((a, i) => (
@@ -747,7 +747,7 @@ function DayBreakdown({ items }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-muted">
+        <p className="muted-text">
           {items.length} calendar {items.length === 1 ? 'day' : 'days'},{' '}
           {days(Math.round(items.reduce((s, d) => s + d.charged, 0) * 100) / 100)} charged.
         </p>

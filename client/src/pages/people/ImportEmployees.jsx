@@ -75,7 +75,7 @@ export function ImportEmployees() {
   const ready = result && result.validRows === result.totalRows;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <Section
         title="Columns"
         description="Upload an Excel workbook (.xlsx) or a CSV file. The first row must contain these column names; in Excel, only the first sheet is read."
@@ -88,7 +88,7 @@ export function ImportEmployees() {
               <a
                 key={format}
                 href={`/api/admin/employees/import/template${format === 'xlsx' ? '?format=xlsx' : ''}`}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-rule bg-white px-3.5 text-sm font-medium whitespace-nowrap hover:border-muted"
+                className="inline-flex h-9 items-center gap-2 rounded-sm border border-rule bg-white px-3.5 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors hover:border-rule-strong hover:bg-[#fafafa]"
               >
                 <Download className="size-4" aria-hidden /> {label}
               </a>
@@ -124,7 +124,7 @@ export function ImportEmployees() {
               className="sr-only"
             />
           </label>
-          <span className="text-sm text-muted">{file ? file.name : 'No file chosen yet'}</span>
+          <span className="muted-text">{file ? file.name : 'No file chosen yet'}</span>
         </div>
         <p className="mt-2 text-sm text-muted">
           The file is checked first. Nothing is saved until you confirm the import.

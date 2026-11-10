@@ -17,7 +17,7 @@ export default function HrOverviewPage() {
   const companies = q.data?.companies ?? [];
   const { data: me } = useMe();
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader
         title={hasRole(me, 'HR_OFFICER') ? 'HR overview' : 'Group overview'}
         actions={
@@ -64,7 +64,7 @@ function Body({ d }) {
         <Stat label="On leave today" value={d.onLeave.length} />
       </Stats>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid-2">
         <Section title={`Requests for ${d.charts.year}`} description="Where each request stands now">
           <OutcomesDonut outcomes={d.charts.outcomes} />
         </Section>
@@ -132,7 +132,7 @@ function Body({ d }) {
 
       <Section title={`Annual leave taken by department, ${d.utilisation.year}`}>
         {d.utilisation.rows.length === 0 ? (
-          <p className="text-sm text-muted">No active employees.</p>
+          <p className="muted-text">No active employees.</p>
         ) : (
           <div className="space-y-5">
             <div className="max-w-2xl">

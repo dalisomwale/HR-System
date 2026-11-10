@@ -36,13 +36,13 @@ export default function DocumentsPanel({ request: r }) {
   const handover = r.documents.filter((d) => d.kind === 'HANDOVER');
   const supporting = r.documents.filter((d) => d.kind !== 'HANDOVER');
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-4">
       <Section
         title="Handover sheet"
         description="The handover template in Excel, filled in by the employee."
         actions={
           r.can.uploadDocument && (
-            <a href={HANDOVER_TEMPLATE_URL} className="text-sm text-brand hover:underline">
+            <a href={HANDOVER_TEMPLATE_URL} className="card-link">
               Download template
             </a>
           )
@@ -126,7 +126,7 @@ function DocList({ request: r, docs, kind, canAdd }) {
   return (
     <div className="space-y-3">
       {docs.length === 0 && !(r.can.uploadDocument && canAdd) && (
-        <p className="text-sm text-muted">
+        <p className="muted-text">
           {kind === 'HANDOVER' ? 'No handover sheet attached.' : 'No documents attached.'}
         </p>
       )}
@@ -162,14 +162,14 @@ function DocList({ request: r, docs, kind, canAdd }) {
                       href={`/api/documents/${d.id}/download?view=1`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 text-sm font-medium hover:border-muted"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-rule bg-white px-2.5 text-sm font-medium text-ink-2 transition-colors hover:border-rule-strong hover:bg-[#fafafa]"
                     >
                       <Eye className="size-4" aria-hidden /> View
                     </a>
                   )}
                   <a
                     href={`/api/documents/${d.id}/download`}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-md border border-rule bg-white px-2.5 text-sm font-medium hover:border-muted"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-sm border border-rule bg-white px-2.5 text-sm font-medium text-ink-2 transition-colors hover:border-rule-strong hover:bg-[#fafafa]"
                   >
                     <Download className="size-4" aria-hidden /> Download
                   </a>

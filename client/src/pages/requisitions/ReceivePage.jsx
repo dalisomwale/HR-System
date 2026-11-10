@@ -79,7 +79,7 @@ export default function ReceivePage() {
           No branches are set up yet. The System Administrator adds them under Administration › Branches.
         </Notice>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid-2">
           <NewItemForm
             key={`new-${r?.id ?? ''}-${done}`}
             opts={opts.data}

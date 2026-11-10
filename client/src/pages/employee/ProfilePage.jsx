@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarPlus, Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { formatDate, ROLE_LABELS } from '../../lib/format.js';
 import {
-  Badge,
   Button,
   ButtonLink,
   Details,
@@ -15,7 +14,6 @@ import {
   LoadError,
   Loading,
   Notice,
-  PageHeader,
   Section,
   Tabs,
   Textarea,
@@ -145,7 +143,7 @@ export default function ProfilePage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <YearSelect year={year} setYear={setYear} />
                     <ButtonLink to="/leave/apply" variant="primary">
-                      <CalendarPlus className="size-4" aria-hidden /> Apply for leave
+                      Apply for leave
                     </ButtonLink>
                   </div>
                 }
@@ -162,7 +160,7 @@ export default function ProfilePage() {
           {tab === 'attendance' && (
             <div id="panel-attendance" role="tabpanel">
               <Section title="Attendance">
-                <p className="text-sm text-muted">
+                <p className="muted-text">
                   Coming soon. Your clock-in times, absences and lateness will appear here once attendance is
                   set up.
                 </p>
@@ -216,7 +214,7 @@ function PersonalDetails({ title, note, fields, personal }) {
         !editing && (
           <button
             type="button"
-            className="inline-flex size-9 items-center justify-center rounded-md border border-rule bg-white text-ink hover:border-muted"
+            className="inline-flex size-9 items-center justify-center rounded-sm border border-rule bg-white text-ink-2 transition-colors hover:border-brand hover:bg-brand-soft hover:text-brand"
             aria-label={`Edit ${title.toLowerCase()}`}
             title={`Edit ${title.toLowerCase()}`}
             onClick={() => {

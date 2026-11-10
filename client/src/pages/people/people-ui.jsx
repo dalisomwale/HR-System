@@ -1,5 +1,4 @@
 import { useParams } from 'react-router';
-import { Briefcase, Building2, Hash, Landmark } from 'lucide-react';
 import { Badge } from '../../components/ui.jsx';
 import { formatDate } from '../../lib/format.js';
 
@@ -67,7 +66,7 @@ export function Initials({ first, last, size = 'sm' }) {
   return (
     <span
       aria-hidden
-      className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand`}
+      className={`flex ${box} shrink-0 items-center justify-center rounded-full bg-brand font-semibold text-white`}
     >
       {text}
     </span>
@@ -93,9 +92,9 @@ export function StatusBadge({ e }) {
 }
 
 const TYPE_PARTS = [
-  { key: 'PERMANENT', name: 'Permanent', color: '#2a3fbf' },
-  { key: 'FIXED_TERM', name: 'Fixed-term', color: '#eb6834' },
-  { key: 'TEMPORARY', name: 'Temporary', color: '#1baf7a' },
+  { key: 'PERMANENT', name: 'Permanent', color: '#3a54b4' },
+  { key: 'FIXED_TERM', name: 'Fixed-term', color: '#d0700c' },
+  { key: 'TEMPORARY', name: 'Temporary', color: '#6f9a2e' },
   { key: 'NONE', name: 'Not recorded', color: '#a3aab8' },
 ];
 
@@ -107,7 +106,7 @@ export function TypeMeter({ byType, compact = false }) {
   return (
     <div>
       <div
-        className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded bg-[#eceef7]"
+        className="flex h-2.5 w-full gap-[2px] overflow-hidden rounded bg-[#edeff4]"
         role="img"
         aria-label={`Employment type: ${shown.map((p) => `${p.name} ${p.value}`).join(', ') || 'none'}`}
       >
@@ -156,37 +155,21 @@ export function useEmployeeBase() {
  * StatusBadge reads; `action` is an optional button shown on the band.
  */
 export function ProfileHeader({ person: p, action }) {
-  const details = [
-    [Briefcase, p.jobTitle, 'Job title'],
-    [Building2, p.department, 'Department'],
-    [Landmark, p.company, 'Company'],
-    [Hash, p.employeeNumber, 'Employee number'],
-  ].filter(([, value]) => value);
+  // The inventory system's page header: name as the title, details and status pills beneath.
+  const details = [p.jobTitle, p.department, p.company, p.employeeNumber].filter(Boolean);
   return (
-    <section className="relative mb-6 overflow-hidden rounded-md border border-rule bg-white">
-      <div className="h-20 bg-brand" aria-hidden />
-      {action && <div className="absolute top-4 right-4">{action}</div>}
-      <div className="-mt-10 flex flex-col items-center px-4 pb-6 text-center">
-        <Initials first={p.firstName} last={p.lastName} size="xl" />
-        <h1 className="mt-3 text-2xl font-semibold tracking-[-0.01em]">
+    <div className="page-header">
+      <div className="min-w-0">
+        <h1 className="page-title">
           {p.firstName} {p.lastName}
         </h1>
-        {details.length > 0 && (
-          <ul className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1.5 text-sm text-muted">
-            {details.map(([Icon, value, label]) => (
-              <li key={label} className="flex items-center gap-1.5">
-                <Icon className="size-4 shrink-0" aria-hidden />
-                <span className="sr-only">{label}: </span>
-                {value}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-2.5 text-[0.88rem] text-muted">
+          {details.length > 0 && <span>{details.join(' · ')}</span>}
           <StatusBadge e={p} />
           {p.employmentType && <Badge tone="neutral">{EMPLOYMENT_TYPES[p.employmentType]}</Badge>}
         </div>
       </div>
-    </section>
+      {action && <div className="page-actions">{action}</div>}
+    </div>
   );
 }

@@ -185,7 +185,7 @@ export function LeaveForm({
   const err = (f) => errors[f]?.message;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
       <Section title="Request details">
         {available.length === 0 ? (
           <Notice tone="pending" title="No leave types are available yet.">
@@ -367,9 +367,7 @@ function PreviewPanel({ canPreview, preview }) {
   return (
     <Section title="Calculation" className="content-start self-start">
       {!canPreview ? (
-        <p className="text-sm text-muted">
-          Choose a leave type and dates to see how many days will be charged.
-        </p>
+        <p className="muted-text">Choose a leave type and dates to see how many days will be charged.</p>
       ) : preview.isError ? (
         <p className="text-sm text-danger">{preview.error.message}</p>
       ) : !p ? (
@@ -378,7 +376,9 @@ function PreviewPanel({ canPreview, preview }) {
         <div className={`space-y-4 text-sm ${preview.isFetching ? 'opacity-60' : ''}`}>
           {p.chargeableDays != null && (
             <div>
-              <p className="text-2xl font-semibold">{days(p.chargeableDays)}</p>
+              <p className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
+                {days(p.chargeableDays)}
+              </p>
               <p className="text-muted">
                 {p.dayBasis === 'CALENDAR_DAYS'
                   ? 'Counted in calendar days.'
@@ -518,7 +518,8 @@ function AttachmentPicker({ files, onChange, type }) {
         onChange={(e) => add([...(e.target.files ?? [])])}
       />
       <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
-        <Paperclip className="size-4" aria-hidden /> {files.length ? 'Add another file' : 'Attach files'}
+        {' '}
+        {files.length ? 'Add another file' : 'Attach files'}
       </Button>
     </div>
   );
@@ -547,7 +548,7 @@ function HandoverSheetPicker({ file, onChange, attached, error }) {
         <label htmlFor="handoverSheet" className="text-sm font-medium">
           Handover
         </label>
-        <a href={HANDOVER_TEMPLATE_URL} className="text-sm text-brand hover:underline">
+        <a href={HANDOVER_TEMPLATE_URL} className="card-link">
           Download template
         </a>
       </div>

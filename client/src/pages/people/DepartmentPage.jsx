@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, UserPlus, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
@@ -76,7 +75,7 @@ export default function DepartmentPage() {
   }
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <div>
         {back}
         <PageHeader
@@ -97,9 +96,7 @@ export default function DepartmentPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {!d.isActive && <Badge>Inactive</Badge>}
-              <ButtonLink to={`/people/departments/${d.id}/employees`}>
-                <Users className="size-4" aria-hidden /> Employees
-              </ButtonLink>
+              <ButtonLink to={`/people/departments/${d.id}/employees`}> Employees</ButtonLink>
               {canEdit && (
                 <>
                   <Button
@@ -110,14 +107,16 @@ export default function DepartmentPage() {
                       setPanel(panel === 'add' ? null : 'add');
                     }}
                   >
-                    <UserPlus className="size-4" aria-hidden /> Add employee
+                    {' '}
+                    Add employee
                   </Button>
                   <Button
                     variant={panel === 'edit' ? 'primary' : 'secondary'}
                     aria-expanded={panel === 'edit'}
                     onClick={() => setPanel(panel === 'edit' ? null : 'edit')}
                   >
-                    <Pencil className="size-4" aria-hidden /> Edit department
+                    {' '}
+                    Edit department
                   </Button>
                 </>
               )}
@@ -182,7 +181,7 @@ export default function DepartmentPage() {
             />
           </Stats>
 
-          <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
             <Section title="Employment type">
               <TypeDonutChart byType={d.byType} />
             </Section>
@@ -207,7 +206,7 @@ export default function DepartmentPage() {
             ) : people.isError ? (
               <LoadError error={people.error} onRetry={() => people.refetch()} />
             ) : people.data.items.length === 0 ? (
-              <p className="text-sm text-muted">Nobody in this department yet.</p>
+              <p className="muted-text">Nobody in this department yet.</p>
             ) : (
               <Table>
                 <thead>
@@ -227,7 +226,6 @@ export default function DepartmentPage() {
                       <tr key={e.id}>
                         <Td>
                           <div className="flex items-center gap-3">
-                            <Initials first={e.firstName} last={e.lastName} />
                             <button
                               type="button"
                               onClick={() => setViewing(e.id)}

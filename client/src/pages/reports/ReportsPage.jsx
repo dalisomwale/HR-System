@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { api, downloadFile, qs } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
 import {
@@ -11,7 +10,6 @@ import {
   Input,
   LoadError,
   Loading,
-  Notice,
   PageHeader,
   Select,
   Table,
@@ -65,7 +63,7 @@ export default function ReportsPage({ base = '/api/reports', listInMenu = false 
     <div className="max-w-7xl">
       <PeopleTrail />
       <PageHeader title="Reports" />
-      <div className={listInMenu ? 'grid gap-6' : 'grid gap-6 xl:grid-cols-[16rem_minmax(0,1fr)]'}>
+      <div className={listInMenu ? 'grid gap-4' : 'grid gap-4 xl:grid-cols-[16rem_minmax(0,1fr)]'}>
         {!listInMenu && (
           <>
             {/* Below extra-wide screens the list becomes a single dropdown above the report. */}
@@ -80,7 +78,7 @@ export default function ReportsPage({ base = '/api/reports', listInMenu = false 
             </Field>
             <nav
               aria-label="Reports"
-              className="hidden self-start rounded-md border border-rule bg-white py-2 xl:block"
+              className="hidden self-start rounded-md border border-rule bg-white py-2 shadow-card xl:block"
             >
               <ul>
                 {items.map((r) => (
@@ -259,7 +257,7 @@ function ReportView({ base, report, options, applied, onApply }) {
   return (
     <div className="min-w-0 space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">{report.title}</h2>
+        <h2 className="font-head text-base font-semibold text-ink">{report.title}</h2>
         <p className="mt-0.5 max-w-3xl text-sm text-muted">{report.description}</p>
       </div>
       <Filters report={report} options={options} applied={applied} onApply={onApply} />
@@ -270,14 +268,14 @@ function ReportView({ base, report, options, applied, onApply }) {
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted">
+            <p className="muted-text">
               {q.data.total} {q.data.total === 1 ? 'row' : 'rows'}
               {q.data.truncated && `; showing the first ${q.data.rows.length}. Export to get them all.`}
             </p>
             {q.data.total > 0 && <ExportButtons url={exportUrl} />}
           </div>
           {q.data.total === 0 ? (
-            <div className="rounded-md border border-rule bg-white">
+            <div className="card p-0">
               <EmptyState title="No records found for these filters." />
             </div>
           ) : (
@@ -345,10 +343,12 @@ function ExportButtons({ url }) {
     <div className="flex flex-wrap items-center gap-2">
       {error && <span className="text-sm text-danger">{error}</span>}
       <Button variant="secondary" busy={busy === 'xlsx'} onClick={() => run('xlsx')}>
-        <Download className="size-4" aria-hidden /> Excel
+        {' '}
+        Excel
       </Button>
       <Button variant="secondary" busy={busy === 'csv'} onClick={() => run('csv')}>
-        <Download className="size-4" aria-hidden /> CSV
+        {' '}
+        CSV
       </Button>
     </div>
   );

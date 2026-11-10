@@ -12,7 +12,7 @@ export default function TeamPage() {
     queryFn: () => api.get('/api/dashboard/manager'),
   });
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="Departmental overview" />
       {q.isPending ? (
         <Loading />
@@ -39,7 +39,7 @@ function Body({ d }) {
         <Stat label="People in your team" value={d.teamSize} />
       </Stats>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <Section title="Your team today">
           <TeamTodayDonut size={d.teamSize} onLeave={d.onLeave.length} />
         </Section>
@@ -55,7 +55,7 @@ function Body({ d }) {
       <Section
         title="Waiting for your review"
         actions={
-          <Link to="/approvals" className="text-sm text-brand hover:underline">
+          <Link to="/approvals" className="card-link">
             All approvals
           </Link>
         }
@@ -77,7 +77,7 @@ function Body({ d }) {
         )}
       </Section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid-2">
         <Section title="On leave today">
           <RequestList items={d.onLeave} showEmployee empty="Nobody in your team is on leave today." />
         </Section>
@@ -86,10 +86,10 @@ function Body({ d }) {
         </Section>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid-2">
         <Section title="Overlapping absences">
           {d.overlaps.length === 0 ? (
-            <p className="text-sm text-muted">No overlaps in the next 30 days.</p>
+            <p className="muted-text">No overlaps in the next 30 days.</p>
           ) : (
             <ul className="divide-y divide-rule text-sm">
               {d.overlaps.map((o) => (

@@ -91,12 +91,12 @@ export default function SettingsPage() {
       )}
       {rest.length > 0 && (
         <>
-          <h2 className="mb-1 text-[15px] font-semibold">Confirmed settings</h2>
+          <h2 className="mb-3 font-head text-base font-semibold text-ink">Confirmed settings</h2>
           <SettingsList items={rest} />
         </>
       )}
-      <h2 className="mt-8 mb-1 text-[15px] font-semibold">Fixed by policy</h2>
-      <ul className="divide-y divide-rule rounded-md border border-rule bg-white text-sm">
+      <h2 className="mt-[22px] mb-3 font-head text-base font-semibold text-ink">Fixed by policy</h2>
+      <ul className="divide-y divide-rule rounded-md border border-rule bg-white shadow-card text-sm">
         {fixed.map((s) => (
           <li key={s.key} className="flex justify-between gap-4 px-4 py-3">
             <span>{TITLES[s.key] ?? s.key}</span>
@@ -110,7 +110,7 @@ export default function SettingsPage() {
 
 function SettingsList({ items }) {
   return (
-    <ul className="mt-3 divide-y divide-rule rounded-md border border-rule bg-white">
+    <ul className="mt-3 divide-y divide-rule rounded-md border border-rule bg-white shadow-card">
       {items.map((s) => (
         <SettingRow key={s.key} setting={s} />
       ))}
@@ -165,7 +165,7 @@ function SettingRow({ setting: s }) {
               value={value}
               onChange={(e) => setValue(Number(e.target.value))}
             />
-            <span className="text-sm text-muted">{s.unit}</span>
+            <span className="muted-text">{s.unit}</span>
           </div>
         )}
         {save.isError && <p className="mt-1 text-xs text-danger">{save.error.message}</p>}

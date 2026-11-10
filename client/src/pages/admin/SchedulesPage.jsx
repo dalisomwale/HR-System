@@ -53,7 +53,7 @@ export default function SchedulesPage() {
   return (
     <div className="max-w-5xl">
       <PageHeader title="Working schedules" />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         {list.isPending ? (
           <Loading />
         ) : list.isError ? (

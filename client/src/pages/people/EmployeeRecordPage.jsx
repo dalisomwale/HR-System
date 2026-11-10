@@ -28,7 +28,6 @@ import {
 import {
   EMPLOYMENT_TYPES,
   FIELD_LABELS,
-  Initials,
   PROBATION,
   ProfileHeader,
   StatusBadge,
@@ -136,14 +135,14 @@ export default function EmployeeRecordPage() {
                 type="button"
                 aria-label="Edit details"
                 title="Edit details"
-                className="inline-flex size-9 items-center justify-center rounded-md text-white hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white"
+                className="btn btn-icon"
                 onClick={() => {
                   setTab('job');
                   setSaved(false);
                   setEditing(true);
                 }}
               >
-                <Pencil className="size-5" aria-hidden />
+                <Pencil aria-hidden />
               </button>
             )
           }
@@ -199,7 +198,7 @@ export default function EmployeeRecordPage() {
       {!isNew && tab === 'attendance' && (
         <div id="panel-attendance" role="tabpanel">
           <Section title="Attendance">
-            <p className="text-sm text-muted">
+            <p className="muted-text">
               Coming soon. Clock-in times, absences and lateness will appear here once attendance is set up.
             </p>
           </Section>
@@ -214,7 +213,7 @@ export default function EmployeeRecordPage() {
         <div
           id={isNew ? 'panel-single' : 'panel-job'}
           role="tabpanel"
-          className={sidePanels ? 'grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-6'}
+          className={sidePanels ? 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]' : 'grid gap-4'}
         >
           {isNew || editing ? (
             <EmployeeForm
@@ -235,7 +234,7 @@ export default function EmployeeRecordPage() {
             <EmployeeDetails employee={e} saved={saved} personal={false} title="Job details" />
           )}
           {sidePanels && (
-            <div className="grid content-start gap-6">
+            <div className="grid content-start gap-4">
               {e.directReports.length > 0 && (
                 <Section title="Direct reports">
                   <ul className="space-y-2 text-sm">
@@ -417,7 +416,7 @@ export function EmployeeDetails({ employee: e, saved, personal = true, title = '
       </dl>
       {personal && e.personal && (
         <>
-          <h3 className="mt-6 mb-2 border-t border-rule pt-4 text-sm font-semibold">Personal details</h3>
+          <h3 className="section-divider mt-5">Personal details</h3>
           <p className="mb-3 text-xs text-muted">Kept up to date by the employee on My profile.</p>
           <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
             {PERSONAL_FIELDS.map(([k, label]) => (
@@ -811,7 +810,7 @@ function IdentityPanel({ employee }) {
             link.mutate();
           }}
         >
-          <p className="text-sm text-muted">
+          <p className="muted-text">
             Not linked yet. It links by itself the first time they sign in, if the work email on this record
             matches their Microsoft account. Or enter their Object ID from the Microsoft Entra admin centre.
           </p>
@@ -923,7 +922,7 @@ function StatusPanel({ employee }) {
       actions={active ? <Badge tone="ok">Active</Badge> : <Badge>Left</Badge>}
     >
       {me?.id === employee.id ? (
-        <p className="text-sm text-muted">You cannot change the status of your own record.</p>
+        <p className="muted-text">You cannot change the status of your own record.</p>
       ) : active ? (
         <>
           <p className="mb-3 text-sm text-muted">

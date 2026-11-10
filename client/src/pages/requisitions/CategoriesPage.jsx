@@ -71,7 +71,7 @@ export default function CategoriesPage() {
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {q.data &&
         (q.data.items.length === 0 ? (
-          <div className="rounded-md border border-rule bg-white">
+          <div className="card p-0">
             <EmptyState title="No categories yet." />
           </div>
         ) : (

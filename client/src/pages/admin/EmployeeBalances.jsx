@@ -61,7 +61,7 @@ export default function EmployeeBalances({ employeeId }) {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
-        <div className="space-y-6">
+        <div className="stack">
           <BalanceCards items={q.data.items} showPending={false} />
           <AdjustmentForm
             employeeId={employeeId}
@@ -69,9 +69,9 @@ export default function EmployeeBalances({ employeeId }) {
             types={q.data.items.filter((b) => b.kind === 'BALANCE').map((b) => b.leaveType)}
           />
           <div>
-            <h3 className="mb-2 text-sm font-semibold">Ledger {year}</h3>
+            <h3 className="section-divider mt-5">Ledger {year}</h3>
             {q.data.ledger.length === 0 ? (
-              <p className="text-sm text-muted">No entries for {year}.</p>
+              <p className="muted-text">No entries for {year}.</p>
             ) : (
               <Table>
                 <thead>

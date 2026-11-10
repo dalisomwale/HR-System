@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { api, downloadFile, qs } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
 import {
@@ -107,7 +106,7 @@ export default function StockReportsPage() {
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {d && (
-        <div className="space-y-6">
+        <div className="stack">
           <Stats>
             {issue ? (
               <>
@@ -135,7 +134,8 @@ export default function StockReportsPage() {
               actions={
                 d.groups.length > 0 && (
                   <Button variant="secondary" onClick={() => exportIt('')}>
-                    <Download className="size-4" aria-hidden /> Export to Excel
+                    {' '}
+                    Export to Excel
                   </Button>
                 )
               }
@@ -214,7 +214,8 @@ export default function StockReportsPage() {
               title={d.selected ? `By item — ${d.selected.name}` : 'By item'}
               actions={
                 <Button variant="secondary" onClick={() => exportIt('items')}>
-                  <Download className="size-4" aria-hidden /> Export to Excel
+                  {' '}
+                  Export to Excel
                 </Button>
               }
             >

@@ -1,11 +1,22 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { CalendarCheck, CalendarPlus, ClipboardCheck, LayoutGrid, Scale, ShieldCheck } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { seesWholeGroup, useMe } from '../../lib/auth.jsx';
+import { hasRole, seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
-import { ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
+import {
+  ActionTile,
+  ActionTiles,
+  Kpi,
+  KpiRow,
+  LoadError,
+  Loading,
+  Notice,
+  PageHeader,
+  Section,
+  TodayDate,
+} from '../../components/ui.jsx';
 import { RequestList } from './dashboard-ui.jsx';
 import { BalanceDonut, MonthlyLeaveChart, TypeDonut } from './dashboard-charts.jsx';
 
@@ -17,54 +28,82 @@ export default function HomePage() {
   });
 
   return (
-    <div className="max-w-6xl space-y-6">
-      <PageHeader
-        title={`Welcome, ${me.firstName}`}
-        description={[me.jobTitle, me.department, me.company].filter(Boolean).join(' · ') || undefined}
-        actions={
-          <ButtonLink to="/leave/apply" variant="primary">
-            <Plus className="size-4" aria-hidden /> Apply for leave
-          </ButtonLink>
-        }
-      />
-      {(me.isManager || me.isDelegate || seesWholeGroup(me)) && <RoleLinks me={me} />}
+    <div className="stack">
+      <PageHeader title="Home" actions={<TodayDate />} />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
-        <Body d={q.data} />
+        <Body d={q.data} me={me} />
       )}
     </div>
   );
 }
 
-function RoleLinks({ me }) {
+/** Shortcuts, as the inventory dashboard's solid tiles. Approvers get their queues too. */
+function Shortcuts({ me, i }) {
+  const waiting = (n) => (n > 0 ? `${n} waiting` : undefined);
   return (
-    <div className="flex flex-wrap gap-2 text-sm">
-      {(me.isManager || me.isDelegate || me.roles.includes('HR_ADMIN')) && (
-        <Link to="/team" className="rounded-md border border-rule bg-white px-3 py-2 hover:border-muted">
-          Departmental overview
-        </Link>
+    <ActionTiles>
+      <ActionTile
+        to="/leave/apply"
+        icon={CalendarPlus}
+        title="Apply for leave"
+        desc="Book time off"
+        tone="receive"
+      />
+      <ActionTile to="/leave" icon={CalendarCheck} title="My leave" desc="Your requests" tone="stock" />
+      <ActionTile
+        to="/leave/balances"
+        icon={Scale}
+        title="My balances"
+        desc="Days you have left"
+        tone="reports"
+      />
+      {(me.isManager || me.isDelegate || hasRole(me, 'HR_ADMIN')) && (
+        <ActionTile
+          to="/approvals"
+          icon={ClipboardCheck}
+          title="Approvals"
+          desc="Your team's requests"
+          badge={waiting(i.teamApprovals)}
+          tone="issue"
+        />
       )}
-      {seesWholeGroup(me) && (
-        <Link to="/hr" className="rounded-md border border-rule bg-white px-3 py-2 hover:border-muted">
-          {me.roles.includes('HR_OFFICER') ? 'HR overview' : 'Group overview'}
-        </Link>
+      {hasRole(me, 'HR_OFFICER') && (
+        <ActionTile
+          to="/hr/approvals"
+          icon={ShieldCheck}
+          title="HR approvals"
+          desc="Final decisions"
+          badge={waiting(i.hrApprovals)}
+          tone="request"
+        />
       )}
-    </div>
+      {seesWholeGroup(me) && !hasRole(me, 'HR_OFFICER') && (
+        <ActionTile
+          to="/hr"
+          icon={LayoutGrid}
+          title="Group overview"
+          desc="Leave across the group"
+          tone="request"
+        />
+      )}
+    </ActionTiles>
   );
 }
 
-function Body({ d }) {
+function Body({ d, me }) {
   const main = d.balances.find((b) => b.kind === 'BALANCE');
   return (
     <>
       <Insights i={d.insights} year={d.year} />
+      <Shortcuts me={me} i={d.insights} />
 
       {d.actions.length > 0 && (
         <Notice tone="pending" title="Needs your attention">
-          <ul className="mt-1 space-y-1">
+          <ul className="space-y-0.5">
             {d.actions.map((a) => (
               <li key={`${a.kind}-${a.requestId}`}>
                 <Link to={`/leave/requests/${a.requestId}`} className="underline">
@@ -76,12 +115,12 @@ function Body({ d }) {
         </Notice>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid-2">
         {main && (
           <Section
             title={`${main.leaveType.name}, ${d.year}`}
             actions={
-              <Link to="/leave/balances" className="text-sm text-brand hover:underline">
+              <Link to="/leave/balances" className="card-link">
                 All balances
               </Link>
             }
@@ -89,7 +128,7 @@ function Body({ d }) {
             <BalanceDonut b={main} />
           </Section>
         )}
-        <Section title={`Days taken by leave type, ${d.year}`} className={main ? '' : 'xl:col-span-2'}>
+        <Section title={`Days taken by leave type, ${d.year}`}>
           <TypeDonut
             label={`Days taken by leave type, ${d.year}`}
             empty={`No leave taken yet in ${d.year}.`}
@@ -106,7 +145,7 @@ function Body({ d }) {
         <MonthlyLeaveChart months={d.charts.monthly} year={d.year} />
       </Section>
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid-2">
         <Section title="Waiting for a decision">
           <RequestList items={d.pending} empty="No requests are waiting for a decision." />
         </Section>
@@ -119,83 +158,37 @@ function Body({ d }) {
 }
 
 function Insights({ i, year }) {
-  const cards = [];
-  if (i.teamApprovals != null) {
-    cards.push({
-      key: 'team',
-      value: i.teamApprovals,
-      label: 'Awaiting your approval',
-      to: '/approvals',
-      alert: i.teamApprovals > 0,
-    });
-  }
-  if (i.hrApprovals != null) {
-    cards.push({
-      key: 'hr',
-      value: i.hrApprovals,
-      label: 'Awaiting HR approval',
-      to: '/hr/approvals',
-      alert: i.hrApprovals > 0,
-    });
-  }
-  if (i.main) {
-    cards.push({
-      key: 'main',
-      value: i.main.available,
-      label: `${i.main.leaveType} days available`,
-      to: '/leave/balances',
-    });
-  }
-  cards.push(
-    {
-      key: 'taken',
-      value: i.takenThisYear,
-      label: `Days taken in ${year}`,
-      to: '/leave/balances',
-    },
-    {
-      key: 'awaiting',
-      value: i.awaitingDecision,
-      label: 'Your pending requests',
-      to: '/leave',
-    },
-    i.onLeaveNow
-      ? {
-          key: 'next',
-          value: 'On leave',
-          label: `Until ${formatDate(i.onLeaveNow.endDate)}`,
-          to: `/leave/requests/${i.onLeaveNow.id}`,
-        }
-      : {
-          key: 'next',
-          value: i.nextLeave ? formatDate(i.nextLeave.startDate) : 'None booked',
-          label: i.nextLeave ? `Next leave · ${days(i.nextLeave.chargeableDays)}` : 'Next leave',
-          to: i.nextLeave ? `/leave/requests/${i.nextLeave.id}` : '/leave/apply',
-        },
-  );
-  // Two across on phones, more as the screen widens; never a lone card on the last row.
-  const cols = {
-    3: 'sm:grid-cols-3',
-    4: 'sm:grid-cols-2 xl:grid-cols-4',
-    5: 'sm:grid-cols-3 2xl:grid-cols-5',
-    6: 'sm:grid-cols-3',
-  }[cards.length];
-
   return (
-    <ul className={`grid grid-cols-2 gap-3 ${cols}`}>
-      {cards.map(({ key, value, label, to, alert }) => (
-        <li key={key}>
-          <Link
-            to={to}
-            className={`block h-full rounded-lg border bg-white p-4 hover:border-brand ${alert ? 'border-pending/40' : 'border-rule'}`}
-          >
-            <span className="block">
-              <span className={`block text-xl font-semibold ${alert ? 'text-pending' : ''}`}>{value}</span>
-              <span className="block text-sm text-muted">{label}</span>
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <KpiRow>
+      <Kpi
+        label={i.main ? `${i.main.leaveType} available` : 'Days available'}
+        value={i.main ? i.main.available : '—'}
+        unit={i.main ? 'days' : undefined}
+        to="/leave/balances"
+      />
+      <Kpi label={`Taken in ${year}`} value={i.takenThisYear} unit="days" to="/leave/balances" />
+      <Kpi
+        label="Your pending requests"
+        value={i.awaitingDecision}
+        tone={i.awaitingDecision > 0 ? 'warn' : undefined}
+        to="/leave"
+      />
+      {i.onLeaveNow ? (
+        <Kpi
+          label="On leave"
+          value={`Until ${formatDate(i.onLeaveNow.endDate)}`}
+          small
+          to={`/leave/requests/${i.onLeaveNow.id}`}
+        />
+      ) : (
+        <Kpi
+          label="Next leave"
+          value={i.nextLeave ? formatDate(i.nextLeave.startDate) : 'None booked'}
+          note={i.nextLeave ? days(i.nextLeave.chargeableDays) : undefined}
+          small
+          to={i.nextLeave ? `/leave/requests/${i.nextLeave.id}` : '/leave/apply'}
+        />
+      )}
+    </KpiRow>
   );
 }

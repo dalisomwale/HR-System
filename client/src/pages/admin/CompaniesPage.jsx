@@ -60,7 +60,7 @@ export default function CompaniesPage() {
     <div className="max-w-5xl">
       <PeopleTrail />
       <PageHeader title="Companies" />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <Section title={editingId ? 'Edit company' : 'Add a company'}>
           <form
             className="grid gap-4 sm:grid-cols-[8rem_1fr_auto] sm:items-end"
@@ -124,7 +124,7 @@ export default function CompaniesPage() {
               </Notice>
             )}
             {list.data.items.length === 0 ? (
-              <div className="rounded-md border border-rule bg-white">
+              <div className="card p-0">
                 <EmptyState title="No companies yet.">Add the companies in the group above.</EmptyState>
               </div>
             ) : (

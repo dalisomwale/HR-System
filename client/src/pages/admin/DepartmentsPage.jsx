@@ -63,7 +63,7 @@ export default function DepartmentsPage() {
     <div className="max-w-5xl">
       <PeopleTrail />
       <PageHeader title="Departments" />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <Section title={editingId ? 'Edit department' : 'Add a department'}>
           <form
             className="grid gap-4 lg:grid-cols-[1fr_8rem_1fr_auto] lg:items-end sm:grid-cols-2"
@@ -142,7 +142,7 @@ export default function DepartmentsPage() {
         ) : list.isError ? (
           <LoadError error={list.error} onRetry={() => list.refetch()} />
         ) : list.data.items.length === 0 ? (
-          <div className="rounded-md border border-rule bg-white">
+          <div className="card p-0">
             <EmptyState title="No departments yet.">Add your first department above.</EmptyState>
           </div>
         ) : (

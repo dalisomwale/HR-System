@@ -1,6 +1,5 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2 } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { BarList } from '../../components/charts.jsx';
@@ -36,16 +35,14 @@ export default function CompanyOverviewPage() {
     queryFn: () => api.get('/api/people/companies-overview'),
   });
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PeopleTrail />
       <PageHeader
         title="Company overview"
         description="Every company in the group, side by side"
         actions={
           hasRole(me, 'HR_OFFICER') && (
-            <ButtonLink to="/people/companies/manage">
-              <Settings2 className="size-4" aria-hidden /> Manage companies
-            </ButtonLink>
+            <ButtonLink to="/people/companies/manage"> Manage companies</ButtonLink>
           )
         }
       />
@@ -54,7 +51,7 @@ export default function CompanyOverviewPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.companies.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title="No companies yet." />
         </div>
       ) : (
@@ -70,8 +67,8 @@ export default function CompanyOverviewPage() {
             </Notice>
           )}
           <Statistics companies={q.data.companies} year={q.data.year} />
-          <h2 className="pt-2 text-base font-semibold">Each company</h2>
-          <div className="grid gap-6 xl:grid-cols-2">
+          <h2 className="pt-2 font-head text-base font-semibold text-ink">Each company</h2>
+          <div className="grid-2">
             {q.data.companies.map((c) => (
               <CompanyCard key={c.id} c={c} year={q.data.year} />
             ))}
@@ -102,8 +99,10 @@ function CompanyCard({ c, year }) {
     >
       <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <p>
-          <span className="text-3xl font-semibold tabular-nums">{c.headcount}</span>{' '}
-          <span className="text-sm text-muted">active staff</span>
+          <span className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
+            {c.headcount}
+          </span>{' '}
+          <span className="muted-text">active staff</span>
         </p>
         <div className="min-w-56 flex-1">
           <TypeMeter byType={c.byType} />
@@ -121,7 +120,7 @@ function CompanyCard({ c, year }) {
           ['No line manager', c.noManager],
         ]}
       />
-      <h3 className="mt-5 mb-3 text-sm font-semibold">Staff by department</h3>
+      <h3 className="section-divider mt-5">Staff by department</h3>
       <BarList
         empty="No staff in a department yet."
         format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
@@ -160,7 +159,7 @@ function Statistics({ companies, year }) {
     left: c.leftThisYear,
   }));
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid-2">
       <Section title="Staff by company" description="Active staff, by employment type">
         <TypesByGroup groups={groups} label="Active staff in each company by employment type" />
       </Section>

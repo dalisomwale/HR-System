@@ -94,7 +94,7 @@ export default function AuditPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.items.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title="No audit entries match these filters." />
         </div>
       ) : (

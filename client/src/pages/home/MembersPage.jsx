@@ -21,7 +21,7 @@ const FILTERS = [
 export default function MembersPage() {
   const q = useQuery({ queryKey: ['members'], queryFn: () => api.get('/api/dashboard/members') });
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="Members" description={q.data?.department ?? undefined} />
       {q.isPending ? (
         <Loading />
@@ -64,7 +64,9 @@ function Body({ d }) {
               filter === key ? 'border-brand ring-1 ring-brand' : 'border-rule'
             }`}
           >
-            <p className="text-2xl font-semibold">{counts[key]}</p>
+            <p className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
+              {counts[key]}
+            </p>
             <p className="mt-0.5 text-sm text-muted">{label}</p>
           </button>
         ))}
@@ -79,7 +81,7 @@ function Body({ d }) {
       />
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">{d.members.length ? 'Nobody matches.' : 'No members yet.'}</p>
+        <p className="muted-text">{d.members.length ? 'Nobody matches.' : 'No members yet.'}</p>
       ) : (
         <Table>
           <thead>

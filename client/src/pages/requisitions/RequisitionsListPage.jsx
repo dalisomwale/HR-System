@@ -79,7 +79,7 @@ export default function RequisitionsListPage() {
           </div>
           <div id={`panel-${d.tab}`} role="tabpanel" aria-labelledby={`tab-${d.tab}`}>
             {d.items.length === 0 ? (
-              <div className="rounded-md border border-rule bg-white">
+              <div className="card p-0">
                 <EmptyState
                   title={d.tab === 'mine' ? 'Nothing is waiting for you.' : 'No requisitions here.'}
                 />

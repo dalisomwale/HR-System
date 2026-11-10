@@ -1,6 +1,5 @@
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Settings2, UserPlus, Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
@@ -39,7 +38,7 @@ export default function CompanyPage() {
   const depts = [...departments.data.departments].sort((a, b) => b.headcount - a.headcount);
 
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <div>
         {back}
         <PageHeader
@@ -48,19 +47,11 @@ export default function CompanyPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               {!c.isActive && <Badge>Inactive</Badge>}
-              <ButtonLink to={`/people/companies/${c.id}/employees`}>
-                <Users className="size-4" aria-hidden /> Employees
-              </ButtonLink>
+              <ButtonLink to={`/people/companies/${c.id}/employees`}> Employees</ButtonLink>
               {hasRole(me, 'HR_OFFICER') && (
-                <ButtonLink to={`/people/companies/${c.id}/employees/new`}>
-                  <UserPlus className="size-4" aria-hidden /> Add employee
-                </ButtonLink>
+                <ButtonLink to={`/people/companies/${c.id}/employees/new`}> Add employee</ButtonLink>
               )}
-              {hasRole(me, 'HR_OFFICER') && (
-                <ButtonLink to="/people/companies/manage">
-                  <Settings2 className="size-4" aria-hidden /> Manage
-                </ButtonLink>
-              )}
+              {hasRole(me, 'HR_OFFICER') && <ButtonLink to="/people/companies/manage"> Manage</ButtonLink>}
             </div>
           }
         />
@@ -95,7 +86,7 @@ export default function CompanyPage() {
           <DepartmentStatistics departments={depts} year={year} companyId={id} />
         </>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid-2">
           <Section title="Employment type">
             <TypeDonutChart byType={c.byType} />
           </Section>

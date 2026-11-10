@@ -11,14 +11,14 @@ import { Link } from 'react-router';
  * orange and green for the three largest types, and grey for the rest.
  */
 export const COLORS = {
-  taken: '#2a3fbf',
-  booked: '#9aa8ef',
-  waiting: '#eb6834',
-  series: ['#2a3fbf', '#eb6834', '#1baf7a'],
+  taken: '#3a54b4',
+  booked: '#a9b5e3',
+  waiting: '#d0700c',
+  series: ['#3a54b4', '#d0700c', '#6f9a2e'],
   other: '#a3aab8',
-  track: '#eceef7',
-  grid: '#e6e9ef',
-  weekend: '#f5f6f8',
+  track: '#edeff4',
+  grid: '#e2e5ec',
+  weekend: '#f4f5f8',
 };
 
 const ONE = { days: 'day', people: 'person' };
@@ -56,12 +56,12 @@ function niceScale(max, whole) {
 
 export function Legend({ items }) {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+    <ul className="legend">
       {items.map((s) => (
         <li key={s.key ?? s.name} className="flex items-center gap-1.5">
           <span
-            className="inline-block size-2.5 rounded-sm"
-            style={{ background: s.color, outline: s.outline ? '1px solid #c9cfe6' : undefined }}
+            className="swatch"
+            style={{ background: s.color, outline: s.outline ? '1px solid #c7cfe8' : undefined }}
             aria-hidden
           />
           {s.name}
@@ -95,7 +95,7 @@ export function ColumnChart({
   );
   const max = Math.max(0, ...totals);
   if (max === 0 && empty) {
-    return <p className="text-sm text-muted">{empty}</p>;
+    return <p className="muted-text">{empty}</p>;
   }
   const { top, ticks } = niceScale(max, whole);
   const left = 28;
@@ -170,7 +170,7 @@ export function ColumnChart({
               <g key={d.key}>
                 {d.shade && <rect x={x0} y={8} width={band} height={plotH} fill={COLORS.weekend} />}
                 {hover === i && (
-                  <rect x={x0} y={8} width={band} height={plotH} fill="#000080" opacity="0.05" />
+                  <rect x={x0} y={8} width={band} height={plotH} fill="#25398d" opacity="0.05" />
                 )}
                 {segs.map((g) =>
                   g.last ? (
@@ -218,7 +218,7 @@ export function ColumnChart({
               </g>
             );
           })}
-          <line x1={left} x2={width} y1={y(0)} y2={y(0)} stroke="#c3c9d4" strokeWidth="1" />
+          <line x1={left} x2={width} y1={y(0)} y2={y(0)} stroke="#cdd2dd" strokeWidth="1" />
         </svg>
       )}
       {hover != null && width > 0 && (
@@ -250,16 +250,16 @@ function Tip({ x, width, title, rows }) {
   const left = Math.min(Math.max(x, 130), width - 130);
   return (
     <div
-      className="pointer-events-none absolute top-0 z-10 w-64 -translate-x-1/2 rounded-md border border-rule bg-white px-3 py-2 text-xs shadow-md"
+      className="pointer-events-none absolute top-0 z-10 w-64 -translate-x-1/2 rounded-sm bg-ink px-[9px] py-1.5 text-[0.8rem] leading-snug text-white shadow-[0_2px_8px_rgba(0,0,0,.18)]"
       style={{ left }}
       role="status"
     >
-      <p className="mb-1 font-medium">{title}</p>
+      <p className="mb-1 font-semibold">{title}</p>
       {rows.map((r) => (
         <p key={r.name} className="flex items-center gap-2">
           <span className="inline-block h-0.5 w-3" style={{ background: r.color }} aria-hidden />
           <span className="font-semibold whitespace-nowrap">{r.value}</span>
-          <span className="text-muted">{r.name}</span>
+          <span className="text-white/75">{r.name}</span>
         </p>
       ))}
     </div>
@@ -307,33 +307,35 @@ function DataTable({ caption, head, rows }) {
  */
 export function BarList({ items, format = fmt, color = COLORS.taken, max, empty }) {
   const top = max ?? Math.max(0, ...items.map((i) => i.value));
-  if (!items.length || (top === 0 && empty)) return <p className="text-sm text-muted">{empty}</p>;
+  if (!items.length || (top === 0 && empty)) return <p className="muted-text">{empty}</p>;
+  // Label, bar and figure on one row, as the inventory system's bar lists.
   return (
-    <ul className="space-y-3">
+    <ul className="hbars">
       {items.map((it) => {
         const pct = top > 0 ? (it.value / top) * 100 : 0;
-        const name = it.to ? (
-          <Link to={it.to} className="text-brand hover:underline">
-            {it.label}
-          </Link>
-        ) : (
-          it.label
-        );
         return (
-          <li key={it.key} className="text-sm">
-            <div className="mb-1 flex items-baseline justify-between gap-3">
-              <span className="min-w-0 truncate">
-                {name}
-                {it.sub && <span className="text-xs text-muted"> · {it.sub}</span>}
-              </span>
-              <span className="shrink-0 font-semibold tabular-nums">{format(it.value)}</span>
-            </div>
-            <div className="h-2 rounded-r bg-transparent" title={`${it.label}: ${format(it.value)}`}>
-              <div
-                className="h-2 rounded-r"
+          <li
+            key={it.key}
+            className="hbar-row"
+            title={`${it.label}${it.sub ? ` (${it.sub})` : ''}: ${format(it.value)}`}
+          >
+            <span className="hbar-label">
+              {it.to ? (
+                <Link to={it.to} className="text-brand hover:underline">
+                  {it.label}
+                </Link>
+              ) : (
+                it.label
+              )}
+              {it.sub && <span className="block truncate text-[0.78rem] text-muted">{it.sub}</span>}
+            </span>
+            <span className="hbar-track">
+              <span
+                className="hbar-fill block"
                 style={{ width: `${Math.max(it.value > 0 ? 1.5 : 0, pct)}%`, background: color }}
               />
-            </div>
+            </span>
+            <span className="hbar-value">{format(it.value)}</span>
           </li>
         );
       })}
@@ -380,10 +382,10 @@ function arc(cx, cy, r, a0, a1) {
  * A ring split into parts of a whole, with the total in the middle and a legend beside it
  * giving each part's figure and share. segments: [{ key, name, value, color }].
  */
-export function Donut({ segments, label, centre, centreLabel, size = 148, unit, empty }) {
+export function Donut({ segments, label, centre, centreLabel, size = 170, unit, empty }) {
   const [hover, setHover] = useState(null);
   const total = segments.reduce((s, x) => s + x.value, 0);
-  if (total === 0 && empty) return <p className="text-sm text-muted">{empty}</p>;
+  if (total === 0 && empty) return <p className="muted-text">{empty}</p>;
   const stroke = 22;
   const r = (size - stroke) / 2;
   const c = size / 2;
@@ -416,7 +418,7 @@ export function Donut({ segments, label, centre, centreLabel, size = 148, unit, 
   const focus = hover ? segments.find((s) => s.key === hover) : null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+    <div className="donut-wrap">
       <svg
         width={size}
         height={size}
@@ -443,33 +445,29 @@ export function Donut({ segments, label, centre, centreLabel, size = 148, unit, 
             </path>
           ),
         )}
-        <text x={c} y={c - 4} textAnchor="middle" className="fill-ink text-[22px] font-semibold">
+        <text x={c} y={c - 4} textAnchor="middle" className="fill-brand font-head text-[20px] font-bold">
           {focus ? fmt(focus.value) : (centre ?? fmt(total))}
         </text>
         <text x={c} y={c + 15} textAnchor="middle" className="fill-muted text-[11px]">
           {focus ? `${pctOf(focus.key)}%` : (centreLabel ?? unit ?? '')}
         </text>
       </svg>
-      <ul className="min-w-40 flex-1 space-y-2 text-sm">
+      <ul className="donut-legend">
         {segments.map((s) => (
           <li
             key={s.key}
-            className={`flex items-center justify-between gap-3 rounded px-1 ${hover === s.key ? 'bg-canvas' : ''}`}
+            className={hover === s.key ? 'bg-[#f5f6fa]' : ''}
             onPointerEnter={() => setHover(s.key)}
             onPointerLeave={() => setHover(null)}
           >
-            <span className="flex min-w-0 items-center gap-2">
-              <span
-                className="inline-block size-2.5 shrink-0 rounded-sm"
-                style={{ background: s.color, outline: s.outline ? '1px solid #c9cfe6' : undefined }}
-                aria-hidden
-              />
-              <span className="truncate">{s.name}</span>
-            </span>
-            <span className="shrink-0 tabular-nums">
-              <span className="font-semibold">{fmt(s.value)}</span>
-              <span className="text-xs text-muted"> · {pctOf(s.key)}%</span>
-            </span>
+            <span
+              className="swatch"
+              style={{ background: s.color, outline: s.outline ? '1px solid #c7cfe8' : undefined }}
+              aria-hidden
+            />
+            <span className="lg-label">{s.name}</span>
+            <span className="lg-value">{fmt(s.value)}</span>
+            <span className="lg-pct">{pctOf(s.key)}%</span>
           </li>
         ))}
       </ul>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { api, downloadFile, qs } from '../../lib/api.js';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import {
@@ -77,12 +76,12 @@ export function RecentMovements({ type, title }) {
   });
   return (
     <section>
-      <h2 className="mb-2 text-[15px] font-semibold">{title}</h2>
+      <h2 className="mb-3 font-head text-base font-semibold text-ink">{title}</h2>
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {q.data &&
         (q.data.items.length === 0 ? (
-          <div className="rounded-md border border-rule bg-white">
+          <div className="card p-0">
             <EmptyState title="Nothing yet." />
           </div>
         ) : (
@@ -123,7 +122,7 @@ export default function TransactionsPage() {
           scoped ? 'Everything issued to your department on a day.' : 'Every receipt and issue on a day.'
         }
       />
-      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-md border border-rule bg-white p-4">
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-md border border-rule bg-white shadow-card p-4">
         <div className="w-44">
           <label htmlFor="t-date" className="mb-1 block text-sm font-medium">
             Date
@@ -171,7 +170,8 @@ export default function TransactionsPage() {
               )
             }
           >
-            <Download className="size-4" aria-hidden /> Export to Excel
+            {' '}
+            Export to Excel
           </Button>
         )}
       </div>
@@ -190,7 +190,7 @@ export default function TransactionsPage() {
             {type !== 'received' && `${units(issued)} issued`}
           </p>
           {q.data.items.length === 0 ? (
-            <div className="rounded-md border border-rule bg-white">
+            <div className="card p-0">
               <EmptyState title="Nothing received or issued on this day." />
             </div>
           ) : (

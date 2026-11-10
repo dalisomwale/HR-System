@@ -138,7 +138,7 @@ export function BalanceMeter({ b, compact = false }) {
     return null;
   }
   return (
-    <div className={compact ? '' : 'rounded-md border border-rule bg-white p-4'}>
+    <div className={compact ? '' : 'rounded-md border border-rule bg-white shadow-card p-4'}>
       {!compact && <p className="text-sm font-medium">{b.leaveType.name}</p>}
       <p className="mt-1 flex items-baseline gap-1.5">
         <span className="text-3xl font-semibold tabular-nums">{headline}</span>
@@ -161,7 +161,7 @@ export function BalanceMeter({ b, compact = false }) {
                 className="inline-block size-2.5 rounded-sm"
                 style={{
                   background: p.color,
-                  outline: p.key === 'available' ? '1px solid #c9cfe6' : undefined,
+                  outline: p.key === 'available' ? '1px solid #c7cfe8' : undefined,
                 }}
                 aria-hidden
               />
@@ -219,7 +219,7 @@ export function TypeDonut({ items, label, empty }) {
 const OUTCOME_COLORS = {
   approved: COLORS.taken,
   waiting: COLORS.waiting,
-  rejected: '#b42318',
+  rejected: '#c53030',
   withdrawn: COLORS.other,
 };
 

@@ -190,7 +190,7 @@ export function DelegationsPage() {
     staleTime: 5 * 60_000,
   });
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="stack">
       <PageHeader title="Delegation" />
       {q.isPending || people.isPending ? (
         <Loading />
@@ -241,7 +241,7 @@ export function AdminDelegationsPage() {
     queryFn: () => api.get('/api/admin/employees/options'),
   });
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="stack">
       <PageHeader title="Delegations" />
       <Section title="Set up a delegation">
         {people.isPending ? (

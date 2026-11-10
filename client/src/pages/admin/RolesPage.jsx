@@ -40,7 +40,7 @@ export default function RolesPage() {
           }}
         />
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           {list.data.roles.map((role) => (
             <RoleSection key={role.code} role={role} people={people.data.items} />
           ))}
@@ -129,7 +129,7 @@ function RoleSection({ role, people }) {
       )}
       <div className="mt-4">
         {role.holders.length === 0 ? (
-          <p className="text-sm text-muted">Nobody has this role.</p>
+          <p className="muted-text">Nobody has this role.</p>
         ) : (
           <Table>
             <thead>
@@ -261,7 +261,7 @@ function ManagersSection({ managers, people }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <ul className="mt-2 max-h-64 max-w-md overflow-y-auto rounded-md border border-rule bg-white">
+            <ul className="mt-2 max-h-64 max-w-md overflow-y-auto rounded-md border border-rule bg-white shadow-card">
               {candidates.length === 0 ? (
                 <li className="px-3 py-2 text-sm text-muted">Nobody else to add.</li>
               ) : (
@@ -299,7 +299,7 @@ function ManagersSection({ managers, people }) {
       )}
       <div className="mt-6">
         {managers.length === 0 ? (
-          <p className="text-sm text-muted">Nobody has direct reports yet.</p>
+          <p className="muted-text">Nobody has direct reports yet.</p>
         ) : (
           <Table>
             <thead>

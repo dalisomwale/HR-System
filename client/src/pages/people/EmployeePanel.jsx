@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Pencil, X } from 'lucide-react';
+import { ExternalLink, X } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { Badge, Button, LoadError, Loading } from '../../components/ui.jsx';
 import { EmployeeDetails, EmployeeForm } from './EmployeeRecordPage.jsx';
-import { EMPLOYMENT_TYPES, Initials, StatusBadge } from './people-ui.jsx';
+import { EMPLOYMENT_TYPES, StatusBadge } from './people-ui.jsx';
 
 /**
  * One employee in a panel over the page (D59): their details, and for HR Officers the form to
@@ -52,14 +52,13 @@ export default function EmployeePanel({ employeeId, onClose, onSaved, base = '/p
         className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-rule bg-canvas shadow-xl"
       >
         <div className="flex items-start gap-3 border-b border-rule bg-white px-4 py-4 sm:px-6">
-          {e && <Initials first={e.firstName} last={e.lastName} size="lg" />}
           <div className="min-w-0 flex-1">
             {e && (
               <>
                 <h2 ref={heading} tabIndex={-1} className="text-lg font-semibold outline-none">
                   {e.firstName} {e.lastName}
                 </h2>
-                <p className="text-sm text-muted">
+                <p className="muted-text">
                   {[e.jobTitle, e.department, e.employeeNumber].filter(Boolean).join(' · ')}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -95,7 +94,8 @@ export default function EmployeePanel({ employeeId, onClose, onSaved, base = '/p
                       setEditing(true);
                     }}
                   >
-                    <Pencil className="size-4" aria-hidden /> Edit details
+                    {' '}
+                    Edit details
                   </Button>
                 )}
                 <Link

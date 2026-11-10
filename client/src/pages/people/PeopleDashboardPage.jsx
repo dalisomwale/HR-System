@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
 import { hasRole, useMe } from '../../lib/auth.jsx';
 import { formatDate, formatDateTime } from '../../lib/format.js';
@@ -38,11 +38,10 @@ export default function PeopleDashboardPage() {
   });
   const companies = q.data?.companies ?? [];
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PeopleTrail />
       <PageHeader
         title="Employee management"
-        description="The central record for every member of staff, from onboarding to offboarding"
         actions={
           <div className="flex flex-wrap gap-2">
             {companies.length > 1 && (
@@ -64,7 +63,7 @@ export default function PeopleDashboardPage() {
             )}
             {hasRole(me, 'HR_OFFICER') && (
               <ButtonLink to="/people/employees/new" variant="primary">
-                <Plus className="size-4" aria-hidden /> Add employee
+                Add employee
               </ButtonLink>
             )}
           </div>
@@ -115,7 +114,7 @@ function Body({ d, companyId }) {
         />
       </Stats>
 
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <Section title="Staff by employment type">
           <Donut
             label="Active staff by employment type"
@@ -157,7 +156,7 @@ function Body({ d, companyId }) {
       </div>
 
       {companyId ? (
-        <div className="grid gap-6 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-3">
           <Section title="Staff over the last 12 months" className="xl:col-span-2">
             <HeadcountTrend trend={d.headcountTrend} />
           </Section>
@@ -167,7 +166,7 @@ function Body({ d, companyId }) {
         </div>
       ) : null}
 
-      <div className={companyId ? '' : 'grid gap-6 xl:grid-cols-3'}>
+      <div className={companyId ? '' : 'grid gap-4 xl:grid-cols-3'}>
         {!companyId && (
           <Section title="Length of service">
             <ServiceChart bands={d.serviceBands} />
@@ -198,7 +197,7 @@ function Body({ d, companyId }) {
         </Section>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <PeopleList
           title="Contracts ending soon"
           items={d.contractsEnding}
@@ -232,13 +231,13 @@ function Body({ d, companyId }) {
         <Section
           title="Recent changes"
           actions={
-            <Link to={`/people/employees${qs({ companyId })}`} className="text-sm text-brand hover:underline">
+            <Link to={`/people/employees${qs({ companyId })}`} className="card-link">
               All employees
             </Link>
           }
         >
           {d.recentChanges.length === 0 ? (
-            <p className="text-sm text-muted">No changes recorded yet.</p>
+            <p className="muted-text">No changes recorded yet.</p>
           ) : (
             <ol className="divide-y divide-rule text-sm">
               {d.recentChanges.map((h) => (
@@ -284,7 +283,7 @@ function PeopleList({ title, items, empty, when, more }) {
       title={title}
       actions={
         more ? (
-          <Link to={more} className="text-sm text-brand hover:underline">
+          <Link to={more} className="card-link">
             All
           </Link>
         ) : null

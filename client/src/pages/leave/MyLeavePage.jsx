@@ -24,7 +24,7 @@ const thisYear = new Date().getFullYear();
 export default function MyLeavePage() {
   const [year, setYear] = useState(thisYear);
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="My leave" />
       <MyLeaveTop />
       <Requests year={year} setYear={setYear} />
@@ -55,7 +55,7 @@ function MyLeaveTop() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.active.length === 0 ? (
-        <p className="text-sm text-muted">You are not on leave.</p>
+        <p className="muted-text">You are not on leave.</p>
       ) : (
         <ul className="grid grid-cols-2 gap-3">
           {q.data.active.map((r) => (
@@ -80,18 +80,20 @@ function ActiveLeave({ r }) {
       </div>
       <p className="mt-0.5 text-sm text-muted">{dateRange(r)}</p>
       <p className="mt-3">
-        <span className="text-2xl font-semibold">{r.daysLeft}</span>{' '}
-        <span className="text-sm text-muted">of {days(r.chargeableDays)} left</span>
+        <span className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
+          {r.daysLeft}
+        </span>{' '}
+        <span className="muted-text">of {days(r.chargeableDays)} left</span>
       </p>
       <div
-        className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-bg"
+        className="progress-track mt-2"
         role="progressbar"
         aria-label={`${r.leaveType}: ${used} of ${r.chargeableDays} days used`}
         aria-valuenow={pct}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+        <div className="progress-fill" style={{ width: `${pct}%` }} />
       </div>
     </li>
   );
@@ -116,7 +118,7 @@ function RecentActivity() {
 export function MyBalancesPage() {
   const [year, setYear] = useState(thisYear);
   return (
-    <div className="max-w-6xl space-y-6">
+    <div className="stack">
       <PageHeader title="My balances" actions={<YearSelect year={year} setYear={setYear} />} />
       <Balances year={year} bare />
     </div>
@@ -218,7 +220,7 @@ export function Balances({ year, bare = false }) {
   ) : q.isError ? (
     <LoadError error={q.error} onRetry={() => q.refetch()} />
   ) : (
-    <div className="space-y-6">
+    <div className="stack">
       <Meters items={q.data.items} />
       <BalanceCards items={q.data.items} />
     </div>
@@ -252,11 +254,11 @@ function Requests({ year, setYear }) {
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-semibold">Requests {year}</h2>
+        <h2 className="font-head text-base font-semibold text-ink">Requests {year}</h2>
         <YearSelect year={year} setYear={setYear} />
       </div>
       {items.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title={`No requests in ${year}`} />
         </div>
       ) : (

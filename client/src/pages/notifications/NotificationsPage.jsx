@@ -77,12 +77,12 @@ export default function NotificationsPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.items.length === 0 ? (
-        <div className="rounded-md border border-rule bg-white">
+        <div className="card p-0">
           <EmptyState title={unread ? 'No unread notifications.' : 'No notifications yet.'} />
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-rule rounded-md border border-rule bg-white">
+          <ul className="divide-y divide-rule rounded-md border border-rule bg-white shadow-card">
             {q.data.items.map((n) => (
               <li key={n.id}>
                 <button

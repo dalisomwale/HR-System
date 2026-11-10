@@ -1,7 +1,6 @@
-import { Fragment } from 'react';
-import { Link, useLocation, useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight } from 'lucide-react';
+import { Trail } from '../../layouts/LeaveTrail.jsx';
 import { api } from '../../lib/api.js';
 
 /*
@@ -119,29 +118,5 @@ export default function PeopleTrail() {
     }
   }
 
-  return (
-    <nav aria-label="You are here" className="mb-4">
-      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-        {trail.map((t, i) => {
-          const last = i === trail.length - 1;
-          return (
-            <Fragment key={`${t.label}-${i}`}>
-              <li className={`flex items-center gap-1.5 ${last ? 'min-w-0' : ''}`}>
-                {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted" aria-hidden />}
-                {last || !t.to ? (
-                  <span aria-current="page" className="font-medium text-ink">
-                    {t.label}
-                  </span>
-                ) : (
-                  <Link to={t.to} className="text-brand hover:underline">
-                    {t.label}
-                  </Link>
-                )}
-              </li>
-            </Fragment>
-          );
-        })}
-      </ol>
-    </nav>
-  );
+  return <Trail items={trail} />;
 }

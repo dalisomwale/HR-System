@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { api, downloadFile, qs } from '../../lib/api.js';
 import { formatDate } from '../../lib/format.js';
 import {
@@ -104,7 +104,7 @@ export default function StockPage() {
         </div>
       )}
 
-      <div className="mb-4 rounded-md border border-rule bg-white p-4">
+      <div className="mb-4 rounded-md border border-rule bg-white shadow-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
             <label htmlFor="s-q" className="mb-1 block text-sm font-medium">
@@ -209,7 +209,7 @@ export default function StockPage() {
       {d && (
         <>
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-sm text-muted">
+            <p className="muted-text">
               {d.items.length === d.totals.items
                 ? `${d.items.length} items`
                 : `Showing ${d.items.length} of ${d.totals.items} items`}
@@ -223,12 +223,13 @@ export default function StockPage() {
                   )
                 }
               >
-                <Download className="size-4" aria-hidden /> Export to Excel
+                {' '}
+                Export to Excel
               </Button>
             )}
           </div>
           {d.items.length === 0 ? (
-            <div className="rounded-md border border-rule bg-white">
+            <div className="card p-0">
               <EmptyState
                 title={
                   anyFilter

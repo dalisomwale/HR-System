@@ -1,7 +1,5 @@
-import { Fragment } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { hasRole, useMe } from '../lib/auth.jsx';
 
@@ -91,25 +89,27 @@ export default function LeaveTrail() {
 /** The path shown at the top of a page: links to each step, the last one plain. */
 export function Trail({ items }) {
   return (
-    <nav aria-label="You are here" className="mb-4">
-      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+    <nav aria-label="You are here" className="mb-3.5">
+      <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[0.88rem] text-muted">
         {items.map((t, i) => {
           const last = i === items.length - 1;
           return (
-            <Fragment key={`${t.label}-${i}`}>
-              <li className={`flex items-center gap-1.5 ${last ? 'min-w-0' : ''}`}>
-                {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted" aria-hidden />}
-                {last || !t.to ? (
-                  <span aria-current="page" className="font-medium text-ink">
-                    {t.label}
-                  </span>
-                ) : (
-                  <Link to={t.to} className="text-brand hover:underline">
-                    {t.label}
-                  </Link>
-                )}
-              </li>
-            </Fragment>
+            <li key={`${t.label}-${i}`} className={`flex items-center gap-1.5 ${last ? 'min-w-0' : ''}`}>
+              {i > 0 && (
+                <span className="text-[#b3b9c6]" aria-hidden>
+                  &rsaquo;
+                </span>
+              )}
+              {last || !t.to ? (
+                <span aria-current="page" className="font-semibold text-ink-2">
+                  {t.label}
+                </span>
+              ) : (
+                <Link to={t.to} className="font-medium text-brand hover:underline">
+                  {t.label}
+                </Link>
+              )}
+            </li>
           );
         })}
       </ol>

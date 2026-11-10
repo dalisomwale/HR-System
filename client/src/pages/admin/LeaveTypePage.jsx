@@ -71,7 +71,7 @@ export default function LeaveTypePage() {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="stack">
         <Stats>
           <Stat label={`Waiting for a decision, ${t.usage.year}`} value={t.usage.pending} />
           <Stat label={`Approved requests, ${t.usage.year}`} value={t.usage.approved} />
@@ -79,8 +79,8 @@ export default function LeaveTypePage() {
           <Stat label="On this leave today" value={t.usage.onLeaveToday} />
         </Stats>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="grid content-start gap-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid content-start gap-4">
             {p ? (
               <RulesSection type={t} />
             ) : (
@@ -88,7 +88,7 @@ export default function LeaveTypePage() {
             )}
             <VersionsSection versions={t.versions} />
           </div>
-          <div className="grid content-start gap-6">
+          <div className="grid content-start gap-4">
             <Section title="About">
               <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-1.5 text-sm">
                 <dt className="text-muted">Code</dt>
@@ -112,7 +112,7 @@ export default function LeaveTypePage() {
             </Section>
             <Section title="Change history">
               {t.history.length === 0 ? (
-                <p className="text-sm text-muted">No changes recorded.</p>
+                <p className="muted-text">No changes recorded.</p>
               ) : (
                 <ul className="space-y-3 text-sm">
                   {t.history.map((h, i) => (
@@ -172,7 +172,7 @@ function VersionsSection({ versions }) {
   return (
     <Section title="Versions">
       {versions.length === 0 ? (
-        <p className="text-sm text-muted">No versions recorded.</p>
+        <p className="muted-text">No versions recorded.</p>
       ) : (
         <Table>
           <thead>

@@ -1,44 +1,28 @@
 import { Link } from 'react-router';
-import { Badge } from '../../components/ui.jsx';
+import { Badge, Kpi, KpiRow } from '../../components/ui.jsx';
 import { STATUS_TONES, dateRange, statusLabel } from '../../lib/leave.js';
 import { useMe } from '../../lib/auth.jsx';
 import { formatDateTime } from '../../lib/format.js';
 
-/** One headline figure. `value` is shown only when a query established it. */
+/** One headline figure, as the inventory dashboard's KPI tiles. */
 export function Stat({ label, value, to, tone }) {
-  const body = (
-    <>
-      <p className={`text-2xl font-semibold ${tone === 'danger' && value > 0 ? 'text-danger' : ''}`}>
-        {value}
-      </p>
-      <p className="mt-0.5 text-sm text-muted">{label}</p>
-    </>
-  );
-  return to ? (
-    <Link to={to} className="block rounded-md border border-rule bg-white px-4 py-3 hover:border-muted">
-      {body}
-    </Link>
-  ) : (
-    <div className="rounded-md border border-rule bg-white px-4 py-3">{body}</div>
+  return (
+    <Kpi label={label} value={value} to={to} tone={tone === 'danger' && value > 0 ? 'bad' : undefined} />
   );
 }
 
 export function Stats({ children, cols = 4 }) {
-  return (
-    <div className={`grid grid-cols-2 gap-3 ${cols === 3 ? 'sm:grid-cols-3' : 'lg:grid-cols-4'}`}>
-      {children}
-    </div>
-  );
+  return <KpiRow cols={cols}>{children}</KpiRow>;
 }
 
 /** Compact list of requests with a link to each. */
 export function RequestList({ items, empty, showEmployee = false, showCompany = false, extra, yourTurn }) {
   const { data: me } = useMe();
-  if (!items.length) return <p className="text-sm text-muted">{empty}</p>;
+  if (!items.length) return <p className="muted-text">{empty}</p>;
   return (
-    <ul className="divide-y divide-rule">
+    <ul className="line-list">
       {items.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2 text-sm">
+        <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <div className="min-w-0">
             <Link to={`/leave/requests/${r.id}`} className="font-medium text-brand hover:underline">
               {showEmployee ? r.employee.name : r.leaveType}
@@ -88,7 +72,7 @@ const DOTS = {
 
 /** What happened recently, newest first, as plain sentences. */
 export function Activity({ items }) {
-  if (!items.length) return <p className="text-sm text-muted">No activity yet.</p>;
+  if (!items.length) return <p className="muted-text">No activity yet.</p>;
   return (
     <ol className="divide-y divide-rule text-sm">
       {items.map((a) => {

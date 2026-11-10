@@ -76,7 +76,7 @@ function RqGate({ need, children }) {
   if (!rq.data || (need && !need(rq.data))) {
     return (
       <div className="max-w-xl">
-        <h1 className="text-xl font-semibold">You don't have access to this page</h1>
+        <h1 className="text-[1.3rem] leading-snug">You don't have access to this page</h1>
         <p className="mt-2 text-sm text-muted">
           Requisitions are open to the people who take part in them.{' '}
           <Link to="/" className="text-brand underline">
@@ -93,7 +93,7 @@ const rqPage = (el, need) => <RqGate need={need}>{el}</RqGate>;
 function NotFound() {
   return (
     <div className="max-w-xl">
-      <h1 className="text-xl font-semibold">Page not found</h1>
+      <h1 className="text-[1.3rem] leading-snug">Page not found</h1>
       <p className="mt-2 text-sm text-muted">
         The address may be mistyped, or the page has moved.{' '}
         <Link to="/home" className="text-brand underline">

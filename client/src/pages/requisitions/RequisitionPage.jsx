@@ -66,7 +66,7 @@ export default function RequisitionPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-rule pb-4">
         <div>
-          <h1 className="text-xl font-semibold">
+          <h1 className="text-[1.3rem] leading-snug">
             {r.ref} · {r.itemName}
           </h1>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
@@ -127,15 +127,15 @@ export default function RequisitionPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="stack">
           {anyAction ? (
             <Section title="Your action">
               <YourAction r={r} onDone={done} />
             </Section>
           ) : (
             open && (
-              <div className="rounded-md border border-rule bg-white px-4 py-3 text-sm">
+              <div className="rounded-md border border-rule bg-white shadow-card px-4 py-3 text-sm">
                 Waiting for <strong>{r.waitingFor}</strong>. There is nothing for you to do on it right now.
               </div>
             )
@@ -152,11 +152,7 @@ export default function RequisitionPage() {
 
           {(r.docs.length > 0 || c.addDoc) && (
             <Section title="Supporting documents" description="Added by the department">
-              {r.docs.length > 0 ? (
-                <FileList files={r.docs} />
-              ) : (
-                <p className="text-sm text-muted">None yet.</p>
-              )}
+              {r.docs.length > 0 ? <FileList files={r.docs} /> : <p className="muted-text">None yet.</p>}
               {c.addDoc && r.docs.length < 5 && <UploadDoc r={r} onDone={done} />}
             </Section>
           )}
@@ -170,7 +166,7 @@ export default function RequisitionPage() {
           {c.cancel && <CancelBox r={r} onDone={done} />}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="stack">
           <Section title="Details">
             <SideDetails
               items={[
@@ -525,7 +521,7 @@ function YourAction({ r, onDone }) {
       </div>,
     );
   }
-  return <div className="space-y-6">{parts}</div>;
+  return <div className="stack">{parts}</div>;
 }
 
 function ProofOfPayment({ r, onDone }) {
@@ -608,7 +604,7 @@ function Quotes({ r, onDone }) {
   return (
     <div className="space-y-4">
       {r.quotes.length === 0 ? (
-        <p className="text-sm text-muted">No quotations yet.</p>
+        <p className="muted-text">No quotations yet.</p>
       ) : (
         <ul className="divide-y divide-rule rounded-md border border-rule">
           {r.quotes.map((qt) => (

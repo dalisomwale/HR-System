@@ -69,7 +69,7 @@ export default function HolidaysPage() {
           </Select>
         }
       />
-      <div className="grid gap-6">
+      <div className="grid gap-4">
         <Section title={editingId ? 'Edit holiday' : 'Add a holiday'}>
           <form
             className="grid gap-4 sm:grid-cols-[11rem_1fr_1fr]"
@@ -166,7 +166,7 @@ export default function HolidaysPage() {
         ) : list.isError ? (
           <LoadError error={list.error} onRetry={() => list.refetch()} />
         ) : list.data.items.length === 0 ? (
-          <div className="rounded-md border border-rule bg-white">
+          <div className="card p-0">
             <EmptyState title={`No public holidays recorded for ${year}.`}>
               Add each gazetted holiday for the year. Leave calculations for {year} use this list.
             </EmptyState>

@@ -40,7 +40,7 @@ export default function LeaveTypesPage() {
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           <AccrualNotice items={q.data.items} />
           {toggle.isError && <Notice tone="danger">{toggle.error.message}</Notice>}
           <Table>
@@ -191,13 +191,13 @@ function JobsSection() {
           <Notice tone={result.tone}>{result.text}</Notice>
         </div>
       )}
-      <h3 className="mt-6 mb-2 text-sm font-semibold">Recent runs</h3>
+      <h3 className="section-divider mt-5">Recent runs</h3>
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : q.data.items.length === 0 ? (
-        <p className="text-sm text-muted">No jobs have run yet.</p>
+        <p className="muted-text">No jobs have run yet.</p>
       ) : (
         <Table>
           <thead>
