@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { auditContext, requireRole } from '../../middleware/auth.js';
+import { auditContext, can, requirePerm } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { asyncHandler, idParam, isoDate, optionalText } from '../../utils/validation.js';
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js';
@@ -119,7 +119,7 @@ async function revokeDelegation(db, id, actor, audit) {
   return db.transaction(async (trx) => {
     const d = await trx('delegations').where({ id }).forUpdate().first();
     if (!d) throw notFound('Delegation not found.');
-    const isAdmin = actor.roles.includes('HR_ADMIN');
+    const isAdmin = can(actor, 'leave.delegations');
     if (d.delegator_id !== actor.id && !isAdmin) throw notFound('Delegation not found.');
     if (d.revoked_at) throw conflict('This delegation has already been revoked.');
     if (d.end_date < todayInLusaka()) throw conflict('This delegation has already ended.');
@@ -189,7 +189,7 @@ export function delegationRoutes({ db }) {
 /** HR Officers and System Administrators: every delegation, and set one up for an absent manager. */
 export function adminDelegationRoutes({ db }) {
   const router = Router();
-  router.use(requireRole('HR_OFFICER'));
+  router.use(requirePerm('leave.delegations'));
 
   router.get(
     '/',

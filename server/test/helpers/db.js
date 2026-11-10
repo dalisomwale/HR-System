@@ -11,21 +11,25 @@ const CONFIG_TABLES = new Set([
   'work_schedules',
   'leave_types',
   'leave_policy_versions',
-  'inventory_roles',
-  'inventory_role_permissions',
+  'access_roles',
+  'access_role_permissions',
 ]);
 
-// Inventory roles installed by migration 024 (D107).
-const INVENTORY_ROLES = [
-  'System Admin',
-  'Staff',
-  'Department Manager',
-  'IT Officer',
-  'Director',
-  'Accountant',
-  'Accounts Manager',
-  'Chief Finance Officer',
-];
+// Roles installed by migrations 024 and 025 (D107, D108), per module.
+const MODULE_ROLES = {
+  inventory: [
+    'System Admin',
+    'Staff',
+    'Department Manager',
+    'IT Officer',
+    'Director',
+    'Accountant',
+    'Accounts Manager',
+    'Chief Finance Officer',
+  ],
+  leave: ['System Admin', 'HR Officer', 'Director'],
+  people: ['System Admin', 'HR Officer', 'Director'],
+};
 
 // Leave types installed by migration 009 from the Altus policy.
 const POLICY_TYPES = [
@@ -71,7 +75,9 @@ export async function resetData(db) {
     await trx('leave_policy_versions').where('version_no', '>', 1).del();
     await trx('leave_policy_versions').update({ effective_to: null });
     await trx('leave_types').update({ is_active: false });
-    await trx('inventory_roles').whereNotIn('name', INVENTORY_ROLES).del();
+    for (const [module, names] of Object.entries(MODULE_ROLES)) {
+      await trx('access_roles').where({ module }).whereNotIn('name', names).del();
+    }
     await trx.raw('SET FOREIGN_KEY_CHECKS = 1');
   });
 }

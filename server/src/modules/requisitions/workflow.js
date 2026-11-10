@@ -143,15 +143,13 @@ export async function actorsFor(trx, status, r) {
   const rights = STAGE_RIGHTS[status];
   if (!rights) return byHr;
   const [right, ownCompany] = rights;
-  const roleUsers = await trx('inventory_users as u')
+  const roleUsers = await trx('access_users as u')
     .join('employees as e', 'e.id', 'u.employee_id')
-    .where({ 'u.is_active': true, 'e.status': 'ACTIVE' })
+    .where({ 'u.module': 'inventory', 'u.is_active': true, 'e.status': 'ACTIVE' })
     .select('e.id', 'e.company_id', 'u.role_id');
   const withRole = new Set(roleUsers.map((x) => x.id));
-  const sys = await trx('inventory_roles').where({ is_system: true }).pluck('id');
-  const granted = new Set(
-    await trx('inventory_role_permissions').where({ permission: right }).pluck('role_id'),
-  );
+  const sys = await trx('access_roles').where({ module: 'inventory', is_system: true }).pluck('id');
+  const granted = new Set(await trx('access_role_permissions').where({ permission: right }).pluck('role_id'));
   const byRole = roleUsers
     .filter((x) => granted.has(x.role_id) || sys.includes(x.role_id))
     .filter((x) => !ownCompany || !x.company_id || !r.company_id || x.company_id === r.company_id)

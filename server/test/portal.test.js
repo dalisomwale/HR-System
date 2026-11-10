@@ -301,7 +301,11 @@ describe('supporting documents', () => {
 describe('System Administrator rights', () => {
   it('has every HR Officer right and the manager pages, but still cannot approve their own leave', async () => {
     const me = await admin.agent.get('/api/auth/me');
-    expect(me.body.user.roles).toEqual(expect.arrayContaining(['HR_ADMIN', 'HR_OFFICER']));
+    // Every right in every module (D108), including the HR Officer's.
+    expect(me.body.user.roles).toEqual(['HR_ADMIN']);
+    expect(me.body.user.perms).toEqual(
+      expect.arrayContaining(['leave.approve_final', 'people.positions', 'admin.users', 'leave.audit']),
+    );
     expect((await as(admin).get('/api/approvals/hr')).status).toBe(200);
     expect((await as(admin).get('/api/dashboard/hr')).status).toBe(200);
     expect((await as(admin).get('/api/dashboard/manager')).status).toBe(200);
@@ -480,8 +484,8 @@ describe('directors', () => {
 
   it('can be granted from the Roles page, and the administrator is called System Administrator', async () => {
     const roles = await as(admin).get('/api/admin/roles');
+    // Positions only: HR Officer is a role in each module now (D108).
     expect(roles.body.roles.map((r) => r.name)).toEqual([
-      'HR Officer',
       'System Administrator',
       'Department Manager',
       'Executive Director',

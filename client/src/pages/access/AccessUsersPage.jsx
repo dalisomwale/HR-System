@@ -21,18 +21,25 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { errorText } from './rq.js';
+import { errorText } from '../requisitions/rq.js';
 
 /*
- * Admin › Users (D107), as on the inventory system. Users are employees: they sign in with
- * Microsoft, so there are no passwords here, only which role each person has. People without a
- * role keep the access their HR roles and departments give them (D105).
+ * A module's Users page (D107, D108), as on the inventory system. Users are employees from
+ * Employee management: they sign in with Microsoft, so there are no passwords here, only which
+ * role each person has in this module. `module` is leave, people or inventory; `base` is where
+ * the module's pages live (for the link to its Roles page).
  */
-export default function InventoryUsersPage() {
+export default function AccessUsersPage({ module, base }) {
   const qc = useQueryClient();
   const { data: me } = useMe();
-  const users = useQuery({ queryKey: ['inventory-users'], queryFn: () => api.get('/api/inventory/users') });
-  const roles = useQuery({ queryKey: ['inventory-roles'], queryFn: () => api.get('/api/inventory/roles') });
+  const users = useQuery({
+    queryKey: ['access-users', module],
+    queryFn: () => api.get(`/api/access/${module}/users`),
+  });
+  const roles = useQuery({
+    queryKey: ['access-roles', module],
+    queryFn: () => api.get(`/api/access/${module}/roles`),
+  });
   const [editing, setEditing] = useState(null); // 'new' or a user
   const [removing, setRemoving] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -40,15 +47,16 @@ export default function InventoryUsersPage() {
   const refresh = (text, tone = 'ok') => {
     setMsg({ tone, text });
     setEditing(null);
-    qc.invalidateQueries({ queryKey: ['inventory-users'] });
-    qc.invalidateQueries({ queryKey: ['inventory-candidates'] });
-    qc.invalidateQueries({ queryKey: ['inventory-roles'] });
+    qc.invalidateQueries({ queryKey: ['access-users', module] });
+    qc.invalidateQueries({ queryKey: ['access-candidates', module] });
+    qc.invalidateQueries({ queryKey: ['access-roles', module] });
+    qc.invalidateQueries({ queryKey: ['rq-me'] });
   };
   const remove = async () => {
     setBusy(true);
     try {
-      await api.del(`/api/inventory/users/${removing.employeeId}`);
-      refresh(`${removing.name} no longer has a role in the inventory system.`);
+      await api.del(`/api/access/${module}/users/${removing.employeeId}`);
+      refresh(`${removing.name} no longer has a role here.`);
     } catch (err) {
       setMsg({ tone: 'danger', text: errorText(err) });
     } finally {
@@ -63,9 +71,9 @@ export default function InventoryUsersPage() {
         title="Users"
         description={
           <>
-            {count} {count === 1 ? 'person has' : 'people have'} an inventory role · What each role can do is
-            set under{' '}
-            <Link to="/requisitions/roles" className="text-brand hover:underline">
+            {count} {count === 1 ? 'person has' : 'people have'} a role here · What each role can do is set
+            under{' '}
+            <Link to={`${base}/roles`} className="text-brand hover:underline">
               Roles
             </Link>
           </>
@@ -80,6 +88,7 @@ export default function InventoryUsersPage() {
       {editing && roles.data && (
         <div className="mb-4">
           <UserForm
+            module={module}
             user={editing === 'new' ? null : editing}
             roles={roles.data.items}
             onDone={refresh}
@@ -92,8 +101,8 @@ export default function InventoryUsersPage() {
       {users.data &&
         (users.data.items.length === 0 ? (
           <div className="card p-0">
-            <EmptyState title="Nobody has an inventory role yet.">
-              Until they do, people use the inventory system through their HR roles and departments.
+            <EmptyState title="Nobody has a role here yet.">
+              Add a user to give someone access. The System Administrator always has full access.
             </EmptyState>
           </div>
         ) : (
@@ -176,17 +185,16 @@ export default function InventoryUsersPage() {
         onConfirm={remove}
         onCancel={() => setRemoving(null)}
       >
-        Remove {removing?.name}&rsquo;s inventory role? They will go back to the access their HR roles and
-        department give them.
+        Remove {removing?.name}&rsquo;s role here? They lose the access it gives them.
       </ConfirmDialog>
     </div>
   );
 }
 
-function UserForm({ user, roles, onDone, onCancel }) {
+function UserForm({ module, user, roles, onDone, onCancel }) {
   const candidates = useQuery({
-    queryKey: ['inventory-candidates'],
-    queryFn: () => api.get('/api/inventory/users/candidates'),
+    queryKey: ['access-candidates', module],
+    queryFn: () => api.get(`/api/access/${module}/users/candidates`),
     enabled: !user,
   });
   const [employeeId, setEmployeeId] = useState('');
@@ -200,10 +208,13 @@ function UserForm({ user, roles, onDone, onCancel }) {
     setError(null);
     try {
       if (user) {
-        await api.put(`/api/inventory/users/${user.employeeId}`, { roleId: Number(roleId), isActive });
+        await api.put(`/api/access/${module}/users/${user.employeeId}`, { roleId: Number(roleId), isActive });
         onDone(`${user.name} saved.`);
       } else {
-        await api.post('/api/inventory/users', { employeeId: Number(employeeId), roleId: Number(roleId) });
+        await api.post(`/api/access/${module}/users`, {
+          employeeId: Number(employeeId),
+          roleId: Number(roleId),
+        });
         const who = candidates.data?.items.find((c) => String(c.id) === employeeId)?.name ?? 'The employee';
         onDone(`${who} added.`);
       }
@@ -234,7 +245,11 @@ function UserForm({ user, roles, onDone, onCancel }) {
               </Select>
             </Field>
           ) : (
-            <Field id="iu-employee" label="Employee" hint="Active employees without an inventory role.">
+            <Field
+              id="iu-employee"
+              label="Employee"
+              hint="Active employees in Employee management without a role here."
+            >
               <Select id="iu-employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
                 <option value="">{candidates.isPending ? 'Loading…' : 'Choose an employee'}</option>
                 {(candidates.data?.items ?? []).map((c) => (

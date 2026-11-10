@@ -24,6 +24,7 @@ import { loadRequisitionContext, need } from './modules/requisitions/access.js';
 import { requisitionRoutes } from './modules/requisitions/requisitions.routes.js';
 import { stockRoutes } from './modules/requisitions/stock.routes.js';
 import { inventoryAdminRoutes } from './modules/requisitions/inventory-admin.routes.js';
+import { accessRoutes } from './modules/access/access.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -137,6 +138,8 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api', requireAuth, csrfProtection, idempotency({ db }));
   app.use('/api/me/profile', profileRoutes(deps));
   app.use('/api/admin', adminRoutes(deps));
+  // Users, Roles and Audit trail of every module (D108).
+  app.use('/api/access', accessRoutes(deps));
   app.use('/api/leave', leaveRoutes(deps));
   app.use('/api/approvals', approvalRoutes(deps));
   app.use('/api/hr', hrRoutes(deps));

@@ -28,7 +28,10 @@ export default function RolesPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader title="Roles" />
+      <PageHeader
+        title="Positions"
+        description="Who holds each position. Positions decide who approves and signs off; what each person can open is set by their role under Users in each module."
+      />
       {list.isPending || people.isPending ? (
         <Loading />
       ) : list.isError || people.isError ? (

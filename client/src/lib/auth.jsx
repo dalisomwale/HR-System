@@ -37,18 +37,20 @@ export function RequireAuth({ children }) {
   return children;
 }
 
-/** Hides a page the user's roles do not allow. The server enforces the same rule. */
-export function RequireRole({ role, children }) {
+/** Does the user hold this access right (D108)? `perm` may be a list: any of them. */
+export const can = (user, perm) =>
+  (Array.isArray(perm) ? perm : [perm]).some((p) => Boolean(user?.perms?.includes(p)));
+
+/** Hides a page the user's role does not open. The server enforces the same rule. */
+export function RequirePerm({ perm, children }) {
   const me = useMe();
-  const allowed = Array.isArray(role) ? role : [role];
-  if (!allowed.some((r) => me.data?.roles.includes(r))) {
-    const who = { HR_OFFICER: 'HR Officers', HR_ADMIN: 'System Administrators' };
+  if (!can(me.data, perm)) {
     return (
       <div className="max-w-xl">
-        <h1 className="text-[1.3rem] leading-snug">You don’t have access to this page</h1>
-        <p className="mt-2 text-sm text-muted">
-          It is available to {who[allowed[0]] ?? 'HR Officers and directors'}. If you need access, ask a
-          System Administrator to grant you the role.
+        <h1 className="page-title">You don’t have access to this page</h1>
+        <p className="mt-2 text-[0.9rem] text-muted">
+          Your role doesn’t include it. If you need access, ask whoever manages Users in this module to change
+          your role.
         </p>
       </div>
     );
@@ -56,13 +58,8 @@ export function RequireRole({ role, children }) {
   return children;
 }
 
+/** Positions on the employee record (System Administrator, Department Manager, the directors). */
 export const hasRole = (user, role) => Boolean(user?.roles?.includes(role));
 
-/** Roles that see leave across the whole Altus Group. Directors can look but not approve. */
-export const GROUP_VIEW_ROLES = [
-  'HR_OFFICER',
-  'EXECUTIVE_DIRECTOR',
-  'MANAGING_DIRECTOR',
-  'ACCOUNTS_DIRECTOR',
-];
-export const seesWholeGroup = (user) => GROUP_VIEW_ROLES.some((r) => hasRole(user, r));
+/** Sees leave across the whole Altus Group: the group overview and group-wide reports. */
+export const seesWholeGroup = (user) => can(user, 'leave.overview');

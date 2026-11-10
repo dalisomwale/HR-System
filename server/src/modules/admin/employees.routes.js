@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { z } from 'zod';
-import { auditContext, requireRole } from '../../middleware/auth.js';
+import { auditContext, requirePerm } from '../../middleware/auth.js';
 import { asyncHandler, idParam, isoDate, optionalText, pagination } from '../../utils/validation.js';
 import {
   createEmployeeSchema,
@@ -41,7 +41,8 @@ const importText = (body) => {
 export function employeeRoutes({ db, config }) {
   const router = Router();
   // Microsoft account links, roles and deactivation are for System Administrators only (D46).
-  const adminOnly = requireRole('HR_ADMIN');
+  // Positions and Microsoft account links (D108).
+  const adminOnly = requirePerm('people.positions');
   const tenantId = config.entra.tenantId;
   const tx = (fn) =>
     db.transaction(fn).catch((err) => {

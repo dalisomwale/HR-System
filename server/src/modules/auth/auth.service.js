@@ -1,3 +1,4 @@
+import { MODULE_KEYS, allPermissions } from '../access/modules.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { managedMembers } from '../org/department-manager.js';
@@ -89,6 +90,35 @@ export async function resolveSignIn(db, claims, { tenantId }, requestMeta) {
   });
 }
 
+/**
+ * The person's rights in every module (D108): from their role in each module, or every right when
+ * they hold the System Administrator position. `accessRoles` names their role per module.
+ */
+export async function loadAccess(db, employeeId, isAdmin) {
+  const rows = await db('access_users as u')
+    .join('access_roles as r', 'r.id', 'u.role_id')
+    .where({ 'u.employee_id': employeeId, 'u.is_active': true })
+    .select('u.module', 'r.id', 'r.name', 'r.is_system');
+  const accessRoles = Object.fromEntries(rows.map((r) => [r.module, r.name]));
+  const perms = new Set();
+  const granted = rows.length
+    ? await db('access_role_permissions')
+        .whereIn(
+          'role_id',
+          rows.map((r) => r.id),
+        )
+        .select('role_id', 'permission')
+    : [];
+  for (const r of rows) {
+    if (r.is_system) allPermissions(r.module).forEach((p) => perms.add(p));
+  }
+  for (const g of granted) perms.add(g.permission);
+  if (isAdmin) {
+    for (const m of MODULE_KEYS) allPermissions(m).forEach((p) => perms.add(p));
+  }
+  return { perms: [...perms], accessRoles };
+}
+
 /** Current user: employee summary, roles and whether they manage anyone. Null if not active. */
 export async function loadUser(db, employeeId) {
   const employee = await db('employees as e')
@@ -112,8 +142,8 @@ export async function loadUser(db, employeeId) {
     .join('roles as r', 'r.id', 'er.role_id')
     .where('er.employee_id', employeeId)
     .pluck('r.code');
-  // A System Administrator has every right in the system, including the HR Officer's.
-  const roles = assigned.includes('HR_ADMIN') ? [...new Set([...assigned, 'HR_OFFICER'])] : assigned;
+  const roles = assigned;
+  const { perms, accessRoles } = await loadAccess(db, employeeId, roles.includes('HR_ADMIN'));
   const reports = await db('employees')
     .where({ line_manager_id: employeeId, status: 'ACTIVE' })
     .count({ n: '*' })
@@ -137,6 +167,8 @@ export async function loadUser(db, employeeId) {
     company: employee.company_name,
     department: employee.department_name,
     roles,
+    perms,
+    accessRoles,
     isManager: Number(reports.n) > 0 || (await managedMembers(db, employee.id)).length > 0,
     isDelegate: Number(covering.n) > 0,
   };

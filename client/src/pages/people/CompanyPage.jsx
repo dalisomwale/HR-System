@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { Badge, ButtonLink, LoadError, Loading, Notice, PageHeader, Section } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { DepartmentStatistics, DepartmentTable } from './DepartmentOverviewPage.jsx';
@@ -48,10 +48,10 @@ export default function CompanyPage() {
             <div className="flex flex-wrap items-center gap-2">
               {!c.isActive && <Badge>Inactive</Badge>}
               <ButtonLink to={`/people/companies/${c.id}/employees`}> Employees</ButtonLink>
-              {hasRole(me, 'HR_OFFICER') && (
+              {can(me, 'people.edit') && (
                 <ButtonLink to={`/people/companies/${c.id}/employees/new`}> Add employee</ButtonLink>
               )}
-              {hasRole(me, 'HR_OFFICER') && <ButtonLink to="/people/companies/manage"> Manage</ButtonLink>}
+              {can(me, 'people.org') && <ButtonLink to="/people/companies/manage"> Manage</ButtonLink>}
             </div>
           }
         />

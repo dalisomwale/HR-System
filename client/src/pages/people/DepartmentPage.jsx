@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import {
   Badge,
@@ -39,7 +39,7 @@ const BANDS = [
 export default function DepartmentPage() {
   const { id } = useParams();
   const { data: me } = useMe();
-  const canEdit = hasRole(me, 'HR_OFFICER');
+  const canEdit = can(me, 'people.edit');
   // Adding someone or editing the department happens here, in a panel under the header.
   const [panel, setPanel] = useState(null);
   const [added, setAdded] = useState(null);

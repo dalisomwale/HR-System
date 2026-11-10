@@ -93,43 +93,47 @@ describe('employees', () => {
 
 describe('roles', () => {
   it('never removes the last active System Administrator', async () => {
-    const res = await put(`/api/admin/employees/${admin.id}/roles`, { roles: ['HR_OFFICER'] });
+    const res = await put(`/api/admin/employees/${admin.id}/roles`, { roles: ['DEPARTMENT_MANAGER'] });
     expect(res.status).toBe(409);
   });
 
   it('grants and revokes roles with an audit trail', async () => {
     const id = (await post('/api/admin/employees', newEmployee())).body.id;
     expect(
-      (await put(`/api/admin/employees/${id}/roles`, { roles: ['HR_OFFICER', 'HR_ADMIN'] })).status,
+      (await put(`/api/admin/employees/${id}/roles`, { roles: ['DEPARTMENT_MANAGER', 'HR_ADMIN'] })).status,
     ).toBe(200);
     expect((await put(`/api/admin/employees/${admin.id}/roles`, { roles: [] })).status).toBe(200);
     const changes = await db('audit_log').where({ action: 'ROLES_CHANGED' });
     expect(changes).toHaveLength(2);
   });
 
-  it('rejects roles that do not exist', async () => {
+  it('rejects roles that do not exist, and HR Officer, which is a module role now (D108)', async () => {
     const res = await put(`/api/admin/employees/${admin.id}/roles`, { roles: ['SUPERUSER'] });
     expect(res.status).toBe(400);
+    const officer = await put(`/api/admin/employees/${admin.id}/roles`, {
+      roles: ['HR_ADMIN', 'HR_OFFICER'],
+    });
+    expect(officer.status).toBe(400);
   });
 });
 
 describe('roles page', () => {
   it('lists holders and grants and removes a role', async () => {
     const id = (await post('/api/admin/employees', newEmployee({ firstName: 'Bwalya' }))).body.id;
-    expect((await post('/api/admin/roles/HR_OFFICER/holders', { employeeId: id })).status).toBe(201);
+    expect((await post('/api/admin/roles/DEPARTMENT_MANAGER/holders', { employeeId: id })).status).toBe(201);
     // Granting twice changes nothing.
-    expect((await post('/api/admin/roles/hr_officer/holders', { employeeId: id })).status).toBe(201);
+    expect((await post('/api/admin/roles/department_manager/holders', { employeeId: id })).status).toBe(201);
     let list = await admin.agent.get('/api/admin/roles');
-    const officers = list.body.roles.find((r) => r.code === 'HR_OFFICER').holders;
+    const officers = list.body.roles.find((r) => r.code === 'DEPARTMENT_MANAGER').holders;
     expect(officers.map((h) => h.id)).toEqual([id]);
     expect(list.body.roles.find((r) => r.code === 'HR_ADMIN').holders.map((h) => h.id)).toEqual([admin.id]);
 
     const del = await admin.agent
-      .delete(`/api/admin/roles/HR_OFFICER/holders/${id}`)
+      .delete(`/api/admin/roles/DEPARTMENT_MANAGER/holders/${id}`)
       .set('X-CSRF-Token', admin.csrf);
     expect(del.status).toBe(200);
     list = await admin.agent.get('/api/admin/roles');
-    expect(list.body.roles.find((r) => r.code === 'HR_OFFICER').holders).toEqual([]);
+    expect(list.body.roles.find((r) => r.code === 'DEPARTMENT_MANAGER').holders).toEqual([]);
     expect(await db('audit_log').where({ action: 'ROLES_CHANGED' })).toHaveLength(2);
   });
 

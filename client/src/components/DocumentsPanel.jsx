@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Download, Eye, FileSpreadsheet, FileText, Lock } from 'lucide-react';
-import { useMe } from '../lib/auth.jsx';
+import { can, useMe } from '../lib/auth.jsx';
 import { api } from '../lib/api.js';
 import { formatDateTime } from '../lib/format.js';
 import { Button, Notice, Section } from './ui.jsx';
@@ -70,7 +70,7 @@ export default function DocumentsPanel({ request: r }) {
 function DocList({ request: r, docs, kind, canAdd }) {
   // HR Officers and System Administrators get View and Download on each document.
   const { data: me } = useMe();
-  const isHr = Boolean(me?.roles.includes('HR_OFFICER'));
+  const isHr = can(me, 'leave.confidential');
   const qc = useQueryClient();
   const input = useRef(null);
   const [busy, setBusy] = useState(null);

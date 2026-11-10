@@ -1,3 +1,4 @@
+import { can } from '../../middleware/auth.js';
 import { z } from 'zod';
 import { leaveRequestEvent, changeRequestEvent } from '../notifications/leave-events.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../utils/errors.js';
@@ -750,7 +751,7 @@ export async function hrDecision(db, actor, requestId, input, audit) {
   return db.transaction(async (trx) => {
     const r = await lockRequest(trx, requestId, input.version);
     requireState(r, 'PENDING_HR_APPROVAL');
-    if (!actor.roles.includes('HR_OFFICER')) throw forbidden('Only HR Officers give final approval.');
+    if (!can(actor, 'leave.approve_final')) throw forbidden('Only HR Officers give final approval.');
     if (actor.id === r.employee_id) throw forbidden('You cannot give final approval to your own leave.');
     const approvedAsManager = await trx('approval_actions')
       .where({ leave_request_id: r.id, stage: 'MANAGER', action: 'APPROVE', actor_id: actor.id })
@@ -1134,7 +1135,7 @@ export async function changeHrDecision(db, actor, changeId, input, audit) {
   return db.transaction(async (trx) => {
     const c = await lockChange(trx, changeId, input.version);
     if (c.status !== 'PENDING_HR_APPROVAL') throw conflict('This change is not waiting for HR.');
-    if (!actor.roles.includes('HR_OFFICER')) throw forbidden('Only HR Officers give final approval.');
+    if (!can(actor, 'leave.approve_final')) throw forbidden('Only HR Officers give final approval.');
     const r = await lockRequest(trx, c.leave_request_id);
     if (actor.id === r.employee_id) throw forbidden('You cannot approve changes to your own leave.');
     if (input.action === 'RETURN') throw badRequest('Approve or reject the cancellation.');

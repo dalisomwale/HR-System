@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import {
   ButtonLink,
   EmptyState,
@@ -65,7 +65,7 @@ export default function DepartmentOverviewPage() {
                 ))}
               </Select>
             )}
-            {hasRole(me, 'HR_OFFICER') && (
+            {can(me, 'people.org') && (
               <ButtonLink to="/people/departments/manage"> Manage departments</ButtonLink>
             )}
           </div>

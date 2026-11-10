@@ -32,7 +32,7 @@ const as = (s) => ({
 let co;
 let dept;
 let people;
-const roleId = async (name) => (await db('inventory_roles').where({ name }).first('id')).id;
+const roleId = async (name) => (await db('access_roles').where({ module: 'inventory', name }).first('id')).id;
 
 async function person(key, over) {
   const e = await fixtureEmployee(db, { company_id: co, first_name: key, ...over });
@@ -51,7 +51,7 @@ beforeEach(async () => {
 
 describe('Inventory roles and users', () => {
   it('installs the inventory system default roles', async () => {
-    const r = await as(people.admin).get('/api/inventory/roles');
+    const r = await as(people.admin).get('/api/access/inventory/roles');
     expect(r.status).toBe(200);
     expect(r.body.items.map((x) => x.name)).toEqual(
       expect.arrayContaining(['System Admin', 'Staff', 'Director', 'Chief Finance Officer']),
@@ -63,7 +63,7 @@ describe('Inventory roles and users', () => {
 
   it('gives an employee exactly their role rights, and nothing without one', async () => {
     expect((await as(people.clerk).get('/api/requisitions/me')).status).toBe(403);
-    const add = await as(people.admin).post('/api/inventory/users', {
+    const add = await as(people.admin).post('/api/access/inventory/users', {
       employeeId: people.clerk.id,
       roleId: await roleId('Staff'),
     });
@@ -80,16 +80,16 @@ describe('Inventory roles and users', () => {
       usersAdmin: false,
       role: 'Staff',
     });
-    expect((await as(people.clerk).get('/api/inventory/users')).status).toBe(403);
+    expect((await as(people.clerk).get('/api/access/inventory/users')).status).toBe(403);
   });
 
   it('builds a custom role from levels and enforces it on the stock routes', async () => {
-    const made = await as(people.admin).post('/api/inventory/roles', {
+    const made = await as(people.admin).post('/api/access/inventory/roles', {
       name: 'Viewer',
       levels: { stock: 1, reports: 1, requisitions: [] },
     });
     expect(made.status).toBe(201);
-    await as(people.admin).post('/api/inventory/users', {
+    await as(people.admin).post('/api/access/inventory/users', {
       employeeId: people.clerk.id,
       roleId: made.body.id,
     });
@@ -98,20 +98,20 @@ describe('Inventory roles and users', () => {
     expect((await as(people.clerk).get('/api/stock/transactions')).status).toBe(403);
     expect((await as(people.clerk).post('/api/stock/categories', { name: 'Paper' })).status).toBe(403);
     // A role in use cannot be deleted; the System Admin role cannot be changed.
-    expect((await as(people.admin).del(`/api/inventory/roles/${made.body.id}`)).status).toBe(409);
+    expect((await as(people.admin).del(`/api/access/inventory/roles/${made.body.id}`)).status).toBe(409);
     const sys = await roleId('System Admin');
     expect(
-      (await as(people.admin).put(`/api/inventory/roles/${sys}`, { name: 'X', levels: {} })).status,
+      (await as(people.admin).put(`/api/access/inventory/roles/${sys}`, { name: 'X', levels: {} })).status,
     ).toBe(400);
   });
 
   it('holds an own-department-only role to the department, and to nothing without one', async () => {
-    const made = await as(people.admin).post('/api/inventory/roles', {
+    const made = await as(people.admin).post('/api/access/inventory/roles', {
       name: 'Department viewer',
       levels: { stock: 1, scope: 1 },
     });
     for (const p of [people.clerk, people.noDept]) {
-      await as(people.admin).post('/api/inventory/users', { employeeId: p.id, roleId: made.body.id });
+      await as(people.admin).post('/api/access/inventory/users', { employeeId: p.id, roleId: made.body.id });
     }
     expect((await as(people.clerk).get('/api/requisitions/me')).body).toMatchObject({
       stock: true,
@@ -122,22 +122,22 @@ describe('Inventory roles and users', () => {
   });
 
   it('disables access, and stops people changing their own', async () => {
-    await as(people.admin).post('/api/inventory/users', {
+    await as(people.admin).post('/api/access/inventory/users', {
       employeeId: people.clerk.id,
       roleId: await roleId('Staff'),
     });
-    const off = await as(people.admin).put(`/api/inventory/users/${people.clerk.id}`, {
+    const off = await as(people.admin).put(`/api/access/inventory/users/${people.clerk.id}`, {
       roleId: await roleId('Staff'),
       isActive: false,
     });
     expect(off.status).toBe(200);
     expect((await as(people.clerk).get('/api/requisitions/me')).status).toBe(403);
 
-    await as(people.admin).post('/api/inventory/users', {
+    await as(people.admin).post('/api/access/inventory/users', {
       employeeId: people.noDept.id,
       roleId: await roleId('System Admin'),
     });
-    const self = await as(people.noDept).del(`/api/inventory/users/${people.noDept.id}`);
+    const self = await as(people.noDept).del(`/api/access/inventory/users/${people.noDept.id}`);
     expect(self.status).toBe(400);
   });
 

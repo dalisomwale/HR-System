@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import EmployeeBalances from '../admin/EmployeeBalances.jsx';
 import { ImportEmployees } from './ImportEmployees.jsx';
 import { formatDate, formatDateTime, ROLE_LABELS } from '../../lib/format.js';
@@ -80,7 +80,7 @@ export default function EmployeeRecordPage() {
   const { id, companyId, departmentId } = useParams();
   const base = useEmployeeBase();
   const { data: me } = useMe();
-  const canEdit = hasRole(me, 'HR_OFFICER');
+  const canEdit = can(me, 'people.edit');
   const isNew = id === 'new';
   // Add employee: one person through the form, or many from a CSV (D69).
   const [params, setParams] = useSearchParams();
@@ -105,9 +105,7 @@ export default function EmployeeRecordPage() {
   if (!isNew && employee.isError)
     return <LoadError error={employee.error} onRetry={() => employee.refetch()} />;
   const e = employee.data;
-  const sidePanels =
-    !isNew &&
-    (me.roles.includes('HR_OFFICER') || me.roles.includes('HR_ADMIN') || e.directReports.length > 0);
+  const sidePanels = !isNew && (can(me, ['people.edit', 'people.positions']) || e.directReports.length > 0);
 
   return (
     <div className="max-w-6xl">
@@ -249,11 +247,10 @@ export default function EmployeeRecordPage() {
                   </ul>
                 </Section>
               )}
-              {/* Employment status is for HR (D91); Microsoft account and roles for System Administrators (D46). */}
-              {(me.roles.includes('HR_OFFICER') || me.roles.includes('HR_ADMIN')) && (
-                <StatusPanel employee={e} />
-              )}
-              {me.roles.includes('HR_ADMIN') && (
+              {/* Employment status is for whoever edits employees (D91); Microsoft account and positions
+                  for whoever manages positions (D108). */}
+              {can(me, 'people.edit') && <StatusPanel employee={e} />}
+              {can(me, 'people.positions') && (
                 <>
                   <IdentityPanel employee={e} />
                   <RolesPanel employee={e} />
@@ -844,11 +841,10 @@ function RolesPanel({ employee }) {
   const toggle = (r) => setRoles((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]));
 
   return (
-    <Section title="System roles">
+    <Section title="Positions">
       <fieldset className="space-y-2.5" disabled={employee.status !== 'ACTIVE'}>
         <legend className="sr-only">Roles</legend>
         {[
-          ['HR_OFFICER', 'Gives final approval and manages leave balances.'],
           ['HR_ADMIN', 'Every right in the system, including settings and roles.'],
           [
             'DEPARTMENT_MANAGER',

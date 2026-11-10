@@ -18,16 +18,19 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { errorText } from './rq.js';
+import { errorText } from '../requisitions/rq.js';
 
 /*
- * Admin › Roles (D107), as on the inventory system: each role gets one access level per area,
- * and any number of parts in the requisition workflow. The System Admin role always has full
- * access and can't be changed.
+ * A module's Roles page (D107, D108), as on the inventory system: each role gets one access
+ * level per area (ticks where an area allows several). The System Admin role always has full
+ * access and can't be changed. `module` is leave, people or inventory; `base` is where its pages live.
  */
-export default function InventoryRolesPage() {
+export default function AccessRolesPage({ module, base }) {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['inventory-roles'], queryFn: () => api.get('/api/inventory/roles') });
+  const q = useQuery({
+    queryKey: ['access-roles', module],
+    queryFn: () => api.get(`/api/access/${module}/roles`),
+  });
   const [editing, setEditing] = useState(null); // 'new' or a role
   const [deleting, setDeleting] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -35,13 +38,14 @@ export default function InventoryRolesPage() {
   const refresh = (text, tone = 'ok') => {
     setMsg({ tone, text });
     setEditing(null);
-    qc.invalidateQueries({ queryKey: ['inventory-roles'] });
+    qc.invalidateQueries({ queryKey: ['access-roles', module] });
+    qc.invalidateQueries({ queryKey: ['me'] });
     qc.invalidateQueries({ queryKey: ['rq-me'] });
   };
   const remove = async () => {
     setBusy(true);
     try {
-      await api.del(`/api/inventory/roles/${deleting.id}`);
+      await api.del(`/api/access/${module}/roles/${deleting.id}`);
       refresh(`Role "${deleting.name}" deleted.`);
     } catch (err) {
       setMsg({ tone: 'danger', text: errorText(err) });
@@ -56,8 +60,8 @@ export default function InventoryRolesPage() {
         title="Roles"
         description={
           <>
-            What each role can do in the inventory system. Give people a role under{' '}
-            <Link to="/requisitions/users" className="text-brand hover:underline">
+            What each role can do in {q.data?.module.label ?? 'this module'}. Give people a role under{' '}
+            <Link to={`${base}/users`} className="text-brand hover:underline">
               Users
             </Link>
             .
@@ -75,6 +79,7 @@ export default function InventoryRolesPage() {
       {editing && q.data && (
         <div className="mb-4">
           <RoleForm
+            module={module}
             role={editing === 'new' ? null : editing}
             areas={q.data.areas}
             onDone={refresh}
@@ -116,7 +121,7 @@ export default function InventoryRolesPage() {
                   )}
                 </Td>
                 <Td className="text-right tabular-nums">
-                  <Link to="/requisitions/users" className="text-brand hover:underline">
+                  <Link to={`${base}/users`} className="text-brand hover:underline">
                     {r.users}
                   </Link>
                 </Td>
@@ -167,7 +172,7 @@ export default function InventoryRolesPage() {
   );
 }
 
-function RoleForm({ role, areas, onDone, onCancel }) {
+function RoleForm({ module, role, areas, onDone, onCancel }) {
   const [name, setName] = useState(role?.name ?? '');
   const [description, setDescription] = useState(role?.description ?? '');
   const [levels, setLevels] = useState(
@@ -204,8 +209,8 @@ function RoleForm({ role, areas, onDone, onCancel }) {
     setError(null);
     try {
       const body = { name: name.trim(), description: description.trim(), levels };
-      if (role) await api.put(`/api/inventory/roles/${role.id}`, body);
-      else await api.post('/api/inventory/roles', body);
+      if (role) await api.put(`/api/access/${module}/roles/${role.id}`, body);
+      else await api.post(`/api/access/${module}/roles`, body);
       onDone(`Role "${body.name}" ${role ? 'saved' : 'added'}.`);
     } catch (err) {
       setError(errorText(err));

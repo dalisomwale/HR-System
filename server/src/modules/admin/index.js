@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { requireRole } from '../../middleware/auth.js';
+import { requirePerm, requireRole } from '../../middleware/auth.js';
 import { companyRoutes } from './companies.routes.js';
 import { roleRoutes } from './roles.routes.js';
 import { departmentRoutes } from './departments.routes.js';
@@ -20,20 +20,20 @@ import { adminEmailRoutes } from '../notifications/notifications.routes.js';
  */
 export function adminRoutes(deps) {
   const router = Router();
-  const hr = requireRole('HR_OFFICER');
+  // Each part opens to the access right that covers it (D108).
   const admin = requireRole('HR_ADMIN');
-  router.use('/companies', hr, companyRoutes(deps));
-  router.use('/departments', hr, departmentRoutes(deps));
-  router.use('/employees', hr, employeeRoutes(deps));
-  router.use('/holidays', hr, holidayRoutes(deps));
-  router.use('/work-schedules', hr, scheduleRoutes(deps));
-  router.use('/leave-types', hr, leaveTypeRoutes(deps));
-  router.use('/jobs', hr, jobRoutes(deps));
-  router.use('/delegations', hr, adminDelegationRoutes(deps));
-  router.use('/roles', admin, roleRoutes(deps));
-  router.use('/settings', admin, settingsRoutes(deps));
-  router.use('/audit', admin, auditRoutes(deps));
-  router.use('/emails', admin, adminEmailRoutes(deps));
+  router.use('/companies', requirePerm('people.org'), companyRoutes(deps));
+  router.use('/departments', requirePerm('people.org'), departmentRoutes(deps));
+  router.use('/employees', requirePerm('people.edit', 'people.positions'), employeeRoutes(deps));
+  router.use('/holidays', requirePerm('leave.calendar'), holidayRoutes(deps));
+  router.use('/work-schedules', requirePerm('leave.calendar'), scheduleRoutes(deps));
+  router.use('/leave-types', requirePerm('leave.types'), leaveTypeRoutes(deps));
+  router.use('/jobs', requirePerm('leave.types'), jobRoutes(deps));
+  router.use('/delegations', requirePerm('leave.delegations'), adminDelegationRoutes(deps));
+  router.use('/roles', requirePerm('people.positions'), roleRoutes(deps));
+  router.use('/settings', requirePerm('leave.settings'), settingsRoutes(deps));
+  router.use('/audit', requirePerm('leave.audit', 'people.audit', 'admin.audit'), auditRoutes(deps));
+  router.use('/emails', requirePerm('leave.emails'), adminEmailRoutes(deps));
   // Anything else under /api/admin is for System Administrators.
   router.use(admin);
   return router;

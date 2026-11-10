@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Users } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { formatDate, formatDateTime } from '../../lib/format.js';
 import { BarList, COLORS, ColumnChart, Donut, Legend } from '../../components/charts.jsx';
 import { ButtonLink, LoadError, Loading, PageHeader, Section, Select } from '../../components/ui.jsx';
@@ -61,7 +61,7 @@ export default function PeopleDashboardPage() {
                 ))}
               </Select>
             )}
-            {hasRole(me, 'HR_OFFICER') && (
+            {can(me, 'people.edit') && (
               <ButtonLink to="/people/employees/new" variant="primary">
                 Add employee
               </ButtonLink>

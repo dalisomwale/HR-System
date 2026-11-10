@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarCheck, CalendarPlus, ClipboardCheck, LayoutGrid, Scale, ShieldCheck } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { hasRole, seesWholeGroup, useMe } from '../../lib/auth.jsx';
+import { can, hasRole, seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import { days } from '../../lib/leave.js';
 import {
@@ -71,7 +71,7 @@ function Shortcuts({ me, i }) {
           tone="issue"
         />
       )}
-      {hasRole(me, 'HR_OFFICER') && (
+      {can(me, 'leave.approve_final') && (
         <ActionTile
           to="/hr/approvals"
           icon={ShieldCheck}
@@ -81,7 +81,7 @@ function Shortcuts({ me, i }) {
           tone="request"
         />
       )}
-      {seesWholeGroup(me) && !hasRole(me, 'HR_OFFICER') && (
+      {seesWholeGroup(me) && !can(me, 'leave.approve_final') && (
         <ActionTile
           to="/hr"
           icon={LayoutGrid}

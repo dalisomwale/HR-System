@@ -76,13 +76,26 @@ export async function notify(trx, { recipients, event, title, body, link, entity
   return { notified: people.length, emailed };
 }
 
-/** Active HR Officers, optionally leaving some people out (the actor, the employee). */
+/**
+ * Active people who give final approval on leave (D108): a Leave management role with that right,
+ * or that module's System Admin role. Optionally leaving some people out (the actor, the employee).
+ */
 export async function hrOfficers(trx, exclude = []) {
-  return trx('employee_roles as er')
-    .join('roles as r', 'r.id', 'er.role_id')
-    .join('employees as e', 'e.id', 'er.employee_id')
-    .where({ 'r.code': 'HR_OFFICER', 'e.status': 'ACTIVE' })
+  return trx('access_users as u')
+    .join('access_roles as r', 'r.id', 'u.role_id')
+    .join('employees as e', 'e.id', 'u.employee_id')
+    .where({ 'u.module': 'leave', 'u.is_active': true, 'e.status': 'ACTIVE' })
+    .where((w) =>
+      w
+        .where('r.is_system', true)
+        .orWhereExists(
+          trx('access_role_permissions as p')
+            .whereRaw('p.role_id = r.id')
+            .where('p.permission', 'leave.approve_final'),
+        ),
+    )
     .whereNotIn('e.id', exclude.filter(Boolean))
+    .distinct()
     .pluck('e.id');
 }
 

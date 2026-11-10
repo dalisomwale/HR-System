@@ -4,8 +4,8 @@ import { revokeEmployeeSessions } from '../auth/session-store.js';
 import { conflict, notFound, badRequest } from '../../utils/errors.js';
 import { GUID_RE, isoDate, optionalId, optionalText, requiredText } from '../../utils/validation.js';
 
+// Positions (D108). HR Officer is no longer a position: it is a role in each module.
 export const ASSIGNABLE_ROLES = [
-  'HR_OFFICER',
   'HR_ADMIN',
   'DEPARTMENT_MANAGER',
   'EXECUTIVE_DIRECTOR',

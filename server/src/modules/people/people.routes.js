@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { GROUP_VIEW_ROLES, requireRole } from '../../middleware/auth.js';
+import { requirePerm } from '../../middleware/auth.js';
 import { asyncHandler, idParam, pagination } from '../../utils/validation.js';
 import { z } from 'zod';
 import { rateLimit } from 'express-rate-limit';
@@ -26,7 +26,7 @@ import {
  */
 export function peopleRoutes({ db }) {
   const router = Router();
-  router.use(requireRole(...GROUP_VIEW_ROLES));
+  router.use(requirePerm('people.view'));
   const companyOf = (req) => Number(req.query.companyId) || null;
 
   router.get(

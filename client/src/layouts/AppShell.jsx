@@ -46,7 +46,7 @@ import LeaveTrail from './LeaveTrail.jsx';
 import { LogOutButton, PageFooter, UserAvatar } from './AppFrame.jsx';
 import RequisitionsTrail from './RequisitionsTrail.jsx';
 import { useRq } from '../pages/requisitions/rq.js';
-import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
+import { can, useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
 
 const MY_WORK = [
@@ -62,14 +62,14 @@ const MANAGER = [
   { to: '/approvals', label: 'Approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];
-// HR Officers look after people and leave setup as well as approvals (D46).
+// HR: each item shows when the person's Leave management role includes it (D108).
 const HR = [
-  { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true },
-  { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck },
-  { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks },
-  { to: '/admin/delegations', label: 'Delegations', icon: UserCheck },
-  { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays },
-  { to: '/admin/schedules', label: 'Working schedules', icon: Clock },
+  { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true, perm: 'leave.overview' },
+  { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck, perm: 'leave.approve_final' },
+  { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks, perm: 'leave.types' },
+  { to: '/admin/delegations', label: 'Delegations', icon: UserCheck, perm: 'leave.delegations' },
+  { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays, perm: 'leave.calendar' },
+  { to: '/admin/schedules', label: 'Working schedules', icon: Clock, perm: 'leave.calendar' },
 ];
 // Employee management (D52): the central employee record, its own menu.
 // Employee management (D52, D55): its own menu, in segments.
@@ -77,7 +77,7 @@ const PEOPLE = [
   { to: '/people', label: 'Home', icon: House, end: true },
   // Not lit up on the add form, which has its own item.
   { to: '/people/employees', label: 'Employees', icon: Users, except: '/people/employees/new' },
-  { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, hrOnly: true },
+  { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, perm: 'people.edit' },
 ];
 
 // Side menu, as in the Altus Inventory System: an orange bar marks the page you are on.
@@ -252,7 +252,7 @@ function OrganisationNav({ user, onNavigate }) {
   });
   const companies = (org.data?.companies ?? []).filter((c) => c.isActive);
   const departments = (org.data?.departments ?? []).filter((d) => d.isActive);
-  const canAdd = hasRole(user, 'HR_OFFICER');
+  const canAdd = can(user, 'people.org');
   // One plain list of department names, A to Z (project owner, 21 Oct 2026).
   const deptGroups = [{ heading: null, items: departments }];
   return (
@@ -293,53 +293,24 @@ function OrganisationNav({ user, onNavigate }) {
   );
 }
 
-const DIRECTORS = [{ to: '/hr', label: 'Group overview', icon: LayoutGrid, end: true }];
-// System Administrators only. They also see everything in the HR menu.
-const ADMIN = [
-  { to: '/admin/roles', label: 'Roles', icon: KeyRound },
-  { to: '/admin/settings', label: 'Workflow settings', icon: Settings2 },
-  { to: '/admin/emails', label: 'Emails', icon: Mail },
-  { to: '/admin/audit', label: 'Audit log', icon: History },
+// Admin in every module (D108), as in the inventory system: Users, Roles, Audit trail, then the
+// module's own settings. Each shows when the person's role in the module includes it.
+const LEAVE_ADMIN = [
+  { to: '/admin/users', label: 'Users', icon: Users, perm: 'leave.users' },
+  { to: '/admin/roles', label: 'Roles', icon: KeyRound, perm: 'leave.roles' },
+  { to: '/admin/audit', label: 'Audit trail', icon: History, perm: 'leave.audit' },
+  { to: '/admin/settings', label: 'Workflow settings', icon: Settings2, perm: 'leave.settings' },
+  { to: '/admin/emails', label: 'Emails', icon: Mail, perm: 'leave.emails' },
+];
+const PEOPLE_ADMIN = [
+  { to: '/people/users', label: 'Users', icon: Users, perm: 'people.users' },
+  { to: '/people/roles', label: 'Roles', icon: KeyRound, perm: 'people.roles' },
+  { to: '/people/positions', label: 'Positions', icon: UserCog, perm: 'people.positions' },
+  { to: '/people/audit', label: 'Audit trail', icon: History, perm: 'people.audit' },
 ];
 
-/** Administration as one menu item that opens to list its pages (D89). */
-function AdminNav({ items, onNavigate }) {
-  const { pathname } = useLocation();
-  const inside = items.some((i) => pathname.startsWith(i.to));
-  const [open, setOpen] = useState(inside);
-  useEffect(() => {
-    if (inside) setOpen(true);
-  }, [inside]);
-  return (
-    <div className="mt-2.5">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls="admin-menu"
-        onClick={() => setOpen((o) => !o)}
-        className={`${navLinkClass({ isActive: inside && !open })} w-full text-left`}
-      >
-        <UserCog aria-hidden />
-        <span className="flex-1">Administration</span>
-        <ChevronDown
-          className={`size-3.5! text-muted transition-transform ${open ? 'rotate-180' : ''}`}
-          aria-hidden
-        />
-      </button>
-      {open && (
-        <ul id="admin-menu" className={SUB_LIST}>
-          {items.map(({ to, label }) => (
-            <li key={to}>
-              <NavLink to={to} onClick={onNavigate} className={({ isActive }) => subLinkClass(isActive)}>
-                {label}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+/** The items a person's role includes (items without `perm` are for everyone). */
+const allowed = (user, items) => items.filter((i) => !i.perm || can(user, i.perm));
 
 function NavGroup({ title, items, onNavigate, counts = {} }) {
   if (!items.length) return null;
@@ -470,15 +441,17 @@ function RequisitionsNav({ onNavigate }) {
       ? [{ to: '/requisitions/transactions', label: 'Transactions', icon: ArrowLeftRight }]
       : []),
   ];
+  // Users, Roles and Audit trail first, as in every module (D108), then the inventory's own.
   const admin = [
+    ...(a.usersAdmin ? [{ to: '/requisitions/users', label: 'Users', icon: Users }] : []),
+    ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
+    ...(a.auditAdmin ? [{ to: '/requisitions/audit', label: 'Audit trail', icon: History }] : []),
     ...(a.orgAdmin
       ? [
           { to: '/requisitions/branches', label: 'Branches', icon: MapPin },
           { to: '/requisitions/settings', label: 'Requisition Departments', icon: Building2 },
         ]
       : []),
-    ...(a.usersAdmin ? [{ to: '/requisitions/users', label: 'Users', icon: Users }] : []),
-    ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
   ];
   return (
     <>
@@ -506,8 +479,11 @@ function RequisitionsNav({ onNavigate }) {
   );
 }
 
-/** The leave system's menu: what each person does, by role. */
+/** The leave system's menu: what each person does, from their role in it (D108). */
 function LeaveNav({ user, counts, onNavigate }) {
+  const hr = allowed(user, HR).map((i) =>
+    i.to === '/hr' && !can(user, 'leave.approve_final') ? { ...i, label: 'Group overview' } : i,
+  );
   return (
     <>
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
@@ -518,16 +494,16 @@ function LeaveNav({ user, counts, onNavigate }) {
           onNavigate={onNavigate}
         />
       )}
-      {hasRole(user, 'HR_OFFICER') && <NavGroup title="HR" items={HR} onNavigate={onNavigate} />}
-      {!hasRole(user, 'HR_OFFICER') && seesWholeGroup(user) && (
-        <NavGroup title="Directors" items={DIRECTORS} onNavigate={onNavigate} />
-      )}
-      {/* Leave reports, for managers, delegates, HR and directors: the same dropdown as in
-          Employee management (D68). */}
+      <NavGroup
+        title={can(user, 'leave.approve_final') ? 'HR' : 'Group'}
+        items={hr}
+        onNavigate={onNavigate}
+      />
+      {/* Leave reports, for managers, delegates and whoever sees the whole group (D68). */}
       {(user.isManager || user.isDelegate || seesWholeGroup(user)) && (
         <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
       )}
-      {hasRole(user, 'HR_ADMIN') && <AdminNav items={ADMIN} onNavigate={onNavigate} />}
+      <NavGroup title="Admin" items={allowed(user, LEAVE_ADMIN)} onNavigate={onNavigate} />
     </>
   );
 }
@@ -560,14 +536,21 @@ export default function AppShell() {
     };
   }, [menuOpen]);
 
-  // A System Administrator holds every right, so that title alone is shown.
+  // Their role in this module, then their positions. A System Administrator holds every right,
+  // so that title alone is shown.
+  const moduleKey = inRequisitions ? 'inventory' : inPeople ? 'people' : 'leave';
   const roleText = hasRole(user, 'HR_ADMIN')
     ? [
         ...user.roles.filter((r) => r.endsWith('_DIRECTOR')).map((r) => ROLE_LABELS[r]),
         ROLE_LABELS.HR_ADMIN,
       ].join(', ')
-    : [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
-      'Employee';
+    : [
+        user.accessRoles?.[moduleKey],
+        ...user.roles.map((r) => ROLE_LABELS[r]),
+        ...(user.isManager ? ['Manager'] : []),
+      ]
+        .filter(Boolean)
+        .join(', ') || 'Employee';
   const close = () => setMenuOpen(false);
   const appName = inRequisitions ? 'Inventory System' : inPeople ? 'Employee Management' : 'Leave Management';
   const nav = (
@@ -583,7 +566,7 @@ export default function AppShell() {
         <>
           <NavGroup
             title="People"
-            items={PEOPLE.filter((i) => !i.hrOnly || hasRole(user, 'HR_OFFICER')).map((i) =>
+            items={allowed(user, PEOPLE).map((i) =>
               // Inside a company or department, Add employee adds to it and keeps the path (D62).
               i.to === '/people/employees/new' && placeBase ? { ...i, to: `${placeBase}/employees/new` } : i,
             )}
@@ -591,9 +574,7 @@ export default function AppShell() {
           />
           <OrganisationNav user={user} onNavigate={close} />
           <ReportsNav onNavigate={close} />
-          {hasRole(user, 'HR_ADMIN') && (
-            <AdminNav items={ADMIN.filter((i) => ['/admin/roles'].includes(i.to))} onNavigate={close} />
-          )}
+          <NavGroup title="Admin" items={allowed(user, PEOPLE_ADMIN)} onNavigate={close} />
         </>
       ) : (
         <LeaveNav user={user} counts={counts} onNavigate={close} />

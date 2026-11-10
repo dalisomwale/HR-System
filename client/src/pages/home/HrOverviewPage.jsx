@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { LoadError, Loading, PageHeader, Section, Select, Table, Td, Th } from '../../components/ui.jsx';
 import { RequestList, Stat, Stats, Waiting } from './dashboard-ui.jsx';
 import { BarList } from '../../components/charts.jsx';
@@ -19,7 +19,7 @@ export default function HrOverviewPage() {
   return (
     <div className="stack">
       <PageHeader
-        title={hasRole(me, 'HR_OFFICER') ? 'HR overview' : 'Group overview'}
+        title={can(me, 'leave.approve_final') ? 'HR overview' : 'Group overview'}
         actions={
           companies.length > 0 && (
             <Select
@@ -54,7 +54,7 @@ export default function HrOverviewPage() {
 function Body({ d }) {
   const { data: me } = useMe();
   // Directors see the same figures but do not approve, so the approval queue is not linked.
-  const approvals = me.roles.includes('HR_OFFICER') ? '/hr/approvals' : undefined;
+  const approvals = can(me, 'leave.approve_final') ? '/hr/approvals' : undefined;
   const ex = d.exceptions;
   return (
     <>

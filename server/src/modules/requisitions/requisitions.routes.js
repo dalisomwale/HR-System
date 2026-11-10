@@ -129,6 +129,7 @@ export function requisitionRoutes({ db, config, logger }) {
         orgAdmin: c.orgAdmin,
         usersAdmin: c.usersAdmin,
         rolesAdmin: c.rolesAdmin,
+        auditAdmin: c.auditAdmin,
         role: c.inventoryRole,
         waiting: Number(waiting.n),
       });

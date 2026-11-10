@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, Link, useParams, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles.css';
-import { GROUP_VIEW_ROLES, RequireAuth, RequireRole } from './lib/auth.jsx';
+import { RequireAuth, RequirePerm } from './lib/auth.jsx';
 import AppShell from './layouts/AppShell.jsx';
 import LauncherPage from './pages/LauncherPage.jsx';
 import { SignInPage, AccessNotConfiguredPage, SignedOutPage } from './pages/auth/PublicPages.jsx';
@@ -22,7 +22,6 @@ import DepartmentsPage from './pages/admin/DepartmentsPage.jsx';
 import HolidaysPage from './pages/admin/HolidaysPage.jsx';
 import SchedulesPage from './pages/admin/SchedulesPage.jsx';
 import SettingsPage from './pages/admin/SettingsPage.jsx';
-import AuditPage from './pages/admin/AuditPage.jsx';
 import LeaveTypesPage from './pages/admin/LeaveTypesPage.jsx';
 import MyLeavePage, { MyBalancesPage } from './pages/leave/MyLeavePage.jsx';
 import ApplyPage from './pages/leave/ApplyPage.jsx';
@@ -51,8 +50,9 @@ import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/requisitions/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import SuppliersPage from './pages/requisitions/SuppliersPage.jsx';
-import InventoryUsersPage from './pages/requisitions/InventoryUsersPage.jsx';
-import InventoryRolesPage from './pages/requisitions/InventoryRolesPage.jsx';
+import AccessUsersPage from './pages/access/AccessUsersPage.jsx';
+import AccessRolesPage from './pages/access/AccessRolesPage.jsx';
+import AuditTrailPage from './pages/access/AuditTrailPage.jsx';
 import { useRq } from './pages/requisitions/rq.js';
 
 const queryClient = new QueryClient({
@@ -61,9 +61,9 @@ const queryClient = new QueryClient({
   },
 });
 
-const admin = (el) => <RequireRole role="HR_ADMIN">{el}</RequireRole>;
-const hr = (el) => <RequireRole role="HR_OFFICER">{el}</RequireRole>;
-const group = (el) => <RequireRole role={GROUP_VIEW_ROLES}>{el}</RequireRole>;
+// Each page opens to the access right that covers it (D108); the server checks the same.
+const need = (perm, el) => <RequirePerm perm={perm}>{el}</RequirePerm>;
+const group = (el) => need('people.view', el);
 
 /** Old addresses from before Employee management (D52) keep working. */
 function ToPeople({ base }) {
@@ -141,7 +141,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="home" element={<HomePage />} />
             <Route path="team" element={<TeamPage />} />
             <Route path="team/members" element={<MembersPage />} />
-            <Route path="hr" element={group(<HrOverviewPage />)} />
+            <Route path="hr" element={need('leave.overview', <HrOverviewPage />)} />
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="reports" element={<ReportsPage listInMenu />} />
@@ -150,23 +150,33 @@ createRoot(document.getElementById('root')).render(
             <Route path="leave/balances" element={<MyBalancesPage />} />
             <Route path="leave/requests/:id" element={<RequestPage />} />
             <Route path="approvals" element={<ManagerApprovalsPage />} />
-            <Route path="hr/approvals" element={hr(<HrApprovalsPage />)} />
+            <Route path="hr/approvals" element={need('leave.approve_final', <HrApprovalsPage />)} />
             <Route path="people">
               <Route index element={group(<PeopleDashboardPage />)} />
               <Route path="employees" element={group(<DirectoryPage />)} />
               <Route path="employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="companies" element={group(<CompanyOverviewPage />)} />
-              <Route path="companies/manage" element={hr(<CompaniesPage />)} />
+              <Route path="companies/manage" element={need('people.org', <CompaniesPage />)} />
               <Route path="companies/:id" element={group(<CompanyPage />)} />
               <Route path="companies/:companyId/employees" element={group(<DirectoryPage />)} />
               <Route path="companies/:companyId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="departments" element={group(<DepartmentOverviewPage />)} />
-              <Route path="departments/manage" element={hr(<DepartmentsPage />)} />
+              <Route path="departments/manage" element={need('people.org', <DepartmentsPage />)} />
               <Route path="departments/:id" element={group(<DepartmentPage />)} />
               <Route path="departments/:departmentId/employees" element={group(<DirectoryPage />)} />
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="reports" element={group(<ReportsPage base="/api/people/reports" listInMenu />)} />
               <Route path="import" element={<Navigate to="/people/employees/new?mode=import" replace />} />
+              <Route path="positions" element={need('people.positions', <RolesPage />)} />
+              <Route
+                path="users"
+                element={need('people.users', <AccessUsersPage module="people" base="/people" />)}
+              />
+              <Route
+                path="roles"
+                element={need('people.roles', <AccessRolesPage module="people" base="/people" />)}
+              />
+              <Route path="audit" element={need('people.audit', <AuditTrailPage module="people" />)} />
             </Route>
             <Route path="requisitions">
               <Route index element={rqPage(<RequisitionsHomePage />)} />
@@ -188,8 +198,24 @@ createRoot(document.getElementById('root')).render(
               <Route path="branches" element={rqPage(<BranchesPage />, (a) => a.orgAdmin)} />
               <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
-              <Route path="users" element={rqPage(<InventoryUsersPage />, (a) => a.usersAdmin)} />
-              <Route path="roles" element={rqPage(<InventoryRolesPage />, (a) => a.rolesAdmin)} />
+              <Route
+                path="users"
+                element={rqPage(
+                  <AccessUsersPage module="inventory" base="/requisitions" />,
+                  (a) => a.usersAdmin,
+                )}
+              />
+              <Route
+                path="roles"
+                element={rqPage(
+                  <AccessRolesPage module="inventory" base="/requisitions" />,
+                  (a) => a.rolesAdmin,
+                )}
+              />
+              <Route
+                path="audit"
+                element={rqPage(<AuditTrailPage module="inventory" />, (a) => a.auditAdmin)}
+              />
             </Route>
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />
@@ -197,17 +223,24 @@ createRoot(document.getElementById('root')).render(
               <Route path="employees/:id" element={<ToPeople base="/people/employees" />} />
               <Route path="sign-in-requests" element={<Navigate to="/people/employees" replace />} />
               <Route path="import" element={<ToPeople base="/people/import" />} />
-              <Route path="roles" element={admin(<RolesPage />)} />
+              <Route
+                path="users"
+                element={need('leave.users', <AccessUsersPage module="leave" base="/admin" />)}
+              />
+              <Route
+                path="roles"
+                element={need('leave.roles', <AccessRolesPage module="leave" base="/admin" />)}
+              />
               <Route path="companies" element={<ToPeople base="/people/companies/manage" />} />
               <Route path="departments" element={<ToPeople base="/people/departments/manage" />} />
-              <Route path="holidays" element={hr(<HolidaysPage />)} />
-              <Route path="schedules" element={hr(<SchedulesPage />)} />
-              <Route path="settings" element={admin(<SettingsPage />)} />
-              <Route path="leave-types" element={hr(<LeaveTypesPage />)} />
-              <Route path="leave-types/:id" element={hr(<LeaveTypePage />)} />
-              <Route path="delegations" element={hr(<AdminDelegationsPage />)} />
-              <Route path="emails" element={admin(<EmailsPage />)} />
-              <Route path="audit" element={admin(<AuditPage />)} />
+              <Route path="holidays" element={need('leave.calendar', <HolidaysPage />)} />
+              <Route path="schedules" element={need('leave.calendar', <SchedulesPage />)} />
+              <Route path="settings" element={need('leave.settings', <SettingsPage />)} />
+              <Route path="leave-types" element={need('leave.types', <LeaveTypesPage />)} />
+              <Route path="leave-types/:id" element={need('leave.types', <LeaveTypePage />)} />
+              <Route path="delegations" element={need('leave.delegations', <AdminDelegationsPage />)} />
+              <Route path="emails" element={need('leave.emails', <EmailsPage />)} />
+              <Route path="audit" element={need('leave.audit', <AuditTrailPage module="leave" />)} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Route>

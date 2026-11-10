@@ -381,10 +381,11 @@ describe('Requisitions: Employee management is the source of people and departme
   it('tells inventory role-holders when it is their turn, and not those whose role leaves it out', async () => {
     // The staff member gets the inventory Director role; the HR Executive Director gets a role
     // without approval, which replaces what their HR role gave them here (D107).
-    const role = async (name) => (await db('inventory_roles').where({ name }).first('id')).id;
-    await db('inventory_users').insert([
-      { employee_id: ids.staff, role_id: await role('Director') },
-      { employee_id: ids.director, role_id: await role('Accountant') },
+    const role = async (name) =>
+      (await db('access_roles').where({ module: 'inventory', name }).first('id')).id;
+    await db('access_users').insert([
+      { module: 'inventory', employee_id: ids.staff, role_id: await role('Director') },
+      { module: 'inventory', employee_id: ids.director, role_id: await role('Accountant') },
     ]);
     const r = await raise(people.manager);
     await as(people.manager).upload(

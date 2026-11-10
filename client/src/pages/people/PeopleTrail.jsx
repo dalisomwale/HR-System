@@ -15,6 +15,10 @@ const SECTIONS = {
   companies: { label: 'Company overview', to: '/people/companies' },
   departments: { label: 'Department overview', to: '/people/departments' },
   reports: { label: 'Reports', to: '/people/reports' },
+  users: { label: 'Users', to: '/people/users' },
+  roles: { label: 'Roles', to: '/people/roles' },
+  positions: { label: 'Positions', to: '/people/positions' },
+  audit: { label: 'Audit trail', to: '/people/audit' },
 };
 const FIXED = {
   'employees/new': 'Add employee',

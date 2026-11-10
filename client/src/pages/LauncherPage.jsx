@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import AppFrame from '../layouts/AppFrame.jsx';
 import { ActionTile, ActionTiles, PageHeader, TodayDate } from '../components/ui.jsx';
-import { useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
+import { can, hasRole, seesWholeGroup, useMe } from '../lib/auth.jsx';
 import { useRq } from './requisitions/rq.js';
 
 /*
@@ -34,6 +34,7 @@ const APPS = [
     description: 'Every member of staff',
     icon: Users,
     to: '/people',
+    needs: 'people.view',
   },
   {
     // Brought in from the Altus inventory system (D105); open to everyone with a part in it.
@@ -87,9 +88,11 @@ const TONES = { leave: 'receive', employees: 'stock', requisitions: 'request', p
 
 export default function LauncherPage() {
   const { data: me } = useMe();
-  const seesAll = seesWholeGroup(me) || hasRole(me, 'HR_ADMIN');
+  const seesAll = seesWholeGroup(me) || can(me, 'people.view') || hasRole(me, 'HR_ADMIN');
   const rq = useRq();
-  const apps = APPS.filter((a) => (a.requisitions ? Boolean(rq.data) : a.everyone || seesAll));
+  const apps = APPS.filter((a) =>
+    a.requisitions ? Boolean(rq.data) : a.needs ? can(me, a.needs) : a.everyone || seesAll,
+  );
 
   return (
     <AppFrame>

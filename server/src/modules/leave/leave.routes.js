@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { auditContext, requireRole } from '../../middleware/auth.js';
+import { auditContext, requirePerm } from '../../middleware/auth.js';
 import { asyncHandler, idParam, optionalText } from '../../utils/validation.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import {
@@ -283,7 +283,7 @@ export function approvalRoutes({ db }) {
 
   router.get(
     '/hr',
-    requireRole('HR_OFFICER'),
+    requirePerm('leave.approve_final'),
     asyncHandler(async (req, res) => {
       res.json(await hrQueue(db, req.user));
     }),
@@ -291,7 +291,7 @@ export function approvalRoutes({ db }) {
 
   router.post(
     '/requests/:id/hr',
-    requireRole('HR_OFFICER'),
+    requirePerm('leave.approve_final'),
     asyncHandler(async (req, res) => {
       res.json(
         await hrDecision(db, req.user, idParam(req), decisionSchema.parse(req.body), auditContext(req)),
@@ -301,7 +301,7 @@ export function approvalRoutes({ db }) {
 
   router.post(
     '/changes/:id/hr',
-    requireRole('HR_OFFICER'),
+    requirePerm('leave.approve_final'),
     asyncHandler(async (req, res) => {
       res.json(
         await changeHrDecision(db, req.user, idParam(req), decisionSchema.parse(req.body), auditContext(req)),
@@ -328,7 +328,7 @@ const adjustmentSchema = z.object({
 /** HR Officer tools: balances and adjustments. */
 export function hrRoutes({ db }) {
   const router = Router();
-  router.use(requireRole('HR_OFFICER'));
+  router.use(requirePerm('leave.balances'));
 
   router.get(
     '/employees/:id/balances',

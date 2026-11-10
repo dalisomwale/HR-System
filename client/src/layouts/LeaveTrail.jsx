@@ -1,7 +1,7 @@
 import { Link, useLocation, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { hasRole, useMe } from '../lib/auth.jsx';
+import { can, useMe } from '../lib/auth.jsx';
 
 /*
  * Where you are in Leave management (D68), the same way as in Employee management:
@@ -29,7 +29,8 @@ const PAGES = {
   '/admin/roles': 'Roles',
   '/admin/settings': 'Workflow settings',
   '/admin/emails': 'Emails',
-  '/admin/audit': 'Audit log',
+  '/admin/audit': 'Audit trail',
+  '/admin/users': 'Users',
 };
 
 export default function LeaveTrail() {
@@ -56,7 +57,7 @@ export default function LeaveTrail() {
 
   const trail = [ROOT];
   if (pathname === '/hr') {
-    trail.push({ label: hasRole(me, 'HR_OFFICER') ? 'HR overview' : 'Group overview' });
+    trail.push({ label: can(me, 'leave.approve_final') ? 'HR overview' : 'Group overview' });
   } else if (requestId) {
     // A request sits under the place it is usually reached from: your own leave, or the
     // approvals of whoever is looking at it.
@@ -64,7 +65,7 @@ export default function LeaveTrail() {
     const own = r && r.employee?.id === me?.id;
     const parent = own
       ? { label: 'My leave', to: '/leave' }
-      : hasRole(me, 'HR_OFFICER')
+      : can(me, 'leave.approve_final')
         ? { label: 'HR approvals', to: '/hr/approvals' }
         : me?.isManager || me?.isDelegate
           ? { label: 'Approvals', to: '/approvals' }

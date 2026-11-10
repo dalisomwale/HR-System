@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { auditContext, requireRole } from '../../middleware/auth.js';
+import { auditContext, requirePerm } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { asyncHandler, idParam, pagination } from '../../utils/validation.js';
 import { badRequest, conflict, notFound } from '../../utils/errors.js';
@@ -68,7 +68,7 @@ export function notificationRoutes({ db }) {
 /** System Administrators: the email outbox, honest statuses, resend and a test message. */
 export function adminEmailRoutes({ db, config }) {
   const router = Router();
-  router.use(requireRole('HR_ADMIN'));
+  router.use(requirePerm('leave.emails'));
 
   router.get(
     '/',

@@ -60,6 +60,8 @@ export function testApp(db, env = {}) {
 
 let seq = 0;
 /** Test fixture employee, optionally linked to a Microsoft identity and given roles. */
+const DIRECTOR_POSITIONS = ['EXECUTIVE_DIRECTOR', 'MANAGING_DIRECTOR', 'ACCOUNTS_DIRECTOR'];
+
 export async function fixtureEmployee(
   db,
   { roles = [], linked = true, status = 'ACTIVE', managerId = null, ...over } = {},
@@ -84,9 +86,22 @@ export async function fixtureEmployee(
       linked_via: 'ADMIN',
     });
   }
-  for (const code of roles) {
+  // HR Officer is a role in Leave and Employee management (D108), as migration 025 converts it;
+  // directors also get the Director role there. Positions stay on the employee record.
+  const access = roles.includes('HR_OFFICER')
+    ? 'HR Officer'
+    : roles.some((r) => DIRECTOR_POSITIONS.includes(r))
+      ? 'Director'
+      : null;
+  for (const code of roles.filter((r) => r !== 'HR_OFFICER')) {
     const role = await db('roles').where({ code }).first();
     await db('employee_roles').insert({ employee_id: id, role_id: role.id });
+  }
+  if (access) {
+    for (const module of ['leave', 'people']) {
+      const role = await db('access_roles').where({ module, name: access }).first('id');
+      await db('access_users').insert({ module, employee_id: id, role_id: role.id });
+    }
   }
   return { id, oid };
 }

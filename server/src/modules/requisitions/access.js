@@ -1,5 +1,5 @@
 import { forbidden } from '../../utils/errors.js';
-import { ALL_PERMISSIONS } from './permissions.js';
+import { allPermissions } from '../access/modules.js';
 
 /*
  * Who does what in the Requisitions module (D105). The inventory system gave these rights on its
@@ -51,14 +51,14 @@ export async function requisitionContext(db, user) {
   // rights, as on the inventory system. The System Administrator always has everything.
   const role = isAdmin
     ? null
-    : await db('inventory_users as u')
-        .join('inventory_roles as r', 'r.id', 'u.role_id')
-        .where({ 'u.employee_id': user.id, 'u.is_active': true })
+    : await db('access_users as u')
+        .join('access_roles as r', 'r.id', 'u.role_id')
+        .where({ 'u.module': 'inventory', 'u.employee_id': user.id, 'u.is_active': true })
         .first('r.id', 'r.name', 'r.is_system');
   if (role) {
     const perms = new Set(
-      (await db('inventory_role_permissions').where({ role_id: role.id }).pluck('permission')).concat(
-        role.is_system ? ALL_PERMISSIONS : [],
+      (await db('access_role_permissions').where({ role_id: role.id }).pluck('permission')).concat(
+        role.is_system ? allPermissions('inventory') : [],
       ),
     );
     return roleContext({ user, me, perms, role });
@@ -98,6 +98,7 @@ export async function requisitionContext(db, user) {
   ctx.orgAdmin = isAdmin;
   ctx.usersAdmin = isAdmin;
   ctx.rolesAdmin = isAdmin;
+  ctx.auditAdmin = isAdmin;
   ctx.inventoryRole = isAdmin ? 'System Administrator' : null;
   return ctx;
 }
@@ -154,6 +155,7 @@ function roleContext({ user, me, perms, role }) {
   ctx.orgAdmin = can('admin.org');
   ctx.usersAdmin = can('admin.users');
   ctx.rolesAdmin = can('admin.roles');
+  ctx.auditAdmin = can('admin.audit');
   ctx.canOpen =
     ctx.canRaise ||
     ctx.it ||
@@ -168,7 +170,8 @@ function roleContext({ user, me, perms, role }) {
     ctx.categoriesManage ||
     ctx.orgAdmin ||
     ctx.usersAdmin ||
-    ctx.rolesAdmin;
+    ctx.rolesAdmin ||
+    ctx.auditAdmin;
   return ctx;
 }
 

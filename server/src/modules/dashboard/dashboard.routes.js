@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { GROUP_VIEW_ROLES, requireRole } from '../../middleware/auth.js';
+import { can, requirePerm } from '../../middleware/auth.js';
 import { asyncHandler } from '../../utils/validation.js';
 import { forbidden } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
@@ -216,7 +216,7 @@ export function dashboardRoutes({ db }) {
         teamApprovals = mq.requests.length + mq.changes.length;
       }
       let hrApprovals = null;
-      if (req.user.roles.includes('HR_OFFICER')) {
+      if (can(req.user, 'leave.approve_final')) {
         const hq = await hrQueue(db, req.user);
         hrApprovals = hq.requests.filter((r) => !r.isOwn).length + hq.changes.length;
       }
@@ -399,7 +399,7 @@ export function dashboardRoutes({ db }) {
   // ---------------------------------------------------------------------------------------
   router.get(
     '/hr',
-    requireRole(...GROUP_VIEW_ROLES),
+    requirePerm('leave.overview'),
     asyncHandler(async (req, res) => {
       const today = todayInLusaka();
       const year = Number(today.slice(0, 4));

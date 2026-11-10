@@ -10,7 +10,7 @@ import { asyncHandler, idParam } from '../../utils/validation.js';
 import { AppError, badRequest, conflict, notFound } from '../../utils/errors.js';
 import { REPO_ROOT } from '../../config/env.js';
 import { managerAuthority } from '../leave/requests.service.js';
-import { seesWholeGroup } from '../../middleware/auth.js';
+import { can } from '../../middleware/auth.js';
 import { isXlsx, XLSX_MIME as XLSX } from './handover-file.js';
 
 const MAX_PER_REQUEST = 10;
@@ -62,14 +62,14 @@ async function access(db, viewer, requestId) {
     .first('r.*', 't.is_confidential', 't.name as type_name');
   if (!r) throw notFound('Leave request not found.');
   const isOwner = r.employee_id === viewer.id;
-  const isHr = viewer.roles.includes('HR_OFFICER');
+  const isHr = can(viewer, 'leave.confidential');
   const authority = await managerAuthority(db, viewer, r);
   const wasManager = r.assigned_manager_id === viewer.id;
   const isTeamManager =
     r.is_sensitive &&
     (await db('employees').where({ id: r.employee_id }).first('line_manager_id'))?.line_manager_id ===
       viewer.id;
-  const isDirector = seesWholeGroup(viewer);
+  const isDirector = can(viewer, 'leave.view_all') || can(viewer, 'leave.approve_final');
   if (!isOwner && !isHr && !isDirector && !authority && !wasManager && !isTeamManager) {
     throw notFound('Leave request not found.');
   }

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, X } from 'lucide-react';
 import { api } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { Badge, Button, LoadError, Loading } from '../../components/ui.jsx';
 import { EmployeeDetails, EmployeeForm } from './EmployeeRecordPage.jsx';
 import { EMPLOYMENT_TYPES, StatusBadge } from './people-ui.jsx';
@@ -14,7 +14,7 @@ import { EMPLOYMENT_TYPES, StatusBadge } from './people-ui.jsx';
  */
 export default function EmployeePanel({ employeeId, onClose, onSaved, base = '/people' }) {
   const { data: me } = useMe();
-  const canEdit = hasRole(me, 'HR_OFFICER');
+  const canEdit = can(me, 'people.edit');
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const heading = useRef(null);

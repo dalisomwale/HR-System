@@ -19,7 +19,14 @@ describe('Microsoft sign-in', () => {
     const s = await signIn(app, entra, { oid: emp.oid, email: 'x@example.test' });
     expect(s.redirect).toBe('http://localhost:5173/');
     expect(s.status).toBe(200);
-    expect(s.me).toMatchObject({ id: emp.id, roles: ['HR_OFFICER'], isManager: false });
+    // HR Officer is a role in Leave and Employee management now (D108), not a position.
+    expect(s.me).toMatchObject({
+      id: emp.id,
+      roles: [],
+      accessRoles: { leave: 'HR Officer', people: 'HR Officer' },
+      isManager: false,
+    });
+    expect(s.me.perms).toEqual(expect.arrayContaining(['leave.approve_final', 'people.edit']));
     expect(s.csrf).toMatch(/^[0-9a-f]{64}$/);
     const audit = await db('audit_log').where({ action: 'SIGN_IN', actor_employee_id: emp.id });
     expect(audit).toHaveLength(1);

@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { BarList } from '../../components/charts.jsx';
 import {
   ButtonLink,
@@ -41,9 +41,7 @@ export default function CompanyOverviewPage() {
         title="Company overview"
         description="Every company in the group, side by side"
         actions={
-          hasRole(me, 'HR_OFFICER') && (
-            <ButtonLink to="/people/companies/manage"> Manage companies</ButtonLink>
-          )
+          can(me, 'people.org') && <ButtonLink to="/people/companies/manage"> Manage companies</ButtonLink>
         }
       />
       {q.isPending ? (

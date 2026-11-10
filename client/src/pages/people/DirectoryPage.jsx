@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Search } from 'lucide-react';
 import { api, qs } from '../../lib/api.js';
-import { hasRole, useMe } from '../../lib/auth.jsx';
+import { can, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import {
@@ -25,7 +25,7 @@ import PeopleTrail from './PeopleTrail.jsx';
 /** Everyone in the group, searchable and filterable (D52). */
 export default function DirectoryPage() {
   const { data: me } = useMe();
-  const canEdit = hasRole(me, 'HR_OFFICER');
+  const canEdit = can(me, 'people.edit');
   const [params, setParams] = useSearchParams();
   // Opened from a company or department page, the list is fixed to it and the path carries on (D63).
   const fixed = useParams();

@@ -1,5 +1,5 @@
 import { notFound } from '../../utils/errors.js';
-import { seesWholeGroup } from '../../middleware/auth.js';
+import { can } from '../../middleware/auth.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { managerAuthority } from './requests.service.js';
 import { PENDING_STATES } from './balance.service.js';
@@ -63,11 +63,13 @@ export async function requestDetail(db, viewer, id) {
   const r = await baseRequestQuery(db).where('r.id', id).first();
   if (!r) throw notFound('Leave request not found.');
   const isOwner = r.employee_id === viewer.id;
-  const isHr = viewer.roles.includes('HR_OFFICER');
+  // D108: confidential details need that level; final approvers see what they decide on.
+  const isHr = can(viewer, 'leave.confidential');
+  const decidesFinal = can(viewer, 'leave.approve_final');
   const authority = await managerAuthority(db, viewer, r);
   const wasManager = r.assigned_manager_id === viewer.id;
   // Directors see every request but, like managers, not confidential details.
-  const isDirector = seesWholeGroup(viewer);
+  const isDirector = can(viewer, 'leave.view_all') || decidesFinal;
   // A sensitive request skips the manager, but the employee's manager can still see that it
   // exists (dates and type, for planning cover), never its reason or documents.
   const isTeamManager = r.is_sensitive && r.emp_manager_id === viewer.id;
@@ -188,9 +190,9 @@ export async function requestDetail(db, viewer, id) {
       resubmit: isOwner && r.status === 'RETURNED_FOR_CORRECTION',
       cancel: isOwner && r.status === 'APPROVED' && today <= r.end_date && !openChange,
       managerDecide: Boolean(authority) && r.status === 'PENDING_MANAGER_APPROVAL',
-      hrDecide: isHr && !isOwner && !approvedAsManager && r.status === 'PENDING_HR_APPROVAL',
+      hrDecide: decidesFinal && !isOwner && !approvedAsManager && r.status === 'PENDING_HR_APPROVAL',
       changeManagerDecide: Boolean(authority) && openChange?.status === 'PENDING_MANAGER_APPROVAL',
-      changeHrDecide: isHr && !isOwner && openChange?.status === 'PENDING_HR_APPROVAL',
+      changeHrDecide: decidesFinal && !isOwner && openChange?.status === 'PENDING_HR_APPROVAL',
       // Only the employee adds documents to their own request; HR views and downloads them.
       uploadDocument:
         isOwner && !['WITHDRAWN', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR', 'CANCELLED'].includes(r.status),
