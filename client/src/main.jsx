@@ -50,6 +50,9 @@ import StockReportsPage from './pages/requisitions/StockReportsPage.jsx';
 import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/requisitions/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
+import SuppliersPage from './pages/requisitions/SuppliersPage.jsx';
+import InventoryUsersPage from './pages/requisitions/InventoryUsersPage.jsx';
+import InventoryRolesPage from './pages/requisitions/InventoryRolesPage.jsx';
 import { useRq } from './pages/requisitions/rq.js';
 
 const queryClient = new QueryClient({
@@ -78,7 +81,7 @@ function RqGate({ need, children }) {
       <div className="max-w-xl">
         <h1 className="text-[1.3rem] leading-snug">You don't have access to this page</h1>
         <p className="mt-2 text-sm text-muted">
-          Requisitions are open to the people who take part in them.{' '}
+          The inventory system is open to the people who take part in it.{' '}
           <Link to="/" className="text-brand underline">
             Back to applications
           </Link>
@@ -171,16 +174,22 @@ createRoot(document.getElementById('root')).render(
               <Route path="requests/new" element={rqPage(<RaisePage />, (a) => a.canRaise)} />
               <Route path="requests/:id" element={rqPage(<RequisitionPage />)} />
               <Route path="stock" element={rqPage(<StockPage />, (a) => a.stock)} />
-              <Route path="stock/new" element={rqPage(<ItemFormPage />, (a) => a.stores)} />
+              <Route path="stock/new" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
               <Route path="stock/:id" element={rqPage(<ItemPage />, (a) => a.stock)} />
-              <Route path="stock/:id/edit" element={rqPage(<ItemFormPage />, (a) => a.stores)} />
-              <Route path="receive" element={rqPage(<ReceivePage />, (a) => a.stores)} />
-              <Route path="issue" element={rqPage(<IssuePage />, (a) => a.stores)} />
-              <Route path="transactions" element={rqPage(<TransactionsPage />, (a) => a.stock)} />
-              <Route path="reports" element={rqPage(<StockReportsPage />, (a) => a.stock)} />
-              <Route path="categories" element={rqPage(<CategoriesPage />, (a) => a.stock)} />
-              <Route path="branches" element={rqPage(<BranchesPage />, (a) => a.admin)} />
-              <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.admin)} />
+              <Route path="stock/:id/edit" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
+              <Route path="receive" element={rqPage(<ReceivePage />, (a) => a.receive)} />
+              <Route path="issue" element={rqPage(<IssuePage />, (a) => a.issue)} />
+              <Route path="transactions" element={rqPage(<TransactionsPage />, (a) => a.transactions)} />
+              <Route path="reports" element={rqPage(<StockReportsPage />, (a) => a.reports)} />
+              <Route
+                path="categories"
+                element={rqPage(<CategoriesPage />, (a) => a.stock || a.categoriesManage)}
+              />
+              <Route path="branches" element={rqPage(<BranchesPage />, (a) => a.orgAdmin)} />
+              <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
+              <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
+              <Route path="users" element={rqPage(<InventoryUsersPage />, (a) => a.usersAdmin)} />
+              <Route path="roles" element={rqPage(<InventoryRolesPage />, (a) => a.rolesAdmin)} />
             </Route>
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />

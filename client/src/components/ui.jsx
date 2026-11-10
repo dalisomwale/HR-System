@@ -1,6 +1,7 @@
-import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { Loader2 } from 'lucide-react';
+import { FileSpreadsheet, Filter, Loader2 } from 'lucide-react';
+import { PERIODS, exportTable, headings, periodRange, rowDates } from '../lib/table-tools.js';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
 
@@ -232,43 +233,129 @@ export function EmptyState({ title, children, action }) {
   );
 }
 
-/**
- * Data table in a card. On phones each row stacks into a card (see .rtable in styles.css):
- * the column headings are copied onto each cell as data-label after every render.
- * `stack={false}` keeps a real grid that scrolls sideways instead.
- */
-export function Table({ children, stack = true }) {
+/** The inventory system's funnel button with a menu of periods. */
+export function PeriodFilter({ value, onChange }) {
   const ref = useRef(null);
+  const label = PERIODS.find(([k]) => k === value)?.[1] ?? 'All time';
+  const pick = (k) => {
+    onChange(k);
+    ref.current?.removeAttribute('open');
+  };
+  return (
+    <details ref={ref} className="period-filter">
+      <summary
+        className="period-btn"
+        title="Filter by time period"
+        aria-label={`Filter by time period: ${label}`}
+      >
+        <Filter aria-hidden />
+        <span>{label}</span>
+      </summary>
+      <div className="period-menu" role="menu">
+        {PERIODS.map(([k, l]) => (
+          <button
+            key={k}
+            type="button"
+            role="menuitemradio"
+            aria-checked={k === value}
+            className={k === value ? 'active' : ''}
+            onClick={() => pick(k)}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+/**
+ * Data table in a card, with the period filter and Export to Excel above it (on every table).
+ * The period applies to each row's data-date, or to the first column that shows dates; tables
+ * without dates get the export only. On phones each row stacks into a card (see .rtable in
+ * styles.css): the column headings are copied onto each cell as data-label after every render.
+ * `stack={false}` keeps a real grid that scrolls sideways instead; `tools={false}` hides the bar;
+ * `title` names the Excel file (the page title otherwise). `onExport` is the page's own server
+ * export, used for All time so every row is included, not only those loaded on screen.
+ */
+export function Table({ children, stack = true, tools = true, title, onExport }) {
+  const ref = useRef(null);
+  const [period, setPeriod] = useState('all');
+  const [dated, setDated] = useState(false);
+  const [shown, setShown] = useState(null); // [visible, total] when filtered
+  const [exportError, setExportError] = useState(null);
+  const doExport = async () => {
+    setExportError(null);
+    try {
+      if (onExport && period === 'all') await onExport();
+      else exportTable(ref.current, title);
+    } catch (err) {
+      setExportError(err?.message ?? 'The export failed.');
+    }
+  };
   useLayoutEffect(() => {
     const table = ref.current;
-    if (!table || !stack) return;
-    const heads = [...table.querySelectorAll('thead th')].map((th) =>
-      th.querySelector('.sr-only') &&
-      th.textContent.trim() === th.querySelector('.sr-only').textContent.trim()
-        ? ''
-        : th.textContent.trim(),
-    );
-    for (const row of table.querySelectorAll('tbody tr')) {
-      let col = 0;
-      for (const cell of row.children) {
-        const span = Number(cell.getAttribute('colspan') ?? 1);
-        const label = span === 1 ? heads[col] : '';
-        if (label) cell.setAttribute('data-label', label);
-        else {
-          cell.removeAttribute('data-label');
-          if (span === 1 && col > 0) cell.classList.add('rtable-actions');
+    if (!table) return;
+    if (stack) {
+      const heads = headings(table);
+      for (const row of table.querySelectorAll('tbody tr')) {
+        let col = 0;
+        for (const cell of row.children) {
+          const span = Number(cell.getAttribute('colspan') ?? 1);
+          const label = span === 1 ? heads[col] : '';
+          if (label) cell.setAttribute('data-label', label);
+          else {
+            cell.removeAttribute('data-label');
+            if (span === 1 && col > 0) cell.classList.add('rtable-actions');
+          }
+          col += span;
         }
-        col += span;
       }
     }
+    if (!tools) return;
+    // The period filter: hide rows outside it. Rows without a date stay visible.
+    const dates = rowDates(table);
+    if (dated !== dates.size > 0) setDated(dates.size > 0);
+    const range = periodRange(period);
+    let total = 0;
+    let visible = 0;
+    for (const tr of table.querySelectorAll('tbody > tr')) {
+      const d = dates.get(tr);
+      const out = Boolean(range && d && (d < range[0] || d > range[1]));
+      tr.hidden = out;
+      if (dates.size && !tr.querySelector('[colspan]')) {
+        total += 1;
+        if (!out) visible += 1;
+      }
+    }
+    const next = range ? [visible, total] : null;
+    if (JSON.stringify(next) !== JSON.stringify(shown)) setShown(next);
   });
   return (
     <div className="card table-card">
+      {tools && (
+        <div className="table-tools">
+          {shown && (
+            <span className="table-count">
+              {shown[0]} of {shown[1]} shown
+            </span>
+          )}
+          {dated && <PeriodFilter value={period} onChange={setPeriod} />}
+          {exportError && <span className="text-[0.8rem] text-danger">{exportError}</span>}
+          <button type="button" className="btn-excel" onClick={doExport}>
+            <FileSpreadsheet aria-hidden />
+            Export to Excel
+          </button>
+        </div>
+      )}
       <div className="table-container">
         <table ref={ref} className={cx('data-table', stack && 'rtable')}>
           {children}
         </table>
       </div>
+      {shown && shown[0] === 0 && (
+        <p className="empty-state py-6">Nothing in this period. Choose another period above.</p>
+      )}
     </div>
   );
 }

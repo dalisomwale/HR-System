@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, downloadFile, qs } from '../../lib/api.js';
@@ -10,7 +9,6 @@ import {
   Input,
   LoadError,
   Loading,
-  Notice,
   PageHeader,
   Section,
   Table,
@@ -41,7 +39,6 @@ export default function StockReportsPage() {
     queryKey: ['stock-report', params],
     queryFn: () => api.get(`/api/stock/reports${qs(params)}`),
   });
-  const [error, setError] = useState(null);
   const set = (changes) => {
     const next = new URLSearchParams(search);
     for (const [k, v] of Object.entries(changes)) {
@@ -52,9 +49,7 @@ export default function StockReportsPage() {
   };
   const d = q.data;
   const exportIt = (part) =>
-    downloadFile(`/api/stock/reports${qs({ by: d.by, month: d.month, id, part, format: 'xlsx' })}`).catch(
-      (e) => setError(e.message),
-    );
+    downloadFile(`/api/stock/reports${qs({ by: d.by, month: d.month, id, part, format: 'xlsx' })}`);
   const issue = d?.by === 'department';
   const kpiRows = d ? (d.selected ? d.rows : d.groups) : [];
   return (
@@ -98,11 +93,6 @@ export default function StockReportsPage() {
           </p>
         )}
       </div>
-      {error && (
-        <div className="mb-4">
-          <Notice tone="danger">{error}</Notice>
-        </div>
-      )}
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {d && (
@@ -129,23 +119,13 @@ export default function StockReportsPage() {
           </Stats>
 
           {!d.selected && (
-            <Section
-              title={`By ${NAMES[d.by].toLowerCase()}`}
-              actions={
-                d.groups.length > 0 && (
-                  <Button variant="secondary" onClick={() => exportIt('')}>
-                    {' '}
-                    Export to Excel
-                  </Button>
-                )
-              }
-            >
+            <Section title={`By ${NAMES[d.by].toLowerCase()}`}>
               {d.groups.length === 0 ? (
                 <EmptyState
                   title={issue ? 'Nothing was issued in this month.' : 'No stock movements in this month.'}
                 />
               ) : (
-                <Table>
+                <Table onExport={() => exportIt('')}>
                   <thead>
                     <tr>
                       <Th>{NAMES[d.by]}</Th>
@@ -210,16 +190,8 @@ export default function StockReportsPage() {
           )}
 
           {(d.selected || d.by === 'category') && d.rows.length > 0 && (
-            <Section
-              title={d.selected ? `By item — ${d.selected.name}` : 'By item'}
-              actions={
-                <Button variant="secondary" onClick={() => exportIt('items')}>
-                  {' '}
-                  Export to Excel
-                </Button>
-              }
-            >
-              <Table>
+            <Section title={d.selected ? `By item — ${d.selected.name}` : 'By item'}>
+              <Table onExport={() => exportIt('items')}>
                 <thead>
                   <tr>
                     <Th>Item</Th>

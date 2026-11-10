@@ -279,7 +279,7 @@ function ReportView({ base, report, options, applied, onApply }) {
               <EmptyState title="No records found for these filters." />
             </div>
           ) : (
-            <Table>
+            <Table onExport={() => downloadFile(exportUrl('xlsx'))}>
               <thead>
                 <tr>
                   {q.data.columns.map((c) => (
@@ -342,10 +342,6 @@ function ExportButtons({ url }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {error && <span className="text-sm text-danger">{error}</span>}
-      <Button variant="secondary" busy={busy === 'xlsx'} onClick={() => run('xlsx')}>
-        {' '}
-        Excel
-      </Button>
       <Button variant="secondary" busy={busy === 'csv'} onClick={() => run('csv')}>
         {' '}
         CSV

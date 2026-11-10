@@ -3,15 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { Trail } from './LeaveTrail.jsx';
 
-/* Where you are in Requisitions (D105): Requisitions › Stock › A4 paper ream. */
+/* Where you are in the Inventory System (D105, D107): Inventory System › Manage stock › A4 paper ream. */
 
-const ROOT = { label: 'Requisitions', to: '/requisitions' };
+const ROOT = { label: 'Inventory System', to: '/requisitions' };
 const PAGES = {
-  '/requisitions': ['Home'],
+  '/requisitions': ['Dashboard'],
   '/requisitions/requests': ['Requisitions'],
   '/requisitions/requests/new': ['Requisitions', 'Raise a requisition'],
-  '/requisitions/stock': ['Stock'],
-  '/requisitions/stock/new': ['Stock', 'Add item'],
+  '/requisitions/stock': ['Manage stock'],
+  '/requisitions/stock/new': ['Manage stock', 'Add item'],
   '/requisitions/receive': ['Receive stock'],
   '/requisitions/issue': ['Issue stock'],
   '/requisitions/transactions': ['Transactions'],
@@ -19,8 +19,11 @@ const PAGES = {
   '/requisitions/categories': ['Categories'],
   '/requisitions/branches': ['Branches'],
   '/requisitions/settings': ['Requisition departments'],
+  '/requisitions/suppliers': ['Suppliers'],
+  '/requisitions/users': ['Users'],
+  '/requisitions/roles': ['Roles'],
 };
-const PARENT = { Requisitions: '/requisitions/requests', Stock: '/requisitions/stock' };
+const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };
 
 export default function RequisitionsTrail() {
   const { pathname } = useLocation();
@@ -41,7 +44,7 @@ export default function RequisitionsTrail() {
   if (reqId) {
     trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
   } else if (itemId) {
-    trail.push({ label: 'Stock', to: PARENT.Stock });
+    trail.push({ label: 'Manage stock', to: PARENT['Manage stock'] });
     if (editing)
       trail.push({ label: item.data?.name ?? '…', to: `/requisitions/stock/${itemId}` }, { label: 'Edit' });
     else trail.push({ label: item.data?.name ?? '…' });

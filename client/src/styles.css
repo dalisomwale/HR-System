@@ -1123,3 +1123,183 @@
     color: rgb(255 255 255 / 0.85);
   }
 }
+
+@layer components {
+  /* Role editor, as on the inventory system's Admin › Roles page. */
+  .perm-groups {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  @media (max-width: 900px) {
+    .perm-groups {
+      grid-template-columns: 1fr;
+    }
+  }
+  .perm-group {
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-md);
+    padding: 10px 14px 6px;
+    min-width: 0;
+  }
+  .perm-group > legend {
+    font-family: var(--font-head);
+    font-weight: 700;
+    color: var(--color-brand);
+    font-size: 0.92rem;
+    padding: 0 6px;
+  }
+  .perm-group > legend small {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    color: var(--color-muted);
+    font-size: 0.8rem;
+    margin-left: 4px;
+  }
+  .perm {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 2px;
+    border-bottom: 1px solid #f0f1f5;
+    cursor: pointer;
+  }
+  .perm:last-child {
+    border-bottom: 0;
+  }
+  .perm input {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+  .perm strong {
+    display: block;
+    font-size: 0.92rem;
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .perm small {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+  .level-list {
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+  .level-list span {
+    color: var(--color-muted);
+  }
+}
+
+@layer components {
+  /* Above every table: the period filter and Export to Excel, as on the inventory system. */
+  .table-tools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-rule);
+  }
+  .card .table-card .table-tools {
+    padding: 0 0 10px;
+  }
+  .table-count {
+    margin-right: auto;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+  .period-filter {
+    position: relative;
+    display: inline-block;
+  }
+  .period-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    list-style: none;
+    cursor: pointer;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--color-ink-2);
+    background: #fff;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-sm);
+    user-select: none;
+  }
+  .period-btn::-webkit-details-marker {
+    display: none;
+  }
+  .period-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+  .period-btn:hover,
+  .period-filter[open] .period-btn {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+  }
+  .period-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 50;
+    min-width: 170px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid var(--color-rule);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgb(16 24 40 / 0.12);
+  }
+  .period-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 10px;
+    border-radius: 4px;
+    font-size: 0.88rem;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+  .period-menu button:hover {
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+  }
+  .period-menu button.active {
+    font-weight: 600;
+    color: var(--color-brand);
+  }
+  .period-menu button.active::after {
+    content: ' \2713';
+  }
+  .btn-excel {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #6b7280;
+    border: 1px solid #6b7280;
+    color: #fff;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+  .btn-excel:hover {
+    background: #4b5563;
+    border-color: #4b5563;
+  }
+  .btn-excel svg {
+    width: 14px;
+    height: 14px;
+  }
+  @media print {
+    .table-tools {
+      display: none;
+    }
+  }
+}

@@ -23,6 +23,7 @@ import { reportRoutes } from './modules/reports/reports.routes.js';
 import { loadRequisitionContext, need } from './modules/requisitions/access.js';
 import { requisitionRoutes } from './modules/requisitions/requisitions.routes.js';
 import { stockRoutes } from './modules/requisitions/stock.routes.js';
+import { inventoryAdminRoutes } from './modules/requisitions/inventory-admin.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -148,6 +149,13 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
     loadRequisitionContext(deps),
     need((c) => c.canOpen, 'You do not have access to Requisitions.'),
     stockRoutes(deps),
+  );
+  // The inventory's Users, Roles and Suppliers (D107).
+  app.use(
+    '/api/inventory',
+    loadRequisitionContext(deps),
+    need((c) => c.canOpen, 'You do not have access to the inventory system.'),
+    inventoryAdminRoutes(deps),
   );
   app.use('/api/dashboard', dashboardRoutes(deps));
   app.use('/api/people', peopleRoutes(deps));

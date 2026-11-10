@@ -51,8 +51,14 @@ const monthEnd = (m) => {
 
 export function stockRoutes({ db }) {
   const router = Router();
-  const stores = need((c) => c.stores, 'Only Stores can change stock.');
-  const admin = need((c) => c.isAdmin, 'Only the System Administrator can change this.');
+  // The inventory's access rights (D107); without an inventory role they follow D105.
+  const items = need((c) => c.itemsManage, 'You cannot add or change items.');
+  const receive = need((c) => c.receive, 'You cannot receive stock.');
+  const issue = need((c) => c.issue, 'You cannot issue stock.');
+  const categories = need((c) => c.categoriesManage, 'You cannot change categories.');
+  const org = need((c) => c.orgAdmin, 'You cannot change branches or requisition departments.');
+  const transactions = need((c) => c.transactions, 'You do not have access to transactions.');
+  const reports = need((c) => c.reports, 'You do not have access to stock reports.');
   const seeStock = need((c) => c.canSeeStock, 'You do not have access to stock.');
 
   async function branches({ activeOnly = true } = {}) {
@@ -510,7 +516,7 @@ export function stockRoutes({ db }) {
         issued: history.filter((h) => h.type === 'Issued').reduce((s, h) => s + h.quantity, 0),
         scoped: Boolean(dept),
         hasHistory: moves > 0,
-        canEdit: c.stores,
+        canEdit: c.itemsManage,
       });
     }),
   );
@@ -551,7 +557,7 @@ export function stockRoutes({ db }) {
 
   router.post(
     '/items',
-    stores,
+    items,
     asyncHandler(async (req, res) => {
       const input = itemSchema.parse(req.body);
       const id = await db.transaction(async (trx) => {
@@ -594,7 +600,7 @@ export function stockRoutes({ db }) {
 
   router.put(
     '/items/:id',
-    stores,
+    items,
     asyncHandler(async (req, res) => {
       const input = itemSchema.parse(req.body);
       const id = idParam(req);
@@ -633,7 +639,7 @@ export function stockRoutes({ db }) {
 
   router.delete(
     '/items/:id',
-    stores,
+    items,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       await db.transaction(async (trx) => {
@@ -684,7 +690,7 @@ export function stockRoutes({ db }) {
 
   router.post(
     '/receive',
-    stores,
+    receive,
     asyncHandler(async (req, res) => {
       const input = receiveSchema.parse(req.body);
       const out = await db.transaction(async (trx) => {
@@ -784,7 +790,7 @@ export function stockRoutes({ db }) {
   // What the receive form needs: items with their price, reorder level, last supplier and stock per branch.
   router.get(
     '/receive/form',
-    stores,
+    receive,
     asyncHandler(async (req, res) => {
       const items = await db('stock_items as i')
         .join('stock_categories as c', 'c.id', 'i.category_id')
@@ -861,7 +867,7 @@ export function stockRoutes({ db }) {
 
   router.post(
     '/issue',
-    stores,
+    issue,
     asyncHandler(async (req, res) => {
       const input = issueSchema.parse(req.body);
       const out = await db.transaction(async (trx) => {
@@ -918,7 +924,7 @@ export function stockRoutes({ db }) {
   // Items in stock anywhere in a company, with the branches that hold each.
   router.get(
     '/issue/available',
-    stores,
+    issue,
     asyncHandler(async (req, res) => {
       const companyId = Number(req.query.companyId) || 0;
       const rows = await db('branch_stock as bs')
@@ -962,7 +968,7 @@ export function stockRoutes({ db }) {
   // ── Recent and all movements (Transactions) ──────────────────────────────────────────────────
   router.get(
     '/transactions',
-    seeStock,
+    transactions,
     asyncHandler(async (req, res) => {
       const c = req.rq;
       const dept = c.stockDepartment;
@@ -1083,7 +1089,7 @@ export function stockRoutes({ db }) {
   // ── Monthly reports ──────────────────────────────────────────────────────────────────────────
   router.get(
     '/reports',
-    need((c) => c.canSeeStock, 'You do not have access to stock reports.'),
+    reports,
     asyncHandler(async (req, res) => {
       const c = req.rq;
       const dept = c.stockDepartment;
@@ -1407,7 +1413,7 @@ export function stockRoutes({ db }) {
   }
   router.post(
     '/categories',
-    stores,
+    categories,
     asyncHandler(async (req, res) => {
       const input = categorySchema.parse(req.body);
       await uniqueCategory(input.name);
@@ -1427,7 +1433,7 @@ export function stockRoutes({ db }) {
   );
   router.put(
     '/categories/:id',
-    stores,
+    categories,
     asyncHandler(async (req, res) => {
       const input = categorySchema.parse(req.body);
       const id = idParam(req);
@@ -1450,7 +1456,7 @@ export function stockRoutes({ db }) {
   );
   router.delete(
     '/categories/:id',
-    stores,
+    categories,
     asyncHandler(async (req, res) => {
       const id = idParam(req);
       const cat = await db('stock_categories').where({ id }).first();
@@ -1544,19 +1550,19 @@ export function stockRoutes({ db }) {
   }
   router.post(
     '/branches',
-    admin,
+    org,
     asyncHandler(async (req, res) => res.status(201).json({ id: await saveBranch(req) })),
   );
   router.put(
     '/branches/:id',
-    admin,
+    org,
     asyncHandler(async (req, res) => res.json({ id: await saveBranch(req, idParam(req)) })),
   );
 
   // ── Which departments are IT, Accounts and Stores ──────────────────────────────────────────
   router.get(
     '/settings',
-    admin,
+    org,
     asyncHandler(async (req, res) => {
       const rows = await db('requisition_departments').select('department_id', 'function_code');
       const out = Object.fromEntries(
@@ -1570,7 +1576,7 @@ export function stockRoutes({ db }) {
   );
   router.put(
     '/settings',
-    admin,
+    org,
     asyncHandler(async (req, res) => {
       const input = settingsSchema.parse(req.body);
       const ids = [...new Set(Object.values(input).flat())];

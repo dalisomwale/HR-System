@@ -29,7 +29,7 @@ export default function CategoriesPage() {
   const [del, setDel] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
-  const canEdit = rq.data?.stores;
+  const canEdit = rq.data?.categoriesManage;
   const refresh = (text) => {
     setMsg({ tone: 'ok', text });
     setEditing(null);

@@ -53,7 +53,7 @@ export default function StockPage() {
   const d = list.data;
   const o = opts.data;
   const scoped = d?.scoped;
-  const stores = rq.data?.stores;
+  const stores = rq.data?.itemsManage;
   const anyFilter = FILTERS.some((k) => f[k]);
   const company = Number(f.companyId) || 0;
 
@@ -214,19 +214,6 @@ export default function StockPage() {
                 ? `${d.items.length} items`
                 : `Showing ${d.items.length} of ${d.totals.items} items`}
             </p>
-            {d.items.length > 0 && (
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  downloadFile(`/api/stock/items${qs({ ...f, format: 'xlsx' })}`).catch((e) =>
-                    setMsg({ tone: 'danger', text: e.message }),
-                  )
-                }
-              >
-                {' '}
-                Export to Excel
-              </Button>
-            )}
           </div>
           {d.items.length === 0 ? (
             <div className="card p-0">
@@ -241,7 +228,7 @@ export default function StockPage() {
               />
             </div>
           ) : (
-            <Table>
+            <Table onExport={() => downloadFile(`/api/stock/items${qs({ ...f, format: 'xlsx' })}`)}>
               <thead>
                 <tr>
                   <Th>Item</Th>

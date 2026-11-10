@@ -37,6 +37,8 @@ import {
   PackageMinus,
   ArrowLeftRight,
   Tags,
+  MapPin,
+  Truck,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -340,10 +342,19 @@ function AdminNav({ items, onNavigate }) {
 }
 
 function NavGroup({ title, items, onNavigate, counts = {} }) {
-  const { pathname } = useLocation();
+  if (!items.length) return null;
   return (
     <div>
       <p className={SECTION_LABEL}>{title}</p>
+      <NavItems items={items} onNavigate={onNavigate} counts={counts} />
+    </div>
+  );
+}
+
+function NavItems({ items, onNavigate, counts = {} }) {
+  const { pathname } = useLocation();
+  return (
+    <>
       <ul>
         {items.map(({ to, label, icon: Icon, end, count, except }) => (
           <li key={to}>
@@ -365,17 +376,81 @@ function NavGroup({ title, items, onNavigate, counts = {} }) {
           </li>
         ))}
       </ul>
+    </>
+  );
+}
+
+/** Monthly Reports opens to its four views, as on the inventory system's side menu. */
+function StockReportsNav({ limited, onNavigate }) {
+  const { pathname, search } = useLocation();
+  const inside = pathname === '/requisitions/reports';
+  const by = new URLSearchParams(search).get('by') ?? 'category';
+  const [open, setOpen] = useState(inside);
+  useEffect(() => {
+    if (inside) setOpen(true);
+  }, [inside]);
+  const views = limited
+    ? [['department', 'Department']]
+    : [
+        ['category', 'Category'],
+        ['company', 'Company'],
+        ['branch', 'Branch'],
+        ['department', 'Department'],
+      ];
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="stock-reports-menu"
+        onClick={() => setOpen((o) => !o)}
+        className={`${navLinkClass({ isActive: inside && !open })} w-full text-left`}
+      >
+        <FileBarChart aria-hidden />
+        <span className="flex-1">Monthly Reports</span>
+        <ChevronDown
+          className={`size-3.5! text-muted transition-transform ${open ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <ul id="stock-reports-menu" className={SUB_LIST}>
+          {views.map(([key, label]) => (
+            <li key={key}>
+              <Link
+                to={`/requisitions/reports?by=${key}`}
+                onClick={onNavigate}
+                aria-current={inside && by === key ? 'page' : undefined}
+                className={subLinkClass(inside && by === key)}
+              >
+                {label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-/** The Requisitions menu (D105), from what the person can do there. */
+/** The Inventory System menu (D105, D107), laid out as the inventory system's own. */
 function RequisitionsNav({ onNavigate }) {
   const rq = useRq();
   const a = rq.data;
   if (!a) return rq.isPending ? <p className="px-2.5 pt-3.5 text-xs text-muted">Loading</p> : null;
-  const work = [
-    { to: '/requisitions', label: 'Home', icon: House, end: true },
+  const stock = [
+    ...(a.stock
+      ? [
+          {
+            to: '/requisitions/stock',
+            label: a.stockDepartment ? 'Department Stock' : 'Manage Stock',
+            icon: Boxes,
+            except: '/requisitions/stock/new',
+          },
+        ]
+      : []),
+    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
+    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
     {
       to: '/requisitions/requests',
       label: 'Requisitions',
@@ -384,41 +459,49 @@ function RequisitionsNav({ onNavigate }) {
       except: '/requisitions/requests/new',
     },
     ...(a.canRaise
-      ? [{ to: '/requisitions/requests/new', label: 'Raise a requisition', icon: FilePlus2 }]
+      ? [{ to: '/requisitions/requests/new', label: 'Raise a Requisition', icon: FilePlus2 }]
+      : []),
+    ...(a.stock || a.categoriesManage
+      ? [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]
       : []),
   ];
-  const stock = a.stock
-    ? [
-        {
-          to: '/requisitions/stock',
-          label: a.stockDepartment ? 'Department stock' : 'Stock',
-          icon: Boxes,
-          except: '/requisitions/stock/new',
-        },
-        ...(a.stores
-          ? [
-              { to: '/requisitions/receive', label: 'Receive stock', icon: PackagePlus },
-              { to: '/requisitions/issue', label: 'Issue stock', icon: PackageMinus },
-            ]
-          : []),
-        { to: '/requisitions/transactions', label: 'Transactions', icon: ArrowLeftRight },
-        { to: '/requisitions/reports', label: 'Monthly reports', icon: FileBarChart },
-        ...(a.stockDepartment ? [] : [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]),
-      ]
-    : [];
+  const records = [
+    ...(a.transactions
+      ? [{ to: '/requisitions/transactions', label: 'Transactions', icon: ArrowLeftRight }]
+      : []),
+  ];
+  const admin = [
+    ...(a.orgAdmin
+      ? [
+          { to: '/requisitions/branches', label: 'Branches', icon: MapPin },
+          { to: '/requisitions/settings', label: 'Requisition Departments', icon: Building2 },
+        ]
+      : []),
+    ...(a.usersAdmin ? [{ to: '/requisitions/users', label: 'Users', icon: Users }] : []),
+    ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
+  ];
   return (
     <>
-      <NavGroup title="My work" items={work} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
-      {stock.length > 0 && <NavGroup title="Stock" items={stock} onNavigate={onNavigate} />}
-      {a.admin && (
-        <AdminNav
-          items={[
-            { to: '/requisitions/branches', label: 'Branches' },
-            { to: '/requisitions/settings', label: 'Requisition departments' },
-          ]}
-          onNavigate={onNavigate}
-        />
+      <NavGroup
+        title="Overview"
+        items={[{ to: '/requisitions', label: 'Dashboard', icon: LayoutGrid, end: true }]}
+        onNavigate={onNavigate}
+      />
+      <NavGroup title="Stock" items={stock} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
+      {(records.length > 0 || a.reports || a.stock) && (
+        <div>
+          <p className={SECTION_LABEL}>Records</p>
+          <NavItems items={records} onNavigate={onNavigate} />
+          {a.reports && <StockReportsNav limited={Boolean(a.stockDepartment)} onNavigate={onNavigate} />}
+          {a.stock && (
+            <NavItems
+              items={[{ to: '/requisitions/suppliers', label: 'Suppliers', icon: Truck }]}
+              onNavigate={onNavigate}
+            />
+          )}
+        </div>
       )}
+      {admin.length > 0 && <NavGroup title="Admin" items={admin} onNavigate={onNavigate} />}
     </>
   );
 }
@@ -486,7 +569,7 @@ export default function AppShell() {
     : [...user.roles.map((r) => ROLE_LABELS[r]), ...(user.isManager ? ['Manager'] : [])].join(', ') ||
       'Employee';
   const close = () => setMenuOpen(false);
-  const appName = inRequisitions ? 'Requisitions' : inPeople ? 'Employee Management' : 'Leave Management';
+  const appName = inRequisitions ? 'Inventory System' : inPeople ? 'Employee Management' : 'Leave Management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}

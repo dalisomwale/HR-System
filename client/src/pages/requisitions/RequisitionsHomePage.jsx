@@ -45,7 +45,7 @@ export default function RequisitionsHomePage() {
   const mine = waiting.data?.tab === 'mine' ? waiting.data.items : [];
   return (
     <div>
-      <PageHeader title="Requisitions" actions={<TodayDate />} />
+      <PageHeader title="Dashboard" actions={<TodayDate />} />
       <div className="stack">
         {d?.scope === 'all' && (
           <Stats>
@@ -96,7 +96,7 @@ export default function RequisitionsHomePage() {
 
         {/* Shortcuts, as on the inventory system's dashboard. */}
         <ActionTiles>
-          {a.stores && (
+          {a.receive && (
             <ActionTile
               to="/requisitions/receive"
               icon={PackagePlus}
@@ -105,7 +105,7 @@ export default function RequisitionsHomePage() {
               tone="receive"
             />
           )}
-          {a.stores && (
+          {a.issue && (
             <ActionTile
               to="/requisitions/issue"
               icon={PackageMinus}
@@ -140,7 +140,7 @@ export default function RequisitionsHomePage() {
             badge={a.waiting > 0 ? `${a.waiting} waiting` : undefined}
             tone="stock"
           />
-          {a.stock && (
+          {a.reports && (
             <ActionTile
               to="/requisitions/reports"
               icon={FileBarChart}

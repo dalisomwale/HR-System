@@ -1,4 +1,5 @@
 import { forbidden } from '../../utils/errors.js';
+import { ALL_PERMISSIONS } from './permissions.js';
 
 /*
  * Who does what in the Requisitions module (D105). The inventory system gave these rights on its
@@ -46,6 +47,23 @@ export async function requisitionContext(db, user) {
     };
   }
 
+  // An inventory role (D107) replaces all of the above for that person: exactly the role's
+  // rights, as on the inventory system. The System Administrator always has everything.
+  const role = isAdmin
+    ? null
+    : await db('inventory_users as u')
+        .join('inventory_roles as r', 'r.id', 'u.role_id')
+        .where({ 'u.employee_id': user.id, 'u.is_active': true })
+        .first('r.id', 'r.name', 'r.is_system');
+  if (role) {
+    const perms = new Set(
+      (await db('inventory_role_permissions').where({ role_id: role.id }).pluck('permission')).concat(
+        role.is_system ? ALL_PERMISSIONS : [],
+      ),
+    );
+    return roleContext({ user, me, perms, role });
+  }
+
   const ctx = {
     id: user.id,
     companyId: me?.company_id ?? null,
@@ -70,6 +88,87 @@ export async function requisitionContext(db, user) {
   ctx.canSeeStock = ctx.stockAll || Boolean(ctx.stockDepartment);
   ctx.canOpen =
     ctx.canRaise || ctx.it || ctx.accounts || ctx.isDirector || ctx.isCfo || ctx.stores || ctx.viewAll;
+  // The finer inventory rights, from the HR-role access above.
+  ctx.receive = ctx.stores;
+  ctx.issue = ctx.stores;
+  ctx.itemsManage = ctx.stores;
+  ctx.categoriesManage = ctx.stores;
+  ctx.transactions = ctx.canSeeStock;
+  ctx.reports = ctx.canSeeStock;
+  ctx.orgAdmin = isAdmin;
+  ctx.usersAdmin = isAdmin;
+  ctx.rolesAdmin = isAdmin;
+  ctx.inventoryRole = isAdmin ? 'System Administrator' : null;
+  return ctx;
+}
+
+/**
+ * Access from an inventory role (D107). The workflow parts (IT, Accounts, Stores) serve the
+ * person's own company, as "for their own company" on the inventory's Roles page; a person with
+ * no company serves every company.
+ */
+function roleContext({ user, me, perms, role }) {
+  const can = (p) => perms.has(p);
+  const companyId = me?.company_id ?? null;
+  const part = (on) => ({
+    member: on,
+    companies: on && companyId ? [companyId] : [],
+    configuredCompanies: on && companyId ? [companyId] : [],
+  });
+  const receiving = can('stock.receive');
+  const ctx = {
+    id: user.id,
+    companyId,
+    departmentId: me?.department_id ?? null,
+    isAdmin: false,
+    isManager: Boolean(user.isManager),
+    isDirector: can('requisitions.approve'),
+    isCfo: can('requisitions.cfo'),
+    fn: {
+      IT: part(can('requisitions.it_quotes')),
+      ACCOUNTS: part(can('requisitions.accounts') || can('requisitions.accounts_review')),
+      STORES: part(receiving),
+    },
+    inventoryRole: role.name,
+  };
+  ctx.it = can('requisitions.it_quotes');
+  ctx.accounts = can('requisitions.accounts');
+  ctx.accountsManager = can('requisitions.accounts_review');
+  ctx.stores = receiving || can('stock.issue');
+  ctx.viewAll = can('requisitions.view_all');
+  ctx.canRaise = can('requisitions.raise') && (can('requisitions.raise_any') || Boolean(ctx.departmentId));
+  ctx.raiseAny = can('requisitions.raise_any');
+  // Own department only: held to the department on their employee record. Without one they see
+  // no stock at all (the stock routes read a missing department as "everything").
+  const limited = can('scope.department');
+  const allowed = !limited || Boolean(ctx.departmentId);
+  ctx.stockAll = can('stock.view') && !limited;
+  ctx.stockDepartment = limited && ctx.departmentId ? ctx.departmentId : null;
+  ctx.canSeeStock = can('stock.view') && allowed;
+  ctx.receive = receiving;
+  ctx.issue = can('stock.issue');
+  ctx.itemsManage = can('items.manage');
+  ctx.categoriesManage = can('categories.manage');
+  ctx.transactions = can('transactions.view') && allowed;
+  ctx.reports = can('reports.view') && allowed;
+  ctx.orgAdmin = can('admin.org');
+  ctx.usersAdmin = can('admin.users');
+  ctx.rolesAdmin = can('admin.roles');
+  ctx.canOpen =
+    ctx.canRaise ||
+    ctx.it ||
+    ctx.accounts ||
+    ctx.accountsManager ||
+    ctx.isDirector ||
+    ctx.isCfo ||
+    ctx.canSeeStock ||
+    ctx.viewAll ||
+    ctx.transactions ||
+    ctx.reports ||
+    ctx.categoriesManage ||
+    ctx.orgAdmin ||
+    ctx.usersAdmin ||
+    ctx.rolesAdmin;
   return ctx;
 }
 

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, downloadFile, qs } from '../../lib/api.js';
@@ -10,7 +9,6 @@ import {
   Input,
   LoadError,
   Loading,
-  Notice,
   PageHeader,
   Select,
   Table,
@@ -19,9 +17,9 @@ import {
 } from '../../components/ui.jsx';
 import { today, units } from './rq.js';
 
-function MovementTable({ items, showStock = true }) {
+function MovementTable({ items, showStock = true, onExport }) {
   return (
-    <Table>
+    <Table onExport={onExport}>
       <thead>
         <tr>
           <Th>Date</Th>
@@ -103,7 +101,6 @@ export default function TransactionsPage() {
     queryKey: ['stock-transactions', params],
     queryFn: () => api.get(`/api/stock/transactions${qs(params)}`),
   });
-  const [error, setError] = useState(null);
   const set = (k, v) => {
     const next = new URLSearchParams(search);
     if (v) next.set(k, v);
@@ -160,26 +157,7 @@ export default function TransactionsPage() {
             ))}
           </Select>
         </div>
-        {q.data?.items.length > 0 && (
-          <Button
-            variant="secondary"
-            className="ml-auto"
-            onClick={() =>
-              downloadFile(`/api/stock/transactions${qs({ ...params, format: 'xlsx' })}`).catch((e) =>
-                setError(e.message),
-              )
-            }
-          >
-            {' '}
-            Export to Excel
-          </Button>
-        )}
       </div>
-      {error && (
-        <div className="mb-4">
-          <Notice tone="danger">{error}</Notice>
-        </div>
-      )}
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {q.data && (
@@ -194,7 +172,11 @@ export default function TransactionsPage() {
               <EmptyState title="Nothing received or issued on this day." />
             </div>
           ) : (
-            <MovementTable items={q.data.items} showStock={!scoped} />
+            <MovementTable
+              onExport={() => downloadFile(`/api/stock/transactions${qs({ ...params, format: 'xlsx' })}`)}
+              items={q.data.items}
+              showStock={!scoped}
+            />
           )}
         </>
       )}
