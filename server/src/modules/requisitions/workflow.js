@@ -121,8 +121,45 @@ async function roleHolders(trx, codes) {
     .pluck('e.id');
 }
 
-/** The people whose turn it is at `status`. */
+// Who acts at each stage with an inventory role (D107): the right needed, and whether it is for
+// the role-holder's own company only (as access.js's roleContext).
+const STAGE_RIGHTS = {
+  QUOTES_IT: ['requisitions.it_quotes', true],
+  DIRECTOR: ['requisitions.approve', false],
+  ACCOUNTS: ['requisitions.accounts', true],
+  PAY: ['requisitions.accounts', true],
+  ACCOUNTS_MANAGER: ['requisitions.accounts_review', true],
+  CFO: ['requisitions.cfo', false],
+  PAID: ['stock.receive', true],
+};
+
+/**
+ * The people whose turn it is at `status`, all active employees in Employee management. Someone
+ * with an inventory role acts by that role alone; everyone else by their HR roles and
+ * departments (D105), as in access.js.
+ */
 export async function actorsFor(trx, status, r) {
+  const byHr = await actorsByHrRole(trx, status, r);
+  const rights = STAGE_RIGHTS[status];
+  if (!rights) return byHr;
+  const [right, ownCompany] = rights;
+  const roleUsers = await trx('inventory_users as u')
+    .join('employees as e', 'e.id', 'u.employee_id')
+    .where({ 'u.is_active': true, 'e.status': 'ACTIVE' })
+    .select('e.id', 'e.company_id', 'u.role_id');
+  const withRole = new Set(roleUsers.map((x) => x.id));
+  const sys = await trx('inventory_roles').where({ is_system: true }).pluck('id');
+  const granted = new Set(
+    await trx('inventory_role_permissions').where({ permission: right }).pluck('role_id'),
+  );
+  const byRole = roleUsers
+    .filter((x) => granted.has(x.role_id) || sys.includes(x.role_id))
+    .filter((x) => !ownCompany || !x.company_id || !r.company_id || x.company_id === r.company_id)
+    .map((x) => x.id);
+  return [...new Set([...byHr.filter((id) => !withRole.has(id)), ...byRole])];
+}
+
+async function actorsByHrRole(trx, status, r) {
   switch (status) {
     case 'QUOTES_IT':
       return functionStaff(trx, 'IT', r.company_id);

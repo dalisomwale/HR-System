@@ -246,8 +246,16 @@ export function requisitionRoutes({ db, config, logger }) {
           if (!dept) throw badRequest('Choose the department that needs this.');
         }
       } else {
-        dept = await db('departments').where({ id: c.departmentId }).first('id', 'name', 'company_id');
-        if (!dept) throw badRequest('You are not in a department, so you cannot raise a requisition.');
+        // Your department as Employee management has it now, open and in an open company.
+        dept = await db('departments as d')
+          .join('companies as co', 'co.id', 'd.company_id')
+          .where({ 'd.id': c.departmentId ?? 0, 'd.is_active': true, 'co.is_active': true })
+          .first('d.id', 'd.name', 'd.company_id');
+        if (!dept) {
+          throw badRequest(
+            'Your department is not set or has been closed in Employee management, so you cannot raise a requisition.',
+          );
+        }
         companyId = dept.company_id;
       }
 

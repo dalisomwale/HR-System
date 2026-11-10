@@ -376,3 +376,34 @@ describe('Stock', () => {
     ).toBe(409);
   });
 });
+
+describe('Requisitions: Employee management is the source of people and departments', () => {
+  it('tells inventory role-holders when it is their turn, and not those whose role leaves it out', async () => {
+    // The staff member gets the inventory Director role; the HR Executive Director gets a role
+    // without approval, which replaces what their HR role gave them here (D107).
+    const role = async (name) => (await db('inventory_roles').where({ name }).first('id')).id;
+    await db('inventory_users').insert([
+      { employee_id: ids.staff, role_id: await role('Director') },
+      { employee_id: ids.director, role_id: await role('Accountant') },
+    ]);
+    const r = await raise(people.manager);
+    await as(people.manager).upload(
+      `/api/requisitions/${r.body.id}/files?kind=quote&supplier=Toner%20World&amount=2400`,
+      PDF,
+      'quote.pdf',
+    );
+    expect((await act(people.manager, r.body.id, 'TO_DIRECTOR')).status).toBe(200);
+    const told = await db('notifications')
+      .where({ entity_type: 'requisition', entity_id: r.body.id })
+      .pluck('recipient_id');
+    expect(told).toContain(ids.staff);
+    expect(told).not.toContain(ids.director);
+  });
+
+  it('refuses a requisition from a department closed in Employee management', async () => {
+    await db('departments').where({ id: dept.credit }).update({ is_active: false });
+    const r = await raise(people.manager);
+    expect(r.status).toBe(400);
+    expect(r.body.message ?? r.body.error?.message ?? JSON.stringify(r.body)).toMatch(/closed/);
+  });
+});
