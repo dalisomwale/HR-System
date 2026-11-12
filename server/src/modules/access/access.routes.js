@@ -46,6 +46,7 @@ function moduleAudit(module) {
             'employee',
             'company',
             'department',
+            'branch',
             'identity',
             'people_role',
             'people_user',

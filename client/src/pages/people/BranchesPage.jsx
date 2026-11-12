@@ -18,38 +18,45 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { errorText, kwachaWhole, units } from './rq.js';
+import { errorText, kwachaWhole, units } from '../requisitions/rq.js';
+import PeopleTrail from './PeopleTrail.jsx';
 
-/** Branches: where stock is held, under each company. The System Administrator manages them. */
+/**
+ * Branches (D109): the places each company works from, where stock is held. Kept in Employee
+ * management with companies and departments; the Inventory System uses them.
+ */
 export default function BranchesPage() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['stock-branches'], queryFn: () => api.get('/api/stock/branches') });
-  const opts = useQuery({ queryKey: ['stock-options'], queryFn: () => api.get('/api/stock/options') });
+  const q = useQuery({ queryKey: ['branches'], queryFn: () => api.get('/api/admin/branches') });
+  const canEdit = Boolean(q.data?.canEdit);
   const [editing, setEditing] = useState(null);
   const [msg, setMsg] = useState(null);
   const done = (text) => {
     setMsg({ tone: 'ok', text });
     setEditing(null);
-    qc.invalidateQueries({ queryKey: ['stock-branches'] });
+    qc.invalidateQueries({ queryKey: ['branches'] });
     qc.invalidateQueries({ queryKey: ['stock-options'] });
   };
   return (
     <div>
+      <PeopleTrail />
       <PageHeader
         title="Branches"
-        description="Where stock is held. Each branch belongs to a company; stock is received at and issued from a branch."
-        actions={editing !== 'new' && <Button onClick={() => setEditing('new')}>Add branch</Button>}
+        description="The places each company works from. Stock is received at and issued from a branch in the Inventory system."
+        actions={
+          canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add branch</Button>
+        }
       />
       {msg && (
         <div className="mb-4">
           <Notice tone={msg.tone}>{msg.text}</Notice>
         </div>
       )}
-      {editing && opts.data && (
+      {editing && q.data && (
         <div className="mb-6">
           <BranchForm
             branch={editing === 'new' ? null : editing}
-            companies={opts.data.companies}
+            companies={q.data.companies}
             onDone={done}
             onCancel={() => setEditing(null)}
           />
@@ -60,7 +67,7 @@ export default function BranchesPage() {
       {q.data &&
         (q.data.items.length === 0 ? (
           <div className="card p-0">
-            <EmptyState title="No branches yet.">Add one so Stores can receive stock.</EmptyState>
+            <EmptyState title="No branches yet.">Add one so Stores can receive stock into it.</EmptyState>
           </div>
         ) : (
           <Table>
@@ -88,15 +95,20 @@ export default function BranchesPage() {
                   <Td>
                     <Badge tone={b.isActive ? 'ok' : 'neutral'}>{b.isActive ? 'Active' : 'Disabled'}</Badge>
                   </Td>
-                  <Td className="text-right">
-                    <button
-                      type="button"
-                      onClick={() => setEditing(b)}
-                      className="rounded-sm p-1.5 text-muted hover:bg-canvas hover:text-ink"
-                      aria-label={`Edit ${b.name}`}
-                    >
-                      <Pencil className="size-4" aria-hidden />
-                    </button>
+                  <Td>
+                    {canEdit && (
+                      <div className="row-actions">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(b)}
+                          className="btn btn-icon"
+                          title="Edit"
+                          aria-label={`Edit ${b.name}`}
+                        >
+                          <Pencil aria-hidden />
+                        </button>
+                      </div>
+                    )}
                   </Td>
                 </tr>
               ))}
@@ -129,8 +141,8 @@ function BranchForm({ branch, companies, onDone, onCancel }) {
         location: v.location.trim(),
         isActive: v.isActive,
       };
-      if (branch) await api.put(`/api/stock/branches/${branch.id}`, body);
-      else await api.post('/api/stock/branches', body);
+      if (branch) await api.put(`/api/admin/branches/${branch.id}`, body);
+      else await api.post('/api/admin/branches', body);
       onDone(`Branch "${body.name}" ${branch ? 'saved' : 'added'}.`);
     } catch (err) {
       setError(errorText(err));

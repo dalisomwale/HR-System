@@ -361,19 +361,34 @@ describe('Stock', () => {
     expect(d.weeks).toHaveLength(8);
   });
 
-  it('branches are managed by the System Administrator only', async () => {
+  it('branches are kept in Employee management: Organisation changes them, View sees them (D109)', async () => {
+    // No longer an inventory page.
     expect(
-      (await as(people.storekeeper).post('/api/stock/branches', { companyId: co, name: 'Kitwe' })).status,
+      (await as(people.admin).post('/api/stock/branches', { companyId: co, name: 'Kitwe' })).status,
+    ).toBe(404);
+    expect(
+      (await as(people.storekeeper).post('/api/admin/branches', { companyId: co, name: 'Kitwe' })).status,
     ).toBe(403);
-    const r = await as(people.admin).post('/api/stock/branches', {
+    const r = await as(people.admin).post('/api/admin/branches', {
       companyId: co,
       name: 'Kitwe',
       location: 'Kitwe CBD',
     });
     expect(r.status).toBe(201);
     expect(
-      (await as(people.admin).post('/api/stock/branches', { companyId: co, name: 'kitwe' })).status,
+      (await as(people.admin).post('/api/admin/branches', { companyId: co, name: 'kitwe' })).status,
     ).toBe(409);
+    // A director sees every branch (Employees: View) but cannot change them.
+    const seen = await as(people.director).get('/api/admin/branches');
+    expect(seen.status).toBe(200);
+    expect(seen.body.items.map((b) => b.name)).toContain('Kitwe');
+    expect(seen.body.canEdit).toBe(false);
+    expect(
+      (await as(people.director).post('/api/admin/branches', { companyId: co, name: 'Ndola' })).status,
+    ).toBe(403);
+    // The inventory still offers it for receiving and issuing.
+    const opts = await as(people.storekeeper).get('/api/stock/options');
+    expect(opts.body.branches.map((b) => b.name)).toContain('Kitwe');
   });
 });
 

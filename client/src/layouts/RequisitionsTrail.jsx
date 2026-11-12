@@ -17,7 +17,6 @@ const PAGES = {
   '/requisitions/transactions': ['Transactions'],
   '/requisitions/reports': ['Monthly reports'],
   '/requisitions/categories': ['Categories'],
-  '/requisitions/branches': ['Branches'],
   '/requisitions/settings': ['Requisition departments'],
   '/requisitions/suppliers': ['Suppliers'],
   '/requisitions/users': ['Users'],

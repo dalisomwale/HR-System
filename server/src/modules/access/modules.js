@@ -159,10 +159,14 @@ const PEOPLE_AREAS = [
   {
     key: 'organisation',
     label: 'Organisation',
-    hint: 'Companies and departments',
+    hint: 'Companies, branches and departments',
     levels: [
-      ['No access', "Can't change companies or departments.", []],
-      ['Manage', 'Add, rename and close companies and departments.', ['people.view', 'people.org']],
+      ['No access', "Can't change companies, branches or departments.", []],
+      [
+        'Manage',
+        'Add, rename and close companies, their branches and departments.',
+        ['people.view', 'people.org'],
+      ],
     ],
   },
   {
@@ -299,13 +303,13 @@ const INVENTORY_AREAS = [
   },
   {
     key: 'organisation',
-    label: 'Organisation',
-    hint: 'Branches and requisition departments',
+    label: 'Requisition departments',
+    hint: 'Which departments do the IT, Accounts and Stores steps',
     levels: [
-      ['No access', "Can't change Branches or Requisition departments.", []],
+      ['No access', "Can't change the requisition departments.", []],
       [
         'Manage',
-        'Add, rename and disable branches, and choose the IT, Accounts and Stores departments. Companies and departments are managed in Employee management.',
+        'Choose the IT, Accounts and Stores departments. Companies, branches and departments are kept in Employee management.',
         ['admin.org'],
       ],
     ],

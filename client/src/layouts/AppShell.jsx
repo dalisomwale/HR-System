@@ -109,6 +109,7 @@ function ExpandNav({
   loading,
   addLabel,
   canAdd,
+  extra = [],
   onNavigate,
 }) {
   const { pathname } = useLocation();
@@ -176,6 +177,15 @@ function ExpandNav({
             ))}
           </li>
         )}
+        {/* Further pages of the section, after its overview (e.g. Branches under Company, D109). */}
+        {extra.map(({ to, label, icon: ExtraIcon }) => (
+          <li key={to}>
+            <NavLink to={to} onClick={onNavigate} className={navLinkClass}>
+              <ExtraIcon aria-hidden />
+              {label}
+            </NavLink>
+          </li>
+        ))}
       </ul>
     </div>
   );
@@ -271,6 +281,7 @@ function OrganisationNav({ user, onNavigate }) {
         ]}
         addLabel="Add company"
         canAdd={canAdd}
+        extra={[{ to: '/people/branches', label: 'Branches', icon: MapPin }]}
         onNavigate={onNavigate}
       />
       <ExpandNav
@@ -447,10 +458,7 @@ function RequisitionsNav({ onNavigate }) {
     ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
     ...(a.auditAdmin ? [{ to: '/requisitions/audit', label: 'Audit trail', icon: History }] : []),
     ...(a.orgAdmin
-      ? [
-          { to: '/requisitions/branches', label: 'Branches', icon: MapPin },
-          { to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 },
-        ]
+      ? [{ to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 }]
       : []),
   ];
   return (

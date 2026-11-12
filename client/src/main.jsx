@@ -47,7 +47,7 @@ import IssuePage from './pages/requisitions/IssuePage.jsx';
 import TransactionsPage from './pages/requisitions/TransactionsPage.jsx';
 import StockReportsPage from './pages/requisitions/StockReportsPage.jsx';
 import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
-import BranchesPage from './pages/requisitions/BranchesPage.jsx';
+import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import SuppliersPage from './pages/requisitions/SuppliersPage.jsx';
 import AccessUsersPage from './pages/access/AccessUsersPage.jsx';
@@ -167,6 +167,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="departments/:departmentId/employees/:id" element={group(<EmployeeRecordPage />)} />
               <Route path="reports" element={group(<ReportsPage base="/api/people/reports" listInMenu />)} />
               <Route path="import" element={<Navigate to="/people/employees/new?mode=import" replace />} />
+              <Route path="branches" element={group(<BranchesPage />)} />
               <Route path="positions" element={need('people.positions', <RolesPage />)} />
               <Route
                 path="users"
@@ -195,7 +196,7 @@ createRoot(document.getElementById('root')).render(
                 path="categories"
                 element={rqPage(<CategoriesPage />, (a) => a.stock || a.categoriesManage)}
               />
-              <Route path="branches" element={rqPage(<BranchesPage />, (a) => a.orgAdmin)} />
+              <Route path="branches" element={<Navigate to="/people/branches" replace />} />
               <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
               <Route

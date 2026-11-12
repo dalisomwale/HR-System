@@ -15,6 +15,7 @@ const SECTIONS = {
   companies: { label: 'Company overview', to: '/people/companies' },
   departments: { label: 'Department overview', to: '/people/departments' },
   reports: { label: 'Reports', to: '/people/reports' },
+  branches: { label: 'Branches', to: '/people/branches' },
   users: { label: 'Users', to: '/people/users' },
   roles: { label: 'Roles', to: '/people/roles' },
   positions: { label: 'Positions', to: '/people/positions' },

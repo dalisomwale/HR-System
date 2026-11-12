@@ -3,6 +3,7 @@ import { requirePerm, requireRole } from '../../middleware/auth.js';
 import { companyRoutes } from './companies.routes.js';
 import { roleRoutes } from './roles.routes.js';
 import { departmentRoutes } from './departments.routes.js';
+import { branchRoutes } from '../org/branches.routes.js';
 import { employeeRoutes } from './employees.routes.js';
 import { holidayRoutes, scheduleRoutes } from './calendar.routes.js';
 import { settingsRoutes, auditRoutes } from './settings.routes.js';
@@ -24,6 +25,8 @@ export function adminRoutes(deps) {
   const admin = requireRole('HR_ADMIN');
   router.use('/companies', requirePerm('people.org'), companyRoutes(deps));
   router.use('/departments', requirePerm('people.org'), departmentRoutes(deps));
+  // Branches (D109): seen with Employees: View, changed with Organisation: Manage.
+  router.use('/branches', requirePerm('people.view', 'people.org'), branchRoutes(deps));
   router.use('/employees', requirePerm('people.edit', 'people.positions'), employeeRoutes(deps));
   router.use('/holidays', requirePerm('leave.calendar'), holidayRoutes(deps));
   router.use('/work-schedules', requirePerm('leave.calendar'), scheduleRoutes(deps));

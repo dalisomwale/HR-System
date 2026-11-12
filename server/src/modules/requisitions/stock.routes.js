@@ -56,7 +56,7 @@ export function stockRoutes({ db }) {
   const receive = need((c) => c.receive, 'You cannot receive stock.');
   const issue = need((c) => c.issue, 'You cannot issue stock.');
   const categories = need((c) => c.categoriesManage, 'You cannot change categories.');
-  const org = need((c) => c.orgAdmin, 'You cannot change branches or requisition departments.');
+  const org = need((c) => c.orgAdmin, 'You cannot change the requisition departments.');
   const transactions = need((c) => c.transactions, 'You do not have access to transactions.');
   const reports = need((c) => c.reports, 'You do not have access to stock reports.');
   const seeStock = need((c) => c.canSeeStock, 'You do not have access to stock.');
@@ -1478,86 +1478,7 @@ export function stockRoutes({ db }) {
     }),
   );
 
-  // ── Branches (stock locations; the System Administrator manages them) ──────────────────────
-  router.get(
-    '/branches',
-    seeStock,
-    asyncHandler(async (req, res) => {
-      const rows = await branches({ activeOnly: false });
-      const held = await db('branch_stock as bs')
-        .join('stock_items as i', 'i.id', 'bs.item_id')
-        .groupBy('bs.branch_id')
-        .select('bs.branch_id')
-        .sum({ units: 'bs.quantity' })
-        .sum({ value: db.raw('GREATEST(bs.quantity, 0) * i.unit_price') });
-      const H = new Map(held.map((h) => [h.branch_id, h]));
-      res.json({
-        items: rows.map((b) => ({
-          ...branchView(b),
-          units: Number(H.get(b.id)?.units ?? 0),
-          value: Number(H.get(b.id)?.value ?? 0),
-        })),
-      });
-    }),
-  );
-  const branchSchema = z.object({
-    companyId: z.coerce.number().int().positive(),
-    name: text(2, 150),
-    location: optional(200),
-    isActive: z.boolean().default(true),
-  });
-  async function saveBranch(req, id = null) {
-    const input = branchSchema.parse(req.body);
-    const co = await db('companies').where({ id: input.companyId }).first('id');
-    if (!co) throw badRequest('Choose the company.');
-    const dup = await db('stock_branches')
-      .where({ company_id: input.companyId })
-      .whereRaw('LOWER(name) = LOWER(?)', [input.name])
-      .whereNot('id', id ?? 0)
-      .first('id');
-    if (dup) throw conflict(`This company already has a branch called "${input.name}".`);
-    const row = {
-      company_id: input.companyId,
-      name: input.name,
-      location: input.location,
-      is_active: input.isActive,
-    };
-    return db.transaction(async (trx) => {
-      let branchId = id;
-      if (id) {
-        const before = await trx('stock_branches').where({ id }).first();
-        if (!before) throw notFound('That branch no longer exists.');
-        if (before.company_id !== input.companyId) {
-          const holds = await trx('branch_stock')
-            .where({ branch_id: id })
-            .where('quantity', '<>', 0)
-            .first('item_id');
-          if (holds) throw conflict('This branch holds stock, so it cannot move to another company.');
-        }
-        await trx('stock_branches').where({ id }).update(row);
-      } else {
-        [branchId] = await trx('stock_branches').insert(row);
-      }
-      await writeAudit(trx, {
-        ...auditContext(req),
-        action: id ? 'STOCK_BRANCH_UPDATED' : 'STOCK_BRANCH_ADDED',
-        entityType: 'stock_branch',
-        entityId: branchId,
-        after: input,
-      });
-      return branchId;
-    });
-  }
-  router.post(
-    '/branches',
-    org,
-    asyncHandler(async (req, res) => res.status(201).json({ id: await saveBranch(req) })),
-  );
-  router.put(
-    '/branches/:id',
-    org,
-    asyncHandler(async (req, res) => res.json({ id: await saveBranch(req, idParam(req)) })),
-  );
+  // Branches are kept in Employee management with companies and departments (D109).
 
   // ── Which departments are IT, Accounts and Stores ──────────────────────────────────────────
   router.get(
