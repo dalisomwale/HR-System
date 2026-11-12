@@ -211,7 +211,10 @@ export default function DepartmentPage() {
               <Table>
                 <thead>
                   <tr>
+                    <Th className="text-right">#</Th>
                     <Th>Employee</Th>
+                    <Th>Department name</Th>
+                    <Th>Email</Th>
                     <Th>Job title</Th>
                     <Th>Line manager</Th>
                     <Th>Type</Th>
@@ -222,8 +225,9 @@ export default function DepartmentPage() {
                 <tbody>
                   {[...people.data.items]
                     .sort((a, b) => (a.status === 'ACTIVE' ? 0 : 1) - (b.status === 'ACTIVE' ? 0 : 1))
-                    .map((e) => (
+                    .map((e, n) => (
                       <tr key={e.id}>
+                        <Td className="text-right text-muted tabular-nums">{n + 1}</Td>
                         <Td>
                           <div className="flex items-center gap-3">
                             <button
@@ -234,6 +238,16 @@ export default function DepartmentPage() {
                               {e.firstName} {e.lastName}
                             </button>
                           </div>
+                        </Td>
+                        <Td>{e.department ?? d.name}</Td>
+                        <Td>
+                          {e.email ? (
+                            <a href={`mailto:${e.email}`} className="text-brand hover:underline">
+                              {e.email}
+                            </a>
+                          ) : (
+                            <span className="text-muted">Not set</span>
+                          )}
                         </Td>
                         <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                         <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
