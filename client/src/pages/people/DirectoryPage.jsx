@@ -222,6 +222,7 @@ export default function DirectoryPage() {
             <thead>
               <tr>
                 <Th>Employee</Th>
+                <Th>Company</Th>
                 <Th>Job title</Th>
                 <Th>Department</Th>
                 <Th>Line manager</Th>
@@ -242,12 +243,11 @@ export default function DirectoryPage() {
                         >
                           {e.firstName} {e.lastName}
                         </Link>
-                        <p className="text-xs text-muted">
-                          {[e.employeeNumber, e.company].filter(Boolean).join(' · ')}
-                        </p>
+                        <p className="text-xs text-muted">{e.employeeNumber}</p>
                       </div>
                     </div>
                   </Td>
+                  <Td>{e.company ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.department ?? <span className="text-muted">None</span>}</Td>
                   <Td>
