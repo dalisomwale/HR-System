@@ -214,8 +214,8 @@ export default function DepartmentPage() {
                     <Th className="text-right">#</Th>
                     <Th>Employee</Th>
                     <Th>Department name</Th>
-                    <Th>Email</Th>
                     <Th>Job title</Th>
+                    <Th>Email</Th>
                     <Th>Line manager</Th>
                     <Th>Type</Th>
                     <Th>Started</Th>
@@ -240,6 +240,7 @@ export default function DepartmentPage() {
                           </div>
                         </Td>
                         <Td>{e.department ?? d.name}</Td>
+                        <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                         <Td>
                           {e.email ? (
                             <a href={`mailto:${e.email}`} className="text-brand hover:underline">
@@ -249,7 +250,6 @@ export default function DepartmentPage() {
                             <span className="text-muted">Not set</span>
                           )}
                         </Td>
-                        <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                         <Td>{e.lineManager ?? <span className="text-muted">None</span>}</Td>
                         <Td>
                           {EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}
