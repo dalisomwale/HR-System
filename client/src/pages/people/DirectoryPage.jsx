@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Search } from 'lucide-react';
-import { api, qs } from '../../lib/api.js';
+import { api, downloadFile, qs } from '../../lib/api.js';
 import { can, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
@@ -218,7 +218,19 @@ export default function DirectoryPage() {
         </div>
       ) : (
         <>
-          <Table>
+          {/* Excel: every employee matching these filters, not only this page (all time). */}
+          <Table
+            title="Employees"
+            onExport={() =>
+              downloadFile(
+                `/api/people/employees/export${qs({
+                  ...filters,
+                  page: '',
+                  status: filters.status === 'ALL' ? '' : filters.status,
+                })}`,
+              )
+            }
+          >
             <thead>
               <tr>
                 <Th>Employee</Th>

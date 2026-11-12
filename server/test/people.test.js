@@ -219,3 +219,46 @@ describe('employee overview', () => {
     expect((await s.agent.get(`/api/people/employees/${id}/overview`)).status).toBe(403);
   });
 });
+
+describe('Employees export', () => {
+  it('exports every employee matching the filters, across all pages and companies', async () => {
+    const [a] = await db('companies').insert({ code: 'AFS', name: 'Altus Financial Services Limited' });
+    const [b] = await db('companies').insert({ code: 'AIB', name: 'Altus Insurance Brokers' });
+    for (let i = 0; i < 30; i += 1) await fixtureEmployee(db, { company_id: a, linked: false });
+    for (let i = 0; i < 5; i += 1) await fixtureEmployee(db, { company_id: b, linked: false });
+    const rowsIn = async (path) => {
+      const res = await hr.agent
+        .get(path)
+        .buffer(true)
+        .parse((r, cb) => {
+          const chunks = [];
+          r.on('data', (c) => chunks.push(c));
+          r.on('end', () => cb(null, Buffer.concat(chunks)));
+        });
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/spreadsheetml/);
+      // The sheet's dimension says how many rows it holds (header + one per employee).
+      const zlib = await import('node:zlib');
+      const buf = res.body;
+      let at = 0;
+      while (at < buf.length) {
+        if (buf.readUInt32LE(at) !== 0x04034b50) break;
+        const size = buf.readUInt32LE(at + 18);
+        const nameLen = buf.readUInt16LE(at + 26);
+        const extra = buf.readUInt16LE(at + 28);
+        const name = buf.subarray(at + 30, at + 30 + nameLen).toString();
+        const data = buf.subarray(at + 30 + nameLen + extra, at + 30 + nameLen + extra + size);
+        if (name === 'xl/worksheets/sheet1.xml') {
+          const xml = zlib.inflateRawSync(data).toString();
+          return Number(/<dimension ref="A1:[A-Z]+(\d+)"/.exec(xml)[1]) - 1;
+        }
+        at += 30 + nameLen + extra + size;
+      }
+      throw new Error('no sheet');
+    };
+    // 35 in the two companies, plus the HR Officer signed in (no company).
+    expect(await rowsIn('/api/people/employees/export')).toBe(36);
+    expect(await rowsIn(`/api/people/employees/export?companyId=${b}`)).toBe(5);
+    expect(await rowsIn(`/api/people/employees/export?companyId=${a}`)).toBe(30);
+  });
+});

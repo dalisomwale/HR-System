@@ -62,6 +62,50 @@ export function peopleRoutes({ db }) {
       res.json(await listEmployees(db, req.query, pagination(req.query, { maxSize: 500 })));
     }),
   );
+  // The directory as Excel: every employee matching the same filters as the list, not one page.
+  router.get(
+    '/employees/export',
+    asyncHandler(async (req, res) => {
+      const { items } = await listEmployees(db, req.query, { page: 1, pageSize: 100000, offset: 0 });
+      const TYPES = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term contract', TEMPORARY: 'Temporary' };
+      const columns = [
+        { key: 'employeeNumber', label: 'Employee number' },
+        { key: 'name', label: 'Employee' },
+        { key: 'company', label: 'Company' },
+        { key: 'jobTitle', label: 'Job title' },
+        { key: 'department', label: 'Department' },
+        { key: 'lineManager', label: 'Line manager' },
+        { key: 'type', label: 'Employment type' },
+        { key: 'started', label: 'Started', type: 'date' },
+        { key: 'status', label: 'Status' },
+        { key: 'email', label: 'Work email' },
+      ];
+      const rows = items.map((e) => ({
+        employeeNumber: e.employeeNumber,
+        name: `${e.firstName} ${e.lastName}`,
+        company: e.company,
+        jobTitle: e.jobTitle,
+        department: e.department,
+        lineManager: e.lineManager,
+        type: TYPES[e.employmentType] ?? '',
+        started: e.employmentStartDate ? String(e.employmentStartDate).slice(0, 10) : null,
+        status: e.status === 'ACTIVE' ? 'Active' : 'Left',
+        email: e.email,
+      }));
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'REPORT_EXPORTED',
+        entityType: 'report',
+        entityId: 'people-employees',
+        after: { format: 'xlsx', rows: rows.length, filters: req.query },
+      });
+      const file = toXlsx(columns, rows, { sheetName: 'Employees', title: 'Employees' });
+      res
+        .type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        .attachment(`Employees ${todayInLusaka()}.xlsx`)
+        .send(file);
+    }),
+  );
   router.get(
     '/quick-filters',
     asyncHandler(async (req, res) => {
