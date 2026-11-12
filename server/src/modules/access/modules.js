@@ -316,7 +316,7 @@ const INVENTORY_AREAS = [
 export const MODULES = {
   leave: { key: 'leave', label: 'Leave management', areas: LEAVE_AREAS },
   people: { key: 'people', label: 'Employee management', areas: PEOPLE_AREAS },
-  inventory: { key: 'inventory', label: 'Inventory System', areas: INVENTORY_AREAS },
+  inventory: { key: 'inventory', label: 'Inventory system', areas: INVENTORY_AREAS },
 };
 export const MODULE_KEYS = Object.keys(MODULES);
 

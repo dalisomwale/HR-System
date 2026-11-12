@@ -5,7 +5,7 @@ import { Trail } from './LeaveTrail.jsx';
 
 /* Where you are in the Inventory System (D105, D107): Inventory System › Manage stock › A4 paper ream. */
 
-const ROOT = { label: 'Inventory System', to: '/requisitions' };
+const ROOT = { label: 'Inventory system', to: '/requisitions' };
 const PAGES = {
   '/requisitions': ['Dashboard'],
   '/requisitions/requests': ['Requisitions'],

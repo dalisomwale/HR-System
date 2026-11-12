@@ -39,7 +39,7 @@ const APPS = [
   {
     // Brought in from the Altus inventory system (D105); open to everyone with a part in it.
     id: 'requisitions',
-    name: 'Inventory System',
+    name: 'Inventory system',
     description: 'Stock, requisitions and reports',
     icon: ShoppingCart,
     to: '/requisitions',

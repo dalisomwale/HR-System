@@ -378,7 +378,7 @@ function StockReportsNav({ limited, onNavigate }) {
         className={`${navLinkClass({ isActive: inside && !open })} w-full text-left`}
       >
         <FileBarChart aria-hidden />
-        <span className="flex-1">Monthly Reports</span>
+        <span className="flex-1">Monthly reports</span>
         <ChevronDown
           className={`size-3.5! text-muted transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden
@@ -414,14 +414,14 @@ function RequisitionsNav({ onNavigate }) {
       ? [
           {
             to: '/requisitions/stock',
-            label: a.stockDepartment ? 'Department Stock' : 'Manage Stock',
+            label: a.stockDepartment ? 'Department stock' : 'Manage stock',
             icon: Boxes,
             except: '/requisitions/stock/new',
           },
         ]
       : []),
-    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
-    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
+    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive stock', icon: PackagePlus }] : []),
+    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue stock', icon: PackageMinus }] : []),
     {
       to: '/requisitions/requests',
       label: 'Requisitions',
@@ -430,7 +430,7 @@ function RequisitionsNav({ onNavigate }) {
       except: '/requisitions/requests/new',
     },
     ...(a.canRaise
-      ? [{ to: '/requisitions/requests/new', label: 'Raise a Requisition', icon: FilePlus2 }]
+      ? [{ to: '/requisitions/requests/new', label: 'Raise a requisition', icon: FilePlus2 }]
       : []),
     ...(a.stock || a.categoriesManage
       ? [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]
@@ -449,7 +449,7 @@ function RequisitionsNav({ onNavigate }) {
     ...(a.orgAdmin
       ? [
           { to: '/requisitions/branches', label: 'Branches', icon: MapPin },
-          { to: '/requisitions/settings', label: 'Requisition Departments', icon: Building2 },
+          { to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 },
         ]
       : []),
   ];
@@ -489,7 +489,7 @@ function LeaveNav({ user, counts, onNavigate }) {
       <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
-          title="Department Manager"
+          title="Department manager"
           items={MANAGER.filter((i) => !i.managersOnly || user.isManager)}
           onNavigate={onNavigate}
         />
@@ -552,7 +552,7 @@ export default function AppShell() {
         .filter(Boolean)
         .join(', ') || 'Employee';
   const close = () => setMenuOpen(false);
-  const appName = inRequisitions ? 'Inventory System' : inPeople ? 'Employee Management' : 'Leave Management';
+  const appName = inRequisitions ? 'Inventory system' : inPeople ? 'Employee management' : 'Leave management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
