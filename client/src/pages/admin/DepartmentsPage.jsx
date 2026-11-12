@@ -171,8 +171,7 @@ export default function DepartmentsPage() {
               <thead>
                 <tr>
                   <Th>Company</Th>
-                  <Th>Code</Th>
-                  <Th>Name</Th>
+                  <Th>Department name</Th>
                   <Th className="text-right">Active staff</Th>
                   <Th>Status</Th>
                   <Th>
@@ -190,8 +189,7 @@ export default function DepartmentsPage() {
                   .map((d) => (
                     <tr key={d.id}>
                       <Td>{d.company ?? <Badge tone="pending">Not set</Badge>}</Td>
-                      <Td className="font-medium">{d.code}</Td>
-                      <Td>{d.name}</Td>
+                      <Td className="font-medium">{d.name}</Td>
                       <Td className="text-right">{d.activeEmployees}</Td>
                       <Td>{d.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}</Td>
                       <Td className="text-right whitespace-nowrap">
