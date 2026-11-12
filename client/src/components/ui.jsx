@@ -1,6 +1,6 @@
-import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, forwardRef, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { FileSpreadsheet, Filter, Loader2 } from 'lucide-react';
+import { ChevronDown, FileSpreadsheet, Filter, Loader2, Search } from 'lucide-react';
 import { PERIODS, exportTable, headings, periodRange, rowDates } from '../lib/table-tools.js';
 
 const cx = (...c) => c.filter(Boolean).join(' ');
@@ -146,11 +146,260 @@ export const Input = forwardRef(function Input({ invalid, className, ...props },
   return <input ref={ref} {...props} className={cx('field', invalid && 'is-invalid', className)} />;
 });
 
-export const Select = forwardRef(function Select({ invalid, className, children, ...props }, ref) {
+// Lists longer than this get a search box at the top.
+const SEARCH_FROM = 6;
+// Props that describe the control to people and screen readers belong on the visible button.
+const BUTTON_PROPS = ['aria-label', 'aria-describedby', 'aria-invalid', 'title', 'autoFocus'];
+
+/**
+ * A dropdown with a search box (project owner, 12 Nov 2026). A real <select> stays underneath,
+ * hidden, so forms work as before (value/onChange, react-hook-form's register, form submits);
+ * the visible button and list read their options from it, so any <option>s work, including
+ * <optgroup>s and options from other components. Choosing sets the select and fires its change
+ * event. Lists with more than SEARCH_FROM options get a search box.
+ */
+export const Select = forwardRef(function Select(
+  { invalid, className, children, id, disabled, ...props },
+  ref,
+) {
+  const sel = useRef(null);
+  const btn = useRef(null);
+  const pop = useRef(null);
+  const search = useRef(null);
+  const [label, setLabel] = useState('');
+  const [open, setOpen] = useState(false);
+  const [opts, setOpts] = useState([]);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const [place, setPlace] = useState(null);
+  const [missing, setMissing] = useState(false);
+  const listId = useId();
+  const buttonProps = {};
+  const selectProps = {};
+  for (const [k, v] of Object.entries(props)) (BUTTON_PROPS.includes(k) ? buttonProps : selectProps)[k] = v;
+  const setRefs = (el) => {
+    sel.current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+  };
+  // Show what the select holds now, however it got there (a choice, a reset, a new value).
+  const sync = () => {
+    const t = sel.current?.selectedOptions?.[0]?.textContent ?? '';
+    setLabel((x) => (x === t ? x : t));
+  };
+  useLayoutEffect(sync);
+  useEffect(() => {
+    const el = sel.current;
+    const changed = () => {
+      sync();
+      setMissing(false);
+    };
+    // A required dropdown left empty: the browser can't point at the hidden select, so the
+    // visible button turns red and takes the focus instead.
+    const invalidNow = (e) => {
+      e.preventDefault();
+      setMissing(true);
+      btn.current?.focus();
+    };
+    el?.addEventListener('change', changed);
+    el?.addEventListener('invalid', invalidNow);
+    return () => {
+      el?.removeEventListener('change', changed);
+      el?.removeEventListener('invalid', invalidNow);
+    };
+  }, []);
+
+  const openList = () => {
+    const el = sel.current;
+    if (!el || disabled) return;
+    const all = [...el.options].map((o, i) => ({
+      i,
+      value: o.value,
+      label: o.textContent,
+      disabled: o.disabled,
+      group: o.parentElement?.tagName === 'OPTGROUP' ? o.parentElement.label : null,
+    }));
+    const r = btn.current.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom;
+    setPlace({
+      left: r.left,
+      width: Math.max(r.width, 220),
+      ...(below < 300 && r.top > below ? { bottom: window.innerHeight - r.top + 4 } : { top: r.bottom + 4 }),
+    });
+    setOpts(all);
+    setQuery('');
+    setActive(
+      Math.max(
+        0,
+        all.findIndex((o) => o.value === el.value),
+      ),
+    );
+    setOpen(true);
+  };
+  const close = (focus = true) => {
+    setOpen(false);
+    if (focus) btn.current?.focus();
+  };
+  const choose = (o) => {
+    if (!o || o.disabled) return;
+    const el = sel.current;
+    if (el.value !== o.value) {
+      // Set it the way the browser would, so React and react-hook-form both see the change.
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(el, o.value);
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    sync();
+    close();
+  };
+
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = words.length
+    ? opts.filter((o) => {
+        const hay = `${o.label} ${o.group ?? ''}`.toLowerCase();
+        return words.every((w) => hay.includes(w));
+      })
+    : opts;
+  const searchable = opts.length > SEARCH_FROM;
+
+  // Close when clicking elsewhere, or when the page scrolls or resizes under the list.
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = (e) => {
+      if (!pop.current?.contains(e.target) && !btn.current?.contains(e.target)) close(false);
+    };
+    const shut = (e) => {
+      if (!pop.current?.contains(e.target)) close(false);
+    };
+    document.addEventListener('mousedown', away);
+    window.addEventListener('scroll', shut, true);
+    window.addEventListener('resize', shut);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      window.removeEventListener('scroll', shut, true);
+      window.removeEventListener('resize', shut);
+    };
+  }, [open]);
+  useEffect(() => {
+    if (open) (searchable ? search.current : pop.current)?.focus();
+  }, [open, searchable]);
+  useEffect(() => {
+    pop.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [active, open]);
+
+  const keys = (e) => {
+    const step = (d) => {
+      e.preventDefault();
+      let n = active;
+      for (let k = 0; k < shown.length; k += 1) {
+        n = (n + d + shown.length) % shown.length;
+        if (!shown[n].disabled) break;
+      }
+      setActive(n);
+    };
+    if (e.key === 'ArrowDown') step(1);
+    else if (e.key === 'ArrowUp') step(-1);
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      choose(shown[active]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+    } else if (e.key === 'Tab') close(false);
+  };
+
   return (
-    <select ref={ref} {...props} className={cx('field', invalid && 'is-invalid', className)}>
-      {children}
-    </select>
+    <div className={cx('combo', className)}>
+      <select
+        ref={setRefs}
+        {...selectProps}
+        disabled={disabled}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
+      >
+        {children}
+      </select>
+      <button
+        ref={btn}
+        type="button"
+        id={id}
+        disabled={disabled}
+        {...buttonProps}
+        aria-invalid={buttonProps['aria-invalid'] ?? (missing || undefined)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        className={cx('field combo-btn', (invalid || missing) && 'is-invalid')}
+        onClick={() => (open ? close() : openList())}
+        onKeyDown={(e) => {
+          if (!open && ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+            e.preventDefault();
+            openList();
+          }
+        }}
+      >
+        <span className="combo-label">{label || '\u00a0'}</span>
+        <ChevronDown className="combo-caret" aria-hidden />
+      </button>
+      {open && (
+        <div
+          ref={pop}
+          className="combo-pop"
+          style={place}
+          tabIndex={-1}
+          onKeyDown={searchable ? undefined : keys}
+        >
+          {searchable && (
+            <div className="combo-search">
+              <Search aria-hidden />
+              <input
+                ref={search}
+                type="text"
+                value={query}
+                placeholder="Search…"
+                aria-label="Search the list"
+                aria-controls={listId}
+                autoComplete="off"
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setActive(0);
+                }}
+                onKeyDown={keys}
+              />
+            </div>
+          )}
+          <ul id={listId} role="listbox" className="combo-list">
+            {shown.length === 0 && <li className="combo-none">Nothing matches “{query}”.</li>}
+            {shown.map((o, n) => (
+              <Fragment key={o.i}>
+                {o.group && o.group !== shown[n - 1]?.group && (
+                  <li role="presentation" className="combo-group">
+                    {o.group}
+                  </li>
+                )}
+                <li
+                  role="option"
+                  aria-selected={o.value === sel.current?.value}
+                  aria-disabled={o.disabled || undefined}
+                  data-active={n === active}
+                  className={cx(
+                    'combo-opt',
+                    n === active && 'is-active',
+                    o.value === sel.current?.value && 'is-chosen',
+                    o.disabled && 'is-disabled',
+                  )}
+                  onMouseEnter={() => setActive(n)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => choose(o)}
+                >
+                  {o.label || '\u00a0'}
+                </li>
+              </Fragment>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 });
 
