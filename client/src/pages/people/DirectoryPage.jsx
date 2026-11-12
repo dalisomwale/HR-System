@@ -243,7 +243,6 @@ export default function DirectoryPage() {
                         >
                           {e.firstName} {e.lastName}
                         </Link>
-                        <p className="text-xs text-muted">{e.employeeNumber}</p>
                       </div>
                     </div>
                   </Td>
