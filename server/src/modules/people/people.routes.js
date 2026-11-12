@@ -76,9 +76,9 @@ export function peopleRoutes({ db }) {
         { key: 'department', label: 'Department' },
         { key: 'lineManager', label: 'Line manager' },
         { key: 'type', label: 'Employment type' },
+        { key: 'email', label: 'Work email' },
         { key: 'started', label: 'Started', type: 'date' },
         { key: 'status', label: 'Status' },
-        { key: 'email', label: 'Work email' },
       ];
       const rows = items.map((e) => ({
         employeeNumber: e.employeeNumber,
