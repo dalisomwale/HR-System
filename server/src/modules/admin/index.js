@@ -9,7 +9,7 @@ import { holidayRoutes, scheduleRoutes } from './calendar.routes.js';
 import { settingsRoutes, auditRoutes } from './settings.routes.js';
 import { leaveTypeRoutes, jobRoutes } from './leave-types.routes.js';
 import { adminDelegationRoutes } from '../delegations/delegations.routes.js';
-import { adminEmailRoutes } from '../notifications/notifications.routes.js';
+import { adminEmailRoutes, notificationSettingsRoutes } from '../notifications/notifications.routes.js';
 
 /**
  * Administration API (decision D46).
@@ -37,6 +37,7 @@ export function adminRoutes(deps) {
   router.use('/settings', requirePerm('leave.settings'), settingsRoutes(deps));
   router.use('/audit', requirePerm('leave.audit', 'people.audit', 'admin.audit'), auditRoutes(deps));
   router.use('/emails', requirePerm('leave.emails'), adminEmailRoutes(deps));
+  router.use('/notifications', requirePerm('leave.notifications'), notificationSettingsRoutes(deps));
   // Anything else under /api/admin is for System Administrators.
   router.use(admin);
   return router;

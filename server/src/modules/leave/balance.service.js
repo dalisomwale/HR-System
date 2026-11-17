@@ -1,4 +1,5 @@
 import { badRequest, conflict, notFound } from '../../utils/errors.js';
+import { notify } from '../notifications/notify.service.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { addDays, completedMonths } from './calendar.js';
 import { policyOn, toPolicy } from './policy.service.js';
@@ -266,6 +267,38 @@ export async function recordAdjustment(db, { employeeId, leaveTypeId, year, amou
       entityType: 'employee',
       entityId: employeeId,
       after: { leaveType: type.code, year, amount, reason: reason.trim(), ledgerEntryId: id },
+    });
+    // The employee is told what changed and why (D113); not when HR adjusts their own balance.
+    const days = `${Math.abs(amount)} ${Math.abs(amount) === 1 ? 'day' : 'days'}`;
+    const change =
+      kind === 'OPENING'
+        ? `Opening balance of ${amount} days`
+        : `${amount > 0 ? 'Added' : 'Taken off'}: ${days}`;
+    const typeName = type.is_confidential ? 'leave' : type.name.toLowerCase();
+    const title =
+      kind === 'OPENING'
+        ? `Your ${year} ${typeName} opening balance was recorded`
+        : `Your ${year} ${typeName} balance was adjusted`;
+    await notify(trx, {
+      recipients: [employeeId].filter((x) => x !== audit.actorEmployeeId),
+      event: 'BALANCE_ADJUSTED',
+      title,
+      body: `${change}. Reason: ${reason.trim()}`,
+      link: '/leave/balances',
+      entityType: 'employee',
+      entityId: employeeId,
+      email: {
+        subject: title,
+        heading: kind === 'OPENING' ? 'Opening balance recorded' : 'Leave balance adjusted',
+        intro: `HR has ${kind === 'OPENING' ? 'recorded your opening balance' : 'adjusted your leave balance'}.`,
+        rows: [
+          ['Leave type', type.is_confidential ? 'Leave (details in the system)' : type.name],
+          ['Leave year', String(year)],
+          ['Change', change],
+          ['Reason', reason.trim()],
+        ],
+        action: 'See your balances in the leave system.',
+      },
     });
     return id;
   });

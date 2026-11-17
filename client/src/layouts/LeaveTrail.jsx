@@ -28,6 +28,7 @@ const PAGES = {
   '/reports': 'Reports',
   '/admin/roles': 'Roles',
   '/admin/settings': 'Workflow settings',
+  '/admin/notifications': 'Notifications',
   '/admin/emails': 'Emails',
   '/admin/audit': 'Audit trail',
   '/admin/users': 'Users',

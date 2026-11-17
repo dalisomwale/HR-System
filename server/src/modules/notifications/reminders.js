@@ -1,9 +1,10 @@
 import { todayInLusaka } from '../../utils/dates.js';
-import { addDays, daysBetween } from '../leave/calendar.js';
+import { addDays, daysBetween, weekdayKey } from '../leave/calendar.js';
 import { getSetting } from '../leave/policy.service.js';
 import { runOnce } from '../leave/jobs.service.js';
 import { workingCalendar, stageSince } from '../leave/working-days.js';
 import { notify, hrOfficers } from './notify.service.js';
+import { approversFor } from './leave-events.js';
 
 const SYSTEM = { actorType: 'SYSTEM' };
 const fmt = new Intl.DateTimeFormat('en-GB', {
@@ -233,6 +234,201 @@ export async function remindCarryForwardExpiry(db, today = todayInLusaka()) {
   return sent;
 }
 
+// ── Reminders around the dates of leave (D113) ─────────────────────────────────────────────
+
+/** Working days from the company's default schedule and public holidays, from `fromIso` on. */
+async function workingDays(db, fromIso) {
+  const schedule = await db('work_schedules').where({ is_company_default: true }).first();
+  const holidays = new Set(
+    await db('public_holidays')
+      .whereBetween('holiday_date', [fromIso, addDays(fromIso, 120)])
+      .pluck('holiday_date'),
+  );
+  const isWorking = (d) => Number(schedule?.[`${weekdayKey(d)}_fraction`] ?? 0) > 0 && !holidays.has(d);
+  /** The first working day after `iso` (the next day when no schedule is set up). */
+  const next = (iso) => {
+    for (let i = 1; i <= 31; i += 1) if (isWorking(addDays(iso, i))) return addDays(iso, i);
+    return addDays(iso, 1);
+  };
+  return { next };
+}
+
+/** Leave this request has not been told about yet with `event`. */
+const notSent = (db, event) => (q) =>
+  q
+    .select(db.raw(1))
+    .from('notifications as n')
+    .where('n.event_type', event)
+    .andWhere('n.entity_type', 'leave_request')
+    .whereRaw('n.entity_id = r.id');
+
+const typeFor = (r) => (r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name);
+const datesOf = (r) =>
+  r.start_date === r.end_date ? day(r.start_date) : `${day(r.start_date)} to ${day(r.end_date)}`;
+const daysOf = (n) => `${Number(n)} ${Number(n) === 1 ? 'day' : 'days'}`;
+
+/**
+ * The working day before approved leave starts: the employee is reminded of the dates and when
+ * they are due back, and their manager hears that they will be away (not for sensitive leave,
+ * which the manager does not see). Each once.
+ */
+export async function remindLeaveStarting(db, today = todayInLusaka()) {
+  const cal = await workingDays(db, today);
+  const target = cal.next(today);
+  const starting = () =>
+    requestRows(db)
+      .where('r.status', 'APPROVED')
+      .where('r.start_date', '>', today)
+      .where('r.start_date', '<=', target);
+  let sent = 0;
+  for (const r of await starting().whereNotExists(notSent(db, 'LEAVE_STARTS_SOON'))) {
+    const back = cal.next(r.end_date);
+    await db.transaction((trx) =>
+      notify(trx, {
+        recipients: [r.employee_id],
+        event: 'LEAVE_STARTS_SOON',
+        title: `Your leave starts ${day(r.start_date)}`,
+        body: `${r.reference}: ${datesOf(r)} (${daysOf(r.chargeable_days)}). You are due back on ${day(back)}.`,
+        link: `/leave/requests/${r.id}`,
+        entityType: 'leave_request',
+        entityId: r.id,
+        email: {
+          subject: `Your leave starts ${day(r.start_date)}: ${r.reference}`,
+          heading: 'Your leave starts soon',
+          intro: `A reminder that your approved leave starts on ${day(r.start_date)}.`,
+          rows: [
+            ['Reference', r.reference],
+            ['Leave type', typeFor(r)],
+            ['Dates', datesOf(r)],
+            ['Days', daysOf(r.chargeable_days)],
+            ['Back at work', day(back)],
+          ],
+          action: 'Please make sure your handover is done before you go. Enjoy your time off.',
+        },
+      }),
+    );
+    sent += 1;
+  }
+  for (const r of await starting()
+    .where('r.is_sensitive', false)
+    .whereNotExists(notSent(db, 'TEAM_LEAVE_STARTS'))) {
+    const manager = r.emp_manager_id ?? r.assigned_manager_id;
+    if (!manager || manager === r.employee_id) continue;
+    const who = `${r.first_name} ${r.last_name}`;
+    const back = cal.next(r.end_date);
+    await db.transaction((trx) =>
+      notify(trx, {
+        recipients: [manager],
+        event: 'TEAM_LEAVE_STARTS',
+        title: `${who} is on leave from ${day(r.start_date)}`,
+        body: `${datesOf(r)}; back on ${day(back)}.`,
+        link: `/leave/requests/${r.id}`,
+        entityType: 'leave_request',
+        entityId: r.id,
+        email: {
+          subject: `${who} is on leave from ${day(r.start_date)}`,
+          heading: 'Team member going on leave',
+          intro: `${who} starts approved leave on ${day(r.start_date)}.`,
+          rows: [
+            ['Employee', who],
+            ['Dates', datesOf(r)],
+            ['Back at work', day(back)],
+          ],
+        },
+      }),
+    );
+    sent += 1;
+  }
+  return sent;
+}
+
+/** On the last working day before someone is due back from approved leave: the day they return. */
+export async function remindBackToWork(db, today = todayInLusaka()) {
+  const cal = await workingDays(db, addDays(today, -1));
+  const target = cal.next(today);
+  const rows = await requestRows(db)
+    .where('r.status', 'APPROVED')
+    .where('r.start_date', '<=', target)
+    .where('r.end_date', '>=', today)
+    .where('r.end_date', '<', target)
+    .whereNotExists(notSent(db, 'LEAVE_BACK_TO_WORK'));
+  for (const r of rows) {
+    const back = cal.next(r.end_date);
+    await db.transaction((trx) =>
+      notify(trx, {
+        recipients: [r.employee_id],
+        event: 'LEAVE_BACK_TO_WORK',
+        title: `You are due back at work on ${day(back)}`,
+        body: `${r.reference}: your leave ends ${r.end_date === today ? 'today' : `on ${day(r.end_date)}`}.`,
+        link: `/leave/requests/${r.id}`,
+        entityType: 'leave_request',
+        entityId: r.id,
+        email: {
+          subject: `You are due back at work on ${day(back)}`,
+          heading: 'Back to work',
+          intro: `Your leave ends ${r.end_date === today ? 'today' : `on ${day(r.end_date)}`}, and you are due back at work on ${day(back)}.`,
+          rows: [
+            ['Reference', r.reference],
+            ['Leave type', typeFor(r)],
+            ['Dates', datesOf(r)],
+            ['Back at work', day(back)],
+          ],
+          action:
+            'If you need more time off, apply for it in the leave system before then, or speak to your manager.',
+        },
+      }),
+    );
+  }
+  return rows.length;
+}
+
+/**
+ * Leave that starts by the next working day and is still waiting for a decision: whoever must
+ * decide it is reminded once (the manager and their delegates, or HR at the HR stage).
+ */
+export async function remindUndecidedBeforeStart(db, today = todayInLusaka()) {
+  const cal = await workingDays(db, today);
+  const target = cal.next(today);
+  const rows = await requestRows(db)
+    .whereIn('r.status', ['PENDING_MANAGER_APPROVAL', 'PENDING_HR_APPROVAL'])
+    .where('r.start_date', '>=', today)
+    .where('r.start_date', '<=', target)
+    .whereNotExists(notSent(db, 'LEAVE_UNDECIDED_SOON'));
+  for (const r of rows) {
+    const atManager = r.status === 'PENDING_MANAGER_APPROVAL';
+    const who = `${r.first_name} ${r.last_name}`;
+    const starts = r.start_date === today ? 'today' : `on ${day(r.start_date)}`;
+    await db.transaction(async (trx) =>
+      notify(trx, {
+        recipients: (atManager
+          ? await approversFor(trx, r.assigned_manager_id)
+          : await hrOfficers(trx, [r.employee_id])
+        ).filter((id) => id !== r.employee_id),
+        event: 'LEAVE_UNDECIDED_SOON',
+        title: `Not yet decided, starts ${starts}: ${who}`,
+        body: `${r.reference}: ${datesOf(r)} is still waiting for ${atManager ? 'your decision' : 'HR'}.`,
+        link: `/leave/requests/${r.id}`,
+        entityType: 'leave_request',
+        entityId: r.id,
+        email: {
+          subject: `Leave starting ${starts} is not yet decided: ${r.reference}`,
+          heading: 'Leave about to start without a decision',
+          intro: `${who}'s leave starts ${starts} and is still waiting for ${atManager ? 'your decision' : 'HR'}.`,
+          rows: [
+            ['Reference', r.reference],
+            ['Employee', who],
+            ['Leave type', typeFor(r)],
+            ['Dates', datesOf(r)],
+            ['Status', atManager ? 'Waiting for the manager' : 'Waiting for HR'],
+          ],
+          action: 'Please approve or reject it in the leave system so they know before they go.',
+        },
+      }),
+    );
+  }
+  return rows.length;
+}
+
 /** Once a day: escalations and reminders. */
 export async function runDailyReminders(db, today = todayInLusaka()) {
   return runOnce(
@@ -243,6 +439,9 @@ export async function runDailyReminders(db, today = todayInLusaka()) {
       overdueEscalated: await escalateOverdue(db, today),
       documentReminders: await remindDocumentsDue(db, today),
       carryForwardReminders: await remindCarryForwardExpiry(db, today),
+      leaveStartingReminders: await remindLeaveStarting(db, today),
+      backToWorkReminders: await remindBackToWork(db, today),
+      undecidedBeforeStart: await remindUndecidedBeforeStart(db, today),
     }),
     SYSTEM,
   );

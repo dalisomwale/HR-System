@@ -134,6 +134,19 @@ const LEAVE_AREAS = [
       ['View & resend', 'See every email the system sent and resend failed ones.', ['leave.emails']],
     ],
   },
+  {
+    key: 'notifications',
+    label: 'Notifications',
+    hint: 'Which leave notifications are sent and emailed',
+    levels: [
+      ['No access', "Can't open Notifications.", []],
+      [
+        'Manage',
+        'Choose which leave notifications are sent, and which of them are also emailed.',
+        ['leave.notifications'],
+      ],
+    ],
+  },
   ...ADMIN_AREAS('leave.'),
 ];
 

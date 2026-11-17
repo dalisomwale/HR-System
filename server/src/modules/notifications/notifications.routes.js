@@ -5,6 +5,7 @@ import { writeAudit } from '../audit/audit.service.js';
 import { asyncHandler, idParam, pagination } from '../../utils/validation.js';
 import { badRequest, conflict, notFound } from '../../utils/errors.js';
 import { notify, notificationSettings } from './notify.service.js';
+import { leaveNotificationSettings, notificationByKey } from './catalog.js';
 
 const view = (n) => ({
   id: n.id,
@@ -171,6 +172,79 @@ export function adminEmailRoutes({ db, config }) {
         await writeAudit(trx, { ...auditContext(req), action: 'EMAIL_TEST_QUEUED', entityType: 'email' });
       });
       res.status(201).json({ to: me.email });
+    }),
+  );
+
+  return router;
+}
+
+/**
+ * Leave management › Admin › Notifications (D113): which leave notifications are sent, and which
+ * are also emailed. Mounted behind the Notifications right (leave.notifications).
+ */
+export function notificationSettingsRoutes({ db }) {
+  const router = Router();
+  // ── Which leave notifications are sent and emailed (D113) ─────────────────────────────────
+  router.get(
+    '/',
+    asyncHandler(async (req, res) => {
+      res.json({
+        emailEnabled: notificationSettings().emailEnabled,
+        groups: await leaveNotificationSettings(db),
+      });
+    }),
+  );
+  const settingsSchema = z.object({
+    items: z.array(z.object({ key: z.string().max(60), inApp: z.boolean(), email: z.boolean() })).max(100),
+  });
+  router.put(
+    '/',
+    asyncHandler(async (req, res) => {
+      const { items } = settingsSchema.parse(req.body);
+      for (const i of items) {
+        if (!notificationByKey(i.key)) throw badRequest('One of the notifications no longer exists.');
+      }
+      await db.transaction(async (trx) => {
+        const before = await leaveNotificationSettings(trx);
+        const was = new Map(before.flatMap((g) => g.items).map((i) => [i.key, i]));
+        const changed = [];
+        for (const i of items) {
+          const n = notificationByKey(i.key);
+          const inApp = Boolean(n.required) || i.inApp;
+          const email = inApp && i.email;
+          const old = was.get(i.key);
+          if (old.inApp === inApp && old.email === email) continue;
+          changed.push({
+            notification: n.label,
+            before: { sent: old.inApp, emailed: old.email },
+            after: { sent: inApp, emailed: email },
+          });
+          await trx('notification_settings')
+            .insert({
+              notification_key: i.key,
+              in_app: inApp,
+              email,
+              updated_by: req.user.id,
+              updated_at: trx.fn.now(),
+            })
+            .onConflict('notification_key')
+            .merge();
+        }
+        if (changed.length) {
+          await writeAudit(trx, {
+            ...auditContext(req),
+            action: 'NOTIFICATION_SETTINGS_UPDATED',
+            entityType: 'system_setting',
+            entityId: 'leave_notifications',
+            before: Object.fromEntries(changed.map((c) => [c.notification, c.before])),
+            after: Object.fromEntries(changed.map((c) => [c.notification, c.after])),
+          });
+        }
+      });
+      res.json({
+        emailEnabled: notificationSettings().emailEnabled,
+        groups: await leaveNotificationSettings(db),
+      });
     }),
   );
 

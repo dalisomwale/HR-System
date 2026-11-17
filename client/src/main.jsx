@@ -34,6 +34,7 @@ import HrOverviewPage from './pages/home/HrOverviewPage.jsx';
 import { DelegationsPage, AdminDelegationsPage } from './pages/delegations/DelegationsPage.jsx';
 import NotificationsPage from './pages/notifications/NotificationsPage.jsx';
 import EmailsPage from './pages/admin/EmailsPage.jsx';
+import NotificationSettingsPage from './pages/admin/NotificationSettingsPage.jsx';
 import ReportsPage from './pages/reports/ReportsPage.jsx';
 import RequisitionsHomePage from './pages/requisitions/RequisitionsHomePage.jsx';
 import RequisitionsListPage from './pages/requisitions/RequisitionsListPage.jsx';
@@ -245,6 +246,10 @@ createRoot(document.getElementById('root')).render(
               <Route path="leave-types/:id" element={need('leave.types', <LeaveTypePage />)} />
               <Route path="delegations" element={need('leave.delegations', <AdminDelegationsPage />)} />
               <Route path="emails" element={need('leave.emails', <EmailsPage />)} />
+              <Route
+                path="notifications"
+                element={need('leave.notifications', <NotificationSettingsPage />)}
+              />
               <Route path="audit" element={need('leave.audit', <AuditTrailPage module="leave" />)} />
             </Route>
             <Route path="*" element={<NotFound />} />

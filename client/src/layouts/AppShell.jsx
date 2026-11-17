@@ -313,6 +313,7 @@ const LEAVE_ADMIN = [
   { to: '/admin/audit', label: 'Audit trail', icon: History, perm: 'leave.audit' },
   { to: '/admin/settings', label: 'Workflow settings', icon: Settings2, perm: 'leave.settings' },
   { to: '/admin/emails', label: 'Emails', icon: Mail, perm: 'leave.emails' },
+  { to: '/admin/notifications', label: 'Notifications', icon: BellRing, perm: 'leave.notifications' },
 ];
 const PEOPLE_ADMIN = [
   { to: '/people/users', label: 'Users', icon: Users, perm: 'people.users' },

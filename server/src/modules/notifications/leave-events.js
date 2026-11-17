@@ -38,7 +38,7 @@ const rows = (r, status) => [
 ];
 
 /** The manager and anyone covering their approvals today. */
-async function approversFor(trx, managerId) {
+export async function approversFor(trx, managerId) {
   if (!managerId) return [];
   const today = todayInLusaka();
   const delegates = await trx('delegations')
@@ -112,29 +112,40 @@ const OUTCOME = {
 
 /**
  * @param {'SUBMITTED'|'RESUBMITTED'|'TRANSFERRED'|'ACCEPTED'|'MANAGER_APPROVED'|'MANAGER_REJECTED'|'HR_APPROVED'|'HR_REJECTED'|'HR_RETURNED'|'WITHDRAWN'} kind
+ *
+ * The employee hears about every stage of their own leave, in the system and by email (D113).
  */
 export async function leaveRequestEvent(
   trx,
   kind,
   requestId,
-  { actorId, previousManagerId, declinedOffer = false } = {},
+  { actorId, previousManagerId, declinedOffer = false, notifyApprovers = true } = {},
 ) {
   const r = await loadRequest(trx, requestId);
   const link = `/leave/requests/${r.id}`;
   const who = `${r.first_name} ${r.last_name}`;
 
   if (kind === 'SUBMITTED' || kind === 'RESUBMITTED') {
+    const atHr = r.status === 'PENDING_HR_APPROVAL';
+    const heading = kind === 'SUBMITTED' ? 'Leave request received' : 'Leave request resubmitted';
     await notify(trx, {
       recipients: [r.employee_id],
       event: `LEAVE_${kind}`,
       title: `${kind === 'SUBMITTED' ? 'Request submitted' : 'Request resubmitted'}: ${r.reference}`,
-      body:
-        r.status === 'PENDING_HR_APPROVAL'
-          ? 'It has gone to HR for final approval.'
-          : 'Your manager has been asked to review it.',
+      body: atHr ? 'It has gone to HR for final approval.' : 'Your manager has been asked to review it.',
       link,
       entityType: 'leave_request',
       entityId: r.id,
+      email: {
+        subject: `${heading}: ${r.reference}`,
+        heading,
+        intro:
+          kind === 'SUBMITTED'
+            ? `Your leave request has been received. ${atHr ? 'It has gone to HR for final approval.' : 'Your manager has been asked to review it.'}`
+            : `Your corrected leave request has been resubmitted. ${atHr ? 'It is with HR for final approval.' : 'Your manager has been asked to review it.'}`,
+        rows: rows(r, atHr ? 'With HR for final approval' : 'With your manager for review'),
+        action: 'You will be told at each step. You can follow it in the leave system.',
+      },
     });
     await toStage(trx, r, actorId);
     return;
@@ -178,11 +189,34 @@ export async function leaveRequestEvent(
   }
 
   if (kind === 'WITHDRAWN') {
+    // The employee's confirmation.
+    await notify(trx, {
+      recipients: [r.employee_id],
+      event: 'LEAVE_WITHDRAWN_CONFIRMED',
+      title: `Request withdrawn: ${r.reference}`,
+      body: declinedOffer
+        ? 'You withdrew the request instead of accepting the dates offered. No days are taken from your balance.'
+        : `${dates(r)}. It no longer needs a decision, and no days are taken from your balance.`,
+      link,
+      entityType: 'leave_request',
+      entityId: r.id,
+      email: {
+        subject: `Leave request withdrawn: ${r.reference}`,
+        heading: 'Leave request withdrawn',
+        intro: declinedOffer
+          ? 'You withdrew your leave request instead of accepting the dates your manager offered.'
+          : 'Your leave request was withdrawn. It no longer needs a decision.',
+        rows: rows(r, 'Withdrawn'),
+        action:
+          'No days are taken from your balance. Apply again in the leave system if you still need leave.',
+      },
+    });
+    if (!notifyApprovers) return;
     const recipients = previousManagerId
       ? await approversFor(trx, previousManagerId)
       : await hrOfficers(trx, [r.employee_id]);
     await notify(trx, {
-      recipients: without(recipients, actorId),
+      recipients: without(recipients, actorId, r.employee_id),
       event: 'LEAVE_WITHDRAWN',
       title: declinedOffer ? `Offered dates declined: ${who}` : `Request withdrawn: ${who}`,
       body: declinedOffer
@@ -191,6 +225,14 @@ export async function leaveRequestEvent(
       link,
       entityType: 'leave_request',
       entityId: r.id,
+      email: {
+        subject: `${declinedOffer ? 'Offered dates declined' : 'Leave request withdrawn'}: ${r.reference}`,
+        heading: declinedOffer ? 'Offered dates declined' : 'Leave request withdrawn',
+        intro: declinedOffer
+          ? `${who} did not accept the dates you offered and withdrew the request.`
+          : `${who} withdrew this leave request. It no longer needs a decision.`,
+        rows: rows(r, 'Withdrawn'),
+      },
     });
     return;
   }
@@ -213,20 +255,33 @@ export async function leaveRequestEvent(
     },
   });
 
-  // The manager hears the final outcome in the system.
+  // The manager hears the final outcome (by email too if the System Admin chooses, D113).
   if (kind.startsWith('HR_') && r.assigned_manager_id) {
+    const outcome = TEAM_OUTCOME[kind];
     await notify(trx, {
       recipients: without([r.assigned_manager_id], actorId, r.employee_id),
       event: `LEAVE_${kind}_FYI`,
-      title: `${who}'s leave was ${OUTCOME[kind][2].toLowerCase()}`,
+      title: `${who}'s leave was ${outcome}`,
       body: `${r.reference}: ${dates(r)}.`,
       link,
       entityType: 'leave_request',
       entityId: r.id,
+      email: {
+        subject: `${who}'s leave was ${outcome}: ${r.reference}`,
+        heading: `Leave ${outcome}`,
+        intro: `HR has dealt with ${who}'s leave request: it was ${outcome}.`,
+        rows: rows(r, outcome[0].toUpperCase() + outcome.slice(1)),
+      },
     });
   }
   if (kind === 'MANAGER_APPROVED') await toStage(trx, r, actorId);
 }
+
+const TEAM_OUTCOME = {
+  HR_APPROVED: 'approved',
+  HR_REJECTED: 'not approved by HR',
+  HR_RETURNED: 'returned to them for correction',
+};
 
 const CHANGE_LABEL = {
   PLANS_CHANGED: 'cancellation',
@@ -266,6 +321,24 @@ export async function changeRequestEvent(trx, kind, changeId, { actorId } = {}) 
           : 'Please approve or reject it in the leave system.',
       },
     });
+    if (kind === 'SUBMITTED') {
+      await notify(trx, {
+        recipients: [r.employee_id],
+        event: 'CHANGE_SUBMITTED',
+        title: `Your ${label} request was received: ${c.reference}`,
+        body: atHr ? 'It has gone to HR for a decision.' : 'Your manager has been asked to review it.',
+        link,
+        entityType: 'change_request',
+        entityId: c.id,
+        email: {
+          subject: `Leave ${label} request received: ${c.reference}`,
+          heading: `Leave ${label} request received`,
+          intro: `Your request for a ${label} of ${r.reference} has been received. ${atHr ? 'It has gone to HR for a decision.' : 'Your manager has been asked to review it.'}`,
+          rows: [...changeRows, ['Status', atHr ? 'With HR' : 'With your manager']],
+          action: 'Your leave stays as approved until the request is decided.',
+        },
+      });
+    }
     if (kind === 'MANAGER_APPROVED') {
       await notify(trx, {
         recipients: without([r.employee_id], actorId),
@@ -275,6 +348,12 @@ export async function changeRequestEvent(trx, kind, changeId, { actorId } = {}) 
         link,
         entityType: 'change_request',
         entityId: c.id,
+        email: {
+          subject: `Your leave ${label} was approved by your manager: ${c.reference}`,
+          heading: `Leave ${label} approved by your manager`,
+          intro: `Your manager approved your request for a ${label} of ${r.reference}. It is now with HR for the final decision.`,
+          rows: [...changeRows, ['Status', 'With HR']],
+        },
       });
     }
     return;
@@ -312,6 +391,12 @@ export async function changeRequestEvent(trx, kind, changeId, { actorId } = {}) 
       link,
       entityType: 'change_request',
       entityId: c.id,
+      email: {
+        subject: `${who}'s leave ${label} was approved: ${c.reference}`,
+        heading: `Leave ${label} approved`,
+        intro: `HR approved ${who}'s request for a ${label} of ${r.reference}.`,
+        rows: changeRows,
+      },
     });
   }
 }

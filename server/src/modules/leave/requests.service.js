@@ -887,14 +887,14 @@ export async function withdrawRequest(db, actor, requestId, { comment, version }
       entityId: r.id,
       before: { status: r.status },
     });
-    if (r.status !== 'RETURNED_FOR_CORRECTION') {
-      await leaveRequestEvent(trx, 'WITHDRAWN', r.id, {
-        actorId: actor.id,
-        previousManagerId:
-          r.status === 'PENDING_MANAGER_APPROVAL' || answeringOffer ? r.assigned_manager_id : null,
-        declinedOffer: answeringOffer,
-      });
-    }
+    // The employee always gets a confirmation; the approvers only if it was waiting for them.
+    await leaveRequestEvent(trx, 'WITHDRAWN', r.id, {
+      actorId: actor.id,
+      previousManagerId:
+        r.status === 'PENDING_MANAGER_APPROVAL' || answeringOffer ? r.assigned_manager_id : null,
+      declinedOffer: answeringOffer,
+      notifyApprovers: r.status !== 'RETURNED_FOR_CORRECTION',
+    });
     return { id: r.id, status: 'WITHDRAWN' };
   });
 }

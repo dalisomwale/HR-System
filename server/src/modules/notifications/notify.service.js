@@ -1,4 +1,5 @@
 import { renderEmail } from './mail-template.js';
+import { ruleFor } from './catalog.js';
 
 /*
  * In-system notifications and queued emails, always written in the caller's transaction:
@@ -28,6 +29,9 @@ export const notificationSettings = () => ({ ...settings });
 export async function notify(trx, { recipients, event, title, body, link, entityType, entityId, email }) {
   const ids = [...new Set(recipients.filter((x) => Number.isInteger(x)))];
   if (!ids.length) return { notified: 0, emailed: 0 };
+  // Leave notifications the System Admin switched off are not sent (D113).
+  const rule = await ruleFor(trx, event);
+  if (!rule.inApp) return { notified: 0, emailed: 0 };
   const people = await trx('employees')
     .whereIn('id', ids)
     .where({ status: 'ACTIVE' })
@@ -47,7 +51,7 @@ export async function notify(trx, { recipients, event, title, body, link, entity
   );
 
   let emailed = 0;
-  if (email && settings.emailEnabled) {
+  if (email && rule.email && settings.emailEnabled) {
     const url = link && settings.appUrl ? `${settings.appUrl}${link}` : undefined;
     const rows = people
       .filter((p) => p.email)

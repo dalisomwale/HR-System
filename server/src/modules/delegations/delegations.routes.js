@@ -6,6 +6,15 @@ import { asyncHandler, idParam, isoDate, optionalText } from '../../utils/valida
 import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { daysBetween } from '../leave/calendar.js';
+import { notify } from '../notifications/notify.service.js';
+
+const dayFmt = new Intl.DateTimeFormat('en-GB', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+const dayText = (iso) => dayFmt.format(new Date(`${iso}T12:00:00Z`));
 
 const createSchema = z.object({
   delegateId: z.coerce.number().int().positive(),
@@ -111,6 +120,29 @@ async function createDelegation(db, { delegatorId, delegateId, startDate, endDat
       entityId: id,
       after: { delegatorId, delegateId, startDate, endDate, reason: reason ?? null },
     });
+    // The delegate is told they are covering (D113).
+    const whose = `${delegator.first_name} ${delegator.last_name}`;
+    await notify(trx, {
+      recipients: [delegateId].filter((x) => x !== actor.id),
+      event: 'DELEGATION_ASSIGNED',
+      title: `You are covering ${whose}'s leave approvals`,
+      body: `From ${dayText(startDate)} to ${dayText(endDate)}. Their team's leave requests come to you under Approvals.`,
+      link: '/approvals',
+      entityType: 'delegation',
+      entityId: id,
+      email: {
+        subject: `You are covering ${whose}'s leave approvals`,
+        heading: 'Covering leave approvals',
+        intro: `You have been asked to approve leave for ${whose}'s team while they are away.`,
+        rows: [
+          ['Covering for', whose],
+          ['From', dayText(startDate)],
+          ['To', dayText(endDate)],
+          ...(reason ? [['Reason', reason]] : []),
+        ],
+        action: 'Their team’s leave requests come to you under Approvals in the leave system.',
+      },
+    });
     return id;
   });
 }
@@ -124,6 +156,26 @@ async function revokeDelegation(db, id, actor, audit) {
     if (d.revoked_at) throw conflict('This delegation has already been revoked.');
     if (d.end_date < todayInLusaka()) throw conflict('This delegation has already ended.');
     await trx('delegations').where({ id }).update({ revoked_at: trx.fn.now(), revoked_by: actor.id });
+    const dr = await trx('employees').where({ id: d.delegator_id }).first('first_name', 'last_name');
+    const whose = `${dr.first_name} ${dr.last_name}`;
+    await notify(trx, {
+      recipients: [d.delegate_id].filter((x) => x !== actor.id),
+      event: 'DELEGATION_REVOKED',
+      title: `You no longer cover ${whose}'s leave approvals`,
+      body: `The cover from ${dayText(d.start_date)} to ${dayText(d.end_date)} was revoked.`,
+      link: '/approvals',
+      entityType: 'delegation',
+      entityId: id,
+      email: {
+        subject: `You no longer cover ${whose}'s leave approvals`,
+        heading: 'Cover revoked',
+        intro: `You no longer approve leave for ${whose}'s team.`,
+        rows: [
+          ['Was covering for', whose],
+          ['Dates', `${dayText(d.start_date)} to ${dayText(d.end_date)}`],
+        ],
+      },
+    });
     await writeAudit(trx, {
       ...audit,
       action: 'DELEGATION_REVOKED',

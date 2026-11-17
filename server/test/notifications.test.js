@@ -5,7 +5,13 @@ import { todayInLusaka } from '../src/utils/dates.js';
 import { addDays } from '../src/modules/leave/calendar.js';
 import { notify } from '../src/modules/notifications/notify.service.js';
 import { processOutbox } from '../src/modules/notifications/email-worker.js';
-import { escalateOverdue, remindDocumentsDue } from '../src/modules/notifications/reminders.js';
+import {
+  escalateOverdue,
+  remindBackToWork,
+  remindDocumentsDue,
+  remindLeaveStarting,
+  remindUndecidedBeforeStart,
+} from '../src/modules/notifications/reminders.js';
 import { renderEmail, buildMime } from '../src/modules/notifications/mail-template.js';
 
 let db;
@@ -28,6 +34,11 @@ const as = (s) => ({
   post: (p, body) =>
     s.agent
       .post(p)
+      .set('X-CSRF-Token', s.csrf)
+      .send(body ?? {}),
+  put: (p, body) =>
+    s.agent
+      .put(p)
       .set('X-CSRF-Token', s.csrf)
       .send(body ?? {}),
 });
@@ -88,7 +99,7 @@ async function submitAnnual() {
 }
 
 describe('workflow notifications', () => {
-  it('tells the manager to review, and confirms to the employee in the system only', async () => {
+  it('tells the manager to review, and confirms to the employee in the system and by email', async () => {
     const r = await submitAnnual();
     const [m] = await notes(mgr.id);
     expect(m).toMatchObject({ event_type: 'LEAVE_AWAITING_MANAGER', link_path: `/leave/requests/${r.id}` });
@@ -97,7 +108,9 @@ describe('workflow notifications', () => {
     expect(mail.body_text).toContain('Annual leave');
     expect(mail.body_text).toContain('http://localhost:5173/leave/requests/');
     expect(await notes(emp.id)).toHaveLength(1);
-    expect(await mails(emp.id)).toHaveLength(0);
+    const [confirm] = await mails(emp.id);
+    expect(confirm).toMatchObject({ event_type: 'LEAVE_SUBMITTED' });
+    expect(confirm.body_text).toContain('Your manager has been asked to review it.');
   });
 
   it('never names a confidential leave type or includes the reason in an email', async () => {
@@ -116,7 +129,10 @@ describe('workflow notifications', () => {
   it('moves through the stages: HR is told after the manager, the employee after each decision', async () => {
     const r = await submitAnnual();
     await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
-    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual(['LEAVE_MANAGER_APPROVED']);
+    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual([
+      'LEAVE_SUBMITTED',
+      'LEAVE_MANAGER_APPROVED',
+    ]);
     for (const h of [hr, hr2]) {
       expect((await notes(h.id)).map((n) => n.event_type)).toEqual(['LEAVE_AWAITING_HR']);
     }
@@ -125,6 +141,7 @@ describe('workflow notifications', () => {
 
     await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
     expect((await mails(emp.id)).map((m) => m.event_type)).toEqual([
+      'LEAVE_SUBMITTED',
       'LEAVE_MANAGER_APPROVED',
       'LEAVE_HR_APPROVED',
     ]);
@@ -212,6 +229,12 @@ describe('email outbox', () => {
   });
 
   it('retries with a delay, gives up after the limit, and System Administrators can resend', async () => {
+    // Only the manager's email, for a single message to follow.
+    await db('notification_settings').insert({
+      notification_key: 'leave_submitted',
+      in_app: true,
+      email: false,
+    });
     await submitAnnual();
     await db('system_settings').where({ setting_key: 'email_max_attempts' }).update({ value: '2' });
     const failing = fake(true);
@@ -245,6 +268,116 @@ describe('email outbox', () => {
       to_address: 'ada@example.test',
       event_type: 'EMAIL_TEST',
     });
+  });
+});
+
+describe('every stage of their leave (D113)', () => {
+  it('confirms a withdrawal to the employee, and tells the manager it no longer needs a decision', async () => {
+    const r = await submitAnnual();
+    expect((await as(emp).post(`/api/leave/requests/${r.id}/withdraw`)).body.status).toBe('WITHDRAWN');
+    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual([
+      'LEAVE_SUBMITTED',
+      'LEAVE_WITHDRAWN_CONFIRMED',
+    ]);
+    expect((await mails(mgr.id)).map((m) => m.event_type)).toEqual([
+      'LEAVE_AWAITING_MANAGER',
+      'LEAVE_WITHDRAWN',
+    ]);
+  });
+
+  it('tells the employee when HR adjusts their balance, with the reason', async () => {
+    const body = {
+      employeeId: emp.id,
+      leaveTypeId: ids.ANNUAL,
+      year: 2027,
+      amount: 2,
+      reason: 'Worked on two public holidays',
+      kind: 'ADJUSTMENT',
+    };
+    expect((await as(hr).post('/api/hr/balances', body)).status).toBe(201);
+    const [n] = await notes(emp.id);
+    expect(n).toMatchObject({ event_type: 'BALANCE_ADJUSTED', link_path: '/leave/balances' });
+    expect(n.body).toBe('Added: 2 days. Reason: Worked on two public holidays');
+    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual(['BALANCE_ADJUSTED']);
+  });
+
+  it('tells a delegate they are covering, and when the cover is revoked', async () => {
+    const res = await as(mgr).post('/api/delegations', {
+      delegateId: boss.id,
+      startDate: todayInLusaka(),
+      endDate: addDays(todayInLusaka(), 5),
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(201);
+    expect((await as(mgr).post(`/api/delegations/${res.body.id}/revoke`)).status).toBe(200);
+    expect((await mails(boss.id)).map((m) => m.event_type)).toEqual([
+      'DELEGATION_ASSIGNED',
+      'DELEGATION_REVOKED',
+    ]);
+    expect((await notes(boss.id))[0].title).toMatch(/^You are covering Mona \S+'s leave approvals$/);
+  });
+
+  it('reminds before leave starts and before the return, and chases undecided leave, each once', async () => {
+    // Leave from Monday 1 to Friday 5 March 2027; the reminders run on the working day before.
+    const r = await submitAnnual();
+    expect(await remindUndecidedBeforeStart(db, '2027-02-24')).toBe(0); // too early
+    expect(await remindUndecidedBeforeStart(db, '2027-02-26')).toBe(1);
+    expect(await remindUndecidedBeforeStart(db, '2027-02-27')).toBe(0); // already told
+    expect((await notes(mgr.id)).at(-1)).toMatchObject({
+      event_type: 'LEAVE_UNDECIDED_SOON',
+      title: expect.stringMatching(/^Not yet decided, starts on 1 Mar 2027: Ezra /),
+    });
+
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    await as(hr).post(`/api/approvals/requests/${r.id}/hr`, { action: 'APPROVE' });
+    expect(await remindLeaveStarting(db, '2027-02-25')).toBe(0);
+    expect(await remindLeaveStarting(db, '2027-02-26')).toBe(2); // the employee and their manager
+    expect(await remindLeaveStarting(db, '2027-02-27')).toBe(0);
+    const starts = (await notes(emp.id)).find((n) => n.event_type === 'LEAVE_STARTS_SOON');
+    expect(starts.title).toBe('Your leave starts 1 Mar 2027');
+    expect(starts.body).toContain('You are due back on 8 Mar 2027');
+    // The manager is told in the system only, unless the System Admin turns the email on.
+    expect((await notes(mgr.id)).some((n) => n.event_type === 'TEAM_LEAVE_STARTS')).toBe(true);
+    expect((await mails(mgr.id)).some((m) => m.event_type === 'TEAM_LEAVE_STARTS')).toBe(false);
+
+    expect(await remindBackToWork(db, '2027-03-04')).toBe(0);
+    expect(await remindBackToWork(db, '2027-03-05')).toBe(1);
+    expect(await remindBackToWork(db, '2027-03-06')).toBe(0);
+    expect((await mails(emp.id)).at(-1)).toMatchObject({
+      event_type: 'LEAVE_BACK_TO_WORK',
+      subject: 'You are due back at work on 8 Mar 2027 - Altus Group Leave',
+    });
+  });
+});
+
+describe('choosing which notifications are sent (D113)', () => {
+  it('lets the System Admin switch notifications and their emails off, but never one that asks someone to act', async () => {
+    expect((await as(emp).get('/api/admin/notifications')).status).toBe(403);
+    const got = (await as(admin).get('/api/admin/notifications')).body;
+    expect(got.groups.map((g) => g.title)).toEqual(['Their own leave', 'Managers and delegates', 'HR']);
+    const item = (key) => got.groups.flatMap((g) => g.items).find((i) => i.key === key);
+    expect(item('leave_submitted')).toMatchObject({ inApp: true, email: true, required: false });
+    expect(item('team_final')).toMatchObject({ inApp: true, email: false });
+
+    const put = await as(admin).put('/api/admin/notifications', {
+      items: [
+        { key: 'leave_submitted', inApp: false, email: true }, // off entirely: no email either
+        { key: 'leave_manager_decision', inApp: true, email: false },
+        { key: 'awaiting_manager', inApp: false, email: false }, // asks the manager to act
+      ],
+    });
+    expect(put.status).toBe(200);
+    const saved = put.body.groups.flatMap((g) => g.items);
+    expect(saved.find((i) => i.key === 'leave_submitted')).toMatchObject({ inApp: false, email: false });
+    expect(saved.find((i) => i.key === 'awaiting_manager')).toMatchObject({ inApp: true, email: false });
+    expect(await db('audit_log').where({ action: 'NOTIFICATION_SETTINGS_UPDATED' }).first('id')).toBeTruthy();
+
+    const r = await submitAnnual();
+    expect(await notes(emp.id)).toHaveLength(0);
+    expect((await notes(mgr.id)).map((n) => n.event_type)).toEqual(['LEAVE_AWAITING_MANAGER']);
+    expect(await mails(mgr.id)).toHaveLength(0);
+    await as(mgr).post(`/api/approvals/requests/${r.id}/manager`, { action: 'APPROVE' });
+    expect((await notes(emp.id)).map((n) => n.event_type)).toEqual(['LEAVE_MANAGER_APPROVED']);
+    expect(await mails(emp.id)).toHaveLength(0);
   });
 });
 
@@ -282,7 +415,7 @@ describe('reminders and escalation', () => {
     expect(res.status, JSON.stringify(res.body)).toBe(201);
     expect(await remindDocumentsDue(db)).toBe(1);
     expect(await remindDocumentsDue(db)).toBe(0);
-    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual(['DOCUMENT_DUE']);
+    expect((await mails(emp.id)).map((m) => m.event_type)).toEqual(['LEAVE_SUBMITTED', 'DOCUMENT_DUE']);
   });
 });
 
