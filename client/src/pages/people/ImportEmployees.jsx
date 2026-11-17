@@ -16,6 +16,10 @@ const COLUMNS = [
     'An existing code must match its company name. A new code with a name creates the company.',
   ],
   [
+    'branch_name',
+    'Optional. A branch of that company, for example Lusaka. Add branches under Company › Branches first.',
+  ],
+  [
     'department_name',
     'For example Credit. A new name with a new code creates the department in that company.',
   ],

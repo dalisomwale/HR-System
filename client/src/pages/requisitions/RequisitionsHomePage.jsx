@@ -18,7 +18,7 @@ import {
 } from '../../components/ui.jsx';
 import { BarList, COLORS, ColumnChart, Donut, Legend } from '../../components/charts.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { STATUS_TONES, daysLeftLabel, kwachaShort, kwachaWhole, lusakaDate, units, useRq } from './rq.js';
+import { STATUS_TONES, daysLeftLabel, kwachaWhole, lusakaDate, units, useRq } from './rq.js';
 
 const MOVEMENT = [
   { key: 'received', name: 'Received', color: COLORS.series[2] },
@@ -49,7 +49,7 @@ export default function RequisitionsHomePage() {
       <div className="stack">
         {d?.scope === 'all' && (
           <Stats>
-            <Stat label="Stock value" value={kwachaShort(d.stockValue)} to="/requisitions/stock?sort=value" />
+            <Stat label="Stock value" value={kwachaWhole(d.stockValue)} to="/requisitions/stock?sort=value" />
             <Stat
               label="Issued, last 30 days (units)"
               value={units(d.issued.current)}
@@ -75,7 +75,7 @@ export default function RequisitionsHomePage() {
               value={units(d.issued.current)}
               to="/requisitions/stock"
             />
-            <Stat label="Value issued, last 30 days" value={kwachaShort(d.valueIssued)} />
+            <Stat label="Value issued, last 30 days" value={kwachaWhole(d.valueIssued)} />
             <Stat label="Items your department uses" value={units(d.itemsUsed)} />
             <Stat
               label="Requisitions waiting for you"

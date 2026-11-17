@@ -17,7 +17,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { kwacha, kwachaShort, kwachaWhole, today, units } from './rq.js';
+import { kwacha, kwachaWhole, today, units } from './rq.js';
 
 const VIEWS = [
   { id: 'category', label: 'By category' },
@@ -105,7 +105,7 @@ export default function StockReportsPage() {
                   value={units(d.selected ? d.rows.length : d.groups.length)}
                 />
                 <Stat label="Units issued" value={units(sum(kpiRows, 'units'))} />
-                <Stat label="Value issued" value={kwachaShort(sum(kpiRows, 'value'))} />
+                <Stat label="Value issued" value={kwachaWhole(sum(kpiRows, 'value'))} />
                 <Stat label="Times issued" value={units(sum(kpiRows, 'times'))} />
               </>
             ) : (
@@ -113,7 +113,7 @@ export default function StockReportsPage() {
                 <Stat label="Received" value={units(sum(kpiRows, 'received'))} />
                 <Stat label="Issued" value={units(sum(kpiRows, 'issued'))} />
                 <Stat label="Closing stock" value={units(sum(kpiRows, 'closing'))} />
-                <Stat label="Closing value" value={kwachaShort(sum(kpiRows, 'value'))} />
+                <Stat label="Closing value" value={kwachaWhole(sum(kpiRows, 'value'))} />
               </>
             )}
           </Stats>

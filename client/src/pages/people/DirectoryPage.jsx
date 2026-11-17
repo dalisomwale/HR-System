@@ -235,6 +235,7 @@ export default function DirectoryPage() {
               <tr>
                 <Th>Employee</Th>
                 <Th>Company</Th>
+                <Th>Branch</Th>
                 <Th>Job title</Th>
                 <Th>Department</Th>
                 <Th>Line manager</Th>
@@ -259,6 +260,7 @@ export default function DirectoryPage() {
                     </div>
                   </Td>
                   <Td>{e.company ?? <span className="text-muted">Not set</span>}</Td>
+                  <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.department ?? <span className="text-muted">None</span>}</Td>
                   <Td>

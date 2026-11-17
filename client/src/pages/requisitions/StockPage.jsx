@@ -21,7 +21,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { STATE_LABELS, STATE_TONES, kwachaShort, kwachaWhole, lusakaDate, units, useRq } from './rq.js';
+import { STATE_LABELS, STATE_TONES, kwachaWhole, lusakaDate, units, useRq } from './rq.js';
 
 const FILTERS = ['q', 'categoryId', 'status', 'sort', 'companyId', 'branchId', 'departmentId'];
 
@@ -98,7 +98,7 @@ export default function StockPage() {
           <Stats>
             <Stat label="Items" value={units(d.totals.items)} />
             <Stat label="Units in stock" value={units(d.totals.units)} />
-            <Stat label="Stock value" value={kwachaShort(d.totals.value)} />
+            <Stat label="Stock value" value={kwachaWhole(d.totals.value)} />
             <Stat label="Below reorder or out" value={d.totals.low + d.totals.out} tone="danger" />
           </Stats>
         </div>

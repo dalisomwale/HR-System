@@ -25,6 +25,7 @@ export const FIELD_LABELS = {
   sex: 'Sex',
   companyId: 'Company',
   departmentId: 'Department',
+  branchId: 'Branch',
   lineManagerId: 'Line manager',
   workScheduleId: 'Working schedule',
   employmentStartDate: 'Start date',
@@ -156,7 +157,7 @@ export function useEmployeeBase() {
  */
 export function ProfileHeader({ person: p, action }) {
   // The inventory system's page header: name as the title, details and status pills beneath.
-  const details = [p.jobTitle, p.department, p.company, p.employeeNumber].filter(Boolean);
+  const details = [p.jobTitle, p.department, p.branch, p.company, p.employeeNumber].filter(Boolean);
   return (
     <div className="page-header">
       <div className="min-w-0">

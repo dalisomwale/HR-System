@@ -42,13 +42,6 @@ const k2 = new Intl.NumberFormat('en-ZM', { minimumFractionDigits: 2, maximumFra
 const k0 = new Intl.NumberFormat('en-ZM', { maximumFractionDigits: 0 });
 export const kwacha = (n) => `K${k2.format(Number(n) || 0)}`;
 export const kwachaWhole = (n) => `K${k0.format(Math.round(Number(n) || 0))}`;
-/** Short form for headline figures: K1.2m, K45k. */
-export function kwachaShort(n) {
-  const v = Number(n) || 0;
-  if (Math.abs(v) >= 1e6) return `K${(v / 1e6).toFixed(1).replace(/\.0$/, '')}m`;
-  if (Math.abs(v) >= 1e4) return `K${Math.round(v / 1e3)}k`;
-  return kwachaWhole(v);
-}
 export const units = (n) => Number(n || 0).toLocaleString('en-GB');
 export const fileSize = (b) =>
   b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;

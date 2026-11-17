@@ -109,6 +109,7 @@ export default function ProfilePage() {
                     ['Employee number', p.employeeNumber],
                     ['Job title', p.jobTitle],
                     ['Company', p.company],
+                    ['Branch', p.branch],
                     ['Department', p.department],
                     ['Line manager', p.lineManager],
                     ['Work email', p.email],

@@ -88,6 +88,7 @@ function Body({ d }) {
             <tr>
               <Th>Name</Th>
               <Th>Job title</Th>
+              <Th>Branch</Th>
               <Th>Employee number</Th>
               <Th>Contact</Th>
               <Th>Today</Th>
@@ -102,6 +103,7 @@ function Body({ d }) {
               <tr key={m.id}>
                 <Td className="font-medium">{m.name}</Td>
                 <Td>{m.jobTitle || <span className="text-muted">—</span>}</Td>
+                <Td>{m.branch || <span className="text-muted">—</span>}</Td>
                 <Td className="whitespace-nowrap">
                   {m.employeeNumber || <span className="text-muted">—</span>}
                 </Td>

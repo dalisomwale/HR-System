@@ -48,6 +48,7 @@ const FIELDS = [
   'sex',
   'companyId',
   'departmentId',
+  'branchId',
   'lineManagerId',
   'workScheduleId',
   'employmentStartDate',
@@ -65,7 +66,7 @@ const toPayload = (values, only) => {
   const out = {};
   for (const f of only ?? FIELDS) {
     const v = values[f];
-    out[f] = ['companyId', 'departmentId', 'lineManagerId', 'workScheduleId'].includes(f)
+    out[f] = ['companyId', 'departmentId', 'branchId', 'lineManagerId', 'workScheduleId'].includes(f)
       ? v
         ? Number(v)
         : null
@@ -379,6 +380,7 @@ export function EmployeeDetails({ employee: e, saved, personal = true, title = '
     ['Work email', e.email],
     ['Job title', e.jobTitle],
     ['Company', e.company],
+    ['Branch', e.branch],
     ['Department', e.department],
     ['Manager', e.lineManager],
     ...(personal ? [['Sex', SEX[e.sex]]] : []),
@@ -451,6 +453,8 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
     queryKey: ['schedules'],
     queryFn: () => api.get('/api/admin/work-schedules'),
   });
+  // Branches (D110): each belongs to a company; the employee's is one of their company's.
+  const branches = useQuery({ queryKey: ['branches'], queryFn: () => api.get('/api/admin/branches') });
 
   const {
     register,
@@ -463,7 +467,11 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
   } = useForm({ defaultValues: employee ? toForm(employee) : { ...blank, ...defaults } });
   // Fill the form once the dropdown options exist, so selected values show correctly.
   const lookupsReady =
-    departments.isSuccess && companies.isSuccess && people.isSuccess && schedules.isSuccess;
+    departments.isSuccess &&
+    companies.isSuccess &&
+    people.isSuccess &&
+    schedules.isSuccess &&
+    branches.isSuccess;
   useEffect(() => {
     if (employee && lookupsReady) reset(toForm(employee));
   }, [employee, lookupsReady, reset]);
@@ -497,6 +505,17 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
   const req = { required: 'Required' };
   // A department belongs to one company, so only the chosen company's departments are offered.
   const companyId = watch('companyId');
+  const branchId = watch('branchId');
+  const companyBranches = (branches.data?.items ?? []).filter(
+    (b) =>
+      String(b.companyId) === String(companyId) &&
+      (b.isActive || String(b.id) === String(employee?.branchId)),
+  );
+  // A branch of another company no longer fits once the company changes.
+  const clearOtherBranch = (nextCompanyId) => {
+    const b = (branches.data?.items ?? []).find((x) => String(x.id) === String(branchId));
+    if (b && String(b.companyId) !== String(nextCompanyId)) setValue('branchId', '', { shouldDirty: true });
+  };
   const activeDepartments =
     departments.data?.items.filter(
       (d) =>
@@ -566,6 +585,7 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
               if (dept && String(dept.companyId) !== ev.target.value) {
                 setValue('departmentId', '', { shouldDirty: true });
               }
+              clearOtherBranch(ev.target.value);
             }}
           >
             <option value="">Choose</option>
@@ -599,11 +619,28 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
               const dept = departments.data.items.find((d) => String(d.id) === ev.target.value);
               if (dept?.companyId && String(dept.companyId) !== String(watch('companyId'))) {
                 setValue('companyId', String(dept.companyId), { shouldDirty: true, shouldValidate: true });
+                clearOtherBranch(String(dept.companyId));
               }
             }}
           >
             <option value="">No department</option>
             <DepartmentOptions departments={activeDepartments} />
+          </Select>
+        </Field>
+        <Field
+          id="branchId"
+          label="Branch"
+          error={err('branchId')}
+          hint={companyId ? undefined : 'Choose the company first.'}
+        >
+          <Select id="branchId" invalid={!!err('branchId')} disabled={!companyId} {...register('branchId')}>
+            <option value="">No branch</option>
+            {companyBranches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+                {b.location ? ` · ${b.location}` : ''}
+              </option>
+            ))}
           </Select>
         </Field>
         <Field

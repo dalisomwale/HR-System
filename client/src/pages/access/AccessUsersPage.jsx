@@ -112,6 +112,7 @@ export default function AccessUsersPage({ module, base }) {
                 <Th>Name</Th>
                 <Th>Email</Th>
                 <Th>Company</Th>
+                <Th>Branch</Th>
                 <Th>Department</Th>
                 <Th>Role</Th>
                 <Th>Status</Th>
@@ -132,6 +133,7 @@ export default function AccessUsersPage({ module, base }) {
                     </Td>
                     <Td>{u.email}</Td>
                     <Td>{u.company ?? <span className="muted-text">Not set</span>}</Td>
+                    <Td>{u.branch ?? <span className="muted-text">—</span>}</Td>
                     <Td>{u.department ?? <span className="muted-text">—</span>}</Td>
                     <Td>
                       <Badge tone={u.isSystemRole ? 'brand' : 'neutral'}>{u.role}</Badge>

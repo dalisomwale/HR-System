@@ -214,6 +214,7 @@ export default function DepartmentPage() {
                     <Th className="text-right">#</Th>
                     <Th>Employee</Th>
                     <Th>Department name</Th>
+                    <Th>Branch</Th>
                     <Th>Job title</Th>
                     <Th>Email</Th>
                     <Th>Line manager</Th>
@@ -240,6 +241,7 @@ export default function DepartmentPage() {
                           </div>
                         </Td>
                         <Td>{e.department ?? d.name}</Td>
+                        <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>
                         <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
                         <Td>
                           {e.email ? (
