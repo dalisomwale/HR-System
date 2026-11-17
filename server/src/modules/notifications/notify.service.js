@@ -22,7 +22,8 @@ export const notificationSettings = () => ({ ...settings });
  * @param {string} [n.body]  in-app text
  * @param {string} [n.link]  in-app path, e.g. /leave/requests/42
  * @param {string} [n.entityType] @param {number} [n.entityId]
- * @param {object} [n.email] { subject, heading, intro, rows, action } — omitted for in-app only
+ * @param {object} [n.email] { subject, heading, intro, rows, action, app } — omitted for in-app only;
+ *   app is 'leave' (default) or 'inventory'
  */
 export async function notify(trx, { recipients, event, title, body, link, entityType, entityId, email }) {
   const ids = [...new Set(recipients.filter((x) => Number.isInteger(x)))];
@@ -58,11 +59,16 @@ export async function notify(trx, { recipients, event, title, body, link, entity
           rows: email.rows,
           action: email.action,
           url,
+          app: email.app,
         });
         return {
           recipient_id: p.id,
           to_address: p.email,
-          subject: `${email.subject ?? title} - Altus Group Leave`.slice(0, 255),
+          subject:
+            `${email.subject ?? title} - Altus Group ${email.app === 'inventory' ? 'Inventory' : 'Leave'}`.slice(
+              0,
+              255,
+            ),
           body_html: html,
           body_text: text,
           event_type: event,

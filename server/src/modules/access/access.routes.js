@@ -30,11 +30,12 @@ function moduleAudit(module) {
         'work_schedule',
         'delegation',
         'leave_year',
-        'job',
         'email',
         'leave_role',
         'leave_user',
       ])
+        // Job runs, except the inventory's stock summary (D111).
+        .orWhere((q) => q.where('a.entity_type', 'job').whereNot('a.entity_id', 'like', 'STOCK_%'))
         .orWhere((q) =>
           q.where('a.entity_type', 'system_setting').whereNot('a.action', 'like', 'REQUISITION_%'),
         )
@@ -64,7 +65,8 @@ function moduleAudit(module) {
       ])
         .orWhere('a.action', 'like', 'INVENTORY_%')
         .orWhere('a.action', 'like', 'STOCK_%')
-        .orWhere('a.action', 'like', 'REQUISITION_%');
+        .orWhere('a.action', 'like', 'REQUISITION_%')
+        .orWhere((q) => q.where('a.entity_type', 'job').where('a.entity_id', 'like', 'STOCK_%'));
     }
   };
 }
@@ -250,6 +252,7 @@ export function accessRoutes({ db }) {
         .join('access_roles as r', 'r.id', 'u.role_id')
         .leftJoin('companies as c', 'c.id', 'e.company_id')
         .leftJoin('departments as d', 'd.id', 'e.department_id')
+        .leftJoin('stock_branches as br', 'br.id', 'e.branch_id')
         .where('u.module', req.module)
         .orderBy(['e.first_name', 'e.last_name'])
         .select(
@@ -262,6 +265,7 @@ export function accessRoutes({ db }) {
           'e.status',
           'c.name as company',
           'd.name as department',
+          'br.name as branch',
           'r.id as role_id',
           'r.name as role',
           'r.is_system',
@@ -272,6 +276,7 @@ export function accessRoutes({ db }) {
           name: `${r.first_name} ${r.last_name}`,
           email: r.email,
           company: r.company,
+          branch: r.branch,
           department: r.department,
           roleId: r.role_id,
           role: r.role,

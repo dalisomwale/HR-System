@@ -528,3 +528,46 @@ describe('calendar and settings', () => {
     );
   });
 });
+
+describe('branches on the employee record (D110)', () => {
+  it('keeps the branch one of the employee’s company’s, and clears it when the company changes', async () => {
+    const [afs] = await db('companies').insert({ code: 'AFS', name: 'Altus Financial Services Limited' });
+    const [aib] = await db('companies').insert({ code: 'AIB', name: 'Altus Insurance Brokers' });
+    const [lusaka] = await db('stock_branches').insert({ company_id: afs, name: 'Lusaka' });
+    const [kitwe] = await db('stock_branches').insert({ company_id: aib, name: 'Kitwe' });
+
+    // Another company's branch is refused; the company's own is kept.
+    const bad = await post('/api/admin/employees', newEmployee({ companyId: afs, branchId: kitwe }));
+    expect(bad.status).toBe(400);
+    expect(bad.body.error?.message ?? bad.body.message).toMatch(/Altus Insurance Brokers/);
+    const made = await post('/api/admin/employees', newEmployee({ companyId: afs, branchId: lusaka }));
+    expect(made.status).toBe(201);
+    const id = made.body.id;
+    let rec = await admin.agent.get(`/api/people/employees/${id}`);
+    expect(rec.body).toMatchObject({ branchId: lusaka, branch: 'Lusaka' });
+    const list = await admin.agent.get(`/api/people/employees?branchId=${lusaka}`);
+    expect(list.body.items.map((e) => e.branch)).toEqual(['Lusaka']);
+
+    // Moving to another company drops the old company's branch, and the history says so.
+    expect((await patch(`/api/admin/employees/${id}`, { companyId: aib })).status).toBe(200);
+    rec = await admin.agent.get(`/api/people/employees/${id}`);
+    expect(rec.body).toMatchObject({ companyId: aib, branchId: null, branch: null });
+    const history = await db('employee_history').where({ employee_id: id });
+    expect(JSON.stringify(history)).toMatch(/branchId/);
+  });
+
+  it('imports the branch by name within the row’s company', async () => {
+    const [afs] = await db('companies').insert({ code: 'AFS', name: 'Altus Financial Services Limited' });
+    await db('stock_branches').insert({ company_id: afs, name: 'Lusaka' });
+    const csv = [
+      'employee_number,first_name,last_name,company_code,branch_name,employment_start_date',
+      'B1,Mwila,Banda,AFS,lusaka,2025-01-06',
+      'B2,Chola,Phiri,AFS,Ndola,2025-01-06',
+    ].join('\n');
+    const preview = await post('/api/admin/employees/import/preview', { csv });
+    expect(preview.status).toBe(200);
+    const rows = preview.body.rows;
+    expect(rows[0].errors).toEqual([]);
+    expect(rows[1].errors.join(' ')).toMatch(/branch Ndola does not exist/);
+  });
+});

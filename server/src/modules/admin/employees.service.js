@@ -35,6 +35,8 @@ const baseFields = {
     .transform((v) => v ?? null),
   companyId: optionalId,
   departmentId: optionalId,
+  // The branch the employee works from (D110); one of their company's.
+  branchId: optionalId,
   lineManagerId: optionalId,
   workScheduleId: optionalId,
   employmentStartDate: isoDate,
@@ -72,6 +74,7 @@ const COLUMN = {
   sex: 'sex',
   companyId: 'company_id',
   departmentId: 'department_id',
+  branchId: 'branch_id',
   lineManagerId: 'line_manager_id',
   workScheduleId: 'work_schedule_id',
   employmentStartDate: 'employment_start_date',
@@ -90,6 +93,7 @@ const COLUMN = {
 const LOOKUP = {
   companyId: async (trx, v) => (await trx('companies').where({ id: v }).first('name'))?.name,
   departmentId: async (trx, v) => (await trx('departments').where({ id: v }).first('name'))?.name,
+  branchId: async (trx, v) => (await trx('stock_branches').where({ id: v }).first('name'))?.name,
   workScheduleId: async (trx, v) => (await trx('work_schedules').where({ id: v }).first('name'))?.name,
   lineManagerId: async (trx, v) => {
     const m = await trx('employees').where({ id: v }).first('first_name', 'last_name');
@@ -158,6 +162,32 @@ async function resolveCompany(trx, input, before = null) {
   return input.companyId === null ? null : undefined;
 }
 
+/**
+ * The employee's branch (D110): one of their company's, and active when newly chosen. When the
+ * company changes and the branch is left as it was, a branch of the old company is cleared.
+ * Returns the branch id to store, or undefined to leave it alone.
+ */
+async function resolveBranch(trx, input, companyId, before = null) {
+  if (input.branchId === undefined) {
+    if (before?.branch_id && companyId != null && companyId !== before.company_id) {
+      const b = await trx('stock_branches').where({ id: before.branch_id }).first('company_id');
+      if (b?.company_id !== companyId) return null;
+    }
+    if (before?.branch_id && companyId === null) return null;
+    return undefined;
+  }
+  if (input.branchId === null) return null;
+  const b = await trx('stock_branches as b')
+    .join('companies as c', 'c.id', 'b.company_id')
+    .where('b.id', input.branchId)
+    .first('b.company_id', 'b.is_active', 'c.name as company_name');
+  if (!b) throw badRequest('Branch not found.');
+  if (!b.is_active && input.branchId !== before?.branch_id) throw badRequest('That branch is closed.');
+  if (!companyId) throw badRequest('Choose the company before the branch.');
+  if (b.company_id !== companyId) throw badRequest(`That branch belongs to ${b.company_name}.`);
+  return input.branchId;
+}
+
 /** Check department, schedule and manager, including reporting loops. */
 export async function validateRelations(trx, { departmentId, lineManagerId, workScheduleId }, selfId = null) {
   if (departmentId) {
@@ -212,6 +242,8 @@ export async function createEmployee(trx, input, audit) {
   const row = toRow(input);
   const companyId = await resolveCompany(trx, input);
   if (companyId !== undefined) row.company_id = companyId;
+  const branchId = await resolveBranch(trx, input, row.company_id ?? null);
+  if (branchId !== undefined) row.branch_id = branchId;
   if (!row.work_schedule_id) row.work_schedule_id = await defaultScheduleId(trx);
   const [id] = await trx('employees').insert({ ...row, status: 'ACTIVE' });
   await writeHistory(trx, id, 'CREATED', [], audit.actorEmployeeId, audit.historyReason ?? null);
@@ -235,6 +267,13 @@ export async function updateEmployee(trx, id, input, audit) {
   const row = toRow(input);
   const companyId = await resolveCompany(trx, input, before);
   if (companyId !== undefined) row.company_id = companyId;
+  const branchId = await resolveBranch(
+    trx,
+    input,
+    row.company_id !== undefined ? row.company_id : before.company_id,
+    before,
+  );
+  if (branchId !== undefined) row.branch_id = branchId;
   if (Object.keys(row).length === 0) return;
   await trx('employees').where({ id }).update(row);
   const changes = [];

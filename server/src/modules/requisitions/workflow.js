@@ -194,7 +194,7 @@ const NEXT_TITLES = {
 
 /** Tell the people whose turn it now is, and the raiser when it is paid, received or returned. */
 export async function notifyStage(trx, r, status, actorId) {
-  const link = `/requisitions/${r.id}`;
+  const link = `/requisitions/requests/${r.id}`;
   const label = `${ref(r.id)} · ${r.item_name}`;
   const next = (await actorsFor(trx, status, r)).filter((id) => id !== actorId);
   if (NEXT_TITLES[status] && next.length) {
@@ -212,6 +212,7 @@ export async function notifyStage(trx, r, status, actorId) {
         intro: `${r.quantity} × ${r.item_name}`,
         rows: [['Stage', STAGES[status].label]],
         action: 'Open the requisition',
+        app: 'inventory',
       },
     });
   }

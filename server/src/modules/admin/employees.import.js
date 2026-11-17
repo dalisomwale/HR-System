@@ -12,6 +12,7 @@ export const IMPORT_COLUMNS = [
   'job_title',
   'company_name',
   'company_code',
+  'branch_name',
   'department_name',
   'department_code',
   'manager_employee_name',
@@ -73,6 +74,9 @@ export async function validateImport(db, csvText) {
   const deptKey = (companyKey, x) => `${companyKey}|${x}`;
   const deptByCode = new Map(departments.map((d) => [deptKey(d.company_id, d.code.toUpperCase()), d]));
   const deptByName = new Map(departments.map((d) => [deptKey(d.company_id, personKey(d.name)), d]));
+  // Branches, by name within their company (D110).
+  const branches = await db('stock_branches').select('id', 'company_id', 'name', 'is_active');
+  const branchByName = new Map(branches.map((b) => [`${b.company_id}|${personKey(b.name)}`, b]));
   const existing = await db('employees').select(
     'id',
     'employee_number',
@@ -239,6 +243,21 @@ export async function validateImport(db, csvText) {
       } else useDept(d);
     }
 
+    // Branch, one of the row's company's (D110). Optional.
+    let branchId = null;
+    if (raw.branch_name) {
+      if (typeof companyKey === 'number') {
+        const b = branchByName.get(`${companyKey}|${personKey(raw.branch_name)}`);
+        if (!b) errors.push(`branch ${raw.branch_name} does not exist in ${companyLabel}`);
+        else if (!b.is_active) errors.push(`branch ${b.name} is closed`);
+        else branchId = b.id;
+      } else if (companyKey !== null) {
+        errors.push(
+          `branch ${raw.branch_name}: the company is new in this file, so add its branches in Employee management first`,
+        );
+      }
+    }
+
     let manager = null;
     if (raw.manager_employee_number) {
       if (raw.manager_employee_number === raw.employee_number) {
@@ -278,7 +297,7 @@ export async function validateImport(db, csvText) {
       employeeNumber: raw.employee_number,
       name: `${raw.first_name} ${raw.last_name}`.trim(),
       errors,
-      input: parsed.success ? { ...parsed.data, departmentId } : null,
+      input: parsed.success ? { ...parsed.data, departmentId, branchId } : null,
       companyKey,
       newDepartment,
       manager,

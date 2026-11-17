@@ -1,5 +1,6 @@
 import { processOutbox } from './email-worker.js';
 import { runDailyReminders } from './reminders.js';
+import { sendStockDigest } from '../requisitions/stock-alerts.js';
 
 /**
  * Background work inside the API process: send queued email every 30 seconds and run the daily
@@ -41,6 +42,20 @@ export function startBackgroundJobs({
       if (!r?.skipped) logger.info(r, 'Daily reminders run');
     } catch (err) {
       logger.error({ err }, 'Daily reminders failed');
+    }
+    // The daily summary of stock that needs reordering (D111): once per Lusaka day, from 07:00.
+    try {
+      const hour = Number(
+        new Intl.DateTimeFormat('en-GB', {
+          hour: 'numeric',
+          hour12: false,
+          timeZone: 'Africa/Lusaka',
+        }).format(new Date()),
+      );
+      const s = hour >= 7 ? await sendStockDigest(db) : { skipped: true };
+      if (!s?.skipped) logger.info(s, 'Stock reorder summary run');
+    } catch (err) {
+      logger.error({ err }, 'Stock reorder summary failed');
     } finally {
       reminding = false;
     }

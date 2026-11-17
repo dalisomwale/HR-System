@@ -9,6 +9,7 @@ import { toXlsx } from '../reports/export-files.js';
 import { FUNCTIONS, need } from './access.js';
 import { changeBranchStock, forecast, kwacha, movementCount, runningLow } from './stock.service.js';
 import { logEvent, notifyStage, ref } from './workflow.js';
+import { alertIfCrossed } from './stock-alerts.js';
 
 /*
  * Stock (D105): items, categories, branches, receiving, issuing, transactions, monthly reports and
@@ -619,6 +620,14 @@ export function stockRoutes({ db }) {
           ...(locked || input.unitPrice === undefined ? {} : { unit_price: input.unitPrice }),
         };
         await trx('stock_items').where({ id }).update(changes);
+        // A higher reorder level can put the item below it (D111).
+        await alertIfCrossed(trx, {
+          item: { ...item, name: input.name },
+          before: Number(item.quantity),
+          after: Number(item.quantity),
+          levelBefore: item.reorder_level,
+          levelAfter: input.reorderLevel,
+        });
         await writeAudit(trx, {
           ...auditContext(req),
           action: 'STOCK_ITEM_UPDATED',
@@ -872,7 +881,9 @@ export function stockRoutes({ db }) {
       const input = issueSchema.parse(req.body);
       const out = await db.transaction(async (trx) => {
         const b = await checkBranch(trx, input.branchId);
-        const item = await trx('stock_items').where({ id: input.itemId }).first('id', 'name');
+        const item = await trx('stock_items')
+          .where({ id: input.itemId })
+          .first('id', 'name', 'reorder_level');
         if (!item) throw badRequest('Choose an item.');
         const dept = await trx('departments as d')
           .join('companies as co', 'co.id', 'd.company_id')
@@ -880,6 +891,9 @@ export function stockRoutes({ db }) {
           .first('d.id', 'd.name', 'co.name as company');
         if (!dept) throw badRequest('Choose the department receiving the stock.');
         const [o, n] = await changeBranchStock(trx, item.id, b.id, -input.quantity);
+        // Low or out across all branches now? Tell the stock keepers (D111).
+        const total = Number((await trx('stock_items').where({ id: item.id }).first('quantity')).quantity);
+        await alertIfCrossed(trx, { item, before: total + input.quantity, after: total });
         const issuedTo = `${dept.name} — ${dept.company}`;
         await trx('stock_issues').insert({
           item_id: item.id,

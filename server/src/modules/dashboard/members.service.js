@@ -40,6 +40,7 @@ function peopleQuery(db, scope) {
     .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
     .leftJoin('companies as co', 'co.id', 'e.company_id')
+    .leftJoin('stock_branches as br', 'br.id', 'e.branch_id')
     .where('e.status', 'ACTIVE')
     .orderBy(['e.first_name', 'e.last_name'])
     .select(
@@ -54,6 +55,7 @@ function peopleQuery(db, scope) {
       'e.line_manager_id',
       'd.name as dept_name',
       'co.name as company_name',
+      'br.name as branch_name',
       'm.first_name as mgr_first',
       'm.last_name as mgr_last',
     );
@@ -110,6 +112,7 @@ export async function describeMembers(db, people, viewerId) {
       employeeNumber: p.employee_number,
       jobTitle: p.job_title,
       company: p.company_name,
+      branch: p.branch_name,
       department: p.dept_name,
       email: p.email,
       mobilePhone: p.mobile_phone,

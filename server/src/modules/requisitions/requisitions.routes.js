@@ -277,7 +277,13 @@ export function requisitionRoutes({ db, config, logger }) {
       const status = input.isIt ? 'QUOTES_IT' : 'QUOTES_DEPT';
 
       const id = await db.transaction(async (trx) => {
+        // The branch it is for: the raiser's own (D110), when it is in the requisition's company.
+        const own = await trx('employees as e')
+          .join('stock_branches as b', 'b.id', 'e.branch_id')
+          .where({ 'e.id': c.id, 'b.is_active': true, 'b.company_id': companyId ?? 0 })
+          .first('b.id');
         const [newId] = await trx('requisitions').insert({
+          branch_id: own?.id ?? null,
           item_name: input.itemName,
           item_id: item?.id ?? null,
           category_id: category.id,

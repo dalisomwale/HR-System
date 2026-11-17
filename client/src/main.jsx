@@ -184,6 +184,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="requests" element={rqPage(<RequisitionsListPage />)} />
               <Route path="requests/new" element={rqPage(<RaisePage />, (a) => a.canRaise)} />
               <Route path="requests/:id" element={rqPage(<RequisitionPage />)} />
+              {/* Links in notifications sent before 17 Nov 2026 went to /requisitions/42. */}
+              <Route path=":id" element={<ToPeople base="/requisitions/requests" />} />
               <Route path="stock" element={rqPage(<StockPage />, (a) => a.stock)} />
               <Route path="stock/new" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
               <Route path="stock/:id" element={rqPage(<ItemPage />, (a) => a.stock)} />

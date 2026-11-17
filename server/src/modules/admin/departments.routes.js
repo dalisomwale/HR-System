@@ -118,6 +118,15 @@ export function departmentRoutes({ db }) {
           if (Object.keys(patch).length) await trx('departments').where({ id }).update(patch);
           if (patch.company_id !== undefined) {
             await trx('employees').where({ department_id: id }).update({ company_id: patch.company_id });
+            // Their branch was the old company's (D110): it no longer applies.
+            await trx('employees')
+              .where({ department_id: id })
+              .whereNotNull('branch_id')
+              .whereNotIn(
+                'branch_id',
+                trx('stock_branches').where({ company_id: patch.company_id }).select('id'),
+              )
+              .update({ branch_id: null });
           }
           await writeAudit(trx, {
             ...auditContext(req),

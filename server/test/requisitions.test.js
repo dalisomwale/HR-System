@@ -416,10 +416,95 @@ describe('Requisitions: Employee management is the source of people and departme
     expect(told).not.toContain(ids.director);
   });
 
+  it('records the raiser’s branch from their employee record (D110)', async () => {
+    await db('employees').where({ id: ids.manager }).update({ branch_id: branch });
+    const r = await raise(people.manager);
+    expect(r.status).toBe(201);
+    const detail = await as(people.manager).get(`/api/requisitions/${r.body.id}`);
+    expect(detail.body.branch).toMatchObject({ id: branch, name: 'Head Office' });
+  });
+
   it('refuses a requisition from a department closed in Employee management', async () => {
     await db('departments').where({ id: dept.credit }).update({ is_active: false });
     const r = await raise(people.manager);
     expect(r.status).toBe(400);
     expect(r.body.message ?? r.body.error?.message ?? JSON.stringify(r.body)).toMatch(/closed/);
+  });
+});
+
+describe('Stock threshold alerts (D111)', () => {
+  const issueOf = (item, quantity) =>
+    as(people.storekeeper).post('/api/stock/issue', {
+      itemId: item,
+      branchId: branch,
+      departmentId: dept.credit,
+      quantity,
+      recipient: 'Mary Phiri',
+      dateIssued: todayInLusaka(),
+    });
+  const alertsFor = (id, event) =>
+    db('notifications').where({ recipient_id: id, event_type: event }).orderBy('id');
+
+  it('emails the stock keepers once when an item falls to its reorder level, and again when it runs out', async () => {
+    const { configureNotifications } = await import('../src/modules/notifications/notify.service.js');
+    configureNotifications({ emailEnabled: true, appUrl: 'https://hr.example.test' });
+    try {
+      const made = await as(people.storekeeper).post('/api/stock/items', {
+        name: 'HP 305A toner',
+        categoryId: cat,
+        reorderLevel: 3,
+        unitPrice: 900,
+        openingQuantity: 6,
+        branchId: branch,
+      });
+      const item = made.body.id;
+      // 6 -> 4: still above the level, no alert.
+      expect((await issueOf(item, 2)).status).toBe(201);
+      expect(await alertsFor(ids.storekeeper, 'STOCK_LOW')).toHaveLength(0);
+      // 4 -> 3: at the level: one alert, with an email from the inventory system.
+      expect((await issueOf(item, 1)).status).toBe(201);
+      const low = await alertsFor(ids.storekeeper, 'STOCK_LOW');
+      expect(low).toHaveLength(1);
+      expect(low[0]).toMatchObject({
+        title: 'HP 305A toner is running low',
+        link_path: `/requisitions/stock/${item}`,
+      });
+      const mail = await db('email_outbox')
+        .where({ recipient_id: ids.storekeeper, event_type: 'STOCK_LOW' })
+        .first();
+      expect(mail.subject).toBe('HP 305A toner is running low - Altus Group Inventory');
+      expect(mail.body_text).toMatch(/Inventory System/);
+      expect(mail.body_text).toMatch(/Reorder level: 3/);
+      // 3 -> 2: still low, no second alert. People outside Stores are not told.
+      expect((await issueOf(item, 1)).status).toBe(201);
+      expect(await alertsFor(ids.storekeeper, 'STOCK_LOW')).toHaveLength(1);
+      expect(await alertsFor(ids.staff, 'STOCK_LOW')).toHaveLength(0);
+      // 2 -> 0: out of stock.
+      expect((await issueOf(item, 2)).status).toBe(201);
+      expect(await alertsFor(ids.storekeeper, 'STOCK_OUT')).toHaveLength(1);
+    } finally {
+      configureNotifications({ emailEnabled: false, appUrl: '' });
+    }
+  });
+
+  it('sends the daily reorder summary once a day, only when something is low', async () => {
+    const { sendStockDigest } = await import('../src/modules/requisitions/stock-alerts.js');
+    expect(await sendStockDigest(db, '2026-11-17')).toMatchObject({ items: 0 });
+    expect(await alertsFor(ids.storekeeper, 'STOCK_DIGEST')).toHaveLength(0);
+    await as(people.storekeeper).post('/api/stock/items', {
+      name: 'Stapler',
+      categoryId: cat,
+      reorderLevel: 5,
+      unitPrice: 120,
+      openingQuantity: 2,
+      branchId: branch,
+    });
+    expect(await sendStockDigest(db, '2026-11-18')).toMatchObject({ items: 1 });
+    const digest = await alertsFor(ids.storekeeper, 'STOCK_DIGEST');
+    expect(digest).toHaveLength(1);
+    expect(digest[0].title).toBe('1 item needs reordering');
+    // Run again the same day: nothing more is sent.
+    expect(await sendStockDigest(db, '2026-11-18')).toMatchObject({ skipped: true });
+    expect(await alertsFor(ids.storekeeper, 'STOCK_DIGEST')).toHaveLength(1);
   });
 });

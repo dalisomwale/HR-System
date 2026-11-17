@@ -61,6 +61,7 @@ function baseList(db) {
   return db('employees as e')
     .leftJoin('companies as c', 'c.id', 'e.company_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .leftJoin('stock_branches as br', 'br.id', 'e.branch_id')
     .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
     .leftJoin('identity_links as l', 'l.employee_id', 'e.id');
 }
@@ -86,6 +87,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
   if (query.companyId === 'none') q.whereNull('e.company_id');
   else if (query.companyId) q.where('e.company_id', Number(query.companyId) || 0);
   if (query.departmentId) q.where('e.department_id', Number(query.departmentId) || 0);
+  if (query.branchId) q.where('e.branch_id', Number(query.branchId) || 0);
   if (query.employmentType) q.where('e.employment_type', String(query.employmentType));
   if (query.linked === 'false') q.whereNull('l.id');
   if (query.linked === 'true') q.whereNotNull('l.id');
@@ -113,6 +115,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
       'e.probation_status',
       'c.name as company_name',
       'd.name as department_name',
+      'br.name as branch_name',
       'm.id as manager_id',
       'm.first_name as manager_first',
       'm.last_name as manager_last',
@@ -141,6 +144,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
       jobTitle: r.job_title,
       status: r.status,
       company: r.company_name,
+      branch: r.branch_name,
       department: r.department_name,
       lineManager: name(r.manager_first, r.manager_last),
       lineManagerId: r.manager_id,
@@ -176,6 +180,7 @@ export async function employeeRecord(db, id) {
   const e = await db('employees as e')
     .leftJoin('companies as c', 'c.id', 'e.company_id')
     .leftJoin('departments as d', 'd.id', 'e.department_id')
+    .leftJoin('stock_branches as br', 'br.id', 'e.branch_id')
     .leftJoin('employees as m', 'm.id', 'e.line_manager_id')
     .leftJoin('work_schedules as w', 'w.id', 'e.work_schedule_id')
     .where('e.id', id)
@@ -183,6 +188,7 @@ export async function employeeRecord(db, id) {
       'e.*',
       'c.name as company_name',
       'd.name as department_name',
+      'br.name as branch_name',
       'm.first_name as manager_first',
       'm.last_name as manager_last',
       'm.employee_number as manager_number',
@@ -208,6 +214,8 @@ export async function employeeRecord(db, id) {
     sex: e.sex,
     companyId: e.company_id,
     company: e.company_name,
+    branchId: e.branch_id,
+    branch: e.branch_name,
     departmentId: e.department_id,
     department: e.department_name,
     lineManagerId: e.line_manager_id,

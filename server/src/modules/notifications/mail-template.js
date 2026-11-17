@@ -4,7 +4,16 @@
  * No medical details, comments, attachments or other people's balances.
  */
 
-const NAVY = '#000080';
+const NAVY = '#25398d';
+// Which application the email is from; leave emails read as they always have.
+const APPS = {
+  leave: { name: 'Leave Management', open: 'Open in the leave system', sent: 'the Altus Group leave system' },
+  inventory: {
+    name: 'Inventory System',
+    open: 'Open in the inventory system',
+    sent: 'the Altus Group inventory system',
+  },
+};
 
 const escape = (s) =>
   String(s ?? '')
@@ -22,8 +31,10 @@ const escape = (s) =>
  * @param {Array<[string,string]>} m.rows  label / value pairs
  * @param {string} [m.action]      what the recipient should do
  * @param {string} [m.url]         absolute link into the system
+ * @param {string} [m.app]         'leave' (default) or 'inventory'
  */
-export function renderEmail({ greetingName, heading, intro, rows = [], action, url }) {
+export function renderEmail({ greetingName, heading, intro, rows = [], action, url, app = 'leave' }) {
+  const a = APPS[app] ?? APPS.leave;
   const text = [
     `Dear ${greetingName},`,
     '',
@@ -31,10 +42,10 @@ export function renderEmail({ greetingName, heading, intro, rows = [], action, u
     '',
     ...rows.map(([k, v]) => `${k}: ${v}`),
     ...(action ? ['', action] : []),
-    ...(url ? ['', `Open in the leave system: ${url}`] : []),
+    ...(url ? ['', `${a.open}: ${url}`] : []),
     '',
     '--',
-    'Altus Group - Leave Management',
+    `Altus Group - ${a.name}`,
     'This message was sent automatically. Do not reply to it.',
   ].join('\r\n');
 
@@ -50,16 +61,16 @@ export function renderEmail({ greetingName, heading, intro, rows = [], action, u
 <body style="margin:0;padding:0;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#1d2433">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8"><tr><td align="center" style="padding:24px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #dce1e8;border-top:4px solid ${NAVY}">
-<tr><td style="padding:20px 24px 8px 24px;font-size:16px;font-weight:700;color:${NAVY}">Altus Group<span style="font-weight:400;color:#5b6475"> &middot; Leave Management</span></td></tr>
+<tr><td style="padding:20px 24px 8px 24px;font-size:16px;font-weight:700;color:${NAVY}">Altus Group<span style="font-weight:400;color:#5b6475"> &middot; ${a.name}</span></td></tr>
 <tr><td style="padding:8px 24px 0 24px"><h1 style="margin:0;font-size:19px;color:#1d2433">${escape(heading)}</h1></td></tr>
 <tr><td style="padding:12px 24px 0 24px">
 <p style="margin:0 0 12px 0">Dear ${escape(greetingName)},</p>
 <p style="margin:0 0 16px 0">${escape(intro)}</p>
 ${rowHtml ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;font-size:14px">${rowHtml}</table>` : ''}
 ${action ? `<p style="margin:0 0 16px 0">${escape(action)}</p>` : ''}
-${url ? `<p style="margin:0 0 20px 0"><a href="${escape(url)}" style="display:inline-block;background:${NAVY};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:4px;font-weight:600">Open in the leave system</a></p>` : ''}
+${url ? `<p style="margin:0 0 20px 0"><a href="${escape(url)}" style="display:inline-block;background:${NAVY};color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:4px;font-weight:600">${a.open}</a></p>` : ''}
 </td></tr>
-<tr><td style="padding:12px 24px 20px 24px;border-top:1px solid #dce1e8;font-size:12px;color:#5b6475">This message was sent automatically by the Altus Group leave system. Do not reply to it.</td></tr>
+<tr><td style="padding:12px 24px 20px 24px;border-top:1px solid #dce1e8;font-size:12px;color:#5b6475">This message was sent automatically by ${a.sent}. Do not reply to it.</td></tr>
 </table></td></tr></table></body></html>`;
 
   return { html, text };
