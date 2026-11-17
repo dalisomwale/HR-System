@@ -49,6 +49,7 @@ import StockReportsPage from './pages/requisitions/StockReportsPage.jsx';
 import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
+import StockAlertsPage from './pages/requisitions/StockAlertsPage.jsx';
 import SuppliersPage from './pages/requisitions/SuppliersPage.jsx';
 import AccessUsersPage from './pages/access/AccessUsersPage.jsx';
 import AccessRolesPage from './pages/access/AccessRolesPage.jsx';
@@ -200,6 +201,7 @@ createRoot(document.getElementById('root')).render(
               />
               <Route path="branches" element={<Navigate to="/people/branches" replace />} />
               <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
+              <Route path="alerts" element={rqPage(<StockAlertsPage />, (a) => a.alertsAdmin)} />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
               <Route
                 path="users"

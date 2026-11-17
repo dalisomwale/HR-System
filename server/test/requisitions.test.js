@@ -444,6 +444,24 @@ describe('Stock threshold alerts (D111)', () => {
     });
   const alertsFor = (id, event) =>
     db('notifications').where({ recipient_id: id, event_type: event }).orderBy('id');
+  // Stock alerts go to inventory users whose role can receive stock or manage items (D112).
+  const giveRole = async (who, name, perms) => {
+    const [roleId] = await db('access_roles').insert({ module: 'inventory', name });
+    if (perms.length) {
+      await db('access_role_permissions').insert(
+        perms.map((permission) => ({ role_id: roleId, permission })),
+      );
+    }
+    await db('access_users').insert({ module: 'inventory', employee_id: ids[who], role_id: roleId });
+  };
+  beforeEach(async () => {
+    await giveRole('storekeeper', 'Storekeeper', [
+      'stock.view',
+      'stock.receive',
+      'stock.issue',
+      'items.manage',
+    ]);
+  });
 
   it('emails the stock keepers once when an item falls to its reorder level, and again when it runs out', async () => {
     const { configureNotifications } = await import('../src/modules/notifications/notify.service.js');
@@ -475,7 +493,7 @@ describe('Stock threshold alerts (D111)', () => {
       expect(mail.subject).toBe('HP 305A toner is running low - Altus Group Inventory');
       expect(mail.body_text).toMatch(/Inventory System/);
       expect(mail.body_text).toMatch(/Reorder level: 3/);
-      // 3 -> 2: still low, no second alert. People outside Stores are not told.
+      // 3 -> 2: still low, no second alert. People without a stock keeper's role are not told.
       expect((await issueOf(item, 1)).status).toBe(201);
       expect(await alertsFor(ids.storekeeper, 'STOCK_LOW')).toHaveLength(1);
       expect(await alertsFor(ids.staff, 'STOCK_LOW')).toHaveLength(0);
@@ -506,5 +524,40 @@ describe('Stock threshold alerts (D111)', () => {
     // Run again the same day: nothing more is sent.
     expect(await sendStockDigest(db, '2026-11-18')).toMatchObject({ skipped: true });
     expect(await alertsFor(ids.storekeeper, 'STOCK_DIGEST')).toHaveLength(1);
+  });
+
+  it('lets the System Admin choose which stock keepers get the alerts (D112)', async () => {
+    const { stockKeepers } = await import('../src/modules/requisitions/stock-alerts.js');
+    // Stores staff without an inventory role, and roles that only view stock, cannot get them.
+    await db('access_users').where({ module: 'inventory', employee_id: ids.storekeeper }).del();
+    await giveRole('staff', 'Viewer', ['stock.view']);
+    await giveRole('clerk', 'Receiver', ['stock.view', 'stock.receive']);
+    const sys = await db('access_roles').where({ module: 'inventory', is_system: true }).first('id');
+    await db('access_users').insert({ module: 'inventory', employee_id: ids.manager, role_id: sys.id });
+    expect((await stockKeepers(db)).sort()).toEqual([ids.clerk, ids.manager].sort());
+
+    // Only the System Admin role (or the System Administrator) can open the page.
+    expect((await as(people.clerk).get('/api/stock/alerts')).status).toBe(403);
+    expect((await as(people.manager).get('/api/requisitions/me')).body.alertsAdmin).toBe(true);
+    const list = (await as(people.manager).get('/api/stock/alerts')).body.items;
+    expect(list.map((p) => [p.employeeId, p.receives]).sort()).toEqual(
+      [
+        [ids.clerk, true],
+        [ids.manager, true],
+      ].sort(),
+    );
+
+    // Turn the manager's alerts off: only the clerk gets them now, and the change is audited.
+    const put = await as(people.manager).put('/api/stock/alerts', { employeeIds: [ids.clerk] });
+    expect(put.status).toBe(200);
+    expect(await stockKeepers(db)).toEqual([ids.clerk]);
+    expect(
+      await db('audit_log').where({ action: 'STOCK_ALERTS_UPDATED', entity_id: 'stock_alerts' }).first('id'),
+    ).toBeTruthy();
+
+    // Someone whose role cannot receive stock or manage items cannot be added.
+    const bad = await as(people.admin).put('/api/stock/alerts', { employeeIds: [ids.clerk, ids.staff] });
+    expect(bad.status).toBe(400);
+    expect(await stockKeepers(db)).toEqual([ids.clerk]);
   });
 });

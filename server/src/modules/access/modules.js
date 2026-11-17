@@ -314,6 +314,19 @@ const INVENTORY_AREAS = [
       ],
     ],
   },
+  {
+    key: 'alerts',
+    label: 'Stock alerts',
+    hint: 'Who gets the low-stock emails',
+    levels: [
+      ['No access', "Can't open Stock alerts.", []],
+      [
+        'Manage',
+        'Choose which stock keepers get the low-stock and out-of-stock alerts and the daily reorder summary.',
+        ['admin.alerts'],
+      ],
+    ],
+  },
   ...ADMIN_AREAS('admin.'),
 ];
 

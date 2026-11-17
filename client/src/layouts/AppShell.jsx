@@ -4,6 +4,7 @@ import logo from '../assets/brand/altus-logo.png';
 import {
   ArrowLeft,
   Bell,
+  BellRing,
   FileBarChart,
   Mail,
   House,
@@ -460,6 +461,7 @@ function RequisitionsNav({ onNavigate }) {
     ...(a.orgAdmin
       ? [{ to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 }]
       : []),
+    ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock alerts', icon: BellRing }] : []),
   ];
   return (
     <>

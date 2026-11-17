@@ -21,6 +21,8 @@ const PAGES = {
   '/requisitions/suppliers': ['Suppliers'],
   '/requisitions/users': ['Users'],
   '/requisitions/roles': ['Roles'],
+  '/requisitions/alerts': ['Stock alerts'],
+  '/requisitions/audit': ['Audit trail'],
 };
 const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };
 

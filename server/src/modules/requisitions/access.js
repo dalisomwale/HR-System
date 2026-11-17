@@ -99,6 +99,7 @@ export async function requisitionContext(db, user) {
   ctx.usersAdmin = isAdmin;
   ctx.rolesAdmin = isAdmin;
   ctx.auditAdmin = isAdmin;
+  ctx.alertsAdmin = isAdmin;
   ctx.inventoryRole = isAdmin ? 'System Administrator' : null;
   return ctx;
 }
@@ -156,6 +157,7 @@ function roleContext({ user, me, perms, role }) {
   ctx.usersAdmin = can('admin.users');
   ctx.rolesAdmin = can('admin.roles');
   ctx.auditAdmin = can('admin.audit');
+  ctx.alertsAdmin = can('admin.alerts');
   ctx.canOpen =
     ctx.canRaise ||
     ctx.it ||
@@ -171,7 +173,8 @@ function roleContext({ user, me, perms, role }) {
     ctx.orgAdmin ||
     ctx.usersAdmin ||
     ctx.rolesAdmin ||
-    ctx.auditAdmin;
+    ctx.auditAdmin ||
+    ctx.alertsAdmin;
   return ctx;
 }
 

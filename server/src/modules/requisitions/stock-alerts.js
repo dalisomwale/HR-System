@@ -11,9 +11,9 @@ import { forecast, runningLow } from './stock.service.js';
  *   - once a day, a summary of every item below its reorder level, out of stock, or set to run
  *     out within two weeks (nothing is sent on a day when nothing is low).
  *
- * The people who look after stock: anyone whose inventory role can receive stock or manage items
- * (or the inventory System Admin role), and, for people without an inventory role, the staff of
- * the Stores departments (D105, D107).
+ * Who gets them (D112): inventory users whose role can receive stock or manage items, or who have
+ * the System Admin role, and of those only the ones the System Admin leaves the alerts on for, on
+ * Inventory system › Admin › Stock alerts.
  */
 
 const SYSTEM = { actorType: 'SYSTEM' };
@@ -21,31 +21,33 @@ const units = (n) => Number(n).toLocaleString('en-GB');
 export const stockState = (quantity, reorderLevel) =>
   quantity <= 0 ? 'out' : quantity <= reorderLevel ? 'low' : 'ok';
 
-/** Active employees who look after stock. */
-export async function stockKeepers(db) {
-  const roleHolders = await db('access_users as u')
+/** Rights that make someone a stock keeper, who can get the alerts. */
+export const KEEPER_RIGHTS = ['stock.receive', 'items.manage'];
+
+/**
+ * Active inventory users who can get stock alerts: their role can receive stock or manage items,
+ * or it is the System Admin role. `chosenOnly` keeps those the System Admin left the alerts on for.
+ */
+export function stockKeepersQuery(db, { chosenOnly = true } = {}) {
+  return db('access_users as u')
     .join('access_roles as r', 'r.id', 'u.role_id')
     .join('employees as e', 'e.id', 'u.employee_id')
     .where({ 'u.module': 'inventory', 'u.is_active': true, 'e.status': 'ACTIVE' })
+    .modify((q) => chosenOnly && q.where('u.stock_alerts', true))
     .where((w) =>
       w
         .where('r.is_system', true)
         .orWhereExists(
           db('access_role_permissions as p')
             .whereRaw('p.role_id = r.id')
-            .whereIn('p.permission', ['stock.receive', 'items.manage']),
+            .whereIn('p.permission', KEEPER_RIGHTS),
         ),
-    )
-    .pluck('e.id');
-  const withRole = new Set(
-    await db('access_users').where({ module: 'inventory', is_active: true }).pluck('employee_id'),
-  );
-  const stores = await db('requisition_departments as rd')
-    .join('departments as d', 'd.id', 'rd.department_id')
-    .join('employees as e', 'e.department_id', 'd.id')
-    .where({ 'rd.function_code': 'STORES', 'd.is_active': true, 'e.status': 'ACTIVE' })
-    .pluck('e.id');
-  return [...new Set([...roleHolders, ...stores.filter((id) => !withRole.has(id))])];
+    );
+}
+
+/** The people the alerts go to. */
+export async function stockKeepers(db) {
+  return stockKeepersQuery(db).pluck('e.id');
 }
 
 /**

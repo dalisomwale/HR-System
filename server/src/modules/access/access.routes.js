@@ -37,7 +37,10 @@ function moduleAudit(module) {
         // Job runs, except the inventory's stock summary (D111).
         .orWhere((q) => q.where('a.entity_type', 'job').whereNot('a.entity_id', 'like', 'STOCK_%'))
         .orWhere((q) =>
-          q.where('a.entity_type', 'system_setting').whereNot('a.action', 'like', 'REQUISITION_%'),
+          q
+            .where('a.entity_type', 'system_setting')
+            .whereNot('a.action', 'like', 'REQUISITION_%')
+            .whereNot('a.action', 'like', 'STOCK_%'),
         )
         .orWhere((q) => q.where('a.entity_type', 'report').whereNot('a.entity_id', 'like', 'people-%'));
     } else if (module === 'people') {

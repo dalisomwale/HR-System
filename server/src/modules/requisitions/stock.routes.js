@@ -9,7 +9,7 @@ import { toXlsx } from '../reports/export-files.js';
 import { FUNCTIONS, need } from './access.js';
 import { changeBranchStock, forecast, kwacha, movementCount, runningLow } from './stock.service.js';
 import { logEvent, notifyStage, ref } from './workflow.js';
-import { alertIfCrossed } from './stock-alerts.js';
+import { alertIfCrossed, stockKeepersQuery } from './stock-alerts.js';
 
 /*
  * Stock (D105): items, categories, branches, receiving, issuing, transactions, monthly reports and
@@ -58,6 +58,7 @@ export function stockRoutes({ db }) {
   const issue = need((c) => c.issue, 'You cannot issue stock.');
   const categories = need((c) => c.categoriesManage, 'You cannot change categories.');
   const org = need((c) => c.orgAdmin, 'You cannot change the requisition departments.');
+  const alerts = need((c) => c.alertsAdmin, 'You cannot change who gets stock alerts.');
   const transactions = need((c) => c.transactions, 'You do not have access to transactions.');
   const reports = need((c) => c.reports, 'You do not have access to stock reports.');
   const seeStock = need((c) => c.canSeeStock, 'You do not have access to stock.');
@@ -1532,6 +1533,80 @@ export function stockRoutes({ db }) {
         });
       });
       res.json(input);
+    }),
+  );
+
+  // ── Who gets the stock alerts (D112) ──────────────────────────────────────────────────────
+  // Everyone who can get them: inventory users whose role can receive stock or manage items, or
+  // the System Admin role. The System Admin ticks which of them do.
+  async function alertList() {
+    const rows = await stockKeepersQuery(db, { chosenOnly: false })
+      .leftJoin('companies as co', 'co.id', 'e.company_id')
+      .leftJoin('stock_branches as b', 'b.id', 'e.branch_id')
+      .leftJoin('departments as d', 'd.id', 'e.department_id')
+      .orderBy(['e.first_name', 'e.last_name'])
+      .select(
+        'e.id',
+        'e.first_name',
+        'e.last_name',
+        'e.email',
+        'co.name as company',
+        'b.name as branch',
+        'd.name as department',
+        'r.name as role',
+        'u.stock_alerts',
+      );
+    return rows.map((r) => ({
+      employeeId: r.id,
+      name: personName(r.first_name, r.last_name),
+      email: r.email,
+      company: r.company,
+      branch: r.branch,
+      department: r.department,
+      role: r.role,
+      receives: Boolean(r.stock_alerts),
+    }));
+  }
+  router.get(
+    '/alerts',
+    alerts,
+    asyncHandler(async (req, res) => res.json({ items: await alertList() })),
+  );
+  const alertsSchema = z.object({
+    employeeIds: z.array(z.coerce.number().int().positive()).max(1000),
+  });
+  router.put(
+    '/alerts',
+    alerts,
+    asyncHandler(async (req, res) => {
+      const { employeeIds } = alertsSchema.parse(req.body);
+      const before = await alertList();
+      const eligible = new Set(before.map((p) => p.employeeId));
+      const off = employeeIds.filter((id) => !eligible.has(id));
+      if (off.length) {
+        throw badRequest(
+          'Stock alerts can only go to people whose inventory role can receive stock or manage items, or who have the System Admin role.',
+        );
+      }
+      const on = new Set(employeeIds);
+      await db.transaction(async (trx) => {
+        for (const p of before) {
+          if (p.receives !== on.has(p.employeeId)) {
+            await trx('access_users')
+              .where({ module: 'inventory', employee_id: p.employeeId })
+              .update({ stock_alerts: on.has(p.employeeId) });
+          }
+        }
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'STOCK_ALERTS_UPDATED',
+          entityType: 'system_setting',
+          entityId: 'stock_alerts',
+          before: { receive: before.filter((p) => p.receives).map((p) => p.name) },
+          after: { receive: before.filter((p) => on.has(p.employeeId)).map((p) => p.name) },
+        });
+      });
+      res.json({ items: await alertList() });
     }),
   );
 
