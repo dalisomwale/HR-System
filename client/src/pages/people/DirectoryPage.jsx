@@ -235,12 +235,12 @@ export default function DirectoryPage() {
               <tr>
                 <Th>First name</Th>
                 <Th>Last name</Th>
-                <Th>Company</Th>
-                <Th>Branch</Th>
                 <Th>Job title</Th>
+                <Th>Type</Th>
                 <Th>Department</Th>
                 <Th>Line manager</Th>
-                <Th>Type</Th>
+                <Th>Company</Th>
+                <Th>Branch</Th>
                 <Th>Started</Th>
                 <Th>Status</Th>
               </tr>
@@ -265,9 +265,8 @@ export default function DirectoryPage() {
                       {e.lastName}
                     </Link>
                   </Td>
-                  <Td>{e.company ?? <span className="text-muted">Not set</span>}</Td>
-                  <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.jobTitle ?? <span className="text-muted">Not set</span>}</Td>
+                  <Td>{EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.department ?? <span className="text-muted">None</span>}</Td>
                   <Td>
                     {e.lineManagerId ? (
@@ -278,7 +277,8 @@ export default function DirectoryPage() {
                       <span className="text-muted">None</span>
                     )}
                   </Td>
-                  <Td>{EMPLOYMENT_TYPES[e.employmentType] ?? <span className="text-muted">Not set</span>}</Td>
+                  <Td>{e.company ?? <span className="text-muted">Not set</span>}</Td>
+                  <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>
                   <Td className="whitespace-nowrap">{formatDate(e.employmentStartDate)}</Td>
                   <Td>
                     <StatusBadge e={e} />
