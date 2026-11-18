@@ -63,6 +63,7 @@ import {
   FloatBranchAdminPage,
   FloatBranchesPage,
   FloatDailyPage,
+  FloatPhoneAccessPage,
   FloatSettingsPage,
 } from './pages/requisitions/float/FloatAdminPages.jsx';
 import RecruitmentHomePage from './pages/recruitment/RecruitmentHomePage.jsx';
