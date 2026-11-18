@@ -488,6 +488,7 @@ function RequisitionsNav({ onNavigate }) {
       ? [
           { to: '/requisitions/float/branches', label: 'AMS branches', icon: Store },
           { to: '/requisitions/float/settings', label: 'AMS settings', icon: SlidersHorizontal },
+          { to: '/requisitions/float/phone-access', label: 'Phone sign-in', icon: Smartphone },
         ]
       : []),
   ];

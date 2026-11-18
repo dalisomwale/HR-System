@@ -8,6 +8,8 @@ import { AppError, badRequest, conflict, forbidden, notFound } from '../../utils
 import { todayInLusaka } from '../../utils/dates.js';
 import { addDays } from '../leave/calendar.js';
 import { toXlsx } from '../reports/export-files.js';
+import { CODE_HOURS, hashSecret, isAmsBranchStaff, newCode } from '../auth/phone-login.js';
+import { formatPhone } from '../../utils/phone.js';
 import {
   DAYS,
   KINDS,
@@ -1601,6 +1603,111 @@ export function floatRoutes({ db }) {
         });
       });
       res.json({ id });
+    }),
+  );
+
+  // ── Phone sign-in for AMS branch staff (D119) ───────────────────────────────────────────────
+  router.get(
+    '/phone-access',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const s = await getSettings(db);
+      if (!s.companyId) return res.json({ items: [] });
+      const rows = await db('employees as e')
+        .join('stock_branches as b', 'b.id', 'e.branch_id')
+        .leftJoin('phone_logins as p', 'p.employee_id', 'e.id')
+        .where({ 'e.status': 'ACTIVE', 'e.company_id': s.companyId, 'b.company_id': s.companyId })
+        .orderBy(['b.name', 'e.first_name', 'e.last_name'])
+        .select(
+          'e.id',
+          'e.first_name',
+          'e.last_name',
+          'e.mobile_phone',
+          'e.phone_e164',
+          'b.name as branch',
+          'p.employee_id as has_login',
+          'p.pin_hash',
+          'p.code_expires_at',
+          'p.locked_at',
+          'p.last_sign_in_at',
+        );
+      res.json({
+        items: rows.map((r) => ({
+          id: r.id,
+          firstName: r.first_name,
+          lastName: r.last_name,
+          branch: r.branch,
+          phone: r.phone_e164 ? formatPhone(r.phone_e164) : r.mobile_phone,
+          hasPhone: Boolean(r.phone_e164),
+          status: !r.has_login
+            ? 'NOT_SET_UP'
+            : r.locked_at
+              ? 'LOCKED'
+              : r.pin_hash
+                ? 'ACTIVE'
+                : new Date(r.code_expires_at) > new Date()
+                  ? 'CODE_GIVEN'
+                  : 'CODE_EXPIRED',
+          codeExpiresAt: r.pin_hash ? null : r.code_expires_at,
+          lastSignInAt: r.last_sign_in_at,
+        })),
+      });
+    }),
+  );
+  router.post(
+    '/phone-access/:id/code',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const id = idParam(req);
+      const e = await db('employees').where({ id }).first('id', 'first_name', 'last_name', 'phone_e164');
+      if (!e || !(await isAmsBranchStaff(db, id)))
+        throw badRequest('Only active AMS branch staff can sign in with a phone number.');
+      if (!e.phone_e164) throw badRequest('Add their phone number on their employee record first.');
+      const code = newCode();
+      const expires = new Date(Date.now() + CODE_HOURS * 3600000);
+      const row = {
+        code_hash: await hashSecret(code),
+        code_expires_at: expires,
+        pin_hash: null,
+        failed_attempts: 0,
+        locked_at: null,
+        updated_by: req.user.id,
+        updated_at: db.fn.now(),
+      };
+      await db('phone_logins')
+        .insert({ employee_id: id, ...row })
+        .onConflict('employee_id')
+        .merge();
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'FLOAT_PHONE_CODE_GIVEN',
+        entityType: 'employee',
+        entityId: id,
+      });
+      res
+        .status(201)
+        .json({
+          code,
+          expiresAt: expires,
+          name: name(e.first_name, e.last_name),
+          phone: formatPhone(e.phone_e164),
+        });
+    }),
+  );
+  router.post(
+    '/phone-access/:id/off',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const id = idParam(req);
+      const n = await db('phone_logins').where({ employee_id: id }).del();
+      if (!n) throw notFound('Phone sign-in is not set up for this person.');
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'FLOAT_PHONE_SIGN_IN_OFF',
+        entityType: 'employee',
+        entityId: id,
+      });
+      res.json({ ok: true });
     }),
   );
 

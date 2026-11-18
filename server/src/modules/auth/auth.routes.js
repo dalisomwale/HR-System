@@ -3,6 +3,7 @@ import { rateLimit } from 'express-rate-limit';
 import { resolveSignIn } from './auth.service.js';
 import { csrfProtection, newCsrfToken, requireAuth } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { phoneLoginRoutes } from './phone-login.js';
 
 const promisify = (fn) => new Promise((resolve, reject) => fn((err) => (err ? reject(err) : resolve())));
 
@@ -18,10 +19,19 @@ export function authRoutes({ db, config, entra, logger }) {
     handler: (req, res) => res.redirect(clientUrl('/sign-in?error=rate_limited')),
   });
 
-  // Public: whether Microsoft sign-in is configured on this server.
-  router.get('/status', (req, res) => {
-    res.set('Cache-Control', 'no-store').json({ signInAvailable: Boolean(entra) });
+  // Public: whether Microsoft sign-in is configured, and whether AMS phone sign-in is (D119).
+  router.get('/status', async (req, res, next) => {
+    try {
+      const ams = await db('float_settings').where({ id: 1 }).first('company_id');
+      res
+        .set('Cache-Control', 'no-store')
+        .json({ signInAvailable: Boolean(entra), phoneSignIn: Boolean(ams?.company_id) });
+    } catch (err) {
+      next(err);
+    }
   });
+  // AMS branch staff sign in with their phone number and PIN (D119).
+  router.use('/phone', phoneLoginRoutes({ db, config }));
 
   router.get('/login', signInLimiter, async (req, res) => {
     if (!entra) return res.redirect(clientUrl('/sign-in?error=not_configured'));
@@ -78,8 +88,23 @@ export function authRoutes({ db, config, entra, logger }) {
   });
 
   // Current user, with the CSRF token the client must send on every change.
-  router.get('/me', requireAuth, (req, res) => {
-    res.set('Cache-Control', 'no-store').json({ user: req.user, csrfToken: req.session.csrfToken });
+  router.get('/me', requireAuth, async (req, res, next) => {
+    try {
+      const phone = await db('phone_logins')
+        .where({ employee_id: req.user.id })
+        .whereNotNull('pin_hash')
+        .first('employee_id');
+      res.set('Cache-Control', 'no-store').json({
+        user: {
+          ...req.user,
+          signedInWith: req.session.authMethod ?? 'MICROSOFT',
+          phoneSignIn: Boolean(phone),
+        },
+        csrfToken: req.session.csrfToken,
+      });
+    } catch (err) {
+      next(err);
+    }
   });
 
   router.post('/logout', csrfProtection, async (req, res, next) => {

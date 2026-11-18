@@ -9,6 +9,7 @@ const COLUMNS = [
   ['first_name', 'Required.'],
   ['last_name', 'Required.'],
   ['email', 'Work email.'],
+  ['mobile_phone', 'Mobile number, e.g. 0971234567. Optional.'],
   ['job_title', ''],
   ['company_name', 'Required, or give company_code. The group company the person works for.'],
   [

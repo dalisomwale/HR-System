@@ -44,6 +44,7 @@ const FIELDS = [
   'firstName',
   'lastName',
   'email',
+  'mobilePhone',
   'jobTitle',
   'sex',
   'companyId',
@@ -570,6 +571,15 @@ export function EmployeeForm({ employee, isNew, onDone, onCancel, defaults, onCr
         </Field>
         <Field id="email" label="Work email" error={err('email')}>
           <Input id="email" type="email" invalid={!!err('email')} {...register('email')} />
+        </Field>
+        <Field
+          id="mobilePhone"
+          label="Phone number"
+          optional
+          error={err('mobilePhone')}
+          hint="Mobile, e.g. 097 123 4567. AMS branch staff sign in with it."
+        >
+          <Input id="mobilePhone" type="tel" invalid={!!err('mobilePhone')} {...register('mobilePhone')} />
         </Field>
         <Field id="jobTitle" label="Job title" error={err('jobTitle')} className="sm:col-span-2">
           <Input id="jobTitle" invalid={!!err('jobTitle')} {...register('jobTitle')} />

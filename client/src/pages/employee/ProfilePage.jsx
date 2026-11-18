@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil } from 'lucide-react';
 import { api } from '../../lib/api.js';
+import { useMe } from '../../lib/auth.jsx';
 import { formatDate, ROLE_LABELS } from '../../lib/format.js';
 import {
   Button,
@@ -89,6 +90,7 @@ export default function ProfilePage() {
                 fields={CONTACT}
                 personal={p.personal}
               />
+              <ChangePin />
             </div>
           )}
           {tab === 'kin' && (
@@ -276,5 +278,66 @@ function PersonalDetails({ title, note, fields, personal }) {
         </>
       )}
     </Section>
+  );
+}
+
+/** AMS branch staff who sign in with their phone number change their PIN here (D119). */
+function ChangePin() {
+  const { data: me } = useMe();
+  const [v, setV] = useState({ currentPin: '', pin: '', pinConfirm: '' });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  if (!me?.phoneSignIn) return null;
+  const set = (k) => (e) => setV({ ...v, [k]: e.target.value.replace(/\D/g, '').slice(0, 6) });
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.post('/api/auth/phone/change-pin', v);
+      setV({ currentPin: '', pin: '', pinConfirm: '' });
+      setMsg({ tone: 'ok', text: 'PIN changed. Use the new one next time you sign in.' });
+    } catch (err) {
+      const f = err.fields?.[0];
+      setMsg({
+        tone: 'danger',
+        text: f ? `${f.path === 'pinConfirm' ? 'The second PIN' : 'The new PIN'} ${f.message}.` : err.message,
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-4">
+      <Section
+        title="Phone sign-in PIN"
+        description="You sign in with your phone number and this 6-digit PIN."
+      >
+        <form onSubmit={save} className="stack max-w-md">
+          {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+          {[
+            ['currentPin', 'Current PIN', 'current-password'],
+            ['pin', 'New PIN', 'new-password'],
+            ['pinConfirm', 'New PIN again', 'new-password'],
+          ].map(([k, label, ac]) => (
+            <Field key={k} id={`cp-${k}`} label={label}>
+              <Input
+                id={`cp-${k}`}
+                type="password"
+                inputMode="numeric"
+                autoComplete={ac}
+                value={v[k]}
+                onChange={set(k)}
+              />
+            </Field>
+          ))}
+          <div>
+            <Button type="submit" busy={busy} disabled={!v.currentPin || v.pin.length !== 6 || !v.pinConfirm}>
+              Change PIN
+            </Button>
+          </div>
+        </form>
+      </Section>
+    </div>
   );
 }

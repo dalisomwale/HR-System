@@ -31,6 +31,7 @@ const PAGES = {
   '/requisitions/float/daily': ['Daily reports'],
   '/requisitions/float/branches': ['AMS branches'],
   '/requisitions/float/settings': ['AMS settings'],
+  '/requisitions/float/phone-access': ['Phone sign-in'],
   '/requisitions/audit': ['Audit trail'],
 };
 const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };

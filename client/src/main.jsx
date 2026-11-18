@@ -259,6 +259,10 @@ createRoot(document.getElementById('root')).render(
               />
               <Route path="float/branches" element={rqPage(<FloatBranchesPage />, (a) => a.float?.admin)} />
               <Route path="float/settings" element={rqPage(<FloatSettingsPage />, (a) => a.float?.admin)} />
+              <Route
+                path="float/phone-access"
+                element={rqPage(<FloatPhoneAccessPage />, (a) => a.float?.admin)}
+              />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
               <Route
                 path="users"

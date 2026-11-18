@@ -75,6 +75,7 @@ export function peopleRoutes({ db }) {
         { key: 'jobTitle', label: 'Job title' },
         { key: 'type', label: 'Employment type' },
         { key: 'email', label: 'Work email' },
+        { key: 'phone', label: 'Phone number' },
         { key: 'department', label: 'Department' },
         { key: 'lineManager', label: 'Line manager' },
         { key: 'company', label: 'Company' },
@@ -95,6 +96,7 @@ export function peopleRoutes({ db }) {
         started: e.employmentStartDate ? String(e.employmentStartDate).slice(0, 10) : null,
         status: e.status === 'ACTIVE' ? 'Active' : 'Left',
         email: e.email,
+        phone: e.mobilePhone,
       }));
       await writeAudit(db, {
         ...auditContext(req),

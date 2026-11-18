@@ -79,6 +79,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
         .orWhere('e.last_name', 'like', like)
         .orWhere('e.employee_number', 'like', like)
         .orWhere('e.email', 'like', like)
+        .orWhere('e.mobile_phone', 'like', like)
         .orWhere('e.job_title', 'like', like)
         .orWhereRaw("CONCAT(e.first_name, ' ', e.last_name) LIKE ?", [like]),
     );
@@ -105,6 +106,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
       'e.first_name',
       'e.last_name',
       'e.email',
+      'e.mobile_phone',
       'e.job_title',
       'e.status',
       'e.employment_type',
@@ -141,6 +143,7 @@ export async function listEmployees(db, query, { page, pageSize, offset }) {
       firstName: r.first_name,
       lastName: r.last_name,
       email: r.email,
+      mobilePhone: r.mobile_phone,
       jobTitle: r.job_title,
       status: r.status,
       company: r.company_name,
@@ -210,6 +213,7 @@ export async function employeeRecord(db, id) {
     firstName: e.first_name,
     lastName: e.last_name,
     email: e.email,
+    mobilePhone: e.mobile_phone,
     jobTitle: e.job_title,
     sex: e.sex,
     companyId: e.company_id,

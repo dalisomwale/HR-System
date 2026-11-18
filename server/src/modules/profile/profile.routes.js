@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { asyncHandler } from '../../utils/validation.js';
 import { auditContext } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
+import { normalisePhone } from '../../utils/phone.js';
+import { conflict } from '../../utils/errors.js';
 import { employeeOverview } from '../people/people.service.js';
 
 /*
@@ -30,7 +32,10 @@ const phone = z
 
 export const personalSchema = z
   .object({
-    mobilePhone: phone,
+    mobilePhone: phone.refine(
+      (v) => v === null || normalisePhone(v) !== null,
+      'must be a phone number, e.g. 097 123 4567 or +260 97 123 4567',
+    ),
     personalEmail: z
       .string()
       .trim()
@@ -120,7 +125,17 @@ export function profileRoutes({ db }) {
       await db.transaction(async (trx) => {
         const before = await trx('employees').where({ id: req.user.id }).forUpdate().first();
         const row = Object.fromEntries(Object.entries(input).map(([k, v]) => [PERSONAL_COLUMNS[k], v]));
-        if (Object.keys(row).length) await trx('employees').where({ id: req.user.id }).update(row);
+        // The standard form of the mobile number, for matching and phone sign-in (D119).
+        if (input.mobilePhone !== undefined) row.phone_e164 = normalisePhone(input.mobilePhone);
+        if (Object.keys(row).length) {
+          try {
+            await trx('employees').where({ id: req.user.id }).update(row);
+          } catch (err) {
+            if (err?.code === 'ER_DUP_ENTRY')
+              throw conflict('Another employee already has this phone number. Ask HR.');
+            throw err;
+          }
+        }
         const changed = Object.keys(input).filter((k) => (before[PERSONAL_COLUMNS[k]] ?? null) !== input[k]);
         if (changed.length) {
           // Field names only: personal details themselves are not copied into the audit log.

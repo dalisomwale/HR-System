@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router';
 import { api } from '../../lib/api.js';
@@ -74,7 +75,125 @@ export function SignInPage() {
           </Notice>
         )}
       </div>
+      {status.data?.phoneSignIn && <PhoneSignIn />}
     </AuthLayout>
+  );
+}
+
+const INPUT =
+  'w-full rounded-sm border border-rule bg-white px-3 py-2.5 text-[0.95rem] focus:border-brand focus:outline-none';
+
+/** AMS branch staff: phone number and PIN, or the one-time code the first time (D119). */
+function PhoneSignIn() {
+  const [step, setStep] = useState('LOGIN'); // LOGIN | SET_PIN
+  const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
+  const [pin2, setPin2] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const fail = (err) => setError(err.fields?.[0] ? `PIN ${err.fields[0].message}.` : err.message);
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      if (step === 'LOGIN') {
+        const r = await api.post('/api/auth/phone/login', { phone, pin });
+        if (r.status === 'SET_PIN') {
+          setStep('SET_PIN');
+          setPin('');
+          return;
+        }
+      } else {
+        await api.post('/api/auth/phone/set-pin', { pin, pinConfirm: pin2 });
+      }
+      window.location.assign('/');
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={submit} className="mt-6 border-t border-rule pt-5">
+      <p className="mb-3 text-[0.9rem] font-semibold text-ink">
+        {step === 'LOGIN' ? 'AMS branch staff: sign in with your phone' : 'Choose your PIN'}
+      </p>
+      {error && (
+        <div className="mb-3">
+          <Notice tone="danger">{error}</Notice>
+        </div>
+      )}
+      {step === 'LOGIN' ? (
+        <>
+          <label htmlFor="ph-number" className="mb-1 block text-[0.85rem] text-muted">
+            Phone number
+          </label>
+          <input
+            id="ph-number"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="097 123 4567"
+            className={`${INPUT} mb-3`}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+          />
+          <label htmlFor="ph-pin" className="mb-1 block text-[0.85rem] text-muted">
+            PIN (or the code from your System Administrator the first time)
+          </label>
+          <input
+            id="ph-pin"
+            type="password"
+            inputMode="numeric"
+            autoComplete="current-password"
+            maxLength={8}
+            className={`${INPUT} mb-4 tracking-[0.3em]`}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            required
+          />
+        </>
+      ) : (
+        <>
+          <p className="mb-3 text-[0.85rem] text-muted">
+            Choose 6 digits you will remember. Not 123456 or the same digit six times. Keep it to yourself.
+          </p>
+          <label htmlFor="ph-new" className="mb-1 block text-[0.85rem] text-muted">
+            New PIN
+          </label>
+          <input
+            id="ph-new"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={6}
+            className={`${INPUT} mb-3 tracking-[0.3em]`}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            required
+          />
+          <label htmlFor="ph-new2" className="mb-1 block text-[0.85rem] text-muted">
+            Type it again
+          </label>
+          <input
+            id="ph-new2"
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            maxLength={6}
+            className={`${INPUT} mb-4 tracking-[0.3em]`}
+            value={pin2}
+            onChange={(e) => setPin2(e.target.value.replace(/\D/g, ''))}
+            required
+          />
+        </>
+      )}
+      <button type="submit" className={SUBMIT} disabled={busy}>
+        {busy ? 'Please wait…' : step === 'LOGIN' ? 'Sign in with phone' : 'Save PIN and sign in'}
+      </button>
+    </form>
   );
 }
 

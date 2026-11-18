@@ -648,3 +648,136 @@ export function FloatSettingsPage() {
     </div>
   );
 }
+
+// ── Phone sign-in for AMS branch staff (D119) ──────────────────────────────────────────────────
+const PHONE_STATUS = {
+  NOT_SET_UP: ['Not set up', 'neutral'],
+  CODE_GIVEN: ['Code given', 'pending'],
+  CODE_EXPIRED: ['Code expired', 'danger'],
+  ACTIVE: ['Active', 'ok'],
+  LOCKED: ['Locked', 'danger'],
+};
+export function FloatPhoneAccessPage() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['float-phone'], queryFn: () => api.get('/api/float/phone-access') });
+  const [busy, setBusy] = useState(null);
+  const [given, setGiven] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const act = async (id, path) => {
+    setBusy(`${id}${path}`);
+    setMsg(null);
+    setGiven(null);
+    try {
+      const r = await api.post(`/api/float/phone-access/${id}/${path}`);
+      if (path === 'code') setGiven(r);
+      else setMsg({ tone: 'ok', text: 'Phone sign-in turned off.' });
+      qc.invalidateQueries({ queryKey: ['float-phone'] });
+    } catch (err) {
+      setMsg({ tone: 'danger', text: errorText(err) });
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div>
+      <PageHeader
+        title="Phone sign-in"
+        description="AMS branch staff sign in with their phone number and a 6-digit PIN. Give each one a one-time code: they sign in with it once, then choose their PIN."
+      />
+      <div className="stack">
+        {given && (
+          <Notice tone="ok" title={`One-time code for ${given.name}: ${given.code}`}>
+            Give it to them in person or by phone. They sign in with {given.phone} and this code, then choose
+            their PIN. It works once and expires {formatDateTime(given.expiresAt)}. It is not shown again.
+          </Notice>
+        )}
+        {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+        {q.isPending && <Loading />}
+        {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
+        {q.data &&
+          (q.data.items.length === 0 ? (
+            <div className="card p-0">
+              <EmptyState title="No AMS branch staff yet.">
+                Post staff to an AMS branch on their employee record in Employee management.
+              </EmptyState>
+            </div>
+          ) : (
+            <Table title="Phone sign-in">
+              <thead>
+                <tr>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
+                  <Th>Branch</Th>
+                  <Th>Phone number</Th>
+                  <Th>Status</Th>
+                  <Th>Last sign-in</Th>
+                  <Th>
+                    <span className="sr-only">Actions</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {q.data.items.map((p) => (
+                  <tr key={p.id}>
+                    <Td className="font-semibold">{p.firstName}</Td>
+                    <Td className="font-semibold">{p.lastName}</Td>
+                    <Td>{p.branch}</Td>
+                    <Td>
+                      {p.phone ?? <span className="text-muted">None</span>}
+                      {!p.hasPhone && (
+                        <Link
+                          to={`/people/employees/${p.id}`}
+                          className="block text-xs text-brand hover:underline"
+                        >
+                          Add it on their record
+                        </Link>
+                      )}
+                    </Td>
+                    <Td>
+                      <Badge tone={PHONE_STATUS[p.status][1]}>{PHONE_STATUS[p.status][0]}</Badge>
+                      {p.status === 'CODE_GIVEN' && (
+                        <span className="block text-xs text-muted">
+                          until {formatDateTime(p.codeExpiresAt)}
+                        </span>
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap">
+                      {p.lastSignInAt ? formatDateTime(p.lastSignInAt) : '—'}
+                    </Td>
+                    <Td>
+                      <div className="flex flex-wrap gap-2">
+                        {p.hasPhone && (
+                          <Button
+                            size="sm"
+                            variant={p.status === 'ACTIVE' ? 'secondary' : 'primary'}
+                            busy={busy === `${p.id}code`}
+                            onClick={() => act(p.id, 'code')}
+                          >
+                            {p.status === 'NOT_SET_UP'
+                              ? 'Set up'
+                              : p.status === 'LOCKED'
+                                ? 'Unlock: new code'
+                                : 'New code'}
+                          </Button>
+                        )}
+                        {p.status !== 'NOT_SET_UP' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            busy={busy === `${p.id}off`}
+                            onClick={() => act(p.id, 'off')}
+                          >
+                            Turn off
+                          </Button>
+                        )}
+                      </div>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          ))}
+      </div>
+    </div>
+  );
+}

@@ -3,6 +3,7 @@ import { writeAudit } from '../audit/audit.service.js';
 import { revokeEmployeeSessions } from '../auth/session-store.js';
 import { conflict, notFound, badRequest } from '../../utils/errors.js';
 import { GUID_RE, isoDate, optionalId, optionalText, requiredText } from '../../utils/validation.js';
+import { normalisePhone } from '../../utils/phone.js';
 
 // Positions (D108). HR Officer is no longer a position: it is a role in each module.
 export const ASSIGNABLE_ROLES = [
@@ -27,6 +28,17 @@ const baseFields = {
     .or(z.literal('').transform(() => null))
     .transform((v) => v || null),
   jobTitle: optionalText(120),
+  // The employee's mobile number (D119); AMS branch staff sign in with it.
+  mobilePhone: z
+    .string()
+    .trim()
+    .max(30)
+    .nullish()
+    .transform((v) => v || null)
+    .refine(
+      (v) => v === null || normalisePhone(v) !== null,
+      'must be a phone number, e.g. 097 123 4567 or +260 97 123 4567',
+    ),
   // Used only for maternity, paternity and Mother's Day eligibility (decision D20).
   sex: z
     .enum(['FEMALE', 'MALE'])
@@ -71,6 +83,7 @@ const COLUMN = {
   lastName: 'last_name',
   email: 'email',
   jobTitle: 'job_title',
+  mobilePhone: 'mobile_phone',
   sex: 'sex',
   companyId: 'company_id',
   departmentId: 'department_id',
@@ -126,6 +139,7 @@ export async function writeHistory(trx, employeeId, event, changes, actorId, rea
 function toRow(input) {
   const row = {};
   for (const [k, col] of Object.entries(COLUMN)) if (input[k] !== undefined) row[col] = input[k];
+  if (input.mobilePhone !== undefined) row.phone_e164 = normalisePhone(input.mobilePhone);
   return row;
 }
 
@@ -133,6 +147,7 @@ export function mapEmployeeUniqueError(err) {
   if (err?.code !== 'ER_DUP_ENTRY') return err;
   if (/email/.test(err.sqlMessage)) return conflict('Another employee already uses this email address.');
   if (/employee_number/.test(err.sqlMessage)) return conflict('This employee number is already in use.');
+  if (/phone_e164/.test(err.sqlMessage)) return conflict('Another employee already has this phone number.');
   return conflict('This record conflicts with an existing one.');
 }
 
