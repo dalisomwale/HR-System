@@ -135,6 +135,7 @@ export function requisitionRoutes({ db, config, logger }) {
           record: c.floatRecord,
           viewAll: c.floatViewAll,
           approve: c.floatApprove,
+          supervise: c.floatSupervise,
           director: c.floatDirector,
           shortages: c.floatShortages,
           admin: c.floatAdmin,

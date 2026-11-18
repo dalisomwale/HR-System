@@ -22,13 +22,15 @@ import {
   defaultHours,
   buildDay,
   dayCode,
-  dayText,
   directors,
   getSettings,
+  lusakaTime,
+  reportRecipients,
   kwacha,
   isLocked,
   lowFloatCheck,
   managers,
+  supervisors,
   post,
   round2,
   runOutTime,
@@ -64,6 +66,28 @@ export const dayRows = (t) => [
 
 export function floatRoutes({ db }) {
   const router = Router();
+  /** The store's state today: opened (and when), and whether it has been closed (D121). */
+  async function storeState(k, branchId, date) {
+    const counts = await k('float_counts')
+      .where({ branch_id: branchId, business_date: date })
+      .whereIn('kind', ['OPEN', 'CLOSE'])
+      .orderBy('id')
+      .select('kind', 'created_at');
+    const open = counts.find((c) => c.kind === 'OPEN');
+    return { openedAt: open?.created_at ?? null, closed: counts.some((c) => c.kind === 'CLOSE') };
+  }
+  async function mustBeOpen(k, branchId, date) {
+    const st = await storeState(k, branchId, date);
+    if (!st.openedAt) {
+      throw new AppError(409, 'STORE_NOT_OPEN', 'Open the store first: tap Open store to start the day.');
+    }
+    if (st.closed)
+      throw new AppError(
+        409,
+        'STORE_CLOSED',
+        'The store has been closed for today. Nothing more can be recorded until it opens again.',
+      );
+  }
   /** Past days with activity that no manager has signed off yet (the last 31 days). */
   async function unsignedDays() {
     const today = todayInLusaka();
@@ -105,13 +129,23 @@ export function floatRoutes({ db }) {
       const branch = await staffBranch(db, s, req.user.id);
       const c = f(req);
       const n = async (q) => Number((await q.count({ n: '*' }).first()).n);
-      const approvals = c.floatApprove
+      const approvals = c.floatSupervise
         ? (await n(
             db('float_movements').where({ status: 'PENDING' }).whereNot('requested_by', req.user.id),
           )) +
           (await n(db('float_transactions').where({ status: 'REVERSAL_PENDING' }))) +
           (await n(db('float_variances').where({ status: 'OPEN' })))
         : 0;
+      const reqWaiting =
+        (c.floatSupervise
+          ? await n(
+              db('float_requisitions')
+                .where({ status: 'PENDING_SUPERVISOR' })
+                .whereNot('raised_by', req.user.id),
+            )
+          : 0) +
+        (c.floatApprove ? await n(db('float_requisitions').where({ status: 'PENDING_MANAGER' })) : 0) +
+        (c.floatDirector ? await n(db('float_requisitions').where({ status: 'PENDING_DIRECTOR' })) : 0);
       const director = c.floatDirector
         ? await n(db('float_variances').where({ status: 'PENDING_DIRECTOR' }))
         : 0;
@@ -129,13 +163,15 @@ export function floatRoutes({ db }) {
           record: c.floatRecord,
           viewAll: c.floatViewAll,
           approve: c.floatApprove,
+          supervise: c.floatSupervise,
           director: c.floatDirector,
           shortages: c.floatShortages,
           admin: c.floatAdmin,
         },
         counts: {
           approvals: approvals + director,
-          daysToSign: c.floatApprove ? (await unsignedDays()).length : 0,
+          requisitions: reqWaiting,
+          daysToSign: c.floatSupervise ? (await unsignedDays()).length : 0,
         },
       });
     }),
@@ -218,6 +254,10 @@ export function floatRoutes({ db }) {
         at: c.created_at,
       })),
       closed: counts.some((c) => c.kind === 'CLOSE'),
+      opened: (() => {
+        const o = counts.find((c) => c.kind === 'OPEN');
+        return o ? { at: o.created_at, by: name(o.first_name, o.last_name) } : null;
+      })(),
       movements: movements.map(movementView),
       tolerance: settings.cashTolerance,
     };
@@ -275,6 +315,7 @@ export function floatRoutes({ db }) {
         throw badRequest('Your employee record has no AMS branch. Ask HR to post you to your branch.');
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
+        await mustBeOpen(trx, branch.id, date);
         if (!input.confirm) {
           const since = new Date(Date.now() - s.duplicateMinutes * 60000);
           const dup = await trx('float_transactions')
@@ -365,7 +406,7 @@ export function floatRoutes({ db }) {
         if (!t) throw notFound('Transaction not found.');
         const mine = await staffBranch(trx, s, req.user.id);
         must(
-          f(req).floatApprove || (f(req).floatRecord && mine?.id === t.branch_id),
+          f(req).floatSupervise || (f(req).floatRecord && mine?.id === t.branch_id),
           'You cannot reverse this transaction.',
         );
         if (t.status !== 'POSTED')
@@ -386,7 +427,7 @@ export function floatRoutes({ db }) {
           after: { reason },
         });
         await notify(trx, {
-          recipients: await managers(trx, [req.user.id]),
+          recipients: await supervisors(trx, [req.user.id]),
           event: 'FLOAT_REVERSAL_TO_APPROVE',
           title: `Reversal to approve: ${KIND_LABEL[t.network]} ${t.kind.toLowerCase()} ${kwacha(t.amount)}`,
           body: reason,
@@ -402,7 +443,7 @@ export function floatRoutes({ db }) {
   router.post(
     '/transactions/:id/reversal',
     asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager can decide reversals.');
+      must(f(req).floatSupervise, 'Only the Operations Officer can decide reversals.');
       const id = idParam(req);
       const { approve, comment } = decideSchema.parse(req.body);
       await db.transaction(async (trx) => {
@@ -460,7 +501,7 @@ export function floatRoutes({ db }) {
   router.post(
     '/transactions/:id/reviewed',
     asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager reviews large transactions.');
+      must(f(req).floatSupervise, 'Only the Operations Officer reviews large transactions.');
       const id = idParam(req);
       const n = await db('float_transactions')
         .where({ id, is_large: true })
@@ -501,6 +542,7 @@ export function floatRoutes({ db }) {
         throw badRequest('Choose who you are handing over to.');
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
+        await mustBeOpen(trx, branch.id, date);
         const [countId] = await trx('float_counts').insert({
           branch_id: branch.id,
           kind: input.kind,
@@ -570,7 +612,7 @@ export function floatRoutes({ db }) {
             )
             .join(', ');
           await notify(trx, {
-            recipients: await managers(trx, [req.user.id]),
+            recipients: await supervisors(trx, [req.user.id]),
             event: 'FLOAT_VARIANCE',
             title: `${input.kind === 'CLOSE' ? 'Day close' : 'Handover'} at ${branch.name}: ${text}`,
             body: 'Resolve it on Surplus and deficit.',
@@ -594,22 +636,102 @@ export function floatRoutes({ db }) {
       });
       let report = null;
       if (input.kind === 'CLOSE') {
+        // Closing the store closes the day's transactions; the branch's daily report is made and
+        // submitted to the supervisor, the managers, the directors and the System Admin (D121).
         const day = await buildDay(db, s, out.date, [branch.id]);
         const b = day.branches[0];
-        report = { ...b, text: dayText(b, out.date, s) };
+        report = b;
+        const at = (v) => (v ? lusakaTime(v) : '—');
         await db.transaction(async (trx) =>
           notify(trx, {
-            recipients: await managers(trx, [req.user.id]),
+            recipients: await reportRecipients(trx, [req.user.id]),
             event: 'FLOAT_SIGNED_OUT',
-            title: `${branch.name} signed out: ${b.transactions.total} transactions, float + cash ${kwacha(b.total)}`,
-            body: `Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}, turned down ${b.turnedDown}. Cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
-            link: `/requisitions/float/daily?date=${out.date}`,
+            title: `Daily report: ${branch.name} closed at ${at(b.signedOutAt)}, ${b.transactions.total} transactions`,
+            body: `Opened ${at(b.openedAt)}. Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}. Closing cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
+            link: `/requisitions/float/daily?from=${out.date}&to=${out.date}&branch=${branch.id}`,
             entityType: 'float_count',
             entityId: out.id,
+            email: {
+              ...EMAIL,
+              subject: `AMS daily report: ${branch.name}, ${out.date}`,
+              heading: `${branch.name} daily report`,
+              intro: `${branch.name} has closed for ${out.date}. The day's transactions are closed.`,
+              rows: [
+                [
+                  'Opened',
+                  `${at(b.openedAt)}${b.openedBy ? ` by ${b.openedBy.firstName} ${b.openedBy.lastName}` : ''}`,
+                ],
+                [
+                  'Closed',
+                  `${at(b.signedOutAt)}${b.signedOutBy ? ` by ${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : ''}`,
+                ],
+                ['Number of deposits', String(b.deposits.count)],
+                ['Deposits', kwacha(b.deposits.amount)],
+                ['Number of withdrawals', String(b.withdrawals.count)],
+                ['Withdrawals', kwacha(b.withdrawals.amount)],
+                ['Opening cash', kwacha(b.openingCash)],
+                ['Opening float', kwacha(b.openingFloat)],
+                ['Closing cash', kwacha(b.cash)],
+                ['Closing float', kwacha(b.float)],
+                ['Float transfers', `${b.floatTransfers.count} (${kwacha(b.floatTransfers.amount)})`],
+                ['Cash to finance', `${b.cashCollections.count} (${kwacha(b.cashCollections.amount)})`],
+                ['Customers turned down', String(b.turnedDown)],
+                ...(b.commission != null ? [['Daily commission', kwacha(b.commission)]] : []),
+                ...(b.deficit ? [['Deficit', kwacha(b.deficit)]] : []),
+                ...(b.surplus ? [['Surplus', kwacha(b.surplus)]] : []),
+              ],
+              action: 'The Operations Officer reconciles and signs off the day in the inventory system.',
+            },
           }),
         );
       }
       res.status(201).json({ ...out, report });
+    }),
+  );
+
+  // ── Opening the store (D121): clocks the opening time and the balances it opened with ─────────
+  router.post(
+    '/open',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatRecord, 'You cannot open an AMS branch.');
+      const s = await getSettings(db);
+      const branch = await staffBranch(db, s, req.user.id);
+      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const out = await db.transaction(async (trx) => {
+        const date = await businessDate(trx);
+        const st = await storeState(trx, branch.id, date);
+        if (st.closed) throw conflict('The store has already been closed for today.');
+        if (st.openedAt) throw conflict('The store is already open.');
+        const [countId] = await trx('float_counts').insert({
+          branch_id: branch.id,
+          kind: 'OPEN',
+          business_date: date,
+          counted_by: req.user.id,
+        });
+        const accounts = await accountsOf(trx, branch.id);
+        for (const a of accounts) {
+          await trx('float_count_lines').insert({
+            count_id: countId,
+            account_id: a.id,
+            expected: a.balance,
+            counted: a.balance,
+            difference: 0,
+          });
+        }
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_STORE_OPENED',
+          entityType: 'float_count',
+          entityId: countId,
+          after: { branch: branch.name },
+        });
+        return {
+          id: countId,
+          date,
+          balances: Object.fromEntries(accounts.map((a) => [a.kind, Number(a.balance)])),
+        };
+      });
+      res.status(201).json(out);
     }),
   );
 
@@ -624,6 +746,7 @@ export function floatRoutes({ db }) {
       if (!branch) throw badRequest('Your employee record has no AMS branch.');
       const id = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
+        await mustBeOpen(trx, branch.id, date);
         const [mid] = await trx('float_movements').insert({
           kind: 'COLLECTION',
           from_branch_id: branch.id,
@@ -654,7 +777,7 @@ export function floatRoutes({ db }) {
           after: input,
         });
         await notify(trx, {
-          recipients: await managers(trx, [req.user.id]),
+          recipients: await supervisors(trx, [req.user.id]),
           event: 'FLOAT_COLLECTION_TO_CONFIRM',
           title: `Cash retired to finance: ${kwacha(input.amount)} from ${branch.name}`,
           body: input.collectedBy
@@ -682,6 +805,7 @@ export function floatRoutes({ db }) {
       const s = await getSettings(db);
       const branch = await staffBranch(db, s, req.user.id);
       if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      await mustBeOpen(db, branch.id, await businessDate(db));
       const [id] = await db('float_turned_down').insert({
         branch_id: branch.id,
         reason: input.reason,
@@ -711,15 +835,17 @@ export function floatRoutes({ db }) {
     '/movements',
     asyncHandler(async (req, res) => {
       const c = f(req);
-      must(c.floatRecord || c.floatApprove, 'You cannot ask for top-ups or transfers.');
+      // Branch staff raise a requisition instead (D121).
+      must(
+        c.floatSupervise,
+        'Only the Operations Officer moves float between branches. Raise a requisition instead.',
+      );
       const input = moveSchema.parse(req.body);
       const s = await getSettings(db);
       const ams = new Set((await amsBranches(db, s, { activeOnly: true })).map((b) => b.id));
       const mine = await staffBranch(db, s, req.user.id);
       const to = input.toBranchId ?? mine?.id;
       if (!to || !ams.has(to)) throw badRequest('Choose the AMS branch it goes to.');
-      if (!c.floatApprove && to !== mine?.id)
-        throw forbidden('You can ask for top-ups for your own branch only.');
       if (input.kind === 'TRANSFER') {
         if (!input.fromBranchId || !ams.has(input.fromBranchId) || !input.fromAccount)
           throw badRequest('Choose where the money comes from.');
@@ -746,7 +872,7 @@ export function floatRoutes({ db }) {
         });
         const b = await trx('stock_branches').where({ id: to }).first('name');
         await notify(trx, {
-          recipients: await managers(trx, [req.user.id]),
+          recipients: await supervisors(trx, [req.user.id]),
           event: 'FLOAT_MOVEMENT_TO_APPROVE',
           title: `${input.kind === 'TOPUP' ? 'Top-up' : 'Transfer'} to approve: ${KIND_LABEL[input.toAccount]} ${kwacha(input.amount)} for ${b.name}`,
           body: input.reason ?? '',
@@ -770,7 +896,7 @@ export function floatRoutes({ db }) {
   router.post(
     '/movements/:id/decide',
     asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager approves top-ups and transfers.');
+      must(f(req).floatSupervise, 'Only the Operations Officer approves float movements.');
       const id = idParam(req);
       const { approve, comment } = decideSchema.parse(req.body);
       await db.transaction(async (trx) => {
@@ -876,7 +1002,7 @@ export function floatRoutes({ db }) {
     '/approvals',
     asyncHandler(async (req, res) => {
       const c = f(req);
-      must(c.floatApprove || c.floatDirector, 'You do not approve anything in AMS cash and float.');
+      must(c.floatSupervise || c.floatDirector, 'You do not approve anything in AMS cash and float.');
       const B = await branchNames();
       const who = async (ids) =>
         new Map(
@@ -886,13 +1012,13 @@ export function floatRoutes({ db }) {
               .select('id', 'first_name', 'last_name')
           ).map((e) => [e.id, name(e.first_name, e.last_name)]),
         );
-      const movements = c.floatApprove
+      const movements = c.floatSupervise
         ? await db('float_movements').where({ status: 'PENDING' }).orderBy('id')
         : [];
-      const reversals = c.floatApprove
+      const reversals = c.floatSupervise
         ? await db('float_transactions').where({ status: 'REVERSAL_PENDING' }).orderBy('id')
         : [];
-      const large = c.floatApprove
+      const large = c.floatSupervise
         ? await db('float_transactions')
             .where({ is_large: true })
             .whereNull('large_reviewed_at')
@@ -901,7 +1027,7 @@ export function floatRoutes({ db }) {
         : [];
       const variances = await varianceRows()
         .whereIn('v.status', [
-          ...(c.floatApprove ? ['OPEN'] : []),
+          ...(c.floatSupervise ? ['OPEN'] : []),
           ...(c.floatDirector ? ['PENDING_DIRECTOR'] : []),
         ])
         .orderBy('v.id');
@@ -983,10 +1109,10 @@ export function floatRoutes({ db }) {
     asyncHandler(async (req, res) => {
       const c = f(req);
       must(
-        c.floatViewAll || c.floatApprove || c.floatShortages,
+        c.floatViewAll || c.floatSupervise || c.floatShortages,
         'You do not have access to surpluses and deficits.',
       );
-      const hrOnly = c.floatShortages && !c.floatViewAll && !c.floatApprove;
+      const hrOnly = c.floatShortages && !c.floatViewAll && !c.floatSupervise;
       const rows = await varianceRows()
         .modify((q) => hrOnly && q.where('v.amount', '<', 0).whereNotNull('v.employee_id'))
         .modify((q) => req.query.status && q.where('v.status', String(req.query.status)))
@@ -1011,7 +1137,7 @@ export function floatRoutes({ db }) {
       res.json({
         items: rows.map(varianceView),
         byStaff: [...byStaff.values()].sort((a, b) => b.total - a.total),
-        canResolve: c.floatApprove,
+        canResolve: c.floatSupervise,
         canDirector: c.floatDirector,
         hrOnly,
       });
@@ -1024,7 +1150,7 @@ export function floatRoutes({ db }) {
   router.post(
     '/variances/:id/resolve',
     asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager resolves surpluses and deficits.');
+      must(f(req).floatSupervise, 'Only the Operations Officer resolves surpluses and deficits.');
       const id = idParam(req);
       const input = resolveSchema.parse(req.body);
       const s = await getSettings(db);
@@ -1282,38 +1408,141 @@ export function floatRoutes({ db }) {
     }),
   );
 
-  // ── Daily reports (D118) ─────────────────────────────────────────────────────────────────────
+  // ── Daily reports (D118, D121) ───────────────────────────────────────────────────────────────
+  // One row per branch per day with something in it, over a day, a week of a month or a month,
+  // for one branch or all, with a search on branch or staff name.
+  const DAILY_COLUMNS = [
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'branch', label: 'Branch' },
+    { key: 'opened', label: 'Opened' },
+    { key: 'closed', label: 'Closed' },
+    { key: 'depCount', label: 'Number of deposits', type: 'number' },
+    { key: 'depAmount', label: 'Deposits (K)', type: 'number' },
+    { key: 'wdCount', label: 'Number of withdrawals', type: 'number' },
+    { key: 'wdAmount', label: 'Withdrawals (K)', type: 'number' },
+    { key: 'openingCash', label: 'Opening cash (K)', type: 'number' },
+    { key: 'openingFloat', label: 'Opening float (K)', type: 'number' },
+    { key: 'closingCash', label: 'Closing cash (K)', type: 'number' },
+    { key: 'closingFloat', label: 'Closing float (K)', type: 'number' },
+    { key: 'ftCount', label: 'Number of float transfers', type: 'number' },
+    { key: 'ftAmount', label: 'Float transfers (K)', type: 'number' },
+    { key: 'ccCount', label: 'Number of cash to finance', type: 'number' },
+    { key: 'ccAmount', label: 'Cash to finance (K)', type: 'number' },
+    { key: 'daytime', label: 'Daytime transactions', type: 'number' },
+    { key: 'evening', label: 'Evening transactions', type: 'number' },
+    { key: 'total', label: 'Total transactions', type: 'number' },
+    { key: 'turnedDown', label: 'Customers turned down', type: 'number' },
+    { key: 'commission', label: 'Daily commission (K)', type: 'number' },
+    { key: 'deficit', label: 'Deficit (K)', type: 'number' },
+    { key: 'surplus', label: 'Surplus (K)', type: 'number' },
+  ];
   router.get(
     '/daily',
     asyncHandler(async (req, res) => {
       const c = f(req);
       must(c.floatViewAll || c.floatRecord, 'You do not have access to AMS daily reports.');
       const s = await getSettings(db);
-      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date ?? ''))
-        ? String(req.query.date)
-        : await businessDate(db);
+      const iso = (v, d) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? String(v) : d);
+      const today = await businessDate(db);
+      const to = iso(req.query.to, today);
+      const from = iso(req.query.from, to);
+      if (from > to || addDays(from, 92) < to) throw badRequest('Choose a period of up to three months.');
       const mine = c.floatViewAll ? null : await staffBranch(db, s, req.user.id);
       if (!c.floatViewAll && !mine) throw badRequest('Your employee record has no AMS branch.');
-      const day = await buildDay(db, s, date, mine ? [mine.id] : null);
-      const signed = await db('float_days as d')
+      const branchIds = mine ? [mine.id] : req.query.branch ? [Number(req.query.branch)] : null;
+      const term = String(req.query.q ?? '')
+        .trim()
+        .toLowerCase();
+      const rows = [];
+      for (let d = from; d <= to; d = addDays(d, 1)) {
+        const day = await buildDay(db, s, d, branchIds);
+        for (const b of day.branches) {
+          if (!b.hasData) continue;
+          const who = [b.openedBy, b.signedOutBy].filter(Boolean).map((p) => `${p.firstName} ${p.lastName}`);
+          if (term && ![b.name, ...who].some((x) => x.toLowerCase().includes(term))) continue;
+          rows.push({ date: d, ...b });
+        }
+      }
+      const add = (fn) => round2(rows.reduce((sum, r) => sum + fn(r), 0));
+      const lastPerBranch = new Map();
+      for (const r of rows) lastPerBranch.set(r.id, r);
+      const latest = [...lastPerBranch.values()];
+      const totals = {
+        deposits: { count: add((r) => r.deposits.count), amount: add((r) => r.deposits.amount) },
+        withdrawals: { count: add((r) => r.withdrawals.count), amount: add((r) => r.withdrawals.amount) },
+        transactions: add((r) => r.transactions.total),
+        turnedDown: add((r) => r.turnedDown),
+        commission: add((r) => r.commission ?? 0),
+        deficit: add((r) => r.deficit),
+        surplus: add((r) => r.surplus),
+        // Balances at the end of the period: each branch's last day in it.
+        cash: round2(latest.reduce((sum, r) => sum + r.cash, 0)),
+        airtel: round2(latest.reduce((sum, r) => sum + r.airtel, 0)),
+        mtn: round2(latest.reduce((sum, r) => sum + r.mtn, 0)),
+      };
+      const signedRows = await db('float_days as d')
         .join('employees as e', 'e.id', 'd.signed_by')
-        .where('d.business_date', date)
-        .first('d.*', 'e.first_name', 'e.last_name');
+        .whereBetween('d.business_date', [from, to])
+        .select('d.business_date', 'd.signed_at', 'd.comment', 'e.first_name', 'e.last_name');
+      const signed = Object.fromEntries(
+        signedRows.map((r) => [
+          r.business_date,
+          { by: name(r.first_name, r.last_name), at: r.signed_at, comment: r.comment },
+        ]),
+      );
+      if (req.query.format === 'xlsx') {
+        const t = (v) => (v ? lusakaTime(v) : '');
+        return res
+          .set('Content-Type', XLSX)
+          .set('Content-Disposition', `attachment; filename="AMS daily ${from} to ${to}.xlsx"`)
+          .set('Cache-Control', 'private, no-store')
+          .send(
+            toXlsx(
+              DAILY_COLUMNS,
+              rows.map((r) => ({
+                date: r.date,
+                branch: r.name,
+                opened: t(r.openedAt),
+                closed: t(r.signedOutAt),
+                depCount: r.deposits.count,
+                depAmount: r.deposits.amount,
+                wdCount: r.withdrawals.count,
+                wdAmount: r.withdrawals.amount,
+                openingCash: r.openingCash,
+                openingFloat: r.openingFloat,
+                closingCash: r.cash,
+                closingFloat: r.float,
+                ftCount: r.floatTransfers.count,
+                ftAmount: r.floatTransfers.amount,
+                ccCount: r.cashCollections.count,
+                ccAmount: r.cashCollections.amount,
+                daytime: r.transactions.daytime,
+                evening: r.transactions.evening,
+                total: r.transactions.total,
+                turnedDown: r.turnedDown,
+                commission: r.commission ?? null,
+                deficit: r.deficit || null,
+                surplus: r.surplus || null,
+              })),
+              { sheetName: 'AMS daily', title: `AMS daily ${from} to ${to}` },
+            ),
+          );
+      }
       res.json({
-        ...day,
-        branches: day.branches.map((b) => ({ ...b, text: dayText(b, date, s) })),
-        signedOff: signed
-          ? { by: name(signed.first_name, signed.last_name), at: signed.signed_at, comment: signed.comment }
-          : null,
-        canSignOff: c.floatApprove && !signed && date <= todayInLusaka(),
-        unsigned: c.floatApprove ? await unsignedDays() : [],
+        from,
+        to,
+        rows,
+        totals,
+        signed,
+        canSignOff: c.floatSupervise,
+        unsigned: c.floatSupervise ? await unsignedDays() : [],
       });
     }),
   );
   router.post(
     '/daily/:date/sign-off',
     asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager signs off the daily report.');
+      must(f(req).floatSupervise, 'Only the Operations Officer signs off the daily report.');
       const date = String(req.params.date);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > todayInLusaka())
         throw badRequest('Choose a day up to today.');
@@ -1339,20 +1568,18 @@ export function floatRoutes({ db }) {
       const t = day.totals;
       await db.transaction(async (trx) =>
         notify(trx, {
-          recipients: await directors(trx, [req.user.id]),
+          recipients: [...(await managers(trx, [req.user.id])), ...(await directors(trx, [req.user.id]))],
           event: 'FLOAT_DAY_SIGNED_OFF',
-          title: `AMS daily report signed off: ${date}`,
-          body: `${t.transactions.total} transactions at ${t.signedOut} of ${t.branches} branches; float + cash ${kwacha(t.total)}.`,
-          link: `/requisitions/float/daily?date=${date}`,
-          entityType: 'float_day',
-          entityId: null,
+          title: `AMS daily report reconciled and signed off: ${date}`,
+          body: `${t.transactions.total} transactions at ${t.signedOut} branches; closing cash ${kwacha(t.cash)}, float ${kwacha(t.float)}.`,
+          link: `/requisitions/float/daily?from=${date}&to=${date}`,
           email: {
             ...EMAIL,
-            subject: `AMS daily report: ${date}`,
-            heading: 'AMS daily report',
-            intro: `The daily report for ${date} has been signed off.${comment ? ` Manager’s note: ${comment}` : ''}`,
+            subject: `AMS daily report signed off: ${date}`,
+            heading: 'AMS daily report signed off',
+            intro: `The Operations Officer has reconciled and signed off ${date}.${comment ? ` Note: ${comment}` : ''}`,
             rows: dayRows(t),
-            action: 'Open it in the inventory system to see each branch and download it in Excel.',
+            action: 'Open it in the inventory system to see each branch.',
           },
         }),
       );
@@ -1360,85 +1587,349 @@ export function floatRoutes({ db }) {
     }),
   );
 
-  // Day by day for a period, one row per branch and day, as AMS keeps it in Excel.
+  // ── AMS requisitions (D121): a dead or faulty device, or cash or float run out ──────────────
+  //   Raised by branch staff with the reason → Operations Officer → manager → director.
+  //   Approved cash or float is added to the branch when it confirms it has arrived.
+  const REQ_STEP = {
+    PENDING_SUPERVISOR: ['floatSupervise', 'supervisor', 'PENDING_MANAGER'],
+    PENDING_MANAGER: ['floatApprove', 'manager', 'PENDING_DIRECTOR'],
+    PENDING_DIRECTOR: ['floatDirector', 'director', 'APPROVED'],
+  };
+  const REQ_KIND = { DEVICE: 'Device dead or faulty', CASH: 'Cash run out', FLOAT: 'Float run out' };
+  const reqRows = () =>
+    db('float_requisitions as q')
+      .join('stock_branches as b', 'b.id', 'q.branch_id')
+      .join('employees as e', 'e.id', 'q.raised_by')
+      .leftJoin('employees as sv', 'sv.id', 'q.supervisor_by')
+      .leftJoin('employees as mg', 'mg.id', 'q.manager_by')
+      .leftJoin('employees as dr', 'dr.id', 'q.director_by')
+      .select(
+        'q.*',
+        'b.name as branch',
+        'e.first_name',
+        'e.last_name',
+        'sv.first_name as sv_first',
+        'sv.last_name as sv_last',
+        'mg.first_name as mg_first',
+        'mg.last_name as mg_last',
+        'dr.first_name as dr_first',
+        'dr.last_name as dr_last',
+      );
+  const reqView = (q, u, mine) => {
+    const step = REQ_STEP[q.status];
+    const c = f({ rq: u.rq });
+    return {
+      id: q.id,
+      reference: q.reference,
+      branch: q.branch,
+      branchId: q.branch_id,
+      kind: q.kind,
+      kindLabel: REQ_KIND[q.kind],
+      account: q.account,
+      amount: q.amount == null ? null : Number(q.amount),
+      device: q.device,
+      reason: q.reason,
+      status: q.status,
+      raisedBy: { id: q.raised_by, firstName: q.first_name, lastName: q.last_name },
+      raisedAt: q.raised_at,
+      steps: [
+        [
+          'Operations Officer',
+          q.supervisor_by && {
+            by: name(q.sv_first, q.sv_last),
+            at: q.supervisor_at,
+            comment: q.supervisor_comment,
+          },
+        ],
+        [
+          'Manager',
+          q.manager_by && { by: name(q.mg_first, q.mg_last), at: q.manager_at, comment: q.manager_comment },
+        ],
+        [
+          'Director',
+          q.director_by && {
+            by: name(q.dr_first, q.dr_last),
+            at: q.director_at,
+            comment: q.director_comment,
+          },
+        ],
+      ].map(([label, done]) => ({ label, done: done || null })),
+      receivedAmount: q.received_amount == null ? null : Number(q.received_amount),
+      can: {
+        decide: Boolean(
+          step && c[step[0]] && q.raised_by !== u.id && q.supervisor_by !== u.id && q.manager_by !== u.id,
+        ),
+        cancel: q.status === 'PENDING_SUPERVISOR' && q.raised_by === u.id,
+        receive: q.status === 'APPROVED' && q.kind !== 'DEVICE' && (mine === q.branch_id || c.floatSupervise),
+        done: q.status === 'APPROVED' && q.kind === 'DEVICE' && c.floatSupervise,
+      },
+    };
+  };
   router.get(
-    '/history',
+    '/requisitions',
     asyncHandler(async (req, res) => {
       const c = f(req);
-      must(c.floatViewAll, 'You do not have access to AMS reports.');
+      must(
+        c.floatRecord || c.floatSupervise || c.floatApprove || c.floatDirector || c.floatViewAll,
+        'You do not have access to AMS requisitions.',
+      );
       const s = await getSettings(db);
-      const iso = (v, d) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? String(v) : d);
-      const to = iso(req.query.to, todayInLusaka());
-      const from = iso(req.query.from, addDays(to, -30));
-      if (from > to || addDays(from, 366) < to) throw badRequest('Choose a period of up to a year.');
-      const branchIds = req.query.branch ? [Number(req.query.branch)] : null;
-      const rows = [];
-      for (let d = from; d <= to; d = addDays(d, 1)) {
-        const day = await buildDay(db, s, d, branchIds);
-        for (const b of day.branches) {
-          if (!b.transactions.total && !b.signedOut && !b.floatTransfers.count && !b.cashCollections.count)
-            continue;
-          rows.push({ date: d, ...b });
+      const mine = await staffBranch(db, s, req.user.id);
+      const all = c.floatSupervise || c.floatApprove || c.floatDirector || c.floatViewAll;
+      const rows = await reqRows()
+        .modify((q) => !all && q.where('q.branch_id', mine?.id ?? 0))
+        .modify((q) => req.query.status && q.where('q.status', String(req.query.status)))
+        .orderBy('q.id', 'desc')
+        .limit(1000);
+      const u = { id: req.user.id, rq: req.rq };
+      res.json({
+        items: rows.map((q) => reqView(q, u, mine?.id)),
+        canRaise: c.floatRecord && Boolean(mine),
+        branch: mine,
+      });
+    }),
+  );
+  const reqSchema = z
+    .object({
+      kind: z.enum(['DEVICE', 'CASH', 'FLOAT']),
+      account: z.enum(['AIRTEL', 'MTN']).nullish(),
+      amount: z.coerce.number().positive().max(100000000).nullish(),
+      device: optionalText(200),
+      reason: requiredText(2000),
+    })
+    .refine((v) => v.kind !== 'FLOAT' || v.account, { message: 'choose Airtel or MTN', path: ['account'] })
+    .refine((v) => v.kind === 'DEVICE' || v.amount, { message: 'give the amount needed', path: ['amount'] })
+    .refine((v) => v.kind !== 'DEVICE' || v.device, { message: 'say which device', path: ['device'] });
+  router.post(
+    '/requisitions',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatRecord, 'Only branch staff raise AMS requisitions.');
+      const input = reqSchema.parse(req.body);
+      const s = await getSettings(db);
+      const branch = await staffBranch(db, s, req.user.id);
+      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const id = await db.transaction(async (trx) => {
+        const [qid] = await trx('float_requisitions').insert({
+          branch_id: branch.id,
+          kind: input.kind,
+          account: input.kind === 'CASH' ? 'CASH' : input.kind === 'FLOAT' ? input.account : null,
+          amount: input.kind === 'DEVICE' ? null : round2(input.amount),
+          device: input.kind === 'DEVICE' ? input.device : null,
+          reason: input.reason,
+          raised_by: req.user.id,
+        });
+        const reference = `AR-${todayInLusaka().slice(0, 4)}-${String(qid).padStart(6, '0')}`;
+        await trx('float_requisitions').where({ id: qid }).update({ reference });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_REQUISITION_RAISED',
+          entityType: 'float_requisition',
+          entityId: qid,
+          after: { reference, ...input },
+        });
+        const what =
+          input.kind === 'DEVICE'
+            ? `${REQ_KIND.DEVICE}: ${input.device}`
+            : `${REQ_KIND[input.kind]}: ${kwacha(input.amount)}${input.account ? ` ${KIND_LABEL[input.account]}` : ''}`;
+        await notify(trx, {
+          recipients: await supervisors(trx, [req.user.id]),
+          event: 'FLOAT_REQUISITION_TO_APPROVE',
+          title: `Requisition from ${branch.name}: ${what}`,
+          body: input.reason,
+          link: '/requisitions/float/requisitions',
+          entityType: 'float_requisition',
+          entityId: qid,
+          email: {
+            ...EMAIL,
+            subject: `AMS requisition ${reference} from ${branch.name}`,
+            heading: 'AMS requisition to approve',
+            intro: `${branch.name} has raised a requisition.`,
+            rows: [
+              ['Reference', reference],
+              ['What', what],
+              ['Reason', input.reason],
+            ],
+            action: 'Please approve it on to the manager, or turn it down, in the inventory system.',
+          },
+        });
+        return qid;
+      });
+      res.status(201).json({ id });
+    }),
+  );
+  router.post(
+    '/requisitions/:id/decide',
+    asyncHandler(async (req, res) => {
+      const id = idParam(req);
+      const { approve, comment } = decideSchema.parse(req.body);
+      if (!approve && !comment) throw badRequest('Give a reason for turning it down.');
+      await db.transaction(async (trx) => {
+        const q = await trx('float_requisitions').where({ id }).forUpdate().first();
+        if (!q) throw notFound('Requisition not found.');
+        const step = REQ_STEP[q.status];
+        if (!step) throw conflict('This requisition is not waiting for a decision.');
+        must(f(req)[step[0]], 'This requisition is waiting for someone else.');
+        if ([q.raised_by, q.supervisor_by, q.manager_by].includes(req.user.id)) {
+          throw forbidden('Someone else must take this step.');
         }
-      }
-      if (req.query.format === 'xlsx') {
-        return res
-          .set('Content-Type', XLSX)
-          .set('Content-Disposition', `attachment; filename="AMS daily ${from} to ${to}.xlsx"`)
-          .set('Cache-Control', 'private, no-store')
-          .send(
-            toXlsx(
-              [
-                { key: 'date', label: 'Date', type: 'date' },
-                { key: 'branch', label: 'Branch' },
-                { key: 'depCount', label: 'Deposits count', type: 'number' },
-                { key: 'depAmount', label: 'Deposits amount (K)', type: 'number' },
-                { key: 'wdCount', label: 'Withdrawals count', type: 'number' },
-                { key: 'wdAmount', label: 'Withdrawals amount (K)', type: 'number' },
-                { key: 'commission', label: 'Daily commission (K)', type: 'number' },
-                { key: 'ftCount', label: 'Float transfers count', type: 'number' },
-                { key: 'ftAmount', label: 'Float transfers amount (K)', type: 'number' },
-                { key: 'ccCount', label: 'Cash collections count', type: 'number' },
-                { key: 'ccAmount', label: 'Cash collections amount (K)', type: 'number' },
-                { key: 'daytime', label: 'Daytime transactions', type: 'number' },
-                { key: 'evening', label: 'Evening transactions', type: 'number' },
-                { key: 'total', label: 'Total transactions', type: 'number' },
-                { key: 'turnedDown', label: 'Customers turned down', type: 'number' },
-                { key: 'cash', label: 'Cash (K)', type: 'number' },
-                { key: 'float', label: 'Float (K)', type: 'number' },
-                { key: 'floatCash', label: 'Float + cash (K)', type: 'number' },
-                { key: 'commissionMonth', label: 'Commission this month (K)', type: 'number' },
-                { key: 'deficit', label: 'Deficit (K)', type: 'number' },
-                { key: 'surplus', label: 'Surplus (K)', type: 'number' },
+        const who = step[1];
+        const to = approve ? step[2] : 'REJECTED';
+        await trx('float_requisitions')
+          .where({ id })
+          .update({
+            status: to,
+            [`${who}_by`]: req.user.id,
+            [`${who}_at`]: trx.fn.now(),
+            [`${who}_comment`]: comment,
+          });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: `FLOAT_REQUISITION_${approve ? 'APPROVED' : 'REJECTED'}`,
+          entityType: 'float_requisition',
+          entityId: id,
+          before: { status: q.status },
+          after: { status: to, comment },
+        });
+        const branch = await trx('stock_branches').where({ id: q.branch_id }).first('name');
+        const next =
+          to === 'PENDING_MANAGER'
+            ? await managers(trx, [req.user.id])
+            : to === 'PENDING_DIRECTOR'
+              ? await directors(trx, [req.user.id])
+              : [];
+        if (next.length) {
+          await notify(trx, {
+            recipients: next,
+            event: 'FLOAT_REQUISITION_TO_APPROVE',
+            title: `AMS requisition to approve: ${q.reference} (${branch.name})`,
+            body: `${REQ_KIND[q.kind]}. ${q.reason}`,
+            link: '/requisitions/float/requisitions',
+            entityType: 'float_requisition',
+            entityId: id,
+            email: {
+              ...EMAIL,
+              subject: `AMS requisition to approve: ${q.reference}`,
+              heading: 'AMS requisition to approve',
+              intro: `${branch.name}'s requisition has been approved by the ${who === 'supervisor' ? 'Operations Officer' : 'manager'} and needs your decision.`,
+              rows: [
+                [
+                  'What',
+                  REQ_KIND[q.kind] + (q.amount ? `: ${kwacha(q.amount)}` : q.device ? `: ${q.device}` : ''),
+                ],
+                ['Reason', q.reason],
               ],
-              rows.map((r) => ({
-                date: r.date,
-                branch: r.name,
-                depCount: r.deposits.count,
-                depAmount: r.deposits.amount,
-                wdCount: r.withdrawals.count,
-                wdAmount: r.withdrawals.amount,
-                commission: r.commission ?? 0,
-                ftCount: r.floatTransfers.count,
-                ftAmount: r.floatTransfers.amount,
-                ccCount: r.cashCollections.count,
-                ccAmount: r.cashCollections.amount,
-                daytime: r.transactions.daytime,
-                evening: r.transactions.evening,
-                total: r.transactions.total,
-                turnedDown: r.turnedDown,
-                cash: r.cash,
-                float: r.float,
-                floatCash: r.total,
-                commissionMonth: r.commissionMonth,
-                deficit: r.deficit,
-                surplus: r.surplus,
-              })),
-              { sheetName: 'AMS daily', title: `AMS daily ${from} to ${to}` },
-            ),
-          );
-      }
-      res.json({ from, to, rows });
+            },
+          });
+        }
+        if (to === 'APPROVED' || to === 'REJECTED') {
+          await notify(trx, {
+            recipients: [q.raised_by, ...(await supervisors(trx, [req.user.id]))],
+            event: `FLOAT_REQUISITION_${to}`,
+            title: `AMS requisition ${to === 'APPROVED' ? 'approved' : 'turned down'}: ${q.reference}`,
+            body:
+              to === 'APPROVED'
+                ? q.kind === 'DEVICE'
+                  ? 'The Operations Officer will arrange it.'
+                  : 'Confirm it on Requisitions when the money arrives at the branch.'
+                : comment,
+            link: '/requisitions/float/requisitions',
+            entityType: 'float_requisition',
+            entityId: id,
+          });
+        }
+      });
+      res.json({ id });
+    }),
+  );
+  router.post(
+    '/requisitions/:id/received',
+    asyncHandler(async (req, res) => {
+      const id = idParam(req);
+      const { amount: got } = z.object({ amount }).parse(req.body);
+      const s = await getSettings(db);
+      const mine = await staffBranch(db, s, req.user.id);
+      await db.transaction(async (trx) => {
+        const q = await trx('float_requisitions').where({ id }).forUpdate().first();
+        if (!q || q.status !== 'APPROVED' || q.kind === 'DEVICE')
+          throw conflict('This requisition is not waiting to be received.');
+        must(
+          f(req).floatSupervise || (f(req).floatRecord && mine?.id === q.branch_id),
+          'Only the branch or the Operations Officer confirms it arrived.',
+        );
+        const date = await businessDate(trx);
+        const [mid] = await trx('float_movements').insert({
+          kind: 'TOPUP',
+          to_branch_id: q.branch_id,
+          to_account: q.account,
+          amount: got,
+          reason: `Requisition ${q.reference}`,
+          status: 'APPROVED',
+          requested_by: q.raised_by,
+          decided_by: req.user.id,
+          decided_at: trx.fn.now(),
+          business_date: date,
+        });
+        await post(trx, {
+          branchId: q.branch_id,
+          kind: q.account,
+          amount: got,
+          type: 'TOPUP',
+          date,
+          by: req.user.id,
+          movementId: mid,
+        });
+        await trx('float_requisitions').where({ id }).update({
+          status: 'RECEIVED',
+          received_amount: got,
+          movement_id: mid,
+          closed_by: req.user.id,
+          closed_at: trx.fn.now(),
+        });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_REQUISITION_RECEIVED',
+          entityType: 'float_requisition',
+          entityId: id,
+          after: { amount: got },
+        });
+      });
+      res.json({ id });
+    }),
+  );
+  router.post(
+    '/requisitions/:id/done',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatSupervise, 'Only the Operations Officer marks a device requisition done.');
+      const id = idParam(req);
+      const n = await db('float_requisitions')
+        .where({ id, status: 'APPROVED', kind: 'DEVICE' })
+        .update({ status: 'DONE', closed_by: req.user.id, closed_at: db.fn.now() });
+      if (!n) throw conflict('This requisition is not waiting to be done.');
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'FLOAT_REQUISITION_DONE',
+        entityType: 'float_requisition',
+        entityId: id,
+      });
+      res.json({ id });
+    }),
+  );
+  router.post(
+    '/requisitions/:id/cancel',
+    asyncHandler(async (req, res) => {
+      const id = idParam(req);
+      const n = await db('float_requisitions')
+        .where({ id, status: 'PENDING_SUPERVISOR', raised_by: req.user.id })
+        .update({ status: 'CANCELLED', closed_by: req.user.id, closed_at: db.fn.now() });
+      if (!n)
+        throw conflict('Only your own requisition, before the Operations Officer decides, can be cancelled.');
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'FLOAT_REQUISITION_CANCELLED',
+        entityType: 'float_requisition',
+        entityId: id,
+      });
+      res.json({ id });
     }),
   );
 

@@ -29,6 +29,7 @@ const MODULE_ROLES = {
     'AMS Branch Staff',
     'AMS Manager',
     'AMS HR',
+    'AMS Operations Officer',
   ],
   leave: ['System Admin', 'HR Officer', 'Director'],
   people: ['System Admin', 'HR Officer', 'Director'],

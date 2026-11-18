@@ -340,7 +340,7 @@ const INVENTORY_AREAS = [
       ],
     ],
   },
-  // Cash and float for Altus Money Solutions (D117).
+  // Cash and float for Altus Money Solutions (D117, D121).
   {
     key: 'float',
     label: 'AMS cash and float',
@@ -349,18 +349,19 @@ const INVENTORY_AREAS = [
       ['No access', "Can't open AMS cash and float.", []],
       [
         'Branch staff',
-        'Record deposits and withdrawals at their own branch (from their employee record), count at close and handover, ask for top-ups and reversals.',
+        'Open and close their own branch (from their employee record), record deposits and withdrawals, count at handover, record cash to finance and raise requisitions. Reports to the Operations Officer.',
         ['float.record'],
       ],
+      ['View all branches', 'See every AMS branch, the dashboard and the daily reports, read only.', ['float.view_all']],
       [
-        'View all branches',
-        'See every AMS branch, the dashboard, weekly reports and commission, read only.',
-        ['float.view_all'],
+        'Operations Officer',
+        'Supervises every branch: approves float movements, reversals and cash to finance, reviews large transactions, handles surpluses and deficits, reconciles and signs off the daily report, and approves requisitions on to the manager.',
+        ['float.view_all', 'float.supervise'],
       ],
       [
         'Manager',
-        'Everything in Branch staff and View all, plus approve top-ups, transfers and reversals, review large transactions, resolve surpluses and deficits, and sign off the weekly report.',
-        ['float.record', 'float.view_all', 'float.approve'],
+        'Everything the Operations Officer does, plus approves requisitions on to the directors.',
+        ['float.view_all', 'float.supervise', 'float.approve'],
       ],
     ],
   },
@@ -372,7 +373,7 @@ const INVENTORY_AREAS = [
       ['No access', 'No director approvals.', []],
       [
         'Approve',
-        'See every AMS branch and approve write-offs above the director limit; receives the signed-off weekly report.',
+        'See every AMS branch, approve write-offs above the director limit and give the final approval of AMS requisitions; receives the daily reports.',
         ['float.view_all', 'float.director'],
       ],
     ],

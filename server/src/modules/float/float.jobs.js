@@ -7,11 +7,11 @@ import {
   branchStaff,
   buildDay,
   dayCode,
-  directors,
   getSettings,
   kwacha,
   lusakaTime,
-  managers,
+  reportRecipients,
+  supervisors,
 } from './float.service.js';
 import { addDays } from '../leave/calendar.js';
 
@@ -34,7 +34,7 @@ export async function sendDailyReport(db, settings, date) {
   const open = day.branches.filter((b) => b.tradingDay && !b.signedOut).map((b) => b.name);
   await db.transaction(async (trx) =>
     notify(trx, {
-      recipients: [...(await managers(trx)), ...(await directors(trx))],
+      recipients: await reportRecipients(trx),
       event: 'FLOAT_DAILY_REPORT',
       title: `AMS daily report ${date}: ${t.transactions.total} transactions, float + cash ${kwacha(t.total)}`,
       body: open.length ? `Not signed out yet: ${open.join(', ')}.` : 'Every branch has signed out.',
@@ -90,7 +90,7 @@ export async function runFloatJobs(db, now = new Date()) {
         if (closed) return { reminded: false };
         await db.transaction(async (trx) =>
           notify(trx, {
-            recipients: [...(await branchStaff(trx, b.id)), ...(await managers(trx))],
+            recipients: [...(await branchStaff(trx, b.id)), ...(await supervisors(trx))],
             event: 'FLOAT_CLOSE_REMINDER',
             title: `Sign out at ${b.name}`,
             body: `${b.name} closes at ${h.closesAt}. Count the cash and the Airtel and MTN balances, and close the day.`,
@@ -136,7 +136,7 @@ export async function runFloatJobs(db, now = new Date()) {
       if (!late.length) return { reminded: 0 };
       await db.transaction(async (trx) =>
         notify(trx, {
-          recipients: await managers(trx),
+          recipients: await supervisors(trx),
           event: 'FLOAT_DAY_REMINDER',
           title: `${late.length === 1 ? 'An AMS daily report is' : `${late.length} AMS daily reports are`} not signed off`,
           body: late.join(', '),

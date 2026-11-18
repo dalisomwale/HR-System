@@ -62,28 +62,34 @@ function TurnedDown() {
   );
 }
 
-/** The day's report as the text the team shares, with a copy button. */
-export function DayReportCard({ report, title }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
+/** Opening the store (D121): one tap clocks the time and the balances it opens with. */
+function OpenStore({ data, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const open = async () => {
+    setBusy(true);
+    setError(null);
     try {
-      await navigator.clipboard.writeText(report.text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setCopied(false);
+      await api.post('/api/float/open');
+      onDone('Store open. You can record transactions now.');
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
     }
   };
   return (
-    <Section
-      title={title ?? report.name}
-      actions={
-        <Button size="sm" variant="secondary" onClick={copy}>
-          {copied ? 'Copied' : 'Copy for WhatsApp'}
+    <Section title="Open the store" className="border-brand ring-1 ring-brand">
+      <div className="stack">
+        <p className="text-sm">
+          Tap Open store when you start work. It records the time and the balances you open with:{' '}
+          {data.accounts.map((a) => `${a.label} ${money(a.balance)}`).join(', ')}.
+        </p>
+        {error && <Notice tone="danger">{error}</Notice>}
+        <Button className="min-h-12 text-base" busy={busy} onClick={open}>
+          Open store
         </Button>
-      }
-    >
-      <pre className="font-sans text-sm whitespace-pre-wrap">{report.text.replace(/\*/g, '')}</pre>
+      </div>
     </Section>
   );
 }
@@ -136,6 +142,26 @@ export function FloatRecordPage() {
       <Notice tone="pending" title="No AMS branch on your record">
         Ask HR to set your branch on your employee record in Employee management. Then you can record here.
       </Notice>
+    );
+  }
+  if (today.isPending) return <Loading />;
+  if (today.data && !today.data.opened) {
+    return (
+      <div className="max-w-2xl">
+        <PageHeader title="Record a transaction" description={me.data.branch.name} />
+        <OpenStore data={today.data} onDone={() => qc.invalidateQueries({ queryKey: ['float-branch'] })} />
+      </div>
+    );
+  }
+  if (today.data?.closed) {
+    return (
+      <div className="max-w-2xl">
+        <PageHeader title="Record a transaction" description={me.data.branch.name} />
+        <Notice tone="neutral" title="The store is closed for today">
+          The day's transactions are closed and the daily report has been sent. Open the store again on the
+          next working day.
+        </Notice>
+      </div>
     );
   }
   const press = (k) =>
@@ -264,7 +290,7 @@ export function FloatRecordPage() {
         <TurnedDown />
         <p className="text-sm">
           <Link to="/requisitions/float/branch" className="text-brand hover:underline">
-            Today at the branch: transactions, cash to finance, close the day, ask for a top-up
+            Today at the branch: transactions, cash to finance, hand over, close the store
           </Link>
         </p>
       </div>
@@ -323,36 +349,42 @@ export function FloatBranchPage() {
     <div>
       <PageHeader
         title={d.branch.name}
-        description={`Business day ${d.date} · ${d.tradingToday ? `open ${d.hours.opensAt}–${d.hours.closesAt}` : 'not a trading day'}${d.closed ? ' · Signed out' : ''}`}
+        description={`Business day ${d.date} · ${d.tradingToday ? `hours ${d.hours.opensAt}–${d.hours.closesAt}` : 'not a trading day'}${d.opened ? ` · opened ${timeOf(d.opened.at)} by ${d.opened.by}` : ' · not opened yet'}${d.closed ? ' · closed' : ''}`}
         actions={
-          d.canRecord && (
+          d.canRecord &&
+          d.opened &&
+          !d.closed && (
             <>
               <Link to="/requisitions/float/record" className="btn btn-primary">
                 Record a transaction
               </Link>
-              <Button variant="secondary" onClick={() => setPanel('TOPUP')}>
-                Ask for a top-up
-              </Button>
               <Button variant="secondary" onClick={() => setPanel('COLLECT')}>
                 Cash to finance
               </Button>
               <Button variant="secondary" onClick={() => setPanel('HANDOVER')}>
                 Hand over
               </Button>
-              <Button variant={d.closed ? 'secondary' : 'primary'} onClick={() => setPanel('CLOSE')}>
-                {d.closed ? 'Count again' : 'Close the day'}
-              </Button>
+              <Link to="/requisitions/float/requisitions" className="btn">
+                Raise a requisition
+              </Link>
+              <Button onClick={() => setPanel('CLOSE')}>Close store</Button>
             </>
           )
         }
       />
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+        {d.canRecord && !d.opened && !d.closed && <OpenStore data={d} onDone={refresh} />}
+        {d.closed && (
+          <Notice tone="neutral" title="Store closed">
+            The day's transactions are closed and the daily report has gone to the Operations Officer, the
+            managers, the directors and the System Admin.
+          </Notice>
+        )}
         <Balances accounts={d.accounts} />
         {(panel === 'CLOSE' || panel === 'HANDOVER') && (
           <CountForm data={d} kind={panel} onDone={refresh} onCancel={() => setPanel(null)} />
         )}
-        {panel === 'TOPUP' && <TopUpForm onDone={refresh} onCancel={() => setPanel(null)} />}
         {panel === 'COLLECT' && <CollectionForm onDone={refresh} onCancel={() => setPanel(null)} />}
         <div className="grid gap-3 sm:grid-cols-2">
           {d.totals.map((t) => (
@@ -449,7 +481,8 @@ export function FloatBranchPage() {
             <ul className="text-sm">
               {d.counts.map((c) => (
                 <li key={c.id}>
-                  {c.kind === 'CLOSE' ? 'Day close' : `Handover to ${c.handedTo}`} by {c.by} at {timeOf(c.at)}
+                  {{ OPEN: 'Store opened', CLOSE: 'Store closed' }[c.kind] ?? `Handover to ${c.handedTo}`} by{' '}
+                  {c.by} at {timeOf(c.at)}
                 </li>
               ))}
             </ul>
@@ -520,7 +553,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
     const off = result.filter((r) => r.recorded);
     return (
       <Section
-        title={kind === 'CLOSE' ? 'Day closed' : 'Handed over'}
+        title={kind === 'CLOSE' ? 'Store closed' : 'Handed over'}
         className="border-brand ring-1 ring-brand"
       >
         <ul className="mb-3 space-y-1 text-sm">
@@ -539,10 +572,17 @@ function CountForm({ data, kind, onDone, onCancel }) {
           ))}
         </ul>
         <p className="mb-3 text-sm text-muted">
-          {off.length ? 'The manager has been told about the difference.' : 'Everything balanced.'} The
-          balances now match what you counted.
+          {off.length ? 'The Operations Officer has been told about the difference.' : 'Everything balanced.'}{' '}
+          The balances now match what you counted.
         </p>
-        {report && <DayReportCard report={report} title="Today's report" />}
+        {report && (
+          <Notice tone="ok" title="Store closed and the daily report sent">
+            Opened {report.openedAt ? timeOf(report.openedAt) : '—'}, closed {timeOf(report.signedOutAt)}.
+            Deposits {report.deposits.count} ({money(report.deposits.amount)}), withdrawals{' '}
+            {report.withdrawals.count} ({money(report.withdrawals.amount)}). Closing cash {money(report.cash)}
+            , float {money(report.float)}.
+          </Notice>
+        )}
         <div className="mt-3">
           <Button onClick={() => onDone(null)}>Done</Button>
         </div>
@@ -551,7 +591,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
   }
   return (
     <Section
-      title={kind === 'CLOSE' ? 'Close the day' : 'Hand over'}
+      title={kind === 'CLOSE' ? 'Close the store' : 'Hand over'}
       className="border-brand ring-1 ring-brand"
     >
       <div className="stack">
@@ -627,7 +667,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy} disabled={kind === 'HANDOVER' && !handedTo} onClick={send}>
-            {kind === 'CLOSE' ? 'Close the day' : 'Hand over'}
+            {kind === 'CLOSE' ? 'Close store and send the report' : 'Hand over'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
@@ -677,71 +717,6 @@ function CollectionForm({ onDone, onCancel }) {
         <div className="flex gap-2">
           <Button busy={busy} disabled={!(Number(amount) > 0)} onClick={send}>
             Record cash to finance
-          </Button>
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function TopUpForm({ onDone, onCancel }) {
-  const [account, setAccount] = useState('AIRTEL');
-  const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const send = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.post('/api/float/movements', {
-        kind: 'TOPUP',
-        toAccount: account,
-        amount: Number(amount),
-        reason: reason.trim() || null,
-      });
-      onDone('Top-up asked for. A manager will approve it.');
-    } catch (err) {
-      setError(errorText(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <Section title="Ask for a top-up" className="border-brand ring-1 ring-brand">
-      <div className="stack">
-        <div className="grid grid-cols-3 gap-2">
-          {Object.entries(ACCOUNT).map(([k, l]) => (
-            <button
-              key={k}
-              type="button"
-              className={`min-h-12 rounded-md border-2 font-semibold ${account === k ? 'border-brand bg-brand text-white' : 'border-rule bg-white'}`}
-              onClick={() => setAccount(k)}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        <Field id="tu-amount" label="Amount (K)">
-          <Input
-            id="tu-amount"
-            type="number"
-            min={1}
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        </Field>
-        <Field id="tu-reason" label="Reason" optional>
-          <Input id="tu-reason" value={reason} onChange={(e) => setReason(e.target.value)} />
-        </Field>
-        {error && <Notice tone="danger">{error}</Notice>}
-        <div className="flex gap-2">
-          <Button busy={busy} disabled={!(Number(amount) > 0)} onClick={send}>
-            Send to the manager
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

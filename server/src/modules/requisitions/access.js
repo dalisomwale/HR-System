@@ -104,6 +104,7 @@ export async function requisitionContext(db, user) {
   ctx.floatRecord = isAdmin;
   ctx.floatViewAll = isAdmin;
   ctx.floatApprove = isAdmin;
+  ctx.floatSupervise = isAdmin;
   ctx.floatDirector = isAdmin;
   ctx.floatShortages = isAdmin;
   ctx.floatAdmin = isAdmin;
@@ -169,6 +170,7 @@ function roleContext({ user, me, perms, role }) {
   ctx.floatRecord = can('float.record');
   ctx.floatViewAll = can('float.view_all');
   ctx.floatApprove = can('float.approve');
+  ctx.floatSupervise = can('float.supervise');
   ctx.floatDirector = can('float.director');
   ctx.floatShortages = can('float.shortages');
   ctx.floatAdmin = can('float.admin');

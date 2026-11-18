@@ -52,6 +52,7 @@ import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import StockAlertsPage from './pages/requisitions/StockAlertsPage.jsx';
 import { FloatBranchPage, FloatRecordPage } from './pages/requisitions/float/FloatEntryPages.jsx';
+import FloatRequisitionsPage from './pages/requisitions/float/FloatRequisitionsPage.jsx';
 import {
   FloatApprovalsPage,
   FloatDashboardPage,
@@ -241,7 +242,7 @@ createRoot(document.getElementById('root')).render(
               />
               <Route
                 path="float/approvals"
-                element={rqPage(<FloatApprovalsPage />, (a) => a.float?.approve || a.float?.director)}
+                element={rqPage(<FloatApprovalsPage />, (a) => a.float?.supervise || a.float?.director)}
               />
               <Route
                 path="float/variances"
@@ -253,6 +254,18 @@ createRoot(document.getElementById('root')).render(
               <Route
                 path="float/transactions"
                 element={rqPage(<FloatTransactionsPage />, (a) => a.float?.viewAll || a.float?.record)}
+              />
+              <Route
+                path="float/requisitions"
+                element={rqPage(
+                  <FloatRequisitionsPage />,
+                  (a) =>
+                    a.float?.record ||
+                    a.float?.supervise ||
+                    a.float?.approve ||
+                    a.float?.director ||
+                    a.float?.viewAll,
+                )}
               />
               <Route
                 path="float/daily"

@@ -24,8 +24,7 @@ import {
   Th,
 } from '../../../components/ui.jsx';
 import { errorText } from '../rq.js';
-import { ACCOUNT, DAYS, money, timeOf } from './fl.js';
-import { DayReportCard } from './FloatEntryPages.jsx';
+import { ACCOUNT, DAYS, money, timeOf, useFloat } from './fl.js';
 
 // ── Daily reports (D118) ───────────────────────────────────────────────────────────────────────
 /** "Mon–Sat, 07:30–18:00" */
@@ -46,23 +45,44 @@ export function hoursText(h) {
 
 const today = () => new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10); // Lusaka
 
+const pad = (n) => String(n).padStart(2, '0');
+const lastDay = (ym) => new Date(Date.UTC(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0)).getUTCDate();
+/** The dates a filter covers: a day, a week of a month (1–7, 8–14, …), or a month. */
+function rangeOf(f) {
+  if (f.period === 'DAY') return [f.day, f.day];
+  const last = lastDay(f.month);
+  if (f.period === 'MONTH') return [`${f.month}-01`, `${f.month}-${pad(last)}`];
+  const start = (Number(f.week) - 1) * 7 + 1;
+  return [`${f.month}-${pad(start)}`, `${f.month}-${pad(Math.min(start + 6, last))}`];
+}
+const dash = (n, fmt = (x) => x) => (n ? fmt(n) : '—');
+
 export function FloatDailyPage() {
   const qc = useQueryClient();
-  const [params, setParams] = useSearchParams();
-  const date = params.get('date') || today();
-  const q = useQuery({
-    queryKey: ['float-daily', date],
-    queryFn: () => api.get(`/api/float/daily?date=${date}`),
+  const [params] = useSearchParams();
+  const me = useFloat();
+  const branches = useQuery({
+    queryKey: ['float-branches'],
+    queryFn: () => api.get('/api/float/branches'),
+    enabled: Boolean(me.data?.rights.viewAll || me.data?.rights.admin),
   });
+  const t0 = today();
+  const [f, setF] = useState({
+    period: params.get('from') && params.get('from') !== params.get('to') ? 'MONTH' : 'DAY',
+    day: params.get('from') ?? t0,
+    month: (params.get('from') ?? t0).slice(0, 7),
+    week: String(Math.min(5, Math.ceil(Number(t0.slice(8, 10)) / 7))),
+    branch: params.get('branch') ?? '',
+    q: '',
+  });
+  const [from, to] = rangeOf(f);
+  const qs = `from=${from}&to=${to}${f.branch ? `&branch=${f.branch}` : ''}${f.q.trim() ? `&q=${encodeURIComponent(f.q.trim())}` : ''}`;
+  const q = useQuery({ queryKey: ['float-daily', qs], queryFn: () => api.get(`/api/float/daily?${qs}`) });
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [range, setRange] = useState({ from: date.slice(0, 8) + '01', to: date });
-  if (q.isPending) return <Loading />;
-  if (q.isError) return <LoadError error={q.error} onRetry={q.refetch} />;
-  const d = q.data;
-  const t = d.totals;
-  const sign = async () => {
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const sign = async (date) => {
     setBusy(true);
     setError(null);
     try {
@@ -76,200 +96,231 @@ export function FloatDailyPage() {
       setBusy(false);
     }
   };
-  const pair = (x) => (
-    <>
-      {x.count}
-      <span className="block text-xs text-muted">{money(x.amount)}</span>
-    </>
-  );
+  const d = q.data;
+  const t = d?.totals;
+  const weeks = Math.ceil(lastDay(f.month) / 7);
   return (
     <div>
       <PageHeader
-        title="AMS daily report"
-        description={
-          d.signedOff
-            ? `Signed off by ${d.signedOff.by}, ${formatDateTime(d.signedOff.at)}${d.signedOff.comment ? `: “${d.signedOff.comment}”` : ''}`
-            : `${t.signedOut} of ${t.branches} branches signed out`
-        }
+        title="AMS daily reports"
+        description="Each branch's day, from opening to closing. Sent automatically when a store closes."
         actions={
-          <div className="w-44">
-            <Input
-              type="date"
-              aria-label="Day"
-              value={date}
-              max={today()}
-              onChange={(e) => setParams({ date: e.target.value })}
-            />
-          </div>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              downloadFile(`/api/float/daily?${qs}&format=xlsx`).catch((e) => setError(e.message))
+            }
+          >
+            Export to Excel
+          </Button>
         }
       />
-      <div className="stack">
-        {d.unsigned.length > 0 && (
-          <Notice tone="pending" title="Days not yet signed off">
-            {d.unsigned.map((x) => (
-              <button
-                key={x}
-                type="button"
-                className="mr-3 font-medium underline"
-                onClick={() => setParams({ date: x })}
-              >
-                {formatDate(x)}
-              </button>
-            ))}
-          </Notice>
-        )}
-        {d.canSignOff && (
-          <Section title="Sign off this day" className="border-brand ring-1 ring-brand">
-            <div className="space-y-3">
-              <p className="text-sm">
-                Check each branch below. Once signed off the report goes to the directors and nothing on this
-                day can change.
-                {t.signedOut < t.branches &&
-                  ` ${t.branches - t.signedOut} branch(es) have not signed out yet.`}
-              </p>
-              <Field id="dy-c" label="Note to the directors" optional>
-                <Textarea id="dy-c" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
-              </Field>
-              {error && <Notice tone="danger">{error}</Notice>}
-              <Button busy={busy} onClick={sign}>
-                Sign off {formatDate(date)}
-              </Button>
-            </div>
-          </Section>
-        )}
-        <KpiRow cols={4}>
-          <Kpi
-            label="Total transactions"
-            value={t.transactions.total}
-            note={`${t.walkIns} walk-ins · ${t.turnedDown} turned down`}
-            small
-          />
-          <Kpi
-            label="Float + cash"
-            value={money(t.total)}
-            note={`Cash ${money(t.cash)} · float ${money(t.float)}`}
-            small
-          />
-          <Kpi
-            label="Daily commission"
-            value={money(t.commission)}
-            note={`This month ${money(t.commissionMonth)}`}
-            small
-          />
-          <Kpi
-            label="Deficits"
-            value={money(t.deficit)}
-            note={`Surpluses ${money(t.surplus)}`}
-            tone={t.deficit > 0 ? 'bad' : undefined}
-            small
-          />
-        </KpiRow>
-        {d.branches.length === 0 ? (
-          <div className="card p-0">
-            <EmptyState title="No AMS branches." />
-          </div>
+      <div className="mb-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[10rem_minmax(0,1fr)_8rem_minmax(0,1fr)_minmax(0,1.4fr)]">
+        <Field id="dr-period" label="Show">
+          <Select id="dr-period" value={f.period} onChange={set('period')}>
+            <option value="DAY">A day</option>
+            <option value="WEEK">A week of the month</option>
+            <option value="MONTH">A month</option>
+          </Select>
+        </Field>
+        {f.period === 'DAY' ? (
+          <Field id="dr-day" label="Day">
+            <Input id="dr-day" type="date" max={t0} value={f.day} onChange={set('day')} />
+          </Field>
         ) : (
-          <Table title={`AMS daily ${date}`}>
-            <thead>
-              <tr>
-                <Th>Branch</Th>
-                <Th>Status</Th>
-                <Th className="text-right">Deposits</Th>
-                <Th className="text-right">Withdrawals</Th>
-                <Th className="text-right">Float transfers</Th>
-                <Th className="text-right">Cash to finance</Th>
-                <Th className="text-right">Daytime</Th>
-                <Th className="text-right">Evening</Th>
-                <Th className="text-right">Total</Th>
-                <Th className="text-right">Turned down</Th>
-                <Th className="text-right">Cash</Th>
-                <Th className="text-right">Float</Th>
-                <Th className="text-right">Float + cash</Th>
-                <Th className="text-right">Commission</Th>
-                <Th className="text-right">This month</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.branches.map((b) => (
-                <tr key={b.id}>
-                  <Td className="font-semibold">
-                    {b.name}
-                    <span className="block text-xs font-normal text-muted">
-                      {hoursText(b.hours)} · evening from {b.hours.eveningFrom}
-                    </span>
-                  </Td>
-                  <Td>
-                    {b.signedOut ? (
-                      <Badge tone="ok">Signed out {timeOf(b.signedOutAt)}</Badge>
-                    ) : b.tradingDay ? (
-                      <Badge tone="pending">Open</Badge>
-                    ) : (
-                      <Badge tone="neutral">Closed today</Badge>
-                    )}
-                    {b.signedOutBy && (
-                      <span className="block text-xs text-muted">
-                        {b.signedOutBy.firstName} {b.signedOutBy.lastName}
-                      </span>
-                    )}
-                  </Td>
-                  <Td className="text-right tabular-nums">{pair(b.deposits)}</Td>
-                  <Td className="text-right tabular-nums">{pair(b.withdrawals)}</Td>
-                  <Td className="text-right tabular-nums">{pair(b.floatTransfers)}</Td>
-                  <Td className="text-right tabular-nums">{pair(b.cashCollections)}</Td>
-                  <Td className="text-right">{b.transactions.daytime}</Td>
-                  <Td className="text-right">{b.transactions.evening}</Td>
-                  <Td className="text-right font-semibold">{b.transactions.total}</Td>
-                  <Td className="text-right">{b.turnedDown}</Td>
-                  <Td className="text-right tabular-nums">{money(b.cash)}</Td>
-                  <Td className="text-right tabular-nums">{money(b.float)}</Td>
-                  <Td className="text-right font-semibold tabular-nums">{money(b.total)}</Td>
-                  <Td className="text-right tabular-nums">
-                    {b.commission == null ? '—' : money(b.commission)}
-                  </Td>
-                  <Td className="text-right tabular-nums">{money(b.commissionMonth)}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <Field id="dr-month" label="Month">
+            <Input id="dr-month" type="month" max={t0.slice(0, 7)} value={f.month} onChange={set('month')} />
+          </Field>
         )}
-        <div className="grid gap-4 lg:grid-cols-2">
-          {d.branches.map((b) => (
-            <DayReportCard key={b.id} report={b} />
-          ))}
-        </div>
-        <Section title="Download a period" description="One row per branch and day, as kept in Excel">
-          <div className="flex flex-wrap items-end gap-3">
-            <Field id="hx-from" label="From">
-              <Input
-                id="hx-from"
-                type="date"
-                value={range.from}
-                max={range.to}
-                onChange={(e) => setRange({ ...range, from: e.target.value })}
-              />
-            </Field>
-            <Field id="hx-to" label="To">
-              <Input
-                id="hx-to"
-                type="date"
-                value={range.to}
-                min={range.from}
-                onChange={(e) => setRange({ ...range, to: e.target.value })}
-              />
-            </Field>
-            <Button
-              variant="secondary"
-              onClick={() =>
-                downloadFile(`/api/float/history?from=${range.from}&to=${range.to}&format=xlsx`).catch((e) =>
-                  setError(e.message),
-                )
-              }
-            >
-              Export to Excel
-            </Button>
-          </div>
-        </Section>
+        {f.period === 'WEEK' ? (
+          <Field id="dr-week" label="Week">
+            <Select id="dr-week" value={f.week} onChange={set('week')}>
+              {Array.from({ length: weeks }, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  Week {i + 1}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <div className="hidden lg:block" />
+        )}
+        {me.data?.rights.viewAll || me.data?.rights.admin ? (
+          <Field id="dr-branch" label="Branch">
+            <Select id="dr-branch" value={f.branch} onChange={set('branch')}>
+              <option value="">All branches</option>
+              {(branches.data?.items ?? []).map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        ) : (
+          <div className="hidden lg:block" />
+        )}
+        <Field id="dr-q" label="Search">
+          <Input id="dr-q" placeholder="Branch or staff name" value={f.q} onChange={set('q')} />
+        </Field>
       </div>
+      {error && (
+        <div className="mb-4">
+          <Notice tone="danger">{error}</Notice>
+        </div>
+      )}
+      {q.isPending && <Loading />}
+      {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
+      {d && (
+        <div className="stack">
+          {d.unsigned.length > 0 && (
+            <Notice tone="pending" title="Days not yet reconciled and signed off">
+              {d.unsigned.map((x) => (
+                <button
+                  key={x}
+                  type="button"
+                  className="mr-3 font-medium underline"
+                  onClick={() => setF({ ...f, period: 'DAY', day: x })}
+                >
+                  {formatDate(x)}
+                </button>
+              ))}
+            </Notice>
+          )}
+          {f.period === 'DAY' && d.canSignOff && !d.signed[f.day] && d.rows.length > 0 && (
+            <Section
+              title={`Reconcile and sign off ${formatDate(f.day)}`}
+              className="border-brand ring-1 ring-brand"
+            >
+              <div className="space-y-3">
+                <p className="text-sm">
+                  Check each branch's closing cash and float below. Signing off tells the managers and
+                  directors and locks the day.
+                </p>
+                <Field id="dy-c" label="Note" optional>
+                  <Textarea id="dy-c" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
+                </Field>
+                <Button busy={busy} onClick={() => sign(f.day)}>
+                  Sign off {formatDate(f.day)}
+                </Button>
+              </div>
+            </Section>
+          )}
+          {f.period === 'DAY' && d.signed[f.day] && (
+            <Notice tone="ok" title={`Signed off by ${d.signed[f.day].by}`}>
+              {formatDateTime(d.signed[f.day].at)}
+              {d.signed[f.day].comment ? `: “${d.signed[f.day].comment}”` : ''}
+            </Notice>
+          )}
+          <KpiRow cols={4}>
+            <Kpi label="Number of deposits" value={dash(t.deposits.count)} small />
+            <Kpi label="Deposits" value={dash(t.deposits.amount, money)} small />
+            <Kpi label="Number of withdrawals" value={dash(t.withdrawals.count)} small />
+            <Kpi label="Withdrawals" value={dash(t.withdrawals.amount, money)} small />
+          </KpiRow>
+          <KpiRow cols={4}>
+            <Kpi label="Closing cash" value={dash(t.cash, money)} small />
+            <Kpi label="Closing Airtel Money float" value={dash(t.airtel, money)} small />
+            <Kpi label="Closing MTN MoMo float" value={dash(t.mtn, money)} small />
+            <Kpi
+              label="Daily commission"
+              value={dash(t.commission, money)}
+              note={t.deficit ? `Deficits ${money(t.deficit)}` : undefined}
+              tone={t.deficit ? 'bad' : undefined}
+              small
+            />
+          </KpiRow>
+          {d.rows.length === 0 ? (
+            <div className="card p-0">
+              <EmptyState title="No reports for this period." />
+            </div>
+          ) : (
+            <Table title={`AMS daily ${from} to ${to}`} tools={false}>
+              <thead>
+                <tr>
+                  <Th>Date</Th>
+                  <Th>Branch</Th>
+                  <Th>Opened</Th>
+                  <Th>Closed</Th>
+                  <Th className="text-right">No. of deposits</Th>
+                  <Th className="text-right">Deposits</Th>
+                  <Th className="text-right">No. of withdrawals</Th>
+                  <Th className="text-right">Withdrawals</Th>
+                  <Th className="text-right">Opening cash</Th>
+                  <Th className="text-right">Opening float</Th>
+                  <Th className="text-right">Closing cash</Th>
+                  <Th className="text-right">Closing float</Th>
+                  <Th className="text-right">Float transfers</Th>
+                  <Th className="text-right">Cash to finance</Th>
+                  <Th className="text-right">Daytime</Th>
+                  <Th className="text-right">Evening</Th>
+                  <Th className="text-right">Total</Th>
+                  <Th className="text-right">Turned down</Th>
+                  <Th className="text-right">Commission</Th>
+                  <Th className="text-right">Deficit</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.rows.map((r) => (
+                  <tr key={`${r.date}-${r.id}`}>
+                    <Td className="whitespace-nowrap">{formatDate(r.date)}</Td>
+                    <Td className="font-semibold">{r.name}</Td>
+                    <Td className="whitespace-nowrap">
+                      {r.openedAt ? timeOf(r.openedAt) : '—'}
+                      {r.openedBy && (
+                        <span className="block text-xs text-muted">
+                          {r.openedBy.firstName} {r.openedBy.lastName}
+                        </span>
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap">
+                      {r.signedOut ? (
+                        timeOf(r.signedOutAt)
+                      ) : r.tradingDay ? (
+                        <Badge tone="pending">Open</Badge>
+                      ) : (
+                        '—'
+                      )}
+                      {r.signedOutBy && (
+                        <span className="block text-xs text-muted">
+                          {r.signedOutBy.firstName} {r.signedOutBy.lastName}
+                        </span>
+                      )}
+                    </Td>
+                    <Td className="text-right">{dash(r.deposits.count)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.deposits.amount, money)}</Td>
+                    <Td className="text-right">{dash(r.withdrawals.count)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.withdrawals.amount, money)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.openingCash, money)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.openingFloat, money)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.cash, money)}</Td>
+                    <Td className="text-right tabular-nums">{dash(r.float, money)}</Td>
+                    <Td className="text-right tabular-nums">
+                      {r.floatTransfers.count
+                        ? `${r.floatTransfers.count} · ${money(r.floatTransfers.amount)}`
+                        : '—'}
+                    </Td>
+                    <Td className="text-right tabular-nums">
+                      {r.cashCollections.count
+                        ? `${r.cashCollections.count} · ${money(r.cashCollections.amount)}`
+                        : '—'}
+                    </Td>
+                    <Td className="text-right">{dash(r.transactions.daytime)}</Td>
+                    <Td className="text-right">{dash(r.transactions.evening)}</Td>
+                    <Td className="text-right font-semibold">{dash(r.transactions.total)}</Td>
+                    <Td className="text-right">{dash(r.turnedDown)}</Td>
+                    <Td className="text-right tabular-nums">
+                      {r.commission == null ? '—' : dash(r.commission, money)}
+                    </Td>
+                    <Td className={`text-right tabular-nums ${r.deficit ? 'font-semibold text-danger' : ''}`}>
+                      {dash(r.deficit, money)}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </div>
+      )}
     </div>
   );
 }

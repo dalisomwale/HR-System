@@ -113,7 +113,7 @@ export function FloatDashboardPage() {
                       </span>
                     )}
                   </span>
-                  {r.approve && (
+                  {r.supervise && (
                     <Button
                       size="sm"
                       onClick={() =>
@@ -136,7 +136,7 @@ export function FloatDashboardPage() {
             </ul>
           </Section>
         )}
-        {r.approve && (
+        {r.supervise && (
           <div>
             {!transfer && (
               <Button
@@ -377,7 +377,7 @@ export function FloatApprovalsPage() {
   );
   return (
     <div>
-      <PageHeader title="AMS approvals" />
+      <PageHeader title="Approvals" description="Waiting for the Operations Officer, or a director." />
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {nothing && (
@@ -559,7 +559,7 @@ export function FloatVariancesPage() {
     <div>
       <PageHeader
         title="Surplus and deficit"
-        description="Differences found at day closes and handovers. Resolve them on AMS approvals."
+        description="Differences found at store closings and handovers. The Operations Officer resolves them on Approvals."
       />
       <div className="mb-4 w-64">
         <Field id="vr-status" label="Status">

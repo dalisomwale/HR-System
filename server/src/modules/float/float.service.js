@@ -153,6 +153,32 @@ export async function branchStaff(db, branchId) {
 }
 export const managers = (db, exclude = []) => moduleHolders(db, 'inventory', ['float.approve'], exclude);
 export const directors = (db, exclude = []) => moduleHolders(db, 'inventory', ['float.director'], exclude);
+/** The Operations Officers (supervisors): branch staff report to them (D121). */
+export async function supervisors(db, exclude = []) {
+  // The Operations Officers; managers (who can also supervise) only when there is no officer.
+  const all = await moduleHolders(db, 'inventory', ['float.supervise'], exclude);
+  const managerIds = new Set(await moduleHolders(db, 'inventory', ['float.approve'], exclude));
+  const officers = all.filter((id) => !managerIds.has(id));
+  return officers.length ? officers : all;
+}
+/** Who receives a branch's daily report when it closes: supervisors, managers, directors and the System Admin. */
+export async function reportRecipients(db, exclude = []) {
+  const admins = await db('employee_roles as er')
+    .join('roles as r', 'r.id', 'er.role_id')
+    .join('employees as e', 'e.id', 'er.employee_id')
+    .where({ 'r.code': 'HR_ADMIN', 'e.status': 'ACTIVE' })
+    .pluck('e.id');
+  const ids = [
+    ...(await moduleHolders(
+      db,
+      'inventory',
+      ['float.supervise', 'float.approve', 'float.director', 'float.admin'],
+      exclude,
+    )),
+    ...admins,
+  ];
+  return [...new Set(ids)].filter((id) => !exclude.includes(id));
+}
 
 /** Tell the branch and the managers when an account has just gone below its minimum. */
 export async function lowFloatCheck(trx, { branchId, kind, before, after, account }) {
@@ -161,7 +187,7 @@ export async function lowFloatCheck(trx, { branchId, kind, before, after, accoun
   const branch = await trx('stock_branches').where({ id: branchId }).first('name');
   const title = `${KIND_LABEL[kind]} low at ${branch.name}`;
   await notify(trx, {
-    recipients: [...(await branchStaff(trx, branchId)), ...(await managers(trx))],
+    recipients: [...(await branchStaff(trx, branchId)), ...(await supervisors(trx))],
     event: 'FLOAT_LOW',
     title,
     body: `${kwacha(after)} left; the minimum is ${kwacha(min)}. Ask for a top-up.`,
@@ -234,6 +260,43 @@ export async function buildDay(db, settings, date, branchIds = null) {
       .select('branch_id', 'amount'),
     db('float_accounts').whereIn('branch_id', none),
   ]);
+  // The store's opening (D121): when, who, and the balances it opened with (the books before the day).
+  const opens = await db('float_counts as c')
+    .join('employees as e', 'e.id', 'c.counted_by')
+    .whereIn('c.branch_id', none)
+    .where({ 'c.business_date': date, 'c.kind': 'OPEN' })
+    .orderBy('c.id')
+    .select('c.id', 'c.branch_id', 'c.created_at', 'e.first_name', 'e.last_name');
+  const firstOpen = new Map();
+  for (const o of opens) if (!firstOpen.has(o.branch_id)) firstOpen.set(o.branch_id, o);
+  // Opening balances: what the store opened with; without an opening, the books before the day
+  // (with any opening balances set up that day).
+  const openLines = firstOpen.size
+    ? await db('float_count_lines as l')
+        .join('float_accounts as a', 'a.id', 'l.account_id')
+        .whereIn(
+          'l.count_id',
+          [...firstOpen.values()].map((o) => o.id),
+        )
+        .select('l.count_id', 'a.branch_id', 'a.kind', 'l.counted')
+    : [];
+  const before = await db('float_entries as f')
+    .join('float_accounts as a', 'a.id', 'f.account_id')
+    .whereIn('f.branch_id', none)
+    .where((w) =>
+      w
+        .where('f.business_date', '<', date)
+        .orWhere((x) => x.where('f.business_date', date).where('f.entry_type', 'OPENING')),
+    )
+    .groupBy('f.branch_id', 'a.kind')
+    .select('f.branch_id', 'a.kind')
+    .sum({ s: 'f.amount' });
+  const opening = (id, kind) => {
+    const line = openLines.find(
+      (l) => l.branch_id === id && l.kind === kind && l.count_id === firstOpen.get(id)?.id,
+    );
+    return round2(line ? line.counted : (before.find((x) => x.branch_id === id && x.kind === kind)?.s ?? 0));
+  };
   const lastClose = new Map();
   for (const c of closes) lastClose.set(c.branch_id, c);
   const lines = lastClose.size
@@ -287,6 +350,14 @@ export async function buildDay(db, settings, date, branchIds = null) {
       name: b.name,
       hours: h,
       tradingDay: h.workingDays.includes(dayCode(date)),
+      openedAt: firstOpen.get(b.id)?.created_at ?? null,
+      openedBy: firstOpen.get(b.id)
+        ? { firstName: firstOpen.get(b.id).first_name, lastName: firstOpen.get(b.id).last_name }
+        : null,
+      openingCash: opening(b.id, 'CASH'),
+      openingAirtel: opening(b.id, 'AIRTEL'),
+      openingMtn: opening(b.id, 'MTN'),
+      openingFloat: round2(opening(b.id, 'AIRTEL') + opening(b.id, 'MTN')),
       signedOut: Boolean(close),
       signedOutAt: close?.created_at ?? null,
       signedOutBy: close ? { firstName: close.first_name, lastName: close.last_name } : null,
@@ -310,6 +381,9 @@ export async function buildDay(db, settings, date, branchIds = null) {
       total: round2(cash + float),
       commission: close?.commission == null ? null : round2(close.commission),
       commissionMonth: mtd.get(b.id) ?? 0,
+      hasData: Boolean(
+        firstOpen.get(b.id) || close || t.length || floatIn.length || collections.length || turnedDown,
+      ),
       surplus: round2(v.filter((x) => Number(x.amount) > 0).reduce((s, x) => s + Number(x.amount), 0)),
       deficit: round2(v.filter((x) => Number(x.amount) < 0).reduce((s, x) => s - Number(x.amount), 0)),
     };
@@ -334,7 +408,11 @@ export async function buildDay(db, settings, date, branchIds = null) {
     turnedDown: add((b) => b.turnedDown),
     walkIns: add((b) => b.walkIns),
     cash: add((b) => b.cash),
+    airtel: add((b) => b.airtel),
+    mtn: add((b) => b.mtn),
     float: add((b) => b.float),
+    openingCash: add((b) => b.openingCash),
+    openingFloat: add((b) => b.openingFloat),
     total: add((b) => b.total),
     commission: add((b) => b.commission ?? 0),
     commissionMonth: add((b) => b.commissionMonth),
@@ -345,38 +423,4 @@ export async function buildDay(db, settings, date, branchIds = null) {
     trading: out.filter((b) => b.tradingDay).length,
   };
   return { date, branches: out, totals };
-}
-
-/** The day's report for one branch as the text AMS shares with the team. */
-export function dayText(b, date) {
-  const k = (n) => `K${Number(n).toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
-  const who = b.signedOutBy ? `${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : '';
-  return [
-    `*${b.name}*`,
-    date.split('-').reverse().join('/'),
-    `Status: ${b.signedOut ? `Signed out at ${lusakaTime(b.signedOutAt)}` : b.tradingDay ? 'Open' : 'Closed today'}`,
-    '',
-    `Deposits: ${b.deposits.count} (${k(b.deposits.amount)})`,
-    `Withdrawals: ${b.withdrawals.count} (${k(b.withdrawals.amount)})`,
-    `Float transfers: ${b.floatTransfers.count} (${k(b.floatTransfers.amount)})`,
-    `Cash retired to finance: ${b.cashCollections.count} (${k(b.cashCollections.amount)})`,
-    '',
-    `Transactions ${b.hours.opensAt}–${b.hours.eveningFrom}: ${b.transactions.daytime}`,
-    `Transactions after ${b.hours.eveningFrom}: ${b.transactions.evening}`,
-    `Total transactions: ${b.transactions.total}`,
-    `Customers turned down: ${b.turnedDown}`,
-    `Walk-in customers: ${b.walkIns}`,
-    '',
-    `Cash: ${k(b.cash)}`,
-    `Float as per phone statements: ${k(b.float)} (Airtel ${k(b.airtel)}, MTN ${k(b.mtn)})`,
-    `Total float + cash: ${k(b.total)}`,
-    ...(b.commission != null ? [`Daily commission: ${k(b.commission)}`] : []),
-    `Commission this month: ${k(b.commissionMonth)}`,
-    ...(b.deficit ? [`Deficit: ${k(b.deficit)}`] : []),
-    ...(b.surplus ? [`Surplus: ${k(b.surplus)}`] : []),
-    '',
-    who,
-  ]
-    .join('\n')
-    .trim();
 }

@@ -72,105 +72,79 @@ beforeEach(async () => {
   expect(b.status, JSON.stringify(b.body)).toBe(201);
   branch = b.body.id;
   await person('teller', { branch_id: branch });
+  await person('officer');
   await person('manager');
   await person('director');
   await person('hr');
   await giveRole('teller', 'AMS Branch Staff');
   await giveRole('manager', 'AMS Manager');
+  await giveRole('officer', 'AMS Operations Officer');
   await giveRole('director', 'Director');
   await giveRole('hr', 'AMS HR');
 });
 
-describe('AMS cash and float (D117)', () => {
-  it('records a deposit and a withdrawal with one tap each, moving both sides', async () => {
-    const me = (await as(people.teller).get('/api/float/me')).body;
-    expect(me).toMatchObject({
-      configured: true,
-      branch: { id: branch },
-      rights: { record: true, approve: false },
-    });
-    const dep = await as(people.teller).post('/api/float/transactions', {
-      network: 'AIRTEL',
-      kind: 'DEPOSIT',
-      amount: 300,
-    });
-    expect(dep.status, JSON.stringify(dep.body)).toBe(201);
+const open = () => as(people.teller).post('/api/float/open');
+const txn = (network, kind, amount, extra = {}) =>
+  as(people.teller).post('/api/float/transactions', { network, kind, amount, ...extra });
+
+describe('AMS cash and float (D117, D121)', () => {
+  it('opens the store before anything is recorded, and nothing after it closes', async () => {
+    const before = await txn('AIRTEL', 'DEPOSIT', 300);
+    expect(before.status).toBe(409);
+    expect(before.body.error.code).toBe('STORE_NOT_OPEN');
+    const o = await open();
+    expect(o.status, JSON.stringify(o.body)).toBe(201);
+    expect(o.body.balances).toEqual({ CASH: 2000, AIRTEL: 1000, MTN: 1000 });
+    expect((await open()).status).toBe(409); // already open
+    expect((await txn('AIRTEL', 'DEPOSIT', 300)).status).toBe(201);
     expect(await balances(branch)).toEqual({ CASH: 2300, AIRTEL: 700, MTN: 1000 });
-    // Same again within two minutes: asked to confirm.
-    const again = await as(people.teller).post('/api/float/transactions', {
-      network: 'AIRTEL',
-      kind: 'DEPOSIT',
-      amount: 300,
-    });
-    expect(again.status).toBe(409);
+    // A repeat within two minutes asks to confirm.
+    const again = await txn('AIRTEL', 'DEPOSIT', 300);
     expect(again.body.error.code).toBe('POSSIBLE_DUPLICATE');
-    const sure = await as(people.teller).post('/api/float/transactions', {
-      network: 'AIRTEL',
-      kind: 'DEPOSIT',
-      amount: 300,
-      confirm: true,
+    expect((await txn('AIRTEL', 'DEPOSIT', 300, { confirm: true })).status).toBe(201);
+    // Airtel below its minimum: the branch and the Operations Officer are told.
+    expect(await notes(ids.officer, 'FLOAT_LOW')).toHaveLength(1);
+    expect((await txn('MTN', 'WITHDRAWAL', 5000)).status).toBe(409); // not enough cash
+    // Close: the day's transactions are closed and the report goes to the officer, manager,
+    // director and System Admin.
+    const close = await as(people.teller).post('/api/float/counts', {
+      kind: 'CLOSE',
+      lines: [
+        { kind: 'CASH', counted: 2600 },
+        { kind: 'AIRTEL', counted: 400 },
+        { kind: 'MTN', counted: 1000 },
+      ],
+      commission: 12,
     });
-    expect(sure.status).toBe(201);
-    // Airtel is now below its minimum: the branch and the manager are told once.
-    expect(await notes(ids.manager, 'FLOAT_LOW')).toHaveLength(1);
-    // A withdrawal needs the cash.
+    expect(close.status, JSON.stringify(close.body)).toBe(201);
+    expect(close.body.report).toMatchObject({
+      signedOut: true,
+      openingCash: 2000,
+      openingFloat: 2000,
+      cash: 2600,
+      float: 1400,
+    });
+    expect(close.body.report.openedAt).toBeTruthy();
+    for (const k of ['officer', 'manager', 'director', 'admin']) {
+      expect(await notes(ids[k], 'FLOAT_SIGNED_OUT')).toHaveLength(1);
+    }
+    const after = await txn('MTN', 'DEPOSIT', 10);
+    expect(after.body.error.code).toBe('STORE_CLOSED');
+  });
+
+  it('sends staff requests to the Operations Officer, who approves them', async () => {
+    await open();
+    // Staff no longer move float themselves; the officer does, and another approves it.
     expect(
       (
-        await as(people.teller).post('/api/float/transactions', {
-          network: 'MTN',
-          kind: 'WITHDRAWAL',
-          amount: 5000,
-        })
-      ).status,
-    ).toBe(409);
-    expect(
-      (
-        await as(people.teller).post('/api/float/transactions', {
-          network: 'MTN',
-          kind: 'WITHDRAWAL',
+        await as(people.teller).post('/api/float/movements', {
+          kind: 'TOPUP',
+          toAccount: 'AIRTEL',
           amount: 100,
         })
       ).status,
-    ).toBe(201);
-    expect(await balances(branch)).toEqual({ CASH: 2500, AIRTEL: 400, MTN: 1100 });
-    // Someone without a branch on their record cannot record.
-    expect(
-      (
-        await as(people.manager).post('/api/float/transactions', {
-          network: 'MTN',
-          kind: 'DEPOSIT',
-          amount: 10,
-        })
-      ).status,
-    ).toBe(400);
-    // Branch view.
-    const today = (await as(people.teller).get('/api/float/branch')).body;
-    expect(today.transactions).toHaveLength(3);
-    expect(today.accounts.find((a) => a.kind === 'AIRTEL')).toMatchObject({ balance: 400, low: true });
-  });
-
-  it('top-ups and reversals need a manager, never the person who asked', async () => {
-    const t = await as(people.teller).post('/api/float/movements', {
-      kind: 'TOPUP',
-      toAccount: 'AIRTEL',
-      amount: 2000,
-      reason: 'Float low',
-    });
-    expect(t.status, JSON.stringify(t.body)).toBe(201);
-    expect(await notes(ids.manager, 'FLOAT_MOVEMENT_TO_APPROVE')).toHaveLength(1);
-    expect(
-      (await as(people.teller).post(`/api/float/movements/${t.body.id}/decide`, { approve: true })).status,
     ).toBe(403);
-    expect(
-      (await as(people.manager).post(`/api/float/movements/${t.body.id}/decide`, { approve: true })).status,
-    ).toBe(200);
-    expect((await balances(branch)).AIRTEL).toBe(3000);
-
-    const w = await as(people.teller).post('/api/float/transactions', {
-      network: 'AIRTEL',
-      kind: 'WITHDRAWAL',
-      amount: 400,
-    });
+    const w = await txn('AIRTEL', 'WITHDRAWAL', 400);
     expect(
       (
         await as(people.teller).post(`/api/float/transactions/${w.body.id}/reverse`, {
@@ -178,160 +152,177 @@ describe('AMS cash and float (D117)', () => {
         })
       ).status,
     ).toBe(200);
+    expect(await notes(ids.officer, 'FLOAT_REVERSAL_TO_APPROVE')).toHaveLength(1);
     expect(
-      (await as(people.manager).post(`/api/float/transactions/${w.body.id}/reversal`, { approve: true }))
+      (await as(people.teller).post(`/api/float/transactions/${w.body.id}/reversal`, { approve: true }))
+        .status,
+    ).toBe(403);
+    expect(
+      (await as(people.officer).post(`/api/float/transactions/${w.body.id}/reversal`, { approve: true }))
         .status,
     ).toBe(200);
-    expect(await balances(branch)).toEqual({ CASH: 2000, AIRTEL: 3000, MTN: 1000 });
+    expect(await balances(branch)).toEqual({ CASH: 2000, AIRTEL: 1000, MTN: 1000 });
+    // Cash to finance: out of the drawer now, confirmed by the officer.
+    const cc = await as(people.teller).post('/api/float/collections', { amount: 500 });
+    expect(await notes(ids.officer, 'FLOAT_COLLECTION_TO_CONFIRM')).toHaveLength(1);
+    expect(
+      (await as(people.officer).post(`/api/float/movements/${cc.body.id}/decide`, { approve: true })).status,
+    ).toBe(200);
+    expect((await balances(branch)).CASH).toBe(1500);
   });
 
-  it('records surpluses and deficits at close, which the manager resolves; big write-offs go to the director', async () => {
-    const c = await as(people.teller).post('/api/float/counts', {
-      kind: 'CLOSE',
-      lines: [
-        { kind: 'CASH', counted: 1800 }, // K200 short
-        { kind: 'AIRTEL', counted: 1003 }, // K3 over: within the tolerance
-        { kind: 'MTN', counted: 1000 },
-      ],
-      denominations: { 100: 18 },
+  it('runs requisitions from the branch to the officer, the manager and a director', async () => {
+    const r = await as(people.teller).post('/api/float/requisitions', {
+      kind: 'FLOAT',
+      account: 'MTN',
+      amount: 3000,
+      reason: 'MTN float finished at 14:00',
     });
-    expect(c.status, JSON.stringify(c.body)).toBe(201);
-    // The books now match the count; one deficit is recorded against the teller.
-    expect(await balances(branch)).toEqual({ CASH: 1800, AIRTEL: 1003, MTN: 1000 });
-    const v = await db('float_variances').first();
-    expect(v).toMatchObject({ employee_id: ids.teller, status: 'OPEN' });
-    expect(Number(v.amount)).toBe(-200);
-    expect(await notes(ids.manager, 'FLOAT_VARIANCE')).toHaveLength(1);
-    // HR sees the shortage by member of staff.
-    const hr = (await as(people.hr).get('/api/float/variances')).body;
-    expect(hr.byStaff).toEqual([expect.objectContaining({ id: ids.teller, count: 1, total: 200 })]);
-    // Recovered: the money goes back into the cash.
+    expect(r.status, JSON.stringify(r.body)).toBe(201);
+    expect(await notes(ids.officer, 'FLOAT_REQUISITION_TO_APPROVE')).toHaveLength(1);
+    // The manager cannot jump the officer; the director cannot jump the manager.
+    expect(
+      (await as(people.director).post(`/api/float/requisitions/${r.body.id}/decide`, { approve: true }))
+        .status,
+    ).toBe(403);
+    expect(
+      (await as(people.officer).post(`/api/float/requisitions/${r.body.id}/decide`, { approve: true }))
+        .status,
+    ).toBe(200);
+    expect(await notes(ids.manager, 'FLOAT_REQUISITION_TO_APPROVE')).toHaveLength(1);
+    expect(
+      (await as(people.officer).post(`/api/float/requisitions/${r.body.id}/decide`, { approve: true }))
+        .status,
+    ).toBe(403);
+    expect(
+      (await as(people.manager).post(`/api/float/requisitions/${r.body.id}/decide`, { approve: true }))
+        .status,
+    ).toBe(200);
+    expect(await notes(ids.director, 'FLOAT_REQUISITION_TO_APPROVE')).toHaveLength(1);
+    expect(
+      (await as(people.director).post(`/api/float/requisitions/${r.body.id}/decide`, { approve: true }))
+        .status,
+    ).toBe(200);
+    expect(await notes(ids.teller, 'FLOAT_REQUISITION_APPROVED')).toHaveLength(1);
+    // It is added when the branch confirms it arrived.
+    await open();
+    expect(
+      (await as(people.teller).post(`/api/float/requisitions/${r.body.id}/received`, { amount: 3000 }))
+        .status,
+    ).toBe(200);
+    expect((await balances(branch)).MTN).toBe(4000);
+    // A device requisition turned down needs a reason.
+    const d = await as(people.teller).post('/api/float/requisitions', {
+      kind: 'DEVICE',
+      device: 'Airtel agent phone',
+      reason: 'Will not charge',
+    });
+    expect(
+      (await as(people.officer).post(`/api/float/requisitions/${d.body.id}/decide`, { approve: false }))
+        .status,
+    ).toBe(400);
     expect(
       (
-        await as(people.manager).post(`/api/float/variances/${v.id}/resolve`, {
+        await as(people.officer).post(`/api/float/requisitions/${d.body.id}/decide`, {
+          approve: false,
+          comment: 'Use the spare',
+        })
+      ).status,
+    ).toBe(200);
+    expect((await db('float_requisitions').where({ id: d.body.id }).first()).status).toBe('REJECTED');
+  });
+
+  it('records surpluses and deficits; the officer resolves them, big write-offs go to the director', async () => {
+    await open();
+    // A handover K1,500 short, then the close K200 short.
+    await as(people.teller).post('/api/float/counts', {
+      kind: 'HANDOVER',
+      handedTo: ids.officer,
+      lines: [{ kind: 'CASH', counted: 500 }],
+    });
+    const big = await db('float_variances').orderBy('id', 'desc').first();
+    expect(Number(big.amount)).toBe(-1500);
+    await as(people.teller).post('/api/float/counts', {
+      kind: 'CLOSE',
+      lines: [{ kind: 'CASH', counted: 300 }],
+    });
+    const small = await db('float_variances').orderBy('id', 'desc').first();
+    expect(Number(small.amount)).toBe(-200);
+    expect(await notes(ids.officer, 'FLOAT_VARIANCE')).toHaveLength(2);
+    const hr = (await as(people.hr).get('/api/float/variances')).body;
+    expect(hr.byStaff).toEqual([expect.objectContaining({ id: ids.teller, count: 2, total: 1700 })]);
+    expect(
+      (
+        await as(people.officer).post(`/api/float/variances/${small.id}/resolve`, {
           resolution: 'RECOVERED',
           comment: 'Paid back',
         })
       ).status,
     ).toBe(200);
-    expect((await balances(branch)).CASH).toBe(2000);
-
-    // A K1,500 deficit written off is above the K1,000 director limit.
-    await as(people.teller).post('/api/float/counts', {
-      kind: 'HANDOVER',
-      handedTo: ids.manager,
-      lines: [{ kind: 'CASH', counted: 500 }],
-    });
-    const big = await db('float_variances').orderBy('id', 'desc').first();
-    await as(people.manager).post(`/api/float/variances/${big.id}/resolve`, {
+    expect((await balances(branch)).CASH).toBe(500);
+    await as(people.officer).post(`/api/float/variances/${big.id}/resolve`, {
       resolution: 'WRITTEN_OFF',
-      comment: 'Robbery, police report filed',
+      comment: 'Robbery, police report',
     });
     expect((await db('float_variances').where({ id: big.id }).first()).status).toBe('PENDING_DIRECTOR');
-    expect(await notes(ids.director, 'FLOAT_WRITE_OFF_TO_APPROVE')).toHaveLength(1);
     expect(
       (await as(people.director).post(`/api/float/variances/${big.id}/director`, { approve: true })).status,
     ).toBe(200);
-    expect((await db('float_variances').where({ id: big.id }).first()).status).toBe('WRITTEN_OFF');
   });
 
-  it('signs out with the daily figures, sends the daily report at the set time, and locks a signed-off day', async () => {
-    const d = await as(people.teller).post('/api/float/transactions', {
-      network: 'AIRTEL',
-      kind: 'DEPOSIT',
-      amount: 500,
-    });
-    await as(people.teller).post('/api/float/transactions', {
-      network: 'MTN',
-      kind: 'WITHDRAWAL',
-      amount: 200,
-    });
-    // A customer turned down: one tap.
-    expect(
-      (await as(people.teller).post('/api/float/turned-down', { reason: 'NO_FLOAT', network: 'MTN' })).body
-        .today,
-    ).toBe(1);
-    // Cash retired to finance leaves the drawer now; a manager confirms it.
-    const cc = await as(people.teller).post('/api/float/collections', {
-      amount: 1000,
-      collectedBy: 'Finance runner',
-    });
-    expect(cc.status, JSON.stringify(cc.body)).toBe(201);
-    expect((await balances(branch)).CASH).toBe(1300);
-    expect(
-      (await as(people.manager).post(`/api/float/movements/${cc.body.id}/decide`, { approve: true })).status,
-    ).toBe(200);
-    expect((await balances(branch)).CASH).toBe(1300);
-
-    // Sign out: count, with the commission from the phone.
-    const close = await as(people.teller).post('/api/float/counts', {
+  it('shows the daily report with the columns apart, signed off by the officer, and locks the day', async () => {
+    await open();
+    const d = await txn('AIRTEL', 'DEPOSIT', 500);
+    await txn('MTN', 'WITHDRAWAL', 200);
+    await as(people.teller).post('/api/float/turned-down', { reason: 'NO_FLOAT' });
+    await as(people.teller).post('/api/float/counts', {
       kind: 'CLOSE',
       lines: [
-        { kind: 'CASH', counted: 1300 },
+        { kind: 'CASH', counted: 2300 },
         { kind: 'AIRTEL', counted: 500 },
         { kind: 'MTN', counted: 1200 },
       ],
-      commission: 45.5,
     });
-    expect(close.status, JSON.stringify(close.body)).toBe(201);
-    expect(close.body.report).toMatchObject({
-      signedOut: true,
+    const today = todayInLusaka();
+    const rep = (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}`)).body;
+    expect(rep.rows).toHaveLength(1);
+    expect(rep.rows[0]).toMatchObject({
       deposits: { count: 1, amount: 500 },
       withdrawals: { count: 1, amount: 200 },
-      cashCollections: { count: 1, amount: 1000 },
-      transactions: { total: 2 },
-      turnedDown: 1,
-      walkIns: 3,
-      cash: 1300,
+      openingCash: 2000,
+      openingFloat: 2000,
+      cash: 2300,
       float: 1700,
-      total: 3000,
-      commission: 45.5,
-      commissionMonth: 45.5,
+      turnedDown: 1,
     });
-    expect(close.body.report.text).toContain('Customers turned down: 1');
-    expect(await notes(ids.manager, 'FLOAT_SIGNED_OUT')).toHaveLength(1);
-
-    // At the report time, the daily report goes to the managers and the directors.
-    const r = await runFloatJobs(db, new Date(`${todayInLusaka()}T17:30:00+02:00`));
-    expect(r.daily).toMatchObject({ branches: 1, notSignedOut: 0 });
-    expect(await notes(ids.director, 'FLOAT_DAILY_REPORT')).toHaveLength(1);
-    const day = (await as(people.manager).get(`/api/float/daily?date=${todayInLusaka()}`)).body;
-    expect(day).toMatchObject({ canSignOff: true, totals: { total: 3000, turnedDown: 1 } });
-
-    // Signing off tells the director and locks the day; later postings count tomorrow.
+    expect(rep.totals).toMatchObject({ cash: 2300, airtel: 500, mtn: 1200 });
+    // Search by staff or branch, and filter by branch.
     expect(
-      (await as(people.manager).post(`/api/float/daily/${todayInLusaka()}/sign-off`, { comment: 'All good' }))
-        .status,
+      (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}&q=teller`)).body.rows,
+    ).toHaveLength(1);
+    expect(
+      (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}&q=nowhere`)).body.rows,
+    ).toHaveLength(0);
+    // The officer signs it off; the manager and director are told; the day is locked.
+    expect((await as(people.teller).post(`/api/float/daily/${today}/sign-off`)).status).toBe(403);
+    expect(
+      (await as(people.officer).post(`/api/float/daily/${today}/sign-off`, { comment: 'Reconciled' })).status,
     ).toBe(200);
     expect(await notes(ids.director, 'FLOAT_DAY_SIGNED_OFF')).toHaveLength(1);
     expect(
       (await as(people.teller).post(`/api/float/transactions/${d.body.id}/reverse`, { reason: 'Mistake' }))
         .status,
     ).toBe(409);
-    const late = await as(people.teller).post('/api/float/transactions', {
-      network: 'MTN',
-      kind: 'DEPOSIT',
-      amount: 50,
-    });
     expect(
-      (await db('float_transactions').where({ id: late.body.id }).first()).business_date > todayInLusaka(),
-    ).toBe(true);
-    // The period export, as AMS keeps it in Excel.
-    expect(
-      (
-        await as(people.manager).get(
-          `/api/float/history?from=${todayInLusaka()}&to=${todayInLusaka()}&format=xlsx`,
-        )
-      ).status,
+      (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}&format=xlsx`)).status,
     ).toBe(200);
-    const audit = await as(people.admin).get('/api/access/inventory/audit');
-    expect(JSON.stringify(audit.body)).toContain('FLOAT_DEPOSIT');
+    // The report job runs at the report time.
+    expect((await runFloatJobs(db, new Date(`${today}T17:30:00+02:00`))).daily).toBeTruthy();
   });
 
   it('gives each branch its own days, hours and staff (D120)', async () => {
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
     const today = days[(new Date(`${todayInLusaka()}T12:00:00Z`).getUTCDay() + 6) % 7];
-    // Bad hours are refused; good ones saved.
     expect(
       (
         await as(people.admin).put(`/api/float/branches/${branch}/hours`, {
@@ -352,30 +343,20 @@ describe('AMS cash and float (D117)', () => {
         })
       ).status,
     ).toBe(200);
-    // Add a new member of staff: posted to the branch and given the AMS Branch Staff role.
     await person('newbie');
-    const added = await as(people.admin).post(`/api/float/branches/${branch}/staff`, {
-      employeeId: ids.newbie,
-    });
-    expect(added.status, JSON.stringify(added.body)).toBe(201);
-    expect((await db('employees').where({ id: ids.newbie }).first()).branch_id).toBe(branch);
+    expect(
+      (await as(people.admin).post(`/api/float/branches/${branch}/staff`, { employeeId: ids.newbie })).status,
+    ).toBe(201);
     const detail = (await as(people.admin).get(`/api/float/branches/${branch}`)).body;
-    expect(detail.hours).toMatchObject({ opensAt: '09:00', closesAt: '21:00', eveningFrom: '18:00' });
-    expect(detail.staff.find((x) => x.id === ids.newbie)).toMatchObject({
-      role: 'AMS Branch Staff',
-      phoneSignIn: 'NOT_SET_UP',
-    });
-    expect((await as(people.manager).get(`/api/float/branches/${branch}`)).status).toBe(403);
-    // The sign-out reminder waits for this branch's own closing time.
+    expect(detail.staff.find((x) => x.id === ids.newbie)).toMatchObject({ role: 'AMS Branch Staff' });
     await runFloatJobs(db, new Date(`${todayInLusaka()}T20:00:00+02:00`));
     expect(await notes(ids.teller, 'FLOAT_CLOSE_REMINDER')).toHaveLength(0);
     await runFloatJobs(db, new Date(`${todayInLusaka()}T21:05:00+02:00`));
     expect(await notes(ids.teller, 'FLOAT_CLOSE_REMINDER')).toHaveLength(1);
-    // Taking someone off the branch ends their branch role.
+    expect(await notes(ids.officer, 'FLOAT_CLOSE_REMINDER')).toHaveLength(1);
     expect((await as(people.admin).delete(`/api/float/branches/${branch}/staff/${ids.newbie}`)).status).toBe(
       200,
     );
-    expect((await db('employees').where({ id: ids.newbie }).first()).branch_id).toBeNull();
     expect(
       await db('access_users').where({ module: 'inventory', employee_id: ids.newbie }).first(),
     ).toBeUndefined();

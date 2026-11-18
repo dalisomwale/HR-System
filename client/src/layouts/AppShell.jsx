@@ -499,20 +499,30 @@ function RequisitionsNav({ onNavigate }) {
       ? [{ to: '/requisitions/float/record', label: 'Record a transaction', icon: Smartphone }]
       : []),
     ...(fl.record
-      ? [{ to: '/requisitions/float/branch', label: 'My branch today', icon: Banknote, end: true }]
+      ? [{ to: '/requisitions/float/branch', label: 'My branch: open and close', icon: Banknote, end: true }]
       : []),
     ...(fl.viewAll ? [{ to: '/requisitions/float', label: 'AMS dashboard', icon: Coins, end: true }] : []),
-    ...(fl.approve || fl.director
+    ...(fl.supervise || fl.director
       ? [
           {
             to: '/requisitions/float/approvals',
-            label: 'AMS approvals',
+            label: 'Approvals',
             icon: ScaleIcon,
             count: 'floatApprovals',
           },
         ]
       : []),
-    ...(fl.viewAll || fl.approve || fl.shortages
+    ...(fl.record || fl.supervise || fl.approve || fl.director
+      ? [
+          {
+            to: '/requisitions/float/requisitions',
+            label: 'AMS requisitions',
+            icon: ClipboardList,
+            count: 'floatRequisitions',
+          },
+        ]
+      : []),
+    ...(fl.viewAll || fl.supervise || fl.shortages
       ? [{ to: '/requisitions/float/variances', label: 'Surplus and deficit', icon: Calculator }]
       : []),
     ...(fl.viewAll || fl.record
@@ -564,7 +574,11 @@ function AmsNav({ items, onNavigate }) {
     <NavGroup
       title="AMS cash and float"
       items={items}
-      counts={{ floatApprovals: c.approvals ?? 0, floatDays: c.daysToSign ?? 0 }}
+      counts={{
+        floatApprovals: c.approvals ?? 0,
+        floatDays: c.daysToSign ?? 0,
+        floatRequisitions: c.requisitions ?? 0,
+      }}
       onNavigate={onNavigate}
     />
   );
