@@ -25,6 +25,68 @@ import { errorText } from '../rq.js';
 import { ACCOUNT, DENOMINATIONS, KIND, NETWORK, TXN_STATUS, money, signed, timeOf, useFloat } from './fl.js';
 
 const QUICK = [50, 100, 200, 500, 1000];
+const TURN_DOWN = [
+  ['NO_FLOAT', 'No float'],
+  ['NO_CASH', 'No cash'],
+  ['NETWORK_DOWN', 'Network down'],
+  ['OTHER', 'Other'],
+];
+
+/** One tap to count a customer who could not be served, with why. */
+function TurnedDown() {
+  const [busy, setBusy] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const tap = async (reason) => {
+    setBusy(reason);
+    try {
+      const r = await api.post('/api/float/turned-down', { reason });
+      setMsg(`Recorded. ${r.today} turned down today.`);
+    } catch (err) {
+      setMsg(errorText(err));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <div className="card">
+      <p className="mb-2 text-sm font-semibold">Customer turned down?</p>
+      <div className="flex flex-wrap gap-2">
+        {TURN_DOWN.map(([k, l]) => (
+          <Button key={k} variant="secondary" size="sm" busy={busy === k} onClick={() => tap(k)}>
+            {l}
+          </Button>
+        ))}
+      </div>
+      {msg && <p className="mt-2 text-sm text-muted">{msg}</p>}
+    </div>
+  );
+}
+
+/** The day's report as the text the team shares, with a copy button. */
+export function DayReportCard({ report, title }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(report.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <Section
+      title={title ?? report.name}
+      actions={
+        <Button size="sm" variant="secondary" onClick={copy}>
+          {copied ? 'Copied' : 'Copy for WhatsApp'}
+        </Button>
+      }
+    >
+      <pre className="font-sans text-sm whitespace-pre-wrap">{report.text.replace(/\*/g, '')}</pre>
+    </Section>
+  );
+}
 
 /** The branch's balances as a strip of cards. */
 function Balances({ accounts }) {
@@ -199,9 +261,10 @@ export function FloatRecordPage() {
             )}
           </div>
         </div>
+        <TurnedDown />
         <p className="text-sm">
           <Link to="/requisitions/float/branch" className="text-brand hover:underline">
-            Today at the branch: transactions, close the day, ask for a top-up
+            Today at the branch: transactions, cash to finance, close the day, ask for a top-up
           </Link>
         </p>
       </div>
@@ -270,6 +333,9 @@ export function FloatBranchPage() {
               <Button variant="secondary" onClick={() => setPanel('TOPUP')}>
                 Ask for a top-up
               </Button>
+              <Button variant="secondary" onClick={() => setPanel('COLLECT')}>
+                Cash to finance
+              </Button>
               <Button variant="secondary" onClick={() => setPanel('HANDOVER')}>
                 Hand over
               </Button>
@@ -287,6 +353,7 @@ export function FloatBranchPage() {
           <CountForm data={d} kind={panel} onDone={refresh} onCancel={() => setPanel(null)} />
         )}
         {panel === 'TOPUP' && <TopUpForm onDone={refresh} onCancel={() => setPanel(null)} />}
+        {panel === 'COLLECT' && <CollectionForm onDone={refresh} onCancel={() => setPanel(null)} />}
         <div className="grid gap-3 sm:grid-cols-2">
           {d.totals.map((t) => (
             <div key={t.network} className="card">
@@ -303,7 +370,8 @@ export function FloatBranchPage() {
               {d.movements.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
-                    {m.kind === 'TOPUP' ? 'Top-up' : 'Transfer'} · {ACCOUNT[m.toAccount]} {money(m.amount)}
+                    {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash to finance' }[m.kind]} ·{' '}
+                    {ACCOUNT[m.toAccount]} {money(m.amount)}
                     {m.reason && <span className="block text-xs text-muted">{m.reason}</span>}
                   </span>
                   <Badge
@@ -418,6 +486,8 @@ function CountForm({ data, kind, onDone, onCancel }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
+  const [report, setReport] = useState(null);
+  const [commission, setCommission] = useState('');
   const cash = Math.round(DENOMINATIONS.reduce((s, dn) => s + dn * (Number(notes[dn]) || 0), 0) * 100) / 100;
   const expected = Object.fromEntries(data.accounts.map((a) => [a.kind, a.balance]));
   const lines = [
@@ -436,8 +506,10 @@ function CountForm({ data, kind, onDone, onCancel }) {
         lines,
         denominations: Object.fromEntries(Object.entries(notes).filter(([, v]) => Number(v) > 0)),
         notes: comment.trim() || null,
+        commission: kind === 'CLOSE' && commission !== '' ? Number(commission) : null,
       });
       setResult(r.results);
+      setReport(r.report);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -470,7 +542,10 @@ function CountForm({ data, kind, onDone, onCancel }) {
           {off.length ? 'The manager has been told about the difference.' : 'Everything balanced.'} The
           balances now match what you counted.
         </p>
-        <Button onClick={() => onDone(null)}>Done</Button>
+        {report && <DayReportCard report={report} title="Today's report" />}
+        <div className="mt-3">
+          <Button onClick={() => onDone(null)}>Done</Button>
+        </div>
       </Section>
     );
   }
@@ -533,6 +608,19 @@ function CountForm({ data, kind, onDone, onCancel }) {
             </Field>
           ))}
         </div>
+        {kind === 'CLOSE' && (
+          <Field id="ct-comm" label="Today's commission (K)" optional hint="As shown on the phones.">
+            <Input
+              id="ct-comm"
+              type="number"
+              min={0}
+              step="0.01"
+              inputMode="decimal"
+              value={commission}
+              onChange={(e) => setCommission(e.target.value)}
+            />
+          </Field>
+        )}
         <Field id="ct-notes" label="Notes" optional>
           <Textarea id="ct-notes" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
         </Field>
@@ -540,6 +628,55 @@ function CountForm({ data, kind, onDone, onCancel }) {
         <div className="flex gap-2">
           <Button busy={busy} disabled={kind === 'HANDOVER' && !handedTo} onClick={send}>
             {kind === 'CLOSE' ? 'Close the day' : 'Hand over'}
+          </Button>
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function CollectionForm({ onDone, onCancel }) {
+  const [amount, setAmount] = useState('');
+  const [by, setBy] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post('/api/float/collections', { amount: Number(amount), collectedBy: by.trim() || null });
+      onDone('Cash to finance recorded. A manager confirms finance received it.');
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title="Cash retired to finance" className="border-brand ring-1 ring-brand">
+      <div className="stack">
+        <div className="form-row">
+          <Field id="cc-amount" label="Amount (K)">
+            <Input
+              id="cc-amount"
+              type="number"
+              min={1}
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </Field>
+          <Field id="cc-by" label="Collected by" optional>
+            <Input id="cc-by" value={by} onChange={(e) => setBy(e.target.value)} />
+          </Field>
+        </div>
+        {error && <Notice tone="danger">{error}</Notice>}
+        <div className="flex gap-2">
+          <Button busy={busy} disabled={!(Number(amount) > 0)} onClick={send}>
+            Record cash to finance
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

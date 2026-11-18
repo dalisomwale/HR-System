@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
 import { api, downloadFile } from '../../../lib/api.js';
 import { formatDate, formatDateTime } from '../../../lib/format.js';
 import {
@@ -24,124 +23,35 @@ import {
   Th,
 } from '../../../components/ui.jsx';
 import { errorText } from '../rq.js';
-import { ACCOUNT, DAYS, NETWORK, money, signed } from './fl.js';
+import { ACCOUNT, DAYS, money, timeOf } from './fl.js';
+import { DayReportCard } from './FloatEntryPages.jsx';
 
-// ── Weekly reports ─────────────────────────────────────────────────────────────────────────────
-export function FloatWeeksPage() {
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['float-weeks'], queryFn: () => api.get('/api/float/weeks') });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null);
-  const make = async () => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      await api.post('/api/float/weeks/generate');
-      qc.invalidateQueries({ queryKey: ['float-weeks'] });
-      setMsg({ tone: 'ok', text: 'The report for the last finished week is ready.' });
-    } catch (err) {
-      setMsg({ tone: 'danger', text: errorText(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div>
-      <PageHeader
-        title="AMS weekly reports"
-        description="Made automatically at the report time on the last day of the week. A manager signs each one off; it then goes to the director and the week is locked."
-        actions={
-          q.data?.canSignOff && (
-            <Button variant="secondary" busy={busy} onClick={make}>
-              Make last week's report now
-            </Button>
-          )
-        }
-      />
-      {msg && (
-        <div className="mb-4">
-          <Notice tone={msg.tone}>{msg.text}</Notice>
-        </div>
-      )}
-      {q.isPending && <Loading />}
-      {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
-      {q.data &&
-        (q.data.items.length === 0 ? (
-          <div className="card p-0">
-            <EmptyState title="No weekly reports yet." />
-          </div>
-        ) : (
-          <Table title="AMS weekly reports">
-            <thead>
-              <tr>
-                <Th>Week</Th>
-                <Th className="text-right">Deposits</Th>
-                <Th className="text-right">Withdrawals</Th>
-                <Th className="text-right">Commission</Th>
-                <Th className="text-right">Deficits</Th>
-                <Th>Status</Th>
-                <Th>
-                  <span className="sr-only">Action</span>
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {q.data.items.map((w) => (
-                <tr key={w.id} data-date={w.end}>
-                  <Td className="whitespace-nowrap font-semibold">
-                    {formatDate(w.start)} – {formatDate(w.end)}
-                  </Td>
-                  <Td className="text-right tabular-nums">{money(w.totals.depositAmount)}</Td>
-                  <Td className="text-right tabular-nums">{money(w.totals.withdrawalAmount)}</Td>
-                  <Td className="text-right tabular-nums">{money(w.totals.commission)}</Td>
-                  <Td className="text-right tabular-nums">{money(w.totals.deficit)}</Td>
-                  <Td>
-                    {w.status === 'SIGNED_OFF' ? (
-                      <Badge tone="ok">Signed off · {w.signedBy}</Badge>
-                    ) : (
-                      <Badge tone="pending">To sign off</Badge>
-                    )}
-                  </Td>
-                  <Td>
-                    <Link
-                      to={`/requisitions/float/reports/${w.id}`}
-                      className={`btn btn-sm ${w.status === 'GENERATED' && q.data.canSignOff ? 'btn-primary' : ''}`}
-                    >
-                      {w.status === 'GENERATED' && q.data.canSignOff ? 'Sign off' : 'Open'}
-                    </Link>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        ))}
-    </div>
-  );
-}
+// ── Daily reports (D118) ───────────────────────────────────────────────────────────────────────
+const today = () => new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10); // Lusaka
 
-export function FloatWeekPage() {
-  const { id } = useParams();
+export function FloatDailyPage() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['float-week', id], queryFn: () => api.get(`/api/float/weeks/${id}`) });
+  const [params, setParams] = useSearchParams();
+  const date = params.get('date') || today();
+  const q = useQuery({
+    queryKey: ['float-daily', date],
+    queryFn: () => api.get(`/api/float/daily?date=${date}`),
+  });
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [range, setRange] = useState({ from: date.slice(0, 8) + '01', to: date });
   if (q.isPending) return <Loading />;
   if (q.isError) return <LoadError error={q.error} onRetry={q.refetch} />;
-  const w = q.data;
-  const t = w.data.totals;
-  const p = w.data.previous;
-  const change = (now, before) =>
-    before
-      ? `${now >= before ? '+' : ''}${Math.round(((now - before) / before) * 100)}% on last week`
-      : undefined;
+  const d = q.data;
+  const t = d.totals;
   const sign = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/api/float/weeks/${w.id}/sign-off`, { comment: comment.trim() || null });
-      qc.invalidateQueries({ queryKey: ['float-week', id] });
-      qc.invalidateQueries({ queryKey: ['float-weeks'] });
+      await api.post(`/api/float/daily/${date}/sign-off`, { comment: comment.trim() || null });
+      setComment('');
+      qc.invalidateQueries({ queryKey: ['float-daily'] });
       qc.invalidateQueries({ queryKey: ['float-me'] });
     } catch (err) {
       setError(errorText(err));
@@ -149,60 +59,84 @@ export function FloatWeekPage() {
       setBusy(false);
     }
   };
+  const pair = (x) => (
+    <>
+      {x.count}
+      <span className="block text-xs text-muted">{money(x.amount)}</span>
+    </>
+  );
   return (
     <div>
       <PageHeader
-        title={`AMS weekly report · ${formatDate(w.start)} – ${formatDate(w.end)}`}
+        title="AMS daily report"
         description={
-          w.status === 'SIGNED_OFF'
-            ? `Signed off by ${w.signedBy}, ${formatDateTime(w.signedAt)}${w.signComment ? `: “${w.signComment}”` : ''}`
-            : 'Waiting for a manager to sign it off'
+          d.signedOff
+            ? `Signed off by ${d.signedOff.by}, ${formatDateTime(d.signedOff.at)}${d.signedOff.comment ? `: “${d.signedOff.comment}”` : ''}`
+            : `${t.signedOut} of ${t.branches} branches signed out`
         }
         actions={
-          <Button
-            variant="secondary"
-            onClick={() =>
-              downloadFile(`/api/float/weeks/${w.id}?format=xlsx`).catch((e) => setError(e.message))
-            }
-          >
-            Export to Excel
-          </Button>
+          <div className="w-44">
+            <Input
+              type="date"
+              aria-label="Day"
+              value={date}
+              max={today()}
+              onChange={(e) => setParams({ date: e.target.value })}
+            />
+          </div>
         }
       />
       <div className="stack">
-        {w.canSignOff && (
-          <Section title="Sign off" className="border-brand ring-1 ring-brand">
+        {d.unsigned.length > 0 && (
+          <Notice tone="pending" title="Days not yet signed off">
+            {d.unsigned.map((x) => (
+              <button
+                key={x}
+                type="button"
+                className="mr-3 font-medium underline"
+                onClick={() => setParams({ date: x })}
+              >
+                {formatDate(x)}
+              </button>
+            ))}
+          </Notice>
+        )}
+        {d.canSignOff && (
+          <Section title="Sign off this day" className="border-brand ring-1 ring-brand">
             <div className="space-y-3">
               <p className="text-sm">
-                Once signed off it goes to the director and nothing in this week can change.
+                Check each branch below. Once signed off the report goes to the directors and nothing on this
+                day can change.
+                {t.signedOut < t.branches &&
+                  ` ${t.branches - t.signedOut} branch(es) have not signed out yet.`}
               </p>
-              <Field id="wk-c" label="Note to the director" optional>
-                <Textarea id="wk-c" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
+              <Field id="dy-c" label="Note to the directors" optional>
+                <Textarea id="dy-c" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
               </Field>
               {error && <Notice tone="danger">{error}</Notice>}
               <Button busy={busy} onClick={sign}>
-                Sign off
+                Sign off {formatDate(date)}
               </Button>
             </div>
           </Section>
         )}
         <KpiRow cols={4}>
           <Kpi
-            label={`Deposits (${t.depositCount})`}
-            value={money(t.depositAmount)}
-            note={change(t.depositAmount, p.depositAmount)}
+            label="Total transactions"
+            value={t.transactions.total}
+            note={`${t.walkIns} walk-ins · ${t.turnedDown} turned down`}
             small
           />
           <Kpi
-            label={`Withdrawals (${t.withdrawalCount})`}
-            value={money(t.withdrawalAmount)}
-            note={change(t.withdrawalAmount, p.withdrawalAmount)}
+            label="Float + cash"
+            value={money(t.total)}
+            note={`Cash ${money(t.cash)} · float ${money(t.float)}`}
             small
           />
           <Kpi
-            label="Commission earned"
+            label="Daily commission"
             value={money(t.commission)}
-            note={change(t.commission, p.commission)}
+            note={`This month ${money(t.commissionMonth)}`}
             small
           />
           <Kpi
@@ -213,233 +147,105 @@ export function FloatWeekPage() {
             small
           />
         </KpiRow>
-        <KpiRow cols={3}>
-          {['AIRTEL', 'MTN'].map((n) => (
-            <Kpi
-              key={n}
-              label={`${NETWORK[n]} (${t.byNetwork[n].count})`}
-              value={money(t.byNetwork[n].amount)}
-              small
-            />
-          ))}
-        </KpiRow>
-        {w.data.branches.map((b) => (
-          <Section
-            key={b.id}
-            title={b.name}
-            description={`${b.depositCount + b.withdrawalCount} transactions · commission ${money(b.commission)}${b.deficit ? ` · deficits ${money(b.deficit)}` : ''}`}
-          >
-            <Table title={b.name} tools={false}>
-              <thead>
-                <tr>
-                  <Th>Account</Th>
-                  <Th className="text-right">Opening</Th>
-                  <Th className="text-right">Deposits</Th>
-                  <Th className="text-right">Withdrawals</Th>
-                  <Th className="text-right">Top-ups</Th>
-                  <Th className="text-right">Transfers</Th>
-                  <Th className="text-right">Reversals</Th>
-                  <Th className="text-right">Count differences</Th>
-                  <Th className="text-right">Closing</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {b.accounts.map((a) => (
-                  <tr key={a.kind}>
-                    <Td className="font-semibold">{ACCOUNT[a.kind]}</Td>
-                    <Td className="text-right tabular-nums">{money(a.opening)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.deposits)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.withdrawals)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.topups)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.transfersIn + a.transfersOut)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.reversals)}</Td>
-                    <Td className="text-right tabular-nums">{signed(a.countDifferences)}</Td>
-                    <Td className="text-right font-semibold tabular-nums">{money(a.closing)}</Td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Commission ─────────────────────────────────────────────────────────────────────────────────
-export function FloatCommissionPage() {
-  const qc = useQueryClient();
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const q = useQuery({
-    queryKey: ['float-commission', month],
-    queryFn: () => api.get(`/api/float/commission?month=${month}`),
-  });
-  const [v, setV] = useState({
-    network: 'AIRTEL',
-    branchId: '',
-    amount: '',
-    receivedOn: new Date().toISOString().slice(0, 10),
-    notes: '',
-  });
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState(null);
-  const record = async () => {
-    setBusy(true);
-    setMsg(null);
-    try {
-      await api.post('/api/float/commission/receipts', {
-        ...v,
-        month,
-        branchId: v.branchId || null,
-        amount: Number(v.amount),
-        notes: v.notes || null,
-      });
-      setV({ ...v, amount: '', notes: '' });
-      setMsg({ tone: 'ok', text: 'Commission received recorded.' });
-      qc.invalidateQueries({ queryKey: ['float-commission', month] });
-    } catch (err) {
-      setMsg({ tone: 'danger', text: errorText(err) });
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <div>
-      <PageHeader
-        title="AMS commission"
-        description="Expected commission is worked out on every transaction from the commission tables; record what the networks pay each month to see any shortfall."
-      />
-      <div className="mb-4 w-48">
-        <Field id="cm-month" label="Month">
-          <Input id="cm-month" type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
-        </Field>
-      </div>
-      {q.isPending && <Loading />}
-      {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
-      {q.data && (
-        <div className="stack">
-          <KpiRow cols={3}>
-            {q.data.byNetwork.map((n) => (
-              <Kpi
-                key={n.network}
-                label={`${NETWORK[n.network]}: expected ${money(n.expected)}`}
-                value={money(n.received)}
-                note={
-                  n.difference === 0
-                    ? 'Received in full'
-                    : `${n.difference < 0 ? 'Short' : 'Over'} by ${money(Math.abs(n.difference))}`
-                }
-                tone={n.difference < 0 ? 'warn' : undefined}
-                small
-              />
-            ))}
-          </KpiRow>
-          <Table title={`AMS commission ${month}`}>
+        {d.branches.length === 0 ? (
+          <div className="card p-0">
+            <EmptyState title="No AMS branches." />
+          </div>
+        ) : (
+          <Table title={`AMS daily ${date}`}>
             <thead>
               <tr>
                 <Th>Branch</Th>
-                <Th className="text-right">Airtel transactions</Th>
-                <Th className="text-right">Airtel commission</Th>
-                <Th className="text-right">MTN transactions</Th>
-                <Th className="text-right">MTN commission</Th>
+                <Th>Status</Th>
+                <Th className="text-right">Deposits</Th>
+                <Th className="text-right">Withdrawals</Th>
+                <Th className="text-right">Float transfers</Th>
+                <Th className="text-right">Cash to finance</Th>
+                <Th className="text-right">{`${d.settings.dayStart}–${d.settings.eveningFrom}`}</Th>
+                <Th className="text-right">{`After ${d.settings.eveningFrom}`}</Th>
+                <Th className="text-right">Total</Th>
+                <Th className="text-right">Turned down</Th>
+                <Th className="text-right">Cash</Th>
+                <Th className="text-right">Float</Th>
+                <Th className="text-right">Float + cash</Th>
+                <Th className="text-right">Commission</Th>
+                <Th className="text-right">This month</Th>
               </tr>
             </thead>
             <tbody>
-              {q.data.branches.map((b) => (
+              {d.branches.map((b) => (
                 <tr key={b.id}>
                   <Td className="font-semibold">{b.name}</Td>
-                  {b.networks.map((n) => [
-                    <Td key={`${n.network}-n`} className="text-right">
-                      {n.transactions}
-                    </Td>,
-                    <Td key={`${n.network}-c`} className="text-right tabular-nums">
-                      {money(n.commission)}
-                    </Td>,
-                  ])}
+                  <Td>
+                    {b.signedOut ? (
+                      <Badge tone="ok">Signed out {timeOf(b.signedOutAt)}</Badge>
+                    ) : (
+                      <Badge tone="pending">Open</Badge>
+                    )}
+                    {b.signedOutBy && (
+                      <span className="block text-xs text-muted">
+                        {b.signedOutBy.firstName} {b.signedOutBy.lastName}
+                      </span>
+                    )}
+                  </Td>
+                  <Td className="text-right tabular-nums">{pair(b.deposits)}</Td>
+                  <Td className="text-right tabular-nums">{pair(b.withdrawals)}</Td>
+                  <Td className="text-right tabular-nums">{pair(b.floatTransfers)}</Td>
+                  <Td className="text-right tabular-nums">{pair(b.cashCollections)}</Td>
+                  <Td className="text-right">{b.transactions.daytime}</Td>
+                  <Td className="text-right">{b.transactions.evening}</Td>
+                  <Td className="text-right font-semibold">{b.transactions.total}</Td>
+                  <Td className="text-right">{b.turnedDown}</Td>
+                  <Td className="text-right tabular-nums">{money(b.cash)}</Td>
+                  <Td className="text-right tabular-nums">{money(b.float)}</Td>
+                  <Td className="text-right font-semibold tabular-nums">{money(b.total)}</Td>
+                  <Td className="text-right tabular-nums">
+                    {b.commission == null ? '—' : money(b.commission)}
+                  </Td>
+                  <Td className="text-right tabular-nums">{money(b.commissionMonth)}</Td>
                 </tr>
               ))}
             </tbody>
           </Table>
-          {q.data.receipts.length > 0 && (
-            <Section title="Received this month">
-              <ul className="divide-y divide-rule text-sm">
-                {q.data.receipts.map((r) => (
-                  <li key={r.id} className="py-2">
-                    {NETWORK[r.network]} {money(r.amount)} on {formatDate(r.receivedOn)}
-                    {r.branch ? ` · ${r.branch}` : ' · all branches'}
-                    {r.notes ? ` · ${r.notes}` : ''}
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-          {q.data.canRecord && (
-            <Section title="Record commission received">
-              <div className="stack">
-                {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
-                <div className="form-row">
-                  <Field id="cr-net" label="Network">
-                    <Select
-                      id="cr-net"
-                      value={v.network}
-                      onChange={(e) => setV({ ...v, network: e.target.value })}
-                    >
-                      {Object.entries(NETWORK).map(([k, l]) => (
-                        <option key={k} value={k}>
-                          {l}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field id="cr-br" label="Branch" optional>
-                    <Select
-                      id="cr-br"
-                      value={v.branchId}
-                      onChange={(e) => setV({ ...v, branchId: e.target.value })}
-                    >
-                      <option value="">All branches</option>
-                      {q.data.branches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <Field id="cr-amt" label="Amount (K)">
-                    <Input
-                      id="cr-amt"
-                      type="number"
-                      min={0}
-                      value={v.amount}
-                      onChange={(e) => setV({ ...v, amount: e.target.value })}
-                    />
-                  </Field>
-                  <Field id="cr-on" label="Received on">
-                    <Input
-                      id="cr-on"
-                      type="date"
-                      value={v.receivedOn}
-                      onChange={(e) => setV({ ...v, receivedOn: e.target.value })}
-                    />
-                  </Field>
-                </div>
-                <Field id="cr-notes" label="Notes" optional>
-                  <Input
-                    id="cr-notes"
-                    value={v.notes}
-                    onChange={(e) => setV({ ...v, notes: e.target.value })}
-                  />
-                </Field>
-                <div>
-                  <Button busy={busy} disabled={!(Number(v.amount) > 0)} onClick={record}>
-                    Record
-                  </Button>
-                </div>
-              </div>
-            </Section>
-          )}
+        )}
+        <div className="grid gap-4 lg:grid-cols-2">
+          {d.branches.map((b) => (
+            <DayReportCard key={b.id} report={b} />
+          ))}
         </div>
-      )}
+        <Section title="Download a period" description="One row per branch and day, as kept in Excel">
+          <div className="flex flex-wrap items-end gap-3">
+            <Field id="hx-from" label="From">
+              <Input
+                id="hx-from"
+                type="date"
+                value={range.from}
+                max={range.to}
+                onChange={(e) => setRange({ ...range, from: e.target.value })}
+              />
+            </Field>
+            <Field id="hx-to" label="To">
+              <Input
+                id="hx-to"
+                type="date"
+                value={range.to}
+                min={range.from}
+                onChange={(e) => setRange({ ...range, to: e.target.value })}
+              />
+            </Field>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                downloadFile(`/api/float/history?from=${range.from}&to=${range.to}&format=xlsx`).catch((e) =>
+                  setError(e.message),
+                )
+              }
+            >
+              Export to Excel
+            </Button>
+          </div>
+        </Section>
+      </div>
     </div>
   );
 }
@@ -692,7 +498,7 @@ function BranchForm({ branch, onDone, onCancel }) {
   );
 }
 
-// ── AMS settings and commission tables ─────────────────────────────────────────────────────────
+// ── AMS settings ───────────────────────────────────────────────────────────────────────────────
 export function FloatSettingsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['float-settings'], queryFn: () => api.get('/api/float/settings') });
@@ -700,28 +506,16 @@ export function FloatSettingsPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   useEffect(() => {
-    if (q.data) {
-      setV({
-        ...q.data,
-        companyId: String(q.data.companyId ?? ''),
-        rules: q.data.rules.map((r) => ({ ...r, maxAmount: r.maxAmount ?? '' })),
-      });
-    }
+    if (q.data) setV({ ...q.data, companyId: String(q.data.companyId ?? '') });
   }, [q.data]);
   if (q.isError) return <LoadError error={q.error} onRetry={q.refetch} />;
   if (q.isPending || !v) return <Loading />;
   const set = (k) => (e) => setV({ ...v, [k]: e.target.value });
-  const setRule = (i, k) => (e) =>
-    setV({ ...v, rules: v.rules.map((r, j) => (j === i ? { ...r, [k]: e.target.value } : r)) });
   const save = async () => {
     setBusy(true);
     setMsg(null);
     try {
-      await api.put('/api/float/settings', {
-        ...v,
-        companyId: v.companyId ? Number(v.companyId) : null,
-        rules: v.rules.map((r) => ({ ...r, maxAmount: r.maxAmount === '' ? null : Number(r.maxAmount) })),
-      });
+      await api.put('/api/float/settings', { ...v, companyId: v.companyId ? Number(v.companyId) : null });
       setMsg({ tone: 'ok', text: 'Saved. It applies straight away.' });
       qc.invalidateQueries({ queryKey: ['float-settings'] });
       qc.invalidateQueries({ queryKey: ['float-me'] });
@@ -755,7 +549,7 @@ export function FloatSettingsPage() {
             </Select>
           </Field>
         </Section>
-        <Section title="The working week and the report">
+        <Section title="Trading days and the daily report">
           <div className="stack">
             <div>
               <p className="mb-2 text-sm font-semibold">Trading days</p>
@@ -781,29 +575,26 @@ export function FloatSettingsPage() {
               </div>
             </div>
             <div className="form-row">
-              <Field
-                id="st-end"
-                label="The week ends on"
-                hint="The weekly report covers the 7 days to this day."
-              >
-                <Select id="st-end" value={v.weekEndDay} onChange={set('weekEndDay')}>
-                  {DAYS.map(([k, l]) => (
-                    <option key={k} value={k}>
-                      {l}
-                    </option>
-                  ))}
-                </Select>
+              <Field id="st-ds" label="The day starts at">
+                <Input id="st-ds" type="time" value={v.dayStart} onChange={set('dayStart')} />
               </Field>
-              <Field id="st-rt" label="Report time" hint="On that day, the report is made from this time.">
-                <Input id="st-rt" type="time" value={v.reportTime} onChange={set('reportTime')} />
+              <Field id="st-ev" label="Evening transactions from" hint="Counted separately in the report.">
+                <Input id="st-ev" type="time" value={v.eveningFrom} onChange={set('eveningFrom')} />
               </Field>
-              <Field id="st-ct" label="Close-the-day reminder" hint="Branches not yet closed are reminded.">
+              <Field id="st-ct" label="Sign-out reminder" hint="Branches not signed out are reminded.">
                 <Input
                   id="st-ct"
                   type="time"
                   value={v.closeReminderTime}
                   onChange={set('closeReminderTime')}
                 />
+              </Field>
+              <Field
+                id="st-rt"
+                label="Daily report time"
+                hint="Sent to managers and directors on trading days."
+              >
+                <Input id="st-rt" type="time" value={v.reportTime} onChange={set('reportTime')} />
               </Field>
             </div>
           </div>
@@ -851,94 +642,6 @@ export function FloatSettingsPage() {
                 onChange={set('duplicateMinutes')}
               />
             </Field>
-          </div>
-        </Section>
-        <Section
-          title="Commission tables"
-          description="What each network pays per transaction. The first band that fits the amount is used."
-        >
-          <div className="stack">
-            {v.rules.length === 0 && <p className="muted-text">No commission set up yet.</p>}
-            {v.rules.map((r, i) => (
-              <div key={i} className="grid items-end gap-2 sm:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto]">
-                <Field id={`r-n-${i}`} label="Network">
-                  <Select id={`r-n-${i}`} value={r.network} onChange={setRule(i, 'network')}>
-                    <option value="AIRTEL">Airtel Money</option>
-                    <option value="MTN">MTN MoMo</option>
-                  </Select>
-                </Field>
-                <Field id={`r-k-${i}`} label="Type">
-                  <Select id={`r-k-${i}`} value={r.kind} onChange={setRule(i, 'kind')}>
-                    <option value="DEPOSIT">Deposit</option>
-                    <option value="WITHDRAWAL">Withdrawal</option>
-                  </Select>
-                </Field>
-                <Field id={`r-min-${i}`} label="From (K)">
-                  <Input
-                    id={`r-min-${i}`}
-                    type="number"
-                    min={0}
-                    value={r.minAmount}
-                    onChange={setRule(i, 'minAmount')}
-                  />
-                </Field>
-                <Field id={`r-max-${i}`} label="To (K)" optional>
-                  <Input
-                    id={`r-max-${i}`}
-                    type="number"
-                    min={0}
-                    value={r.maxAmount}
-                    onChange={setRule(i, 'maxAmount')}
-                  />
-                </Field>
-                <Field id={`r-t-${i}`} label="Pays">
-                  <Select id={`r-t-${i}`} value={r.feeType} onChange={setRule(i, 'feeType')}>
-                    <option value="FLAT">Flat (K)</option>
-                    <option value="PERCENT">Percent (%)</option>
-                  </Select>
-                </Field>
-                <Field id={`r-v-${i}`} label={r.feeType === 'FLAT' ? 'Amount (K)' : 'Percent'}>
-                  <Input
-                    id={`r-v-${i}`}
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={r.value}
-                    onChange={setRule(i, 'value')}
-                  />
-                </Field>
-                <Button
-                  variant="ghost"
-                  aria-label="Remove band"
-                  onClick={() => setV({ ...v, rules: v.rules.filter((_, j) => j !== i) })}
-                >
-                  <Trash2 aria-hidden />
-                </Button>
-              </div>
-            ))}
-            <div>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  setV({
-                    ...v,
-                    rules: [
-                      ...v.rules,
-                      {
-                        network: 'AIRTEL',
-                        kind: 'DEPOSIT',
-                        minAmount: 0,
-                        maxAmount: '',
-                        feeType: 'FLAT',
-                        value: 0,
-                      },
-                    ],
-                  })
-                }
-              >
-                <Plus aria-hidden /> Add band
-              </Button>
-            </div>
           </div>
         </Section>
       </div>

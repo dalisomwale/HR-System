@@ -1,15 +1,17 @@
 import { todayInLusaka } from '../../utils/dates.js';
-import { addDays, weekdayKey } from '../leave/calendar.js';
+import { addDays } from '../leave/calendar.js';
 import { badRequest, conflict } from '../../utils/errors.js';
 import { notify } from '../notifications/notify.service.js';
 import { moduleHolders } from '../access/modules.js';
 
 /*
- * AMS cash and float (D117). Every change to a balance is a row in float_entries, written in the
- * same transaction as the account's balance, so the balance always equals the sum of its entries.
+ * AMS cash and float (D117, D118). Every change to a balance is a row in float_entries, written
+ * in the same transaction as the account's balance, so the balance always equals its entries.
  *
- *   Deposit     the customer hands over cash for their wallet: Cash +, network float −
- *   Withdrawal  the customer takes cash from their wallet:     Cash −, network float +
+ *   Deposit           the customer hands over cash for their wallet: Cash +, network float −
+ *   Withdrawal        the customer takes cash from their wallet:     Cash −, network float +
+ *   Float transfer    float received by the branch (a top-up or a transfer), approved by a manager
+ *   Cash collection   cash retired to finance: out of the branch at once, confirmed by a manager
  */
 
 export const KINDS = ['CASH', 'AIRTEL', 'MTN'];
@@ -18,16 +20,18 @@ export const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 export const round2 = (n) => Math.round(Number(n) * 100) / 100;
 export const kwacha = (n) =>
   `K${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export const dayCode = (iso) => DAYS[(new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7];
 const EMAIL = { app: 'inventory' };
 
 export async function getSettings(db) {
   const s = await db('float_settings').where({ id: 1 }).first();
   return {
     companyId: s?.company_id ?? null,
-    workingDays: String(s?.working_days ?? '')
+    workingDays: String(s?.working_days ?? 'MON,TUE,WED,THU,FRI,SAT')
       .split(',')
       .filter(Boolean),
-    weekEndDay: s?.week_end_day ?? 'FRI',
+    dayStart: s?.day_start ?? '07:30',
+    eveningFrom: s?.evening_from ?? '17:00',
     reportTime: s?.report_time ?? '17:30',
     closeReminderTime: s?.close_reminder_time ?? '18:00',
     cashTolerance: Number(s?.cash_tolerance ?? 5),
@@ -37,35 +41,24 @@ export async function getSettings(db) {
   };
 }
 
-/** Lusaka time now as 'HH:MM'. */
-export function lusakaTime(now = new Date()) {
+/** Lusaka time as 'HH:MM'. */
+export function lusakaTime(at = new Date()) {
   return new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
     timeZone: 'Africa/Lusaka',
-  }).format(now);
+  }).format(new Date(at));
 }
 
-/** The week that ends on or before `day`: { start, end }. */
-export function weekEnding(settings, day) {
-  let end = day;
-  for (let i = 0; i < 7 && weekdayKey(end).slice(0, 3).toUpperCase() !== settings.weekEndDay; i += 1) {
-    end = addDays(end, -1);
-  }
-  return { start: addDays(end, -6), end };
+/** A signed-off day can no longer change. */
+export async function isLocked(db, date) {
+  return Boolean(await db('float_days').where({ business_date: date }).first('business_date'));
 }
 
-/** The date postings count for: today, or tomorrow once today's weekly report has been made. */
+/** The date postings count for: today, or tomorrow once today has been signed off. */
 export async function businessDate(db, today = todayInLusaka()) {
-  const made = await db('float_weeks').where({ period_end: today }).first('id');
-  return made ? addDays(today, 1) : today;
-}
-
-/** The last date of a signed-off week: nothing on or before it can change. */
-export async function lockedUntil(db) {
-  const r = await db('float_weeks').where({ status: 'SIGNED_OFF' }).max({ d: 'period_end' }).first();
-  return r?.d ?? null;
+  return (await isLocked(db, today)) ? addDays(today, 1) : today;
 }
 
 export async function amsBranches(db, settings, { activeOnly = false } = {}) {
@@ -92,7 +85,7 @@ export async function accountsOf(db, branchId) {
     .orderByRaw("FIELD(kind, 'CASH', 'AIRTEL', 'MTN')");
 }
 
-/** Change one account's balance and write the ledger row. Returns the balance after. */
+/** Change one account's balance and write the ledger row. */
 export async function post(
   trx,
   { branchId, kind, amount, type, date, by, transactionId, movementId, varianceId, allowNegative = false },
@@ -120,18 +113,6 @@ export async function post(
     created_by: by ?? null,
   });
   return { account: acc, before, after };
-}
-
-/** Expected commission for a transaction, from the admin's tables (the first band that fits). */
-export async function commissionFor(db, network, kind, amount) {
-  const rules = await db('float_commission_rules')
-    .where({ network, kind })
-    .where('min_amount', '<=', amount)
-    .where((w) => w.whereNull('max_amount').orWhere('max_amount', '>=', amount))
-    .orderBy('min_amount', 'desc');
-  const r = rules[0];
-  if (!r) return 0;
-  return round2(r.fee_type === 'FLAT' ? Number(r.value) : (Number(amount) * Number(r.value)) / 100);
 }
 
 /** Inventory users who can record at a branch (their employee record's branch). */
@@ -171,144 +152,196 @@ export async function lowFloatCheck(trx, { branchId, kind, before, after, accoun
   });
 }
 
-/**
- * When an account will run out at today's pace: from the money that has gone out of it today,
- * per hour since the day's first transaction. Null when it is not going down.
- */
+/** When an account runs out at today's pace (from what has gone out per hour), or null. */
 export function runOutTime(balance, outToday, firstAt, now = new Date()) {
   if (!(outToday > 0) || !firstAt || !(balance > 0)) return null;
   const hours = Math.max(0.5, (now - new Date(firstAt)) / 3600000);
-  const perHour = outToday / hours;
-  const left = balance / perHour;
+  const left = balance / (outToday / hours);
   if (left > 12) return null;
   return lusakaTime(new Date(now.getTime() + left * 3600000));
 }
 
-/** The weekly report's figures, per branch and account, with the week before for comparison. */
-export async function buildWeek(db, settings, start, end) {
-  const branches = await amsBranches(db, settings);
+/**
+ * The daily report (D118), per branch, for one business date: the figures AMS reports every
+ * evening. A branch that has signed out (closed the day) shows what was counted; one still open
+ * shows the books.
+ */
+export async function buildDay(db, settings, date, branchIds = null) {
+  const branches = (await amsBranches(db, settings)).filter((b) => !branchIds || branchIds.includes(b.id));
   const ids = branches.map((b) => b.id);
-  if (!ids.length)
-    return { period: { start, end }, branches: [], totals: emptyTotals(), previous: emptyTotals() };
-  const accounts = await db('float_accounts').whereIn('branch_id', ids);
-  const opening = await db('float_entries')
-    .whereIn('branch_id', ids)
-    .where('business_date', '<', start)
-    .groupBy('account_id')
-    .select('account_id')
-    .sum({ s: 'amount' });
-  const moves = await db('float_entries')
-    .whereIn('branch_id', ids)
-    .whereBetween('business_date', [start, end])
-    .groupBy('account_id', 'entry_type')
-    .select('account_id', 'entry_type')
-    .sum({ s: 'amount' });
-  const txns = await txnTotals(db, ids, start, end);
-  const varRows = await db('float_variances')
-    .whereIn('branch_id', ids)
-    .whereBetween('business_date', [start, end])
-    .select('branch_id', 'amount');
-  const O = new Map(opening.map((o) => [o.account_id, Number(o.s)]));
-  const branchesOut = branches.map((b) => {
-    const accs = accounts
-      .filter((a) => a.branch_id === b.id)
-      .sort((x, y) => KINDS.indexOf(x.kind) - KINDS.indexOf(y.kind))
-      .map((a) => {
-        const sum = (t) =>
-          round2(
-            moves
-              .filter((m) => m.account_id === a.id && m.entry_type === t)
-              .reduce((s, m) => s + Number(m.s), 0),
-          );
-        const open = round2(O.get(a.id) ?? 0);
-        const movement = round2(
-          moves.filter((m) => m.account_id === a.id).reduce((s, m) => s + Number(m.s), 0),
-        );
-        return {
-          kind: a.kind,
-          opening: round2(open + sum('OPENING')),
-          deposits: sum('DEPOSIT'),
-          withdrawals: sum('WITHDRAWAL'),
-          topups: sum('TOPUP'),
-          transfersIn: sum('TRANSFER_IN'),
-          transfersOut: sum('TRANSFER_OUT'),
-          reversals: sum('REVERSAL'),
-          countDifferences: round2(sum('VARIANCE') + sum('RECOVERY')),
-          closing: round2(open + movement),
-        };
-      });
-    const t = txns.get(b.id) ?? emptyTxn();
-    const v = varRows.filter((r) => r.branch_id === b.id);
+  const none = ids.length ? ids : [0];
+  const month = date.slice(0, 7);
+  const [txns, downs, moves, closes, monthCloses, variances, accounts] = await Promise.all([
+    db('float_transactions')
+      .whereIn('branch_id', none)
+      .where({ business_date: date })
+      .whereNot('status', 'REVERSED')
+      .select('branch_id', 'network', 'kind', 'amount', 'recorded_at'),
+    db('float_turned_down')
+      .whereIn('branch_id', none)
+      .where({ business_date: date })
+      .select('branch_id', 'reason'),
+    db('float_movements')
+      .where({ business_date: date })
+      .whereIn('status', ['APPROVED', 'PENDING'])
+      .where((w) => w.whereIn('to_branch_id', none).orWhereIn('from_branch_id', none))
+      .select('*'),
+    db('float_counts as c')
+      .join('employees as e', 'e.id', 'c.counted_by')
+      .whereIn('c.branch_id', none)
+      .where({ 'c.business_date': date, 'c.kind': 'CLOSE' })
+      .orderBy('c.id')
+      .select('c.*', 'e.first_name', 'e.last_name'),
+    db('float_counts')
+      .whereIn('branch_id', none)
+      .where({ kind: 'CLOSE' })
+      .whereBetween('business_date', [`${month}-01`, date])
+      .orderBy('id')
+      .select('id', 'branch_id', 'business_date', 'commission'),
+    db('float_variances')
+      .whereIn('branch_id', none)
+      .where({ business_date: date })
+      .select('branch_id', 'amount'),
+    db('float_accounts').whereIn('branch_id', none),
+  ]);
+  const lastClose = new Map();
+  for (const c of closes) lastClose.set(c.branch_id, c);
+  const lines = lastClose.size
+    ? await db('float_count_lines as l')
+        .join('float_accounts as a', 'a.id', 'l.account_id')
+        .whereIn(
+          'l.count_id',
+          [...lastClose.values()].map((c) => c.id),
+        )
+        .select('l.count_id', 'a.kind', 'l.counted')
+    : [];
+  // Month to date: the commission of each day's last close.
+  const perDay = new Map();
+  for (const c of monthCloses) perDay.set(`${c.branch_id}:${c.business_date}`, c);
+  const mtd = new Map();
+  for (const c of perDay.values())
+    mtd.set(c.branch_id, round2((mtd.get(c.branch_id) ?? 0) + Number(c.commission ?? 0)));
+
+  const sum = (rows) => round2(rows.reduce((s, r) => s + Number(r.amount), 0));
+  const out = branches.map((b) => {
+    const t = txns.filter((x) => x.branch_id === b.id);
+    const dep = t.filter((x) => x.kind === 'DEPOSIT');
+    const wd = t.filter((x) => x.kind === 'WITHDRAWAL');
+    const evening = t.filter((x) => lusakaTime(x.recorded_at) >= settings.eveningFrom).length;
+    const floatIn = moves.filter(
+      (m) =>
+        m.to_branch_id === b.id &&
+        m.status === 'APPROVED' &&
+        m.kind !== 'COLLECTION' &&
+        m.to_account !== 'CASH',
+    );
+    const collections = moves.filter((m) => m.kind === 'COLLECTION' && m.from_branch_id === b.id);
+    const close = lastClose.get(b.id);
+    const counted = close
+      ? Object.fromEntries(
+          lines.filter((l) => l.count_id === close.id).map((l) => [l.kind, Number(l.counted)]),
+        )
+      : null;
+    const books = Object.fromEntries(
+      accounts.filter((a) => a.branch_id === b.id).map((a) => [a.kind, Number(a.balance)]),
+    );
+    const bal = (k) => round2(counted?.[k] ?? books[k] ?? 0);
+    const cash = bal('CASH');
+    const float = round2(bal('AIRTEL') + bal('MTN'));
+    const turnedDown = downs.filter((d) => d.branch_id === b.id).length;
+    const v = variances.filter((x) => x.branch_id === b.id);
     return {
       id: b.id,
       name: b.name,
-      accounts: accs,
-      ...t,
-      surplus: round2(v.filter((r) => Number(r.amount) > 0).reduce((s, r) => s + Number(r.amount), 0)),
-      deficit: round2(v.filter((r) => Number(r.amount) < 0).reduce((s, r) => s - Number(r.amount), 0)),
+      signedOut: Boolean(close),
+      signedOutAt: close?.created_at ?? null,
+      signedOutBy: close ? { firstName: close.first_name, lastName: close.last_name } : null,
+      deposits: { count: dep.length, amount: sum(dep) },
+      withdrawals: { count: wd.length, amount: sum(wd) },
+      byNetwork: Object.fromEntries(
+        ['AIRTEL', 'MTN'].map((n) => [
+          n,
+          { count: t.filter((x) => x.network === n).length, amount: sum(t.filter((x) => x.network === n)) },
+        ]),
+      ),
+      floatTransfers: { count: floatIn.length, amount: sum(floatIn) },
+      cashCollections: { count: collections.length, amount: sum(collections) },
+      transactions: { total: t.length, daytime: t.length - evening, evening },
+      turnedDown,
+      walkIns: t.length + turnedDown,
+      cash,
+      airtel: bal('AIRTEL'),
+      mtn: bal('MTN'),
+      float,
+      total: round2(cash + float),
+      commission: close?.commission == null ? null : round2(close.commission),
+      commissionMonth: mtd.get(b.id) ?? 0,
+      surplus: round2(v.filter((x) => Number(x.amount) > 0).reduce((s, x) => s + Number(x.amount), 0)),
+      deficit: round2(v.filter((x) => Number(x.amount) < 0).reduce((s, x) => s - Number(x.amount), 0)),
     };
   });
-  const totals = sumTotals(branchesOut);
-  const prevTxns = await txnTotals(db, ids, addDays(start, -7), addDays(start, -1));
-  const previous = sumTotals([...prevTxns.values()].map((t) => ({ ...t, surplus: 0, deficit: 0 })));
-  return { period: { start, end }, branches: branchesOut, totals, previous };
+  const add = (f) => round2(out.reduce((s, b) => s + f(b), 0));
+  const totals = {
+    deposits: { count: add((b) => b.deposits.count), amount: add((b) => b.deposits.amount) },
+    withdrawals: { count: add((b) => b.withdrawals.count), amount: add((b) => b.withdrawals.amount) },
+    floatTransfers: {
+      count: add((b) => b.floatTransfers.count),
+      amount: add((b) => b.floatTransfers.amount),
+    },
+    cashCollections: {
+      count: add((b) => b.cashCollections.count),
+      amount: add((b) => b.cashCollections.amount),
+    },
+    transactions: {
+      total: add((b) => b.transactions.total),
+      daytime: add((b) => b.transactions.daytime),
+      evening: add((b) => b.transactions.evening),
+    },
+    turnedDown: add((b) => b.turnedDown),
+    walkIns: add((b) => b.walkIns),
+    cash: add((b) => b.cash),
+    float: add((b) => b.float),
+    total: add((b) => b.total),
+    commission: add((b) => b.commission ?? 0),
+    commissionMonth: add((b) => b.commissionMonth),
+    surplus: add((b) => b.surplus),
+    deficit: add((b) => b.deficit),
+    signedOut: out.filter((b) => b.signedOut).length,
+    branches: out.length,
+  };
+  return { date, branches: out, totals };
 }
 
-const emptyTxn = () => ({
-  depositCount: 0,
-  depositAmount: 0,
-  withdrawalCount: 0,
-  withdrawalAmount: 0,
-  byNetwork: { AIRTEL: { count: 0, amount: 0 }, MTN: { count: 0, amount: 0 } },
-  commission: 0,
-});
-const emptyTotals = () => ({ ...emptyTxn(), surplus: 0, deficit: 0 });
-
-async function txnTotals(db, branchIds, start, end) {
-  const rows = await db('float_transactions')
-    .whereIn('branch_id', branchIds)
-    .whereBetween('business_date', [start, end])
-    .whereNot('status', 'REVERSED')
-    .groupBy('branch_id', 'network', 'kind')
-    .select('branch_id', 'network', 'kind')
-    .count({ n: '*' })
-    .sum({ a: 'amount', c: 'commission' });
-  const out = new Map();
-  for (const r of rows) {
-    const t = out.get(r.branch_id) ?? emptyTxn();
-    const n = Number(r.n);
-    const a = round2(r.a);
-    if (r.kind === 'DEPOSIT') {
-      t.depositCount += n;
-      t.depositAmount = round2(t.depositAmount + a);
-    } else {
-      t.withdrawalCount += n;
-      t.withdrawalAmount = round2(t.withdrawalAmount + a);
-    }
-    t.byNetwork[r.network].count += n;
-    t.byNetwork[r.network].amount = round2(t.byNetwork[r.network].amount + a);
-    t.commission = round2(t.commission + Number(r.c));
-    out.set(r.branch_id, t);
-  }
-  return out;
+/** The day's report for one branch as the text AMS shares with the team. */
+export function dayText(b, date, settings) {
+  const k = (n) => `K${Number(n).toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
+  const who = b.signedOutBy ? `${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : '';
+  return [
+    `*${b.name}*`,
+    date.split('-').reverse().join('/'),
+    `Status: ${b.signedOut ? `Signed out at ${lusakaTime(b.signedOutAt)}` : 'Open'}`,
+    '',
+    `Deposits: ${b.deposits.count} (${k(b.deposits.amount)})`,
+    `Withdrawals: ${b.withdrawals.count} (${k(b.withdrawals.amount)})`,
+    `Float transfers: ${b.floatTransfers.count} (${k(b.floatTransfers.amount)})`,
+    `Cash retired to finance: ${b.cashCollections.count} (${k(b.cashCollections.amount)})`,
+    '',
+    `Transactions ${settings.dayStart}–${settings.eveningFrom}: ${b.transactions.daytime}`,
+    `Transactions after ${settings.eveningFrom}: ${b.transactions.evening}`,
+    `Total transactions: ${b.transactions.total}`,
+    `Customers turned down: ${b.turnedDown}`,
+    `Walk-in customers: ${b.walkIns}`,
+    '',
+    `Cash: ${k(b.cash)}`,
+    `Float as per phone statements: ${k(b.float)} (Airtel ${k(b.airtel)}, MTN ${k(b.mtn)})`,
+    `Total float + cash: ${k(b.total)}`,
+    ...(b.commission != null ? [`Daily commission: ${k(b.commission)}`] : []),
+    `Commission this month: ${k(b.commissionMonth)}`,
+    ...(b.deficit ? [`Deficit: ${k(b.deficit)}`] : []),
+    ...(b.surplus ? [`Surplus: ${k(b.surplus)}`] : []),
+    '',
+    who,
+  ]
+    .join('\n')
+    .trim();
 }
-
-function sumTotals(list) {
-  const t = emptyTotals();
-  for (const b of list) {
-    t.depositCount += b.depositCount;
-    t.depositAmount = round2(t.depositAmount + b.depositAmount);
-    t.withdrawalCount += b.withdrawalCount;
-    t.withdrawalAmount = round2(t.withdrawalAmount + b.withdrawalAmount);
-    t.commission = round2(t.commission + b.commission);
-    t.surplus = round2(t.surplus + (b.surplus ?? 0));
-    t.deficit = round2(t.deficit + (b.deficit ?? 0));
-    for (const n of ['AIRTEL', 'MTN']) {
-      t.byNetwork[n].count += b.byNetwork[n].count;
-      t.byNetwork[n].amount = round2(t.byNetwork[n].amount + b.byNetwork[n].amount);
-    }
-  }
-  return t;
-}
-
-export { DAYS as WEEK_DAYS };

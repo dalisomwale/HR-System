@@ -90,11 +90,11 @@ export function FloatDashboardPage() {
             small
           />
         </KpiRow>
-        {d.lastWeek?.status === 'GENERATED' && (
-          <Notice tone="pending" title="Weekly report waiting for sign-off">
-            {d.lastWeek.start} to {d.lastWeek.end}.{' '}
-            <Link to={`/requisitions/float/reports/${d.lastWeek.id}`} className="font-medium underline">
-              Open it
+        {d.unsignedDays > 0 && (
+          <Notice tone="pending" title="Daily reports waiting for sign-off">
+            {d.unsignedDays} {d.unsignedDays === 1 ? 'day' : 'days'} not yet signed off.{' '}
+            <Link to="/requisitions/float/daily" className="font-medium underline">
+              Open the daily report
             </Link>
           </Notice>
         )}
@@ -381,7 +381,8 @@ export function FloatApprovalsPage() {
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <span>
                     <span className="font-semibold">
-                      {m.kind === 'TOPUP' ? 'Top-up' : 'Transfer'} {money(m.amount)} {ACCOUNT[m.toAccount]} to{' '}
+                      {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash to finance' }[m.kind]}{' '}
+                      {money(m.amount)} {ACCOUNT[m.toAccount]} {m.kind === 'COLLECTION' ? 'from' : 'to'}{' '}
                       {m.toBranch}
                     </span>
                     {m.fromBranch && (

@@ -3,12 +3,11 @@ import { z } from 'zod';
 import { auditContext } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { notify } from '../notifications/notify.service.js';
-import { asyncHandler, idParam, isoDate, optionalText, requiredText } from '../../utils/validation.js';
+import { asyncHandler, idParam, optionalText, requiredText } from '../../utils/validation.js';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import { addDays } from '../leave/calendar.js';
 import { toXlsx } from '../reports/export-files.js';
-import { generateWeek } from './float.jobs.js';
 import {
   DAYS,
   KINDS,
@@ -16,18 +15,19 @@ import {
   accountsOf,
   amsBranches,
   businessDate,
-  commissionFor,
+  buildDay,
+  dayCode,
+  dayText,
   directors,
   getSettings,
   kwacha,
-  lockedUntil,
+  isLocked,
   lowFloatCheck,
   managers,
   post,
   round2,
   runOutTime,
   staffBranch,
-  weekEnding,
 } from './float.service.js';
 
 /*
@@ -37,13 +37,41 @@ import {
  */
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const MOVE_LABEL = { TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash collection' };
 const EMAIL = { app: 'inventory' };
 const name = (f, l) => [f, l].filter(Boolean).join(' ') || null;
 const amount = z.coerce.number().positive('must be more than zero').max(100000000).transform(round2);
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a time like 17:30');
 
+/** Email rows for a day's totals. */
+export const dayRows = (t) => [
+  ['Branches signed out', `${t.signedOut} of ${t.branches}`],
+  ['Deposits', `${t.deposits.count} (${kwacha(t.deposits.amount)})`],
+  ['Withdrawals', `${t.withdrawals.count} (${kwacha(t.withdrawals.amount)})`],
+  ['Float transfers', `${t.floatTransfers.count} (${kwacha(t.floatTransfers.amount)})`],
+  ['Cash retired to finance', `${t.cashCollections.count} (${kwacha(t.cashCollections.amount)})`],
+  ['Total transactions', String(t.transactions.total)],
+  ['Customers turned down', String(t.turnedDown)],
+  ['Float + cash', kwacha(t.total)],
+  ['Daily commission', kwacha(t.commission)],
+  ['Deficits', kwacha(t.deficit)],
+];
+
 export function floatRoutes({ db }) {
   const router = Router();
+  /** Past days with activity that no manager has signed off yet (the last 31 days). */
+  async function unsignedDays() {
+    const today = todayInLusaka();
+    const from = addDays(today, -31);
+    const active = await db('float_counts')
+      .whereBetween('business_date', [from, addDays(today, -1)])
+      .distinct()
+      .pluck('business_date');
+    const signed = new Set(
+      await db('float_days').whereBetween('business_date', [from, today]).pluck('business_date'),
+    );
+    return active.filter((d) => !signed.has(d)).sort();
+  }
   const f = (req) => req.rq;
   const must = (ok, msg) => {
     if (!ok) throw forbidden(msg);
@@ -86,7 +114,12 @@ export function floatRoutes({ db }) {
         configured: Boolean(s.companyId),
         company: company?.name ?? null,
         branch,
-        settings: { weekEndDay: s.weekEndDay, reportTime: s.reportTime, workingDays: s.workingDays },
+        settings: {
+          reportTime: s.reportTime,
+          workingDays: s.workingDays,
+          dayStart: s.dayStart,
+          eveningFrom: s.eveningFrom,
+        },
         rights: {
           record: c.floatRecord,
           viewAll: c.floatViewAll,
@@ -97,7 +130,7 @@ export function floatRoutes({ db }) {
         },
         counts: {
           approvals: approvals + director,
-          weeksToSign: c.floatApprove ? await n(db('float_weeks').where({ status: 'GENERATED' })) : 0,
+          daysToSign: c.floatApprove ? (await unsignedDays()).length : 0,
         },
       });
     }),
@@ -255,7 +288,8 @@ export function floatRoutes({ db }) {
             );
           }
         }
-        const commission = await commissionFor(trx, input.network, input.kind, input.amount);
+        // Staff are paid through payroll; the networks' commission is typed at sign-out (D118).
+        const commission = 0;
         const [id] = await trx('float_transactions').insert({
           branch_id: branch.id,
           network: input.network,
@@ -328,9 +362,8 @@ export function floatRoutes({ db }) {
         );
         if (t.status !== 'POSTED')
           throw conflict('This transaction is already reversed or waiting for a decision.');
-        const locked = await lockedUntil(trx);
-        if (locked && t.business_date <= locked)
-          throw conflict('That week has been signed off and is locked.');
+        if (await isLocked(trx, t.business_date))
+          throw conflict('That day has been signed off and is locked.');
         await trx('float_transactions').where({ id }).update({
           status: 'REVERSAL_PENDING',
           reversal_reason: reason,
@@ -445,6 +478,8 @@ export function floatRoutes({ db }) {
       .min(1),
     denominations: z.record(z.string(), z.coerce.number().int().min(0).max(100000)).nullish(),
     notes: optionalText(500),
+    // The commission the networks credited today, as shown on the phones (D118).
+    commission: z.coerce.number().min(0).max(10000000).nullish(),
   });
   router.post(
     '/counts',
@@ -466,6 +501,7 @@ export function floatRoutes({ db }) {
           handed_to: input.handedTo ?? null,
           denominations: input.denominations ? JSON.stringify(input.denominations) : null,
           notes: input.notes,
+          commission: input.kind === 'CLOSE' && input.commission != null ? round2(input.commission) : null,
         });
         const results = [];
         for (const line of input.lines) {
@@ -546,9 +582,110 @@ export function floatRoutes({ db }) {
             },
           });
         }
-        return { id: countId, results };
+        return { id: countId, results, date };
       });
-      res.status(201).json(out);
+      let report = null;
+      if (input.kind === 'CLOSE') {
+        const day = await buildDay(db, s, out.date, [branch.id]);
+        const b = day.branches[0];
+        report = { ...b, text: dayText(b, out.date, s) };
+        await db.transaction(async (trx) =>
+          notify(trx, {
+            recipients: await managers(trx, [req.user.id]),
+            event: 'FLOAT_SIGNED_OUT',
+            title: `${branch.name} signed out: ${b.transactions.total} transactions, float + cash ${kwacha(b.total)}`,
+            body: `Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}, turned down ${b.turnedDown}. Cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
+            link: `/requisitions/float/daily?date=${out.date}`,
+            entityType: 'float_count',
+            entityId: out.id,
+          }),
+        );
+      }
+      res.status(201).json({ ...out, report });
+    }),
+  );
+
+  // ── Cash retired to finance, and customers turned down ───────────────────────────────────────
+  router.post(
+    '/collections',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatRecord, 'You cannot record at an AMS branch.');
+      const input = z.object({ amount, collectedBy: optionalText(150) }).parse(req.body);
+      const s = await getSettings(db);
+      const branch = await staffBranch(db, s, req.user.id);
+      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const id = await db.transaction(async (trx) => {
+        const date = await businessDate(trx);
+        const [mid] = await trx('float_movements').insert({
+          kind: 'COLLECTION',
+          from_branch_id: branch.id,
+          from_account: 'CASH',
+          to_branch_id: branch.id,
+          to_account: 'CASH',
+          amount: input.amount,
+          reason: 'Cash retired to finance',
+          collected_by: input.collectedBy,
+          requested_by: req.user.id,
+          business_date: date,
+        });
+        // The cash leaves the drawer now; a manager confirms finance received it.
+        await post(trx, {
+          branchId: branch.id,
+          kind: 'CASH',
+          amount: -input.amount,
+          type: 'COLLECTION',
+          date,
+          by: req.user.id,
+          movementId: mid,
+        });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_CASH_COLLECTED',
+          entityType: 'float_movement',
+          entityId: mid,
+          after: input,
+        });
+        await notify(trx, {
+          recipients: await managers(trx, [req.user.id]),
+          event: 'FLOAT_COLLECTION_TO_CONFIRM',
+          title: `Cash retired to finance: ${kwacha(input.amount)} from ${branch.name}`,
+          body: input.collectedBy
+            ? `Collected by ${input.collectedBy}. Confirm finance received it.`
+            : 'Confirm finance received it.',
+          link: '/requisitions/float/approvals',
+          entityType: 'float_movement',
+          entityId: mid,
+        });
+        return mid;
+      });
+      res.status(201).json({ id });
+    }),
+  );
+  router.post(
+    '/turned-down',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatRecord, 'You cannot record at an AMS branch.');
+      const input = z
+        .object({
+          reason: z.enum(['NO_FLOAT', 'NO_CASH', 'NETWORK_DOWN', 'OTHER']),
+          network: z.enum(['AIRTEL', 'MTN']).nullish(),
+        })
+        .parse(req.body);
+      const s = await getSettings(db);
+      const branch = await staffBranch(db, s, req.user.id);
+      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const [id] = await db('float_turned_down').insert({
+        branch_id: branch.id,
+        reason: input.reason,
+        network: input.network ?? null,
+        business_date: await businessDate(db),
+        recorded_by: req.user.id,
+      });
+      const today = await db('float_turned_down')
+        .where({ branch_id: branch.id, business_date: await businessDate(db) })
+        .count({ n: '*' })
+        .first();
+      res.status(201).json({ id, today: Number(today.n) });
     }),
   );
 
@@ -633,7 +770,18 @@ export function floatRoutes({ db }) {
         if (!m || m.status !== 'PENDING') throw conflict('This is not waiting for a decision.');
         if (m.requested_by === req.user.id) throw forbidden('Someone else must approve your own request.');
         const date = await businessDate(trx);
-        if (approve) {
+        if (m.kind === 'COLLECTION' && !approve) {
+          await post(trx, {
+            branchId: m.from_branch_id,
+            kind: 'CASH',
+            amount: Number(m.amount),
+            type: 'COLLECTION',
+            date,
+            by: req.user.id,
+            movementId: id,
+          });
+        }
+        if (approve && m.kind !== 'COLLECTION') {
           const amt = Number(m.amount);
           if (m.kind === 'TRANSFER') {
             await post(trx, {
@@ -673,7 +821,7 @@ export function floatRoutes({ db }) {
             decided_by: req.user.id,
             decided_at: trx.fn.now(),
             decision_comment: comment,
-            business_date: approve ? date : null,
+            business_date: m.kind === 'COLLECTION' ? m.business_date : approve ? date : null,
           });
         await writeAudit(trx, {
           ...auditContext(req),
@@ -685,7 +833,7 @@ export function floatRoutes({ db }) {
         await notify(trx, {
           recipients: [m.requested_by],
           event: approve ? 'FLOAT_MOVEMENT_APPROVED' : 'FLOAT_MOVEMENT_REFUSED',
-          title: `${m.kind === 'TOPUP' ? 'Top-up' : 'Transfer'} ${approve ? 'approved' : 'not approved'}: ${KIND_LABEL[m.to_account]} ${kwacha(m.amount)}`,
+          title: `${MOVE_LABEL[m.kind]} ${approve ? (m.kind === 'COLLECTION' ? 'confirmed' : 'approved') : 'not approved'}: ${KIND_LABEL[m.to_account]} ${kwacha(m.amount)}`,
           body: comment ?? (approve ? 'The balance has been updated.' : ''),
           link: '/requisitions/float/branch',
           entityType: 'float_movement',
@@ -1020,9 +1168,8 @@ export function floatRoutes({ db }) {
       }
       const total = (k) =>
         round2(list.reduce((sum, b) => sum + (b.accounts.find((a) => a.kind === k)?.balance ?? 0), 0));
-      const week = await db('float_weeks')
-        .orderBy('period_end', 'desc')
-        .first('id', 'period_start', 'period_end', 'status');
+      const signedToday = await isLocked(db, today);
+      const unsigned = (await unsignedDays()).length;
       res.json({
         date: today,
         totals: {
@@ -1045,10 +1192,9 @@ export function floatRoutes({ db }) {
           pending: b.movements.filter((m) => m.status === 'PENDING').length,
         })),
         suggestions,
-        lastWeek: week
-          ? { id: week.id, start: week.period_start, end: week.period_end, status: week.status }
-          : null,
-        isWorkingDay: s.workingDays.includes(DAYS[(new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7]),
+        signedToday,
+        unsignedDays: unsigned,
+        isWorkingDay: s.workingDays.includes(dayCode(today)),
       });
     }),
   );
@@ -1126,256 +1272,164 @@ export function floatRoutes({ db }) {
     }),
   );
 
-  // ── Weekly reports ───────────────────────────────────────────────────────────────────────────
-  const weekView = (w) => ({
-    id: w.id,
-    start: w.period_start,
-    end: w.period_end,
-    status: w.status,
-    generatedAt: w.generated_at,
-    signedAt: w.signed_at,
-    signComment: w.sign_comment,
-  });
+  // ── Daily reports (D118) ─────────────────────────────────────────────────────────────────────
   router.get(
-    '/weeks',
+    '/daily',
     asyncHandler(async (req, res) => {
-      must(f(req).floatViewAll, 'You do not have access to AMS weekly reports.');
-      const rows = await db('float_weeks as w')
-        .leftJoin('employees as e', 'e.id', 'w.signed_by')
-        .orderBy('w.period_end', 'desc')
-        .select('w.*', 'e.first_name', 'e.last_name');
+      const c = f(req);
+      must(c.floatViewAll || c.floatRecord, 'You do not have access to AMS daily reports.');
+      const s = await getSettings(db);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.date ?? ''))
+        ? String(req.query.date)
+        : await businessDate(db);
+      const mine = c.floatViewAll ? null : await staffBranch(db, s, req.user.id);
+      if (!c.floatViewAll && !mine) throw badRequest('Your employee record has no AMS branch.');
+      const day = await buildDay(db, s, date, mine ? [mine.id] : null);
+      const signed = await db('float_days as d')
+        .join('employees as e', 'e.id', 'd.signed_by')
+        .where('d.business_date', date)
+        .first('d.*', 'e.first_name', 'e.last_name');
       res.json({
-        items: rows.map((w) => ({
-          ...weekView(w),
-          signedBy: name(w.first_name, w.last_name),
-          totals: (typeof w.data === 'string' ? JSON.parse(w.data) : w.data).totals,
-        })),
-        canSignOff: f(req).floatApprove,
+        ...day,
+        branches: day.branches.map((b) => ({ ...b, text: dayText(b, date, s) })),
+        settings: { dayStart: s.dayStart, eveningFrom: s.eveningFrom },
+        signedOff: signed
+          ? { by: name(signed.first_name, signed.last_name), at: signed.signed_at, comment: signed.comment }
+          : null,
+        canSignOff: c.floatApprove && !signed && date <= todayInLusaka(),
+        unsigned: c.floatApprove ? await unsignedDays() : [],
       });
     }),
   );
-  router.get(
-    '/weeks/:id',
+  router.post(
+    '/daily/:date/sign-off',
     asyncHandler(async (req, res) => {
-      must(f(req).floatViewAll, 'You do not have access to AMS weekly reports.');
-      const w = await db('float_weeks as w')
-        .leftJoin('employees as e', 'e.id', 'w.signed_by')
-        .where('w.id', idParam(req))
-        .first('w.*', 'e.first_name', 'e.last_name');
-      if (!w) throw notFound('Weekly report not found.');
-      const data = typeof w.data === 'string' ? JSON.parse(w.data) : w.data;
+      must(f(req).floatApprove, 'Only a manager signs off the daily report.');
+      const date = String(req.params.date);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > todayInLusaka())
+        throw badRequest('Choose a day up to today.');
+      const { comment } = z.object({ comment: optionalText(1000) }).parse(req.body ?? {});
+      const s = await getSettings(db);
+      await db.transaction(async (trx) => {
+        if (await isLocked(trx, date)) throw conflict('This day is already signed off.');
+        await trx('float_days').insert({
+          business_date: date,
+          signed_by: req.user.id,
+          signed_at: trx.fn.now(),
+          comment,
+        });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_DAY_SIGNED_OFF',
+          entityType: 'float_day',
+          entityId: date,
+          after: { comment },
+        });
+      });
+      const day = await buildDay(db, s, date);
+      const t = day.totals;
+      await db.transaction(async (trx) =>
+        notify(trx, {
+          recipients: await directors(trx, [req.user.id]),
+          event: 'FLOAT_DAY_SIGNED_OFF',
+          title: `AMS daily report signed off: ${date}`,
+          body: `${t.transactions.total} transactions at ${t.signedOut} of ${t.branches} branches; float + cash ${kwacha(t.total)}.`,
+          link: `/requisitions/float/daily?date=${date}`,
+          entityType: 'float_day',
+          entityId: null,
+          email: {
+            ...EMAIL,
+            subject: `AMS daily report: ${date}`,
+            heading: 'AMS daily report',
+            intro: `The daily report for ${date} has been signed off.${comment ? ` Manager’s note: ${comment}` : ''}`,
+            rows: dayRows(t),
+            action: 'Open it in the inventory system to see each branch and download it in Excel.',
+          },
+        }),
+      );
+      res.json({ date });
+    }),
+  );
+
+  // Day by day for a period, one row per branch and day, as AMS keeps it in Excel.
+  router.get(
+    '/history',
+    asyncHandler(async (req, res) => {
+      const c = f(req);
+      must(c.floatViewAll, 'You do not have access to AMS reports.');
+      const s = await getSettings(db);
+      const iso = (v, d) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? '')) ? String(v) : d);
+      const to = iso(req.query.to, todayInLusaka());
+      const from = iso(req.query.from, addDays(to, -30));
+      if (from > to || addDays(from, 366) < to) throw badRequest('Choose a period of up to a year.');
+      const branchIds = req.query.branch ? [Number(req.query.branch)] : null;
+      const rows = [];
+      for (let d = from; d <= to; d = addDays(d, 1)) {
+        const day = await buildDay(db, s, d, branchIds);
+        for (const b of day.branches) {
+          if (!b.transactions.total && !b.signedOut && !b.floatTransfers.count && !b.cashCollections.count)
+            continue;
+          rows.push({ date: d, ...b });
+        }
+      }
       if (req.query.format === 'xlsx') {
-        const rows = data.branches.flatMap((b) =>
-          b.accounts.map((a) => ({
-            branch: b.name,
-            account: KIND_LABEL[a.kind],
-            opening: a.opening,
-            deposits: a.deposits,
-            withdrawals: a.withdrawals,
-            topups: a.topups,
-            transfersIn: a.transfersIn,
-            transfersOut: a.transfersOut,
-            reversals: a.reversals,
-            differences: a.countDifferences,
-            closing: a.closing,
-          })),
-        );
         return res
           .set('Content-Type', XLSX)
-          .set(
-            'Content-Disposition',
-            `attachment; filename="AMS weekly report ${w.period_start} to ${w.period_end}.xlsx"`,
-          )
+          .set('Content-Disposition', `attachment; filename="AMS daily ${from} to ${to}.xlsx"`)
           .set('Cache-Control', 'private, no-store')
           .send(
             toXlsx(
               [
+                { key: 'date', label: 'Date', type: 'date' },
                 { key: 'branch', label: 'Branch' },
-                { key: 'account', label: 'Account' },
-                { key: 'opening', label: 'Opening (K)', type: 'number' },
-                { key: 'deposits', label: 'Deposits (K)', type: 'number' },
-                { key: 'withdrawals', label: 'Withdrawals (K)', type: 'number' },
-                { key: 'topups', label: 'Top-ups (K)', type: 'number' },
-                { key: 'transfersIn', label: 'Transfers in (K)', type: 'number' },
-                { key: 'transfersOut', label: 'Transfers out (K)', type: 'number' },
-                { key: 'reversals', label: 'Reversals (K)', type: 'number' },
-                { key: 'differences', label: 'Count differences (K)', type: 'number' },
-                { key: 'closing', label: 'Closing (K)', type: 'number' },
+                { key: 'depCount', label: 'Deposits count', type: 'number' },
+                { key: 'depAmount', label: 'Deposits amount (K)', type: 'number' },
+                { key: 'wdCount', label: 'Withdrawals count', type: 'number' },
+                { key: 'wdAmount', label: 'Withdrawals amount (K)', type: 'number' },
+                { key: 'commission', label: 'Daily commission (K)', type: 'number' },
+                { key: 'ftCount', label: 'Float transfers count', type: 'number' },
+                { key: 'ftAmount', label: 'Float transfers amount (K)', type: 'number' },
+                { key: 'ccCount', label: 'Cash collections count', type: 'number' },
+                { key: 'ccAmount', label: 'Cash collections amount (K)', type: 'number' },
+                { key: 'daytime', label: `Transactions ${s.dayStart}–${s.eveningFrom}`, type: 'number' },
+                { key: 'evening', label: `Transactions after ${s.eveningFrom}`, type: 'number' },
+                { key: 'total', label: 'Total transactions', type: 'number' },
+                { key: 'turnedDown', label: 'Customers turned down', type: 'number' },
+                { key: 'cash', label: 'Cash (K)', type: 'number' },
+                { key: 'float', label: 'Float (K)', type: 'number' },
+                { key: 'floatCash', label: 'Float + cash (K)', type: 'number' },
+                { key: 'commissionMonth', label: 'Commission this month (K)', type: 'number' },
+                { key: 'deficit', label: 'Deficit (K)', type: 'number' },
+                { key: 'surplus', label: 'Surplus (K)', type: 'number' },
               ],
-              rows,
-              { sheetName: 'Weekly report', title: `AMS weekly report ${w.period_start} to ${w.period_end}` },
+              rows.map((r) => ({
+                date: r.date,
+                branch: r.name,
+                depCount: r.deposits.count,
+                depAmount: r.deposits.amount,
+                wdCount: r.withdrawals.count,
+                wdAmount: r.withdrawals.amount,
+                commission: r.commission ?? 0,
+                ftCount: r.floatTransfers.count,
+                ftAmount: r.floatTransfers.amount,
+                ccCount: r.cashCollections.count,
+                ccAmount: r.cashCollections.amount,
+                daytime: r.transactions.daytime,
+                evening: r.transactions.evening,
+                total: r.transactions.total,
+                turnedDown: r.turnedDown,
+                cash: r.cash,
+                float: r.float,
+                floatCash: r.total,
+                commissionMonth: r.commissionMonth,
+                deficit: r.deficit,
+                surplus: r.surplus,
+              })),
+              { sheetName: 'AMS daily', title: `AMS daily ${from} to ${to}` },
             ),
           );
       }
-      res.json({
-        ...weekView(w),
-        signedBy: name(w.first_name, w.last_name),
-        data,
-        canSignOff: f(req).floatApprove && w.status === 'GENERATED',
-      });
-    }),
-  );
-  // Make the report for the latest finished week now (if the scheduled run was missed).
-  router.post(
-    '/weeks/generate',
-    asyncHandler(async (req, res) => {
-      must(f(req).floatApprove || f(req).floatAdmin, 'You cannot make the weekly report.');
-      const s = await getSettings(db);
-      if (!s.companyId) throw badRequest('Choose the AMS company in AMS settings first.');
-      const { end } = weekEnding(s, todayInLusaka());
-      const id = await generateWeek(db, s, end);
-      await writeAudit(db, {
-        ...auditContext(req),
-        action: 'FLOAT_WEEK_GENERATED',
-        entityType: 'float_week',
-        entityId: id,
-      });
-      res.status(201).json({ id });
-    }),
-  );
-  router.post(
-    '/weeks/:id/sign-off',
-    asyncHandler(async (req, res) => {
-      must(f(req).floatApprove, 'Only a manager signs off the weekly report.');
-      const id = idParam(req);
-      const { comment } = z.object({ comment: optionalText(1000) }).parse(req.body ?? {});
-      await db.transaction(async (trx) => {
-        const w = await trx('float_weeks').where({ id }).forUpdate().first();
-        if (!w || w.status !== 'GENERATED') throw conflict('This report is already signed off.');
-        await trx('float_weeks').where({ id }).update({
-          status: 'SIGNED_OFF',
-          signed_by: req.user.id,
-          signed_at: trx.fn.now(),
-          sign_comment: comment,
-        });
-        await writeAudit(trx, {
-          ...auditContext(req),
-          action: 'FLOAT_WEEK_SIGNED_OFF',
-          entityType: 'float_week',
-          entityId: id,
-          after: { comment },
-        });
-        const data = typeof w.data === 'string' ? JSON.parse(w.data) : w.data;
-        const t = data.totals;
-        await notify(trx, {
-          recipients: await directors(trx, [req.user.id]),
-          event: 'FLOAT_WEEK_SIGNED_OFF',
-          title: `AMS weekly report signed off: ${w.period_start} to ${w.period_end}`,
-          body: `Deposits ${kwacha(t.depositAmount)}, withdrawals ${kwacha(t.withdrawalAmount)}.`,
-          link: `/requisitions/float/reports/${id}`,
-          entityType: 'float_week',
-          entityId: id,
-          email: {
-            ...EMAIL,
-            subject: `AMS weekly report: ${w.period_start} to ${w.period_end}`,
-            heading: 'AMS weekly report',
-            intro: `The weekly report for ${w.period_start} to ${w.period_end} has been signed off.${comment ? ` Manager’s note: ${comment}` : ''}`,
-            rows: [
-              ['Deposits', `${kwacha(t.depositAmount)} (${t.depositCount})`],
-              ['Withdrawals', `${kwacha(t.withdrawalAmount)} (${t.withdrawalCount})`],
-              ['Airtel Money', `${kwacha(t.byNetwork.AIRTEL.amount)} (${t.byNetwork.AIRTEL.count})`],
-              ['MTN MoMo', `${kwacha(t.byNetwork.MTN.amount)} (${t.byNetwork.MTN.count})`],
-              ['Commission earned', kwacha(t.commission)],
-              ['Surpluses', kwacha(t.surplus)],
-              ['Deficits', kwacha(t.deficit)],
-            ],
-            action: 'Open the report in the inventory system to see each branch and download it in Excel.',
-          },
-        });
-      });
-      res.json({ id });
-    }),
-  );
-
-  // ── Commission ───────────────────────────────────────────────────────────────────────────────
-  router.get(
-    '/commission',
-    asyncHandler(async (req, res) => {
-      must(f(req).floatViewAll || f(req).floatAdmin, 'You do not have access to AMS commission.');
-      const month = /^\d{4}-\d{2}$/.test(String(req.query.month ?? ''))
-        ? String(req.query.month)
-        : todayInLusaka().slice(0, 7);
-      const s = await getSettings(db);
-      const branches = await amsBranches(db, s);
-      const earned = await db('float_transactions')
-        .whereIn('branch_id', branches.map((b) => b.id).concat(0))
-        .whereNot('status', 'REVERSED')
-        .whereBetween('business_date', [`${month}-01`, `${month}-31`])
-        .groupBy('branch_id', 'network')
-        .select('branch_id', 'network')
-        .count({ n: '*' })
-        .sum({ c: 'commission', a: 'amount' });
-      const receipts = await db('float_commission_receipts as r')
-        .leftJoin('stock_branches as b', 'b.id', 'r.branch_id')
-        .where('r.month', month)
-        .orderBy('r.id')
-        .select('r.*', 'b.name as branch');
-      const byNetwork = ['AIRTEL', 'MTN'].map((n) => {
-        const exp = round2(earned.filter((e) => e.network === n).reduce((sum, e) => sum + Number(e.c), 0));
-        const got = round2(
-          receipts.filter((r) => r.network === n).reduce((sum, r) => sum + Number(r.amount), 0),
-        );
-        return { network: n, expected: exp, received: got, difference: round2(got - exp) };
-      });
-      res.json({
-        month,
-        byNetwork,
-        branches: branches.map((b) => ({
-          id: b.id,
-          name: b.name,
-          networks: ['AIRTEL', 'MTN'].map((n) => {
-            const e = earned.find((x) => x.branch_id === b.id && x.network === n);
-            return {
-              network: n,
-              transactions: Number(e?.n ?? 0),
-              amount: round2(e?.a ?? 0),
-              commission: round2(e?.c ?? 0),
-            };
-          }),
-        })),
-        receipts: receipts.map((r) => ({
-          id: r.id,
-          network: r.network,
-          branch: r.branch,
-          amount: Number(r.amount),
-          receivedOn: r.received_on,
-          notes: r.notes,
-        })),
-        canRecord: f(req).floatAdmin,
-      });
-    }),
-  );
-  router.post(
-    '/commission/receipts',
-    asyncHandler(async (req, res) => {
-      must(f(req).floatAdmin, 'Only the AMS set-up right can record commission received.');
-      const input = z
-        .object({
-          network: z.enum(['AIRTEL', 'MTN']),
-          month: z.string().regex(/^\d{4}-\d{2}$/, 'must be a month'),
-          branchId: z.coerce.number().int().positive().nullish(),
-          amount,
-          receivedOn: isoDate,
-          notes: optionalText(500),
-        })
-        .parse(req.body);
-      const [id] = await db('float_commission_receipts').insert({
-        network: input.network,
-        month: input.month,
-        branch_id: input.branchId ?? null,
-        amount: input.amount,
-        received_on: input.receivedOn,
-        notes: input.notes,
-        recorded_by: req.user.id,
-      });
-      await writeAudit(db, {
-        ...auditContext(req),
-        action: 'FLOAT_COMMISSION_RECEIVED',
-        entityType: 'float_commission',
-        entityId: id,
-        after: input,
-      });
-      res.status(201).json({ id });
+      res.json({ from, to, rows });
     }),
   );
 
@@ -1550,62 +1604,35 @@ export function floatRoutes({ db }) {
     }),
   );
 
-  // ── AMS settings and commission tables ───────────────────────────────────────────────────────
+  // ── AMS settings ─────────────────────────────────────────────────────────────────────────────
   router.get(
     '/settings',
     asyncHandler(async (req, res) => {
       mustAdmin(req);
       const s = await getSettings(db);
-      const rules = await db('float_commission_rules').orderBy(['network', 'kind', 'min_amount']);
       const companies = await db('companies').where({ is_active: true }).orderBy('name').select('id', 'name');
-      res.json({
-        ...s,
-        companies,
-        rules: rules.map((r) => ({
-          network: r.network,
-          kind: r.kind,
-          minAmount: Number(r.min_amount),
-          maxAmount: r.max_amount == null ? null : Number(r.max_amount),
-          feeType: r.fee_type,
-          value: Number(r.value),
-        })),
-      });
+      res.json({ ...s, companies });
     }),
   );
   const settingsSchema = z.object({
     companyId: z.coerce.number().int().positive().nullish(),
     workingDays: z.array(z.enum(DAYS)).min(1, 'choose at least one trading day'),
-    weekEndDay: z.enum(DAYS),
+    dayStart: hhmm,
+    eveningFrom: hhmm,
     reportTime: hhmm,
     closeReminderTime: hhmm,
     cashTolerance: z.coerce.number().min(0).max(10000),
     largeAmount: z.coerce.number().positive().max(100000000),
     directorLimit: z.coerce.number().min(0).max(100000000),
     duplicateMinutes: z.coerce.number().int().min(0).max(60),
-    rules: z
-      .array(
-        z.object({
-          network: z.enum(['AIRTEL', 'MTN']),
-          kind: z.enum(['DEPOSIT', 'WITHDRAWAL']),
-          minAmount: z.coerce.number().min(0),
-          maxAmount: z.coerce.number().positive().nullish(),
-          feeType: z.enum(['FLAT', 'PERCENT']),
-          value: z.coerce.number().min(0).max(100000),
-        }),
-      )
-      .max(200),
   });
   router.put(
     '/settings',
     asyncHandler(async (req, res) => {
       mustAdmin(req);
       const input = settingsSchema.parse(req.body);
-      for (const r of input.rules) {
-        if (r.maxAmount != null && r.maxAmount < r.minAmount)
-          throw badRequest('A commission band ends before it starts.');
-        if (r.feeType === 'PERCENT' && r.value > 100)
-          throw badRequest('A percentage cannot be more than 100.');
-      }
+      if (input.eveningFrom <= input.dayStart)
+        throw badRequest('The evening must start after the day starts.');
       await db.transaction(async (trx) => {
         const before = await getSettings(trx);
         await trx('float_settings')
@@ -1613,7 +1640,8 @@ export function floatRoutes({ db }) {
           .update({
             company_id: input.companyId ?? null,
             working_days: DAYS.filter((d) => input.workingDays.includes(d)).join(','),
-            week_end_day: input.weekEndDay,
+            day_start: input.dayStart,
+            evening_from: input.eveningFrom,
             report_time: input.reportTime,
             close_reminder_time: input.closeReminderTime,
             cash_tolerance: input.cashTolerance,
@@ -1623,19 +1651,6 @@ export function floatRoutes({ db }) {
             updated_by: req.user.id,
             updated_at: trx.fn.now(),
           });
-        await trx('float_commission_rules').del();
-        if (input.rules.length) {
-          await trx('float_commission_rules').insert(
-            input.rules.map((r) => ({
-              network: r.network,
-              kind: r.kind,
-              min_amount: r.minAmount,
-              max_amount: r.maxAmount ?? null,
-              fee_type: r.feeType,
-              value: r.value,
-            })),
-          );
-        }
         await writeAudit(trx, {
           ...auditContext(req),
           action: 'FLOAT_SETTINGS_UPDATED',

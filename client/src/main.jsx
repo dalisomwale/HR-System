@@ -60,10 +60,8 @@ import {
 } from './pages/requisitions/float/FloatManagePages.jsx';
 import {
   FloatBranchesPage,
-  FloatCommissionPage,
+  FloatDailyPage,
   FloatSettingsPage,
-  FloatWeekPage,
-  FloatWeeksPage,
 } from './pages/requisitions/float/FloatAdminPages.jsx';
 import RecruitmentHomePage from './pages/recruitment/RecruitmentHomePage.jsx';
 import {
@@ -255,11 +253,9 @@ createRoot(document.getElementById('root')).render(
                 path="float/transactions"
                 element={rqPage(<FloatTransactionsPage />, (a) => a.float?.viewAll || a.float?.record)}
               />
-              <Route path="float/reports" element={rqPage(<FloatWeeksPage />, (a) => a.float?.viewAll)} />
-              <Route path="float/reports/:id" element={rqPage(<FloatWeekPage />, (a) => a.float?.viewAll)} />
               <Route
-                path="float/commission"
-                element={rqPage(<FloatCommissionPage />, (a) => a.float?.viewAll || a.float?.admin)}
+                path="float/daily"
+                element={rqPage(<FloatDailyPage />, (a) => a.float?.viewAll || a.float?.record)}
               />
               <Route path="float/branches" element={rqPage(<FloatBranchesPage />, (a) => a.float?.admin)} />
               <Route path="float/settings" element={rqPage(<FloatSettingsPage />, (a) => a.float?.admin)} />

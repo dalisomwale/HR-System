@@ -517,18 +517,15 @@ function RequisitionsNav({ onNavigate }) {
     ...(fl.viewAll || fl.record
       ? [{ to: '/requisitions/float/transactions', label: 'AMS transactions', icon: ListOrdered }]
       : []),
-    ...(fl.viewAll
+    ...(fl.viewAll || fl.record
       ? [
           {
-            to: '/requisitions/float/reports',
-            label: 'Weekly reports',
+            to: '/requisitions/float/daily',
+            label: 'Daily reports',
             icon: FileSpreadsheet,
-            count: 'floatWeeks',
+            count: 'floatDays',
           },
         ]
-      : []),
-    ...(fl.viewAll || fl.admin
-      ? [{ to: '/requisitions/float/commission', label: 'Commission', icon: Coins }]
       : []),
   ];
   return (
@@ -566,7 +563,7 @@ function AmsNav({ items, onNavigate }) {
     <NavGroup
       title="AMS cash and float"
       items={items}
-      counts={{ floatApprovals: c.approvals ?? 0, floatWeeks: c.weeksToSign ?? 0 }}
+      counts={{ floatApprovals: c.approvals ?? 0, floatDays: c.daysToSign ?? 0 }}
       onNavigate={onNavigate}
     />
   );

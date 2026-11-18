@@ -26,8 +26,6 @@ const as = (s) => ({
       .set('X-CSRF-Token', s.csrf)
       .send(body ?? {}),
 });
-const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-const todayCode = DAYS[new Date(`${todayInLusaka()}T12:00:00Z`).getUTCDay()];
 
 let ams;
 let people;
@@ -54,7 +52,7 @@ beforeEach(async () => {
   await db('float_settings').insert({
     id: 1,
     company_id: ams,
-    week_end_day: todayCode,
+    working_days: 'MON,TUE,WED,THU,FRI,SAT,SUN',
     report_time: '17:00',
     cash_tolerance: 5,
     large_amount: 10000,
@@ -80,14 +78,6 @@ beforeEach(async () => {
   await giveRole('manager', 'AMS Manager');
   await giveRole('director', 'Director');
   await giveRole('hr', 'AMS HR');
-  await db('float_commission_rules').insert({
-    network: 'AIRTEL',
-    kind: 'DEPOSIT',
-    min_amount: 0,
-    max_amount: null,
-    fee_type: 'PERCENT',
-    value: 1,
-  });
 });
 
 describe('AMS cash and float (D117)', () => {
@@ -104,7 +94,6 @@ describe('AMS cash and float (D117)', () => {
       amount: 300,
     });
     expect(dep.status, JSON.stringify(dep.body)).toBe(201);
-    expect(dep.body.commission).toBe(3); // 1% from the admin's table
     expect(await balances(branch)).toEqual({ CASH: 2300, AIRTEL: 700, MTN: 1000 });
     // Same again within two minutes: asked to confirm.
     const again = await as(people.teller).post('/api/float/transactions', {
@@ -245,26 +234,79 @@ describe('AMS cash and float (D117)', () => {
     expect((await db('float_variances').where({ id: big.id }).first()).status).toBe('WRITTEN_OFF');
   });
 
-  it('makes the weekly report at the set time; signing it off tells the director and locks the week', async () => {
+  it('signs out with the daily figures, sends the daily report at the set time, and locks a signed-off day', async () => {
     const d = await as(people.teller).post('/api/float/transactions', {
       network: 'AIRTEL',
       kind: 'DEPOSIT',
       amount: 500,
     });
-    const [h, m] = ['17', '30'];
-    const now = new Date(`${todayInLusaka()}T${h}:${m}:00+02:00`);
-    const r = await runFloatJobs(db, now);
-    expect(r.week).toBeTruthy();
-    const week = await db('float_weeks').first();
-    const data = JSON.parse(typeof week.data === 'string' ? week.data : JSON.stringify(week.data));
-    expect(data.totals).toMatchObject({ depositCount: 1, depositAmount: 500, commission: 5 });
-    expect(data.branches[0].accounts.find((a) => a.kind === 'CASH')).toMatchObject({
-      opening: 2000,
-      deposits: 500,
-      closing: 2500,
+    await as(people.teller).post('/api/float/transactions', {
+      network: 'MTN',
+      kind: 'WITHDRAWAL',
+      amount: 200,
     });
-    expect(await notes(ids.manager, 'FLOAT_WEEK_READY')).toHaveLength(1);
-    // Postings after the report count in the next week.
+    // A customer turned down: one tap.
+    expect(
+      (await as(people.teller).post('/api/float/turned-down', { reason: 'NO_FLOAT', network: 'MTN' })).body
+        .today,
+    ).toBe(1);
+    // Cash retired to finance leaves the drawer now; a manager confirms it.
+    const cc = await as(people.teller).post('/api/float/collections', {
+      amount: 1000,
+      collectedBy: 'Finance runner',
+    });
+    expect(cc.status, JSON.stringify(cc.body)).toBe(201);
+    expect((await balances(branch)).CASH).toBe(1300);
+    expect(
+      (await as(people.manager).post(`/api/float/movements/${cc.body.id}/decide`, { approve: true })).status,
+    ).toBe(200);
+    expect((await balances(branch)).CASH).toBe(1300);
+
+    // Sign out: count, with the commission from the phone.
+    const close = await as(people.teller).post('/api/float/counts', {
+      kind: 'CLOSE',
+      lines: [
+        { kind: 'CASH', counted: 1300 },
+        { kind: 'AIRTEL', counted: 500 },
+        { kind: 'MTN', counted: 1200 },
+      ],
+      commission: 45.5,
+    });
+    expect(close.status, JSON.stringify(close.body)).toBe(201);
+    expect(close.body.report).toMatchObject({
+      signedOut: true,
+      deposits: { count: 1, amount: 500 },
+      withdrawals: { count: 1, amount: 200 },
+      cashCollections: { count: 1, amount: 1000 },
+      transactions: { total: 2 },
+      turnedDown: 1,
+      walkIns: 3,
+      cash: 1300,
+      float: 1700,
+      total: 3000,
+      commission: 45.5,
+      commissionMonth: 45.5,
+    });
+    expect(close.body.report.text).toContain('Customers turned down: 1');
+    expect(await notes(ids.manager, 'FLOAT_SIGNED_OUT')).toHaveLength(1);
+
+    // At the report time, the daily report goes to the managers and the directors.
+    const r = await runFloatJobs(db, new Date(`${todayInLusaka()}T17:30:00+02:00`));
+    expect(r.daily).toMatchObject({ branches: 1, notSignedOut: 0 });
+    expect(await notes(ids.director, 'FLOAT_DAILY_REPORT')).toHaveLength(1);
+    const day = (await as(people.manager).get(`/api/float/daily?date=${todayInLusaka()}`)).body;
+    expect(day).toMatchObject({ canSignOff: true, totals: { total: 3000, turnedDown: 1 } });
+
+    // Signing off tells the director and locks the day; later postings count tomorrow.
+    expect(
+      (await as(people.manager).post(`/api/float/daily/${todayInLusaka()}/sign-off`, { comment: 'All good' }))
+        .status,
+    ).toBe(200);
+    expect(await notes(ids.director, 'FLOAT_DAY_SIGNED_OFF')).toHaveLength(1);
+    expect(
+      (await as(people.teller).post(`/api/float/transactions/${d.body.id}/reverse`, { reason: 'Mistake' }))
+        .status,
+    ).toBe(409);
     const late = await as(people.teller).post('/api/float/transactions', {
       network: 'MTN',
       kind: 'DEPOSIT',
@@ -273,18 +315,14 @@ describe('AMS cash and float (D117)', () => {
     expect(
       (await db('float_transactions').where({ id: late.body.id }).first()).business_date > todayInLusaka(),
     ).toBe(true);
-
+    // The period export, as AMS keeps it in Excel.
     expect(
-      (await as(people.manager).post(`/api/float/weeks/${week.id}/sign-off`, { comment: 'All good' })).status,
+      (
+        await as(people.manager).get(
+          `/api/float/history?from=${todayInLusaka()}&to=${todayInLusaka()}&format=xlsx`,
+        )
+      ).status,
     ).toBe(200);
-    expect(await notes(ids.director, 'FLOAT_WEEK_SIGNED_OFF')).toHaveLength(1);
-    // That week is now locked.
-    expect(
-      (await as(people.teller).post(`/api/float/transactions/${d.body.id}/reverse`, { reason: 'Mistake' }))
-        .status,
-    ).toBe(409);
-    expect((await as(people.manager).get(`/api/float/weeks/${week.id}?format=xlsx`)).status).toBe(200);
-    // The audit trail of the inventory system has the AMS work.
     const audit = await as(people.admin).get('/api/access/inventory/audit');
     expect(JSON.stringify(audit.body)).toContain('FLOAT_DEPOSIT');
   });
