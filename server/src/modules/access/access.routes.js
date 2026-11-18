@@ -306,6 +306,8 @@ export function accessRoutes({ db }) {
         items: rows.map((r) => ({
           employeeId: r.employee_id,
           name: `${r.first_name} ${r.last_name}`,
+          firstName: r.first_name,
+          lastName: r.last_name,
           email: r.email,
           company: r.company,
           branch: r.branch,

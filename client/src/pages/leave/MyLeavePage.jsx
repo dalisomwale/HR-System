@@ -274,7 +274,8 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
       <thead>
         <tr>
           <Th>Reference</Th>
-          {showEmployee && <Th>Employee</Th>}
+          {showEmployee && <Th>First name</Th>}
+          {showEmployee && <Th>Last name</Th>}
           <Th>Leave type</Th>
           <Th>Dates</Th>
           <Th className="text-right">Days</Th>
@@ -297,12 +298,13 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
             </Td>
             {showEmployee && (
               <Td>
-                {r.employee.name}
+                {r.employee.firstName}
                 <span className="block text-xs text-muted">
                   {[r.employee.employeeNumber, r.employee.department].filter(Boolean).join(' · ')}
                 </span>
               </Td>
             )}
+            {showEmployee && <Td>{r.employee.lastName}</Td>}
             <Td>{r.leaveType.name}</Td>
             <Td>{dateRange(r)}</Td>
             <Td className="text-right">{r.chargeableDays}</Td>

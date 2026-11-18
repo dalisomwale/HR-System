@@ -93,14 +93,16 @@ function staff(db, f) {
 
 const PERSON = [
   { key: 'number', label: 'Employee number', type: 'text' },
-  { key: 'name', label: 'Name', type: 'text' },
+  { key: 'firstName', label: 'First name', type: 'text' },
+  { key: 'lastName', label: 'Last name', type: 'text' },
   { key: 'jobTitle', label: 'Job title', type: 'text' },
   { key: 'company', label: 'Company', type: 'text' },
   { key: 'department', label: 'Department', type: 'text' },
 ];
 const person = (r) => ({
   number: r.employee_number,
-  name: name(r.first_name, r.last_name),
+  firstName: r.first_name ?? '',
+  lastName: r.last_name ?? '',
   jobTitle: r.job_title ?? '',
   company: r.company ?? '',
   department: r.department ?? '',

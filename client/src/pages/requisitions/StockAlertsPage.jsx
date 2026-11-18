@@ -115,7 +115,8 @@ export default function StockAlertsPage() {
                   Gets alerts
                 </label>
               </Th>
-              <Th>Name</Th>
+              <Th>First name</Th>
+              <Th>Last name</Th>
               <Th>Email</Th>
               <Th>Company</Th>
               <Th>Branch</Th>
@@ -140,7 +141,8 @@ export default function StockAlertsPage() {
                       <span className={checked ? '' : 'muted-text'}>{checked ? 'Yes' : 'No'}</span>
                     </label>
                   </Td>
-                  <Td className="font-semibold">{p.name}</Td>
+                  <Td className="font-semibold">{p.firstName}</Td>
+                  <Td className="font-semibold">{p.lastName}</Td>
                   <Td>{p.email}</Td>
                   <Td>{p.company ?? <span className="muted-text">Not set</span>}</Td>
                   <Td>{p.branch ?? <span className="muted-text">—</span>}</Td>

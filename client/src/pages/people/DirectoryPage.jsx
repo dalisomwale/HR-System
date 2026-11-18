@@ -233,7 +233,8 @@ export default function DirectoryPage() {
           >
             <thead>
               <tr>
-                <Th>Employee</Th>
+                <Th>First name</Th>
+                <Th>Last name</Th>
                 <Th>Company</Th>
                 <Th>Branch</Th>
                 <Th>Job title</Th>
@@ -254,10 +255,15 @@ export default function DirectoryPage() {
                           to={`${base}/employees/${e.id}`}
                           className="font-medium text-brand hover:underline"
                         >
-                          {e.firstName} {e.lastName}
+                          {e.firstName}
                         </Link>
                       </div>
                     </div>
+                  </Td>
+                  <Td>
+                    <Link to={`${base}/employees/${e.id}`} className="font-medium text-brand hover:underline">
+                      {e.lastName}
+                    </Link>
                   </Td>
                   <Td>{e.company ?? <span className="text-muted">Not set</span>}</Td>
                   <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>

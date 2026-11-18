@@ -69,6 +69,8 @@ function item(r) {
     employee: {
       id: r.employee_id,
       name: name(r.first_name, r.last_name),
+      firstName: r.first_name,
+      lastName: r.last_name,
       company: r.company_name ?? null,
       department: r.dept_name ?? null,
     },
@@ -559,6 +561,8 @@ export function dashboardRoutes({ db }) {
                 items.push({
                   employeeId: r.employee_id,
                   name: name(r.first_name, r.last_name),
+                  firstName: r.first_name,
+                  lastName: r.last_name,
                   carried: Number(r.carried),
                   unused: left,
                 });

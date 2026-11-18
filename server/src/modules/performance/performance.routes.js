@@ -157,6 +157,8 @@ export function performanceRoutes({ db }) {
     employee: {
       id: a.employee_id,
       name: name(a.first_name, a.last_name),
+      firstName: a.first_name,
+      lastName: a.last_name,
       jobTitle: a.job_title,
       employeeNumber: a.employee_number,
       department: a.department,
@@ -828,6 +830,8 @@ export function performanceRoutes({ db }) {
     employee: {
       id: p.employee_id,
       name: name(p.first_name, p.last_name),
+      firstName: p.first_name,
+      lastName: p.last_name,
       jobTitle: p.job_title,
       department: p.department,
       startDate: p.employment_start_date,
@@ -897,6 +901,8 @@ export function performanceRoutes({ db }) {
         notStarted: due.map((e) => ({
           id: e.id,
           name: name(e.first_name, e.last_name),
+          firstName: e.first_name,
+          lastName: e.last_name,
           department: e.department,
           probationEndDate: e.probation_end_date,
         })),

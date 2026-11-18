@@ -215,7 +215,8 @@ export function ImportEmployees() {
               <thead>
                 <tr>
                   <Th>Line</Th>
-                  <Th>Employee</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Result</Th>
                 </tr>
               </thead>
@@ -226,9 +227,10 @@ export function ImportEmployees() {
                     <tr key={r.line}>
                       <Td>{r.line}</Td>
                       <Td>
-                        <span className="font-medium">{r.name || 'No name'}</span>{' '}
+                        <span className="font-medium">{r.firstName || 'No name'}</span>{' '}
                         <span className="text-muted">{r.employeeNumber}</span>
                       </Td>
+                      <Td className="font-medium">{r.lastName}</Td>
                       <Td>
                         {r.errors.length === 0 ? (
                           <Badge tone="ok">Ready</Badge>

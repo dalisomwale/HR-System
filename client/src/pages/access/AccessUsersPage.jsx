@@ -109,7 +109,8 @@ export default function AccessUsersPage({ module, base }) {
           <Table>
             <thead>
               <tr>
-                <Th>Name</Th>
+                <Th>First name</Th>
+                <Th>Last name</Th>
                 <Th>Email</Th>
                 <Th>Company</Th>
                 <Th>Branch</Th>
@@ -128,9 +129,10 @@ export default function AccessUsersPage({ module, base }) {
                 return (
                   <tr key={u.employeeId} data-date={u.addedAt} className={u.isActive ? '' : 'text-muted'}>
                     <Td className="font-semibold">
-                      {u.name}
+                      {u.firstName}
                       {self && <span className="muted-text"> (you)</span>}
                     </Td>
+                    <Td className="font-semibold">{u.lastName}</Td>
                     <Td>{u.email}</Td>
                     <Td>{u.company ?? <span className="muted-text">Not set</span>}</Td>
                     <Td>{u.branch ?? <span className="muted-text">—</span>}</Td>

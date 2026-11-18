@@ -30,7 +30,8 @@ function AppraisalTable({ items, me, showEmployee = true, title }) {
     <Table title={title}>
       <thead>
         <tr>
-          {showEmployee && <Th>Employee</Th>}
+          {showEmployee && <Th>First name</Th>}
+          {showEmployee && <Th>Last name</Th>}
           {showEmployee && <Th>Department</Th>}
           <Th>Review cycle</Th>
           <Th>Manager</Th>
@@ -49,10 +50,11 @@ function AppraisalTable({ items, me, showEmployee = true, title }) {
             <tr key={a.id}>
               {showEmployee && (
                 <Td className="font-semibold">
-                  {a.employee.name}
+                  {a.employee.firstName}
                   <span className="block text-xs font-normal text-muted">{a.employee.jobTitle}</span>
                 </Td>
               )}
+              {showEmployee && <Td className="font-semibold">{a.employee.lastName}</Td>}
               {showEmployee && <Td>{a.employee.department ?? '—'}</Td>}
               <Td>{a.cycle.name}</Td>
               <Td>{a.manager?.name ?? <span className="text-muted">HR</span>}</Td>

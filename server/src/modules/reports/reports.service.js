@@ -132,13 +132,15 @@ function requestBase(db) {
 
 const PERSON_COLS = [
   { key: 'employeeNumber', label: 'Employee number', type: 'text' },
-  { key: 'employee', label: 'Employee', type: 'text' },
+  { key: 'firstName', label: 'First name', type: 'text' },
+  { key: 'lastName', label: 'Last name', type: 'text' },
   { key: 'company', label: 'Company', type: 'text' },
   { key: 'department', label: 'Department', type: 'text' },
 ];
 const personRow = (r) => ({
   employeeNumber: r.employee_number,
-  employee: name(r),
+  firstName: r.first_name ?? '',
+  lastName: r.last_name ?? '',
   company: r.company ?? '',
   department: r.department ?? '',
 });
@@ -481,7 +483,8 @@ export const REPORTS = [
       const { members } = await describeMembers(db, rows, scope.userId);
       return members.map((m) => ({
         employeeNumber: m.employeeNumber,
-        employee: m.name,
+        firstName: m.firstName ?? '',
+        lastName: m.lastName ?? '',
         company: m.company ?? '',
         department: m.department ?? '',
         jobTitle: m.jobTitle ?? '',

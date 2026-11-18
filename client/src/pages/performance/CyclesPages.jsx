@@ -285,7 +285,8 @@ export function CyclePage() {
             <Table title={c.name}>
               <thead>
                 <tr>
-                  <Th>Employee</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Department</Th>
                   <Th>Manager</Th>
                   <Th>Status</Th>
@@ -299,7 +300,8 @@ export function CyclePage() {
               <tbody>
                 {shown.map((a) => (
                   <tr key={a.id}>
-                    <Td className="font-semibold">{a.employee.name}</Td>
+                    <Td className="font-semibold">{a.employee.firstName}</Td>
+                    <Td className="font-semibold">{a.employee.lastName}</Td>
                     <Td>{a.employee.department ?? '—'}</Td>
                     <Td>{a.manager?.name ?? <span className="text-muted">HR</span>}</Td>
                     <Td>

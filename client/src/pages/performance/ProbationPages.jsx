@@ -69,7 +69,8 @@ export function ProbationListPage() {
             <Table title="Probation reviews">
               <thead>
                 <tr>
-                  <Th>Employee</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Department</Th>
                   <Th>Probation ends</Th>
                   <Th>Manager</Th>
@@ -88,9 +89,10 @@ export function ProbationListPage() {
                   return (
                     <tr key={p.id} data-date={p.probationEndDate}>
                       <Td className="font-semibold">
-                        {p.employee.name}
+                        {p.employee.firstName}
                         <span className="block text-xs font-normal text-muted">{p.employee.jobTitle}</span>
                       </Td>
+                      <Td className="font-semibold">{p.employee.lastName}</Td>
                       <Td>{p.employee.department ?? '—'}</Td>
                       <Td className="whitespace-nowrap">{formatDate(p.probationEndDate)}</Td>
                       <Td>{p.manager?.name ?? <span className="text-muted">HR</span>}</Td>
@@ -122,7 +124,8 @@ export function ProbationListPage() {
               <Table title="Probation not started" tools={false}>
                 <thead>
                   <tr>
-                    <Th>Employee</Th>
+                    <Th>First name</Th>
+                    <Th>Last name</Th>
                     <Th>Department</Th>
                     <Th>Probation ends</Th>
                     <Th>
@@ -133,7 +136,8 @@ export function ProbationListPage() {
                 <tbody>
                   {q.data.notStarted.map((e) => (
                     <tr key={e.id}>
-                      <Td className="font-semibold">{e.name}</Td>
+                      <Td className="font-semibold">{e.firstName}</Td>
+                      <Td className="font-semibold">{e.lastName}</Td>
                       <Td>{e.department ?? '—'}</Td>
                       <Td>{formatDate(e.probationEndDate)}</Td>
                       <Td>

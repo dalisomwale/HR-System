@@ -111,7 +111,7 @@ describe('who can run reports', () => {
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
 
     const mine = await as(mgr).get('/api/reports/requests?year=2027');
-    expect(mine.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    expect(mine.body.rows.map((r) => r.firstName)).toEqual([expect.stringMatching(/^Ezra/)]);
     // Asking for someone outside the team returns nothing rather than their data.
     const sneaky = await as(mgr).get(`/api/reports/requests?year=2027&employeeId=${outsider.id}`);
     expect(sneaky.body.rows).toEqual([]);
@@ -138,7 +138,7 @@ describe('manager reports stay inside their own department', () => {
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
     expect(list.body.options.departments.map((d) => d.name)).toEqual(['Credit']);
     const rows = (await as(mgr).get('/api/reports/requests?year=2027')).body.rows;
-    expect(rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    expect(rows.map((r) => r.firstName)).toEqual([expect.stringMatching(/^Ezra/)]);
     const sneaky = await as(mgr).get(`/api/reports/requests?year=2027&employeeId=${samE.id}`);
     expect(sneaky.body.rows).toEqual([]);
   });
@@ -162,7 +162,7 @@ describe('every report for managers, limited to their team', () => {
 
     const ledger = await as(mgr).get('/api/reports/ledger?from=2000-01-01&to=2100-12-31');
     expect(ledger.status).toBe(200);
-    expect(ledger.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    expect(ledger.body.rows.map((r) => r.firstName)).toEqual([expect.stringMatching(/^Ezra/)]);
 
     // The two utilisation reports are for HR and directors only (D95).
     expect((await as(mgr).get('/api/reports/utilisation-company?year=2027')).status).toBe(404);
@@ -182,18 +182,18 @@ describe('department members report', () => {
     await approved(emp.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
     const mine = await as(mgr).get('/api/reports/department-members');
     expect(mine.status).toBe(200);
-    expect(mine.body.rows.map((r) => r.employee).sort()).toEqual([
+    expect(mine.body.rows.map((r) => r.firstName).sort()).toEqual([
       expect.stringMatching(/^Ezra/),
       expect.stringMatching(/^Pia/),
     ]);
-    expect(mine.body.rows.find((r) => r.employee.startsWith('Ezra'))).toMatchObject({
+    expect(mine.body.rows.find((r) => r.firstName.startsWith('Ezra'))).toMatchObject({
       today: 'At work',
       nextStart: '2027-03-01',
       nextDays: 5,
     });
     expect(JSON.stringify(mine.body.rows)).not.toMatch(/Annual leave/);
     const all = await as(hr).get('/api/reports/department-members');
-    expect(all.body.rows.map((r) => r.employee)).toEqual(
+    expect(all.body.rows.map((r) => r.firstName)).toEqual(
       expect.arrayContaining([expect.stringMatching(/^Mona/), expect.stringMatching(/HYPERLINK/)]),
     );
     expect(peer.id).toBeTruthy();
@@ -211,9 +211,9 @@ describe('report contents', () => {
     await approved(emp.id, '2027-03-01', '2027-03-12', weekdays('2027-03-01', 10));
     await approved(mgr.id, '2027-03-01', '2027-03-05', weekdays('2027-03-01', 5));
     const res = await as(hr).get('/api/reports/ten-days?year=2027');
-    const names = res.body.rows.map((r) => r.employee);
+    const names = res.body.rows.map((r) => r.firstName);
     expect(names.some((n) => n.startsWith('Ezra'))).toBe(false);
-    expect(res.body.rows.find((r) => r.employee.startsWith('Mona'))).toMatchObject({
+    expect(res.body.rows.find((r) => r.firstName.startsWith('Mona'))).toMatchObject({
       longest: 5,
       target: 10,
     });
@@ -249,7 +249,7 @@ describe('companies in the group', () => {
     expect(all.body.columns.map((c) => c.key)).toContain('company');
     expect(all.body.rows.map((r) => r.company).sort()).toEqual(['', 'Altus Financial Services Limited']);
     const one = await as(hr).get(`/api/reports/requests?year=2027&companyId=${company}`);
-    expect(one.body.rows.map((r) => r.employee)).toEqual([expect.stringMatching(/^Ezra/)]);
+    expect(one.body.rows.map((r) => r.firstName)).toEqual([expect.stringMatching(/^Ezra/)]);
     const list = await as(hr).get('/api/reports');
     expect(list.body.options.companies).toEqual([{ id: company, name: 'Altus Financial Services Limited' }]);
   });

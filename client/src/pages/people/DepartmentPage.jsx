@@ -212,7 +212,8 @@ export default function DepartmentPage() {
                 <thead>
                   <tr>
                     <Th className="text-right">#</Th>
-                    <Th>Employee</Th>
+                    <Th>First name</Th>
+                    <Th>Last name</Th>
                     <Th>Department name</Th>
                     <Th>Branch</Th>
                     <Th>Job title</Th>
@@ -236,9 +237,18 @@ export default function DepartmentPage() {
                               onClick={() => setViewing(e.id)}
                               className="text-left font-medium text-brand hover:underline"
                             >
-                              {e.firstName} {e.lastName}
+                              {e.firstName}
                             </button>
                           </div>
+                        </Td>
+                        <Td>
+                          <button
+                            type="button"
+                            onClick={() => setViewing(e.id)}
+                            className="text-left font-medium text-brand hover:underline"
+                          >
+                            {e.lastName}
+                          </button>
                         </Td>
                         <Td>{e.department ?? d.name}</Td>
                         <Td>{e.branch ?? <span className="text-muted">Not set</span>}</Td>

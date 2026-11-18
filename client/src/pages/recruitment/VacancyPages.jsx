@@ -397,7 +397,8 @@ export function VacancyPage() {
             <Table title={`Candidates ${v.reference}`}>
               <thead>
                 <tr>
-                  <Th>Name</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Email</Th>
                   <Th>Phone</Th>
                   <Th>Source</Th>
@@ -414,7 +415,12 @@ export function VacancyPage() {
                   <tr key={c.id} data-date={String(c.appliedAt).slice(0, 10)}>
                     <Td className="font-semibold">
                       <Link to={`/recruitment/candidates/${c.id}`} className="text-brand hover:underline">
-                        {c.name}
+                        {c.firstName}
+                      </Link>
+                    </Td>
+                    <Td className="font-semibold">
+                      <Link to={`/recruitment/candidates/${c.id}`} className="text-brand hover:underline">
+                        {c.lastName}
                       </Link>
                     </Td>
                     <Td>{c.email ?? '—'}</Td>

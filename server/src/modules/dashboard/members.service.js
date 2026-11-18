@@ -109,6 +109,8 @@ export async function describeMembers(db, people, viewerId) {
     members.push({
       id: p.id,
       name: name(p.first_name, p.last_name),
+      firstName: p.first_name,
+      lastName: p.last_name,
       employeeNumber: p.employee_number,
       jobTitle: p.job_title,
       company: p.company_name,

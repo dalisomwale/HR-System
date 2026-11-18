@@ -21,6 +21,8 @@ function person(r) {
   return {
     id: r.id,
     name: `${r.first_name} ${r.last_name}`,
+    firstName: r.first_name,
+    lastName: r.last_name,
     employeeNumber: r.employee_number,
     jobTitle: r.job_title,
     company: r.company_name ?? null,

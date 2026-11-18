@@ -296,6 +296,8 @@ export async function validateImport(db, csvText) {
       line: i + 2, // header is line 1
       employeeNumber: raw.employee_number,
       name: `${raw.first_name} ${raw.last_name}`.trim(),
+      firstName: raw.first_name ?? '',
+      lastName: raw.last_name ?? '',
       errors,
       input: parsed.success ? { ...parsed.data, departmentId, branchId } : null,
       companyKey,

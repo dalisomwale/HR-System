@@ -68,7 +68,7 @@ function PersonCell({ p }) {
   return (
     <Td>
       <Link to={`/people/employees/${p.id}`} className="font-medium text-brand hover:underline">
-        {p.name}
+        {p.firstName}
       </Link>
       <p className="text-xs text-muted">{[p.jobTitle, p.company].filter(Boolean).join(' · ')}</p>
     </Td>
@@ -137,7 +137,8 @@ function RoleSection({ role, people }) {
           <Table>
             <thead>
               <tr>
-                <Th>Name</Th>
+                <Th>First name</Th>
+                <Th>Last name</Th>
                 <Th>Employee no.</Th>
                 <Th>
                   <span className="sr-only">Actions</span>
@@ -148,6 +149,7 @@ function RoleSection({ role, people }) {
               {role.holders.map((p) => (
                 <tr key={p.id}>
                   <PersonCell p={p} />
+                  <Td className="font-medium">{p.lastName}</Td>
                   <Td>{p.employeeNumber}</Td>
                   <Td className="text-right">
                     <Button

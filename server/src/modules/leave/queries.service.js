@@ -16,6 +16,8 @@ function requestSummary(r) {
     employee: {
       id: r.employee_id,
       name: name(r.emp_first, r.emp_last),
+      firstName: r.emp_first,
+      lastName: r.emp_last,
       employeeNumber: r.emp_number,
       department: r.dept_name ?? null,
     },
@@ -311,7 +313,12 @@ async function changeQueue(db, status, scope) {
     reference: c.reference,
     leaveRequestId: c.leave_request_id,
     leaveReference: c.leave_reference,
-    employee: { id: c.employee_id, name: name(c.first_name, c.last_name) },
+    employee: {
+      id: c.employee_id,
+      name: name(c.first_name, c.last_name),
+      firstName: c.first_name,
+      lastName: c.last_name,
+    },
     leaveType: c.type_name,
     startDate: c.start_date,
     endDate: c.end_date,

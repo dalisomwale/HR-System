@@ -108,7 +108,8 @@ export default function PerformanceHomePage() {
             <Table title="My team" tools={false}>
               <thead>
                 <tr>
-                  <Th>Employee</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Status</Th>
                   <Th>Next</Th>
                   <Th>
@@ -121,7 +122,8 @@ export default function PerformanceHomePage() {
                   const n = nextText(t, me?.id);
                   return (
                     <tr key={t.id}>
-                      <Td className="font-semibold">{t.employee.name}</Td>
+                      <Td className="font-semibold">{t.employee.firstName}</Td>
+                      <Td className="font-semibold">{t.employee.lastName}</Td>
                       <Td>
                         <Badge tone={STATUS[t.status][1]}>{STATUS[t.status][0]}</Badge>
                       </Td>

@@ -44,7 +44,8 @@ function ChangeTable({ items }) {
       <thead>
         <tr>
           <Th>Reference</Th>
-          <Th>Employee</Th>
+          <Th>First name</Th>
+          <Th>Last name</Th>
           <Th>Leave</Th>
           <Th>Reason</Th>
           <Th className="text-right">Days returned</Th>
@@ -63,7 +64,8 @@ function ChangeTable({ items }) {
               </Link>
               <span className="block text-xs text-muted">for {c.leaveReference}</span>
             </Td>
-            <Td>{c.employee.name}</Td>
+            <Td>{c.employee.firstName}</Td>
+            <Td>{c.employee.lastName}</Td>
             <Td>
               {c.leaveType}
               <span className="block text-xs text-muted">
@@ -122,7 +124,8 @@ const GROUPS = {
 /** One row shape for every kind of item on the HR approvals page. */
 function hrRows(data, viewerId) {
   const person = (e) => ({
-    name: e.name,
+    firstName: e.firstName,
+    lastName: e.lastName,
     sub: [e.employeeNumber, e.department].filter(Boolean).join(' · '),
   });
   const request = (r, group, status, date) => ({
@@ -159,7 +162,7 @@ function hrRows(data, viewerId) {
       reference: c.reference,
       subReference: `for ${c.leaveReference}`,
       link: `/leave/requests/${c.leaveRequestId}`,
-      employee: { name: c.employee.name, sub: '' },
+      employee: { firstName: c.employee.firstName, lastName: c.employee.lastName, sub: '' },
       leaveType: c.leaveType,
       dates: `${formatDate(c.startDate)} – ${formatDate(c.endDate)}`,
       start: c.startDate,
@@ -218,7 +221,10 @@ export function HrApprovalsPage() {
       (!leaveType || r.leaveType === leaveType) &&
       (!from || r.end >= from) &&
       (!to || r.start <= to) &&
-      (!term || [r.reference, r.employee.name, r.employee.sub].some((v) => v?.toLowerCase().includes(term))),
+      (!term ||
+        [r.reference, `${r.employee.firstName} ${r.employee.lastName}`, r.employee.sub].some((v) =>
+          v?.toLowerCase().includes(term),
+        )),
   );
 
   return (
@@ -320,7 +326,8 @@ export function HrApprovalsPage() {
               <thead>
                 <tr>
                   <Th>Reference</Th>
-                  <Th>Employee</Th>
+                  <Th>First name</Th>
+                  <Th>Last name</Th>
                   <Th>Leave type</Th>
                   <Th>Dates</Th>
                   <Th className="text-right">Days</Th>
@@ -341,9 +348,10 @@ export function HrApprovalsPage() {
                       {r.subReference && <span className="block text-xs text-muted">{r.subReference}</span>}
                     </Td>
                     <Td>
-                      {r.employee.name}
+                      {r.employee.firstName}
                       {r.employee.sub && <span className="block text-xs text-muted">{r.employee.sub}</span>}
                     </Td>
+                    <Td>{r.employee.lastName}</Td>
                     <Td>{r.leaveType}</Td>
                     <Td className="whitespace-nowrap">{r.dates}</Td>
                     <Td className="text-right">{r.days == null ? '–' : r.days}</Td>

@@ -1559,6 +1559,8 @@ export function stockRoutes({ db }) {
     return rows.map((r) => ({
       employeeId: r.id,
       name: personName(r.first_name, r.last_name),
+      firstName: r.first_name,
+      lastName: r.last_name,
       email: r.email,
       company: r.company,
       branch: r.branch,

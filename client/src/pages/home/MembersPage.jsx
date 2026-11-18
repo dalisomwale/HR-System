@@ -86,7 +86,8 @@ function Body({ d }) {
         <Table>
           <thead>
             <tr>
-              <Th>Name</Th>
+              <Th>First name</Th>
+              <Th>Last name</Th>
               <Th>Job title</Th>
               <Th>Branch</Th>
               <Th>Employee number</Th>
@@ -101,7 +102,8 @@ function Body({ d }) {
           <tbody>
             {rows.map((m) => (
               <tr key={m.id}>
-                <Td className="font-medium">{m.name}</Td>
+                <Td className="font-medium">{m.firstName}</Td>
+                <Td className="font-medium">{m.lastName}</Td>
                 <Td>{m.jobTitle || <span className="text-muted">—</span>}</Td>
                 <Td>{m.branch || <span className="text-muted">—</span>}</Td>
                 <Td className="whitespace-nowrap">

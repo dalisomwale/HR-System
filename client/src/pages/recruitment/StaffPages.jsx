@@ -290,7 +290,8 @@ export function InterviewsPage() {
             <thead>
               <tr>
                 <Th>When</Th>
-                <Th>Candidate</Th>
+                <Th>First name</Th>
+                <Th>Last name</Th>
                 <Th>Position</Th>
                 <Th>Where</Th>
                 <Th>Your feedback</Th>
@@ -305,7 +306,8 @@ export function InterviewsPage() {
                 .map((i) => (
                   <tr key={i.id} data-date={i.scheduledAt.slice(0, 10)}>
                     <Td className="whitespace-nowrap">{whenText(i.scheduledAt)}</Td>
-                    <Td className="font-semibold">{i.candidate.name}</Td>
+                    <Td className="font-semibold">{i.candidate.firstName}</Td>
+                    <Td className="font-semibold">{i.candidate.lastName}</Td>
                     <Td>
                       {i.vacancy.jobTitle}
                       <span className="block text-xs text-muted">{i.vacancy.reference}</span>

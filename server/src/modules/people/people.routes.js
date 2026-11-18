@@ -70,7 +70,8 @@ export function peopleRoutes({ db }) {
       const TYPES = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term contract', TEMPORARY: 'Temporary' };
       const columns = [
         { key: 'employeeNumber', label: 'Employee number' },
-        { key: 'name', label: 'Employee' },
+        { key: 'firstName', label: 'First name' },
+        { key: 'lastName', label: 'Last name' },
         { key: 'company', label: 'Company' },
         { key: 'branch', label: 'Branch' },
         { key: 'jobTitle', label: 'Job title' },
@@ -83,7 +84,8 @@ export function peopleRoutes({ db }) {
       ];
       const rows = items.map((e) => ({
         employeeNumber: e.employeeNumber,
-        name: `${e.firstName} ${e.lastName}`,
+        firstName: e.firstName,
+        lastName: e.lastName,
         company: e.company,
         branch: e.branch,
         jobTitle: e.jobTitle,

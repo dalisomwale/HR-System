@@ -705,6 +705,8 @@ export function recruitmentRoutes({ db, config, logger }) {
         items: candidates.map((c) => ({
           id: c.id,
           name: name(c.first_name, c.last_name),
+          firstName: c.first_name,
+          lastName: c.last_name,
           email: c.email,
           phone: c.phone,
           source: c.source,
@@ -1497,7 +1499,12 @@ export function recruitmentRoutes({ db, config, logger }) {
           status: r.status,
           feedbackGiven: Boolean(r.submitted_at),
           rating: r.rating,
-          candidate: { id: r.candidate_id, name: name(r.first_name, r.last_name) },
+          candidate: {
+            id: r.candidate_id,
+            name: name(r.first_name, r.last_name),
+            firstName: r.first_name,
+            lastName: r.last_name,
+          },
           vacancy: { jobTitle: r.job_title, reference: r.reference },
         })),
       });
