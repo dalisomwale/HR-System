@@ -96,9 +96,8 @@ function OpenStore({ data, onDone }) {
   // Filled in from the last closing (D123); anyone opening checks it and corrects what differs.
   const start =
     data.previousClose?.balances ?? Object.fromEntries(data.accounts.map((a) => [a.kind, a.balance]));
-  const [v, setV] = useState(() =>
-    Object.fromEntries(['CASH', 'AIRTEL', 'MTN'].map((k) => [k, String(start[k] ?? 0)])),
-  );
+  const kinds = data.accounts.map((a) => a.kind);
+  const [v, setV] = useState(() => Object.fromEntries(kinds.map((k) => [k, String(start[k] ?? 0)])));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const open = async () => {
@@ -149,7 +148,7 @@ function OpenStore({ data, onDone }) {
     >
       <div className="stack">
         <div className="form-row">
-          {['CASH', 'AIRTEL', 'MTN'].map((k) => (
+          {kinds.map((k) => (
             <Field
               key={k}
               id={`op-${k}`}
@@ -284,7 +283,12 @@ export function FloatRecordPage() {
       return next.length > 10 ? a : next;
     });
   const save = async (confirm = false, override = null) => {
-    const body = override ?? { network, kind, amount: Number(amount), reference: reference.trim() || null };
+    const body = override ?? {
+      network: net,
+      kind,
+      amount: Number(amount),
+      reference: reference.trim() || null,
+    };
     setBusy(true);
     setMsg(null);
     try {
@@ -308,7 +312,10 @@ export function FloatRecordPage() {
       setBusy(false);
     }
   };
-  const ready = network && kind && Number(amount) > 0;
+  // A branch with one network has it chosen already (D125).
+  const usable = today.data.networks ?? ['AIRTEL', 'MTN'];
+  const net = usable.length === 1 ? usable[0] : network;
+  const ready = net && kind && Number(amount) > 0;
   const big = 'min-h-14 rounded-md border-2 px-3 py-3 text-base font-semibold transition-colors';
   const pick = (on) =>
     on
@@ -325,11 +332,13 @@ export function FloatRecordPage() {
           <div>
             <p className="mb-2 text-sm font-semibold">1. Network</p>
             <div className="grid grid-cols-2 gap-3">
-              {Object.entries(NETWORK).map(([k, l]) => (
-                <button key={k} type="button" className={pick(network === k)} onClick={() => setNetwork(k)}>
-                  {l}
-                </button>
-              ))}
+              {Object.entries(NETWORK)
+                .filter(([k]) => today.data.networks?.includes(k) ?? true)
+                .map(([k, l]) => (
+                  <button key={k} type="button" className={pick(net === k)} onClick={() => setNetwork(k)}>
+                    {l}
+                  </button>
+                ))}
             </div>
           </div>
           <div>
@@ -665,7 +674,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
   const expected = Object.fromEntries(data.accounts.map((a) => [a.kind, a.balance]));
   const lines = [
     { kind: 'CASH', counted: cash },
-    ...['AIRTEL', 'MTN']
+    ...(data.networks ?? ['AIRTEL', 'MTN'])
       .filter((k) => phones[k] !== '')
       .map((k) => ({ kind: k, counted: Number(phones[k]) })),
   ];
@@ -809,7 +818,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
           )}
         </div>
         <div className="form-row">
-          {['AIRTEL', 'MTN'].map((k) => (
+          {(data.networks ?? ['AIRTEL', 'MTN']).map((k) => (
             <Field
               key={k}
               id={`ph-${k}`}

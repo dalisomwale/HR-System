@@ -469,4 +469,60 @@ describe('AMS cash and float (D117, D121)', () => {
     const rep = (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}`)).body.rows[0];
     expect(rep).toMatchObject({ openingCash: 1690, openingFloat: 2000 });
   });
+
+  it('lets the System Admin set which networks a branch uses, with its days and hours in the same form (D125)', async () => {
+    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    // A new branch that only does MTN MoMo, open Monday to Saturday 08:00 to 20:00.
+    const b = await as(people.admin).post('/api/float/branches', {
+      name: 'East Park',
+      networks: ['MTN'],
+      openings: { CASH: 500, AIRTEL: 999, MTN: 800 },
+      hours: { workingDays: days.slice(0, 6), opensAt: '08:00', closesAt: '20:00', eveningFrom: '17:00' },
+    });
+    expect(b.status, JSON.stringify(b.body)).toBe(201);
+    const list = (await as(people.admin).get('/api/float/branches')).body.items;
+    expect(list.find((x) => x.id === b.body.id)).toMatchObject({
+      networks: ['MTN'],
+      hours: { opensAt: '08:00', closesAt: '20:00' },
+    });
+    // Airtel is not used: no opening balance was put on it, and nothing can be recorded on it.
+    expect(await balances(b.body.id)).toEqual({ CASH: 500, AIRTEL: 0, MTN: 800 });
+    await as(people.admin).post('/api/float/open', { branchId: b.body.id });
+    const view = (await as(people.admin).get(`/api/float/branch?branch=${b.body.id}`)).body;
+    expect(view.accounts.map((a) => a.kind)).toEqual(['CASH', 'MTN']);
+    expect(view.networks).toEqual(['MTN']);
+    expect(
+      (
+        await as(people.admin).post('/api/float/transactions', {
+          network: 'AIRTEL',
+          kind: 'DEPOSIT',
+          amount: 10,
+          branchId: b.body.id,
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await as(people.admin).post('/api/float/transactions', {
+          network: 'MTN',
+          kind: 'DEPOSIT',
+          amount: 10,
+          branchId: b.body.id,
+        })
+      ).status,
+    ).toBe(201);
+    // MTN cannot be switched off while it holds money; Airtel can be switched on.
+    const change = (networks) =>
+      as(people.admin).put(`/api/float/branches/${b.body.id}`, {
+        name: 'East Park',
+        networks,
+        openings: { CASH: 510, AIRTEL: 0, MTN: 790 },
+        minimums: {},
+      });
+    expect((await change(['AIRTEL'])).status).toBe(409);
+    expect((await change(['AIRTEL', 'MTN'])).status).toBe(200);
+    expect(
+      (await as(people.admin).get('/api/float/branches')).body.items.find((x) => x.id === b.body.id).networks,
+    ).toEqual(['AIRTEL', 'MTN']);
+  });
 });

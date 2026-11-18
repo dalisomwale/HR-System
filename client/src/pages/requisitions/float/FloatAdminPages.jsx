@@ -410,9 +410,15 @@ export function FloatBranchesPage() {
                   <Td>{hoursText(b.hours)}</Td>
                   {b.accounts.map((a) => (
                     <Td key={a.kind} className="text-right tabular-nums">
-                      {money(a.balance)}
-                      {a.minBalance > 0 && (
-                        <span className="block text-xs text-muted">min {money(a.minBalance)}</span>
+                      {a.kind !== 'CASH' && !b.networks?.includes(a.kind) ? (
+                        <span className="text-muted">Not used</span>
+                      ) : (
+                        <>
+                          {money(a.balance)}
+                          {a.minBalance > 0 && (
+                            <span className="block text-xs text-muted">min {money(a.minBalance)}</span>
+                          )}
+                        </>
                       )}
                     </Td>
                   ))}
@@ -434,9 +440,14 @@ export function FloatBranchesPage() {
                   <Td>{b.isActive ? <Badge tone="ok">Open</Badge> : <Badge tone="neutral">Closed</Badge>}</Td>
                   <Td>
                     {d.canEdit && (
-                      <Button size="sm" variant="secondary" onClick={() => setEditing(b)}>
-                        Change
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Link to={`/requisitions/float/branches/${b.id}`} className="btn btn-sm btn-primary">
+                          Manage
+                        </Link>
+                        <Button size="sm" variant="secondary" onClick={() => setEditing(b)}>
+                          Change
+                        </Button>
+                      </div>
                     )}
                   </Td>
                 </tr>
@@ -457,37 +468,64 @@ export function FloatBranchesPage() {
 }
 
 function BranchForm({ branch, onDone, onCancel }) {
+  // A new branch starts with the days and hours in AMS settings (D120).
+  const settings = useQuery({
+    queryKey: ['float-settings'],
+    queryFn: () => api.get('/api/float/settings'),
+    enabled: !branch,
+  });
   const [v, setV] = useState(() =>
     branch
       ? {
           name: branch.name,
           location: branch.location ?? '',
           isActive: branch.isActive,
+          networks: branch.networks ?? ['AIRTEL', 'MTN'],
+          hours: branch.hours,
           openings: Object.fromEntries(branch.accounts.map((a) => [a.kind, String(a.balance)])),
           minimums: Object.fromEntries(branch.accounts.map((a) => [a.kind, String(a.minBalance)])),
         }
-      : emptyBranch,
+      : { ...emptyBranch, networks: ['AIRTEL', 'MTN'], hours: null },
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const hours =
+    v.hours ??
+    (settings.data
+      ? {
+          workingDays: settings.data.workingDays,
+          opensAt: settings.data.dayStart,
+          closesAt: settings.data.closeReminderTime,
+          eveningFrom: settings.data.eveningFrom,
+        }
+      : {
+          workingDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+          opensAt: '07:30',
+          closesAt: '18:00',
+          eveningFrom: '17:00',
+        });
+  const setHours = (patch) => setV({ ...v, hours: { ...hours, ...patch } });
+  const used = ['CASH', ...v.networks];
   const canOpen = (k) => !branch || branch.accounts.find((a) => a.kind === k)?.canSetOpening;
-  const num = (o) => Object.fromEntries(Object.entries(o).map(([k, x]) => [k, Number(x) || 0]));
+  const num = (o) =>
+    Object.fromEntries(Object.entries(o).map(([k, x]) => [k, used.includes(k) ? Number(x) || 0 : 0]));
   const save = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
       const body = {
-        ...v,
+        name: v.name,
         location: v.location || null,
+        isActive: v.isActive,
+        networks: v.networks,
+        hours,
         openings: num(v.openings),
         minimums: num(v.minimums),
       };
       if (branch) await api.put(`/api/float/branches/${branch.id}`, body);
       else await api.post('/api/float/branches', body);
-      onDone(
-        branch ? `${v.name} saved.` : `${v.name} added with its Cash, Airtel Money and MTN MoMo accounts.`,
-      );
+      onDone(branch ? `${v.name} saved.` : `${v.name} added.`);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -495,6 +533,8 @@ function BranchForm({ branch, onDone, onCancel }) {
     }
   };
   const setIn = (group, k) => (e) => setV({ ...v, [group]: { ...v[group], [k]: e.target.value } });
+  const toggleNetwork = (k) =>
+    setV({ ...v, networks: v.networks.includes(k) ? v.networks.filter((x) => x !== k) : [...v.networks, k] });
   return (
     <Section title={branch ? `Change ${branch.name}` : 'Add AMS branch'}>
       <form onSubmit={save} className="stack">
@@ -529,13 +569,80 @@ function BranchForm({ branch, onDone, onCancel }) {
           )}
         </div>
         <div>
+          <p className="mb-2 text-sm font-semibold">Networks this branch uses</p>
+          <div className="flex flex-wrap gap-4">
+            {['AIRTEL', 'MTN'].map((k) => (
+              <label key={k} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-brand"
+                  checked={v.networks.includes(k)}
+                  onChange={() => toggleNetwork(k)}
+                />
+                {ACCOUNT[k]}
+              </label>
+            ))}
+          </div>
+          {v.networks.length === 0 && (
+            <p className="mt-1 text-sm text-danger">Choose at least one network.</p>
+          )}
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-semibold">Working days and hours</p>
+          <div className="mb-3 flex flex-wrap gap-3">
+            {DAYS.map(([k, l]) => (
+              <label key={k} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="size-4 accent-brand"
+                  checked={hours.workingDays.includes(k)}
+                  onChange={(e) =>
+                    setHours({
+                      workingDays: e.target.checked
+                        ? [...hours.workingDays, k]
+                        : hours.workingDays.filter((x) => x !== k),
+                    })
+                  }
+                />
+                {l}
+              </label>
+            ))}
+          </div>
+          <div className="form-row">
+            <Field id="bf-open" label="Opens at">
+              <Input
+                id="bf-open"
+                type="time"
+                value={hours.opensAt}
+                onChange={(e) => setHours({ opensAt: e.target.value })}
+              />
+            </Field>
+            <Field id="bf-close" label="Closes at" hint="Staff are reminded to close the store at this time.">
+              <Input
+                id="bf-close"
+                type="time"
+                value={hours.closesAt}
+                onChange={(e) => setHours({ closesAt: e.target.value })}
+              />
+            </Field>
+            <Field id="bf-eve" label="Evening transactions from">
+              <Input
+                id="bf-eve"
+                type="time"
+                value={hours.eveningFrom}
+                onChange={(e) => setHours({ eveningFrom: e.target.value })}
+              />
+            </Field>
+          </div>
+        </div>
+        <div>
           <p className="mb-2 text-sm font-semibold">Opening balances</p>
           <div className="form-row">
-            {Object.entries(ACCOUNT).map(([k, l]) => (
+            {used.map((k) => (
               <Field
                 key={k}
                 id={`op-${k}`}
-                label={`${l} (K)`}
+                label={`${ACCOUNT[k]} (K)`}
                 hint={canOpen(k) ? undefined : 'Already in use: change it by counting at the branch.'}
               >
                 <Input
@@ -554,8 +661,8 @@ function BranchForm({ branch, onDone, onCancel }) {
         <div>
           <p className="mb-2 text-sm font-semibold">Minimum balances (low-float warning below these)</p>
           <div className="form-row">
-            {Object.entries(ACCOUNT).map(([k, l]) => (
-              <Field key={k} id={`mn-${k}`} label={`${l} (K)`}>
+            {used.map((k) => (
+              <Field key={k} id={`mn-${k}`} label={`${ACCOUNT[k]} (K)`}>
                 <Input
                   id={`mn-${k}`}
                   type="number"
@@ -569,7 +676,11 @@ function BranchForm({ branch, onDone, onCancel }) {
           </div>
         </div>
         <div className="form-actions">
-          <Button type="submit" busy={busy}>
+          <Button
+            type="submit"
+            busy={busy}
+            disabled={v.networks.length === 0 || hours.workingDays.length === 0}
+          >
             {branch ? 'Save changes' : 'Add branch'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
@@ -893,13 +1004,13 @@ export function FloatBranchAdminPage() {
     <div>
       <PageHeader
         title={b.name}
-        description={`${b.location ? `${b.location} · ` : ''}${hoursText(b.hours)}`}
+        description={`${b.location ? `${b.location} · ` : ''}${hoursText(b.hours)} · ${(b.networks ?? []).map((k) => ACCOUNT[k]).join(' and ') || 'no network'}`}
         actions={
           <>
             <Badge tone={b.isActive ? 'ok' : 'neutral'}>{b.isActive ? 'Open' : 'Closed'}</Badge>
             {!editing && listed && (
               <Button variant="secondary" onClick={() => setEditing(true)}>
-                Change name, balances or minimums
+                Change details, networks or balances
               </Button>
             )}
           </>

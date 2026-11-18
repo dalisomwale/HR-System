@@ -18,6 +18,8 @@ import {
   accountsOf,
   amsBranches,
   branchHours,
+  branchNetworks,
+  mustUse,
   businessDate,
   defaultHours,
   buildDay,
@@ -321,6 +323,7 @@ export function floatRoutes({ db }) {
       branch,
       date: today,
       hours: h,
+      networks: accounts.filter((a) => a.kind !== 'CASH').map((a) => a.kind),
       tradingToday: h.workingDays.includes(dayCode(today)),
       accounts: accounts.map((a) => ({
         id: a.id,
@@ -343,20 +346,23 @@ export function floatRoutes({ db }) {
         by: name(t.first_name, t.last_name),
         at: t.recorded_at,
       })),
-      totals: ['AIRTEL', 'MTN'].map((n) => ({
-        network: n,
-        deposits: round2(
-          txns
-            .filter((t) => t.network === n && t.kind === 'DEPOSIT' && t.status !== 'REVERSED')
-            .reduce((s, t) => s + Number(t.amount), 0),
-        ),
-        withdrawals: round2(
-          txns
-            .filter((t) => t.network === n && t.kind === 'WITHDRAWAL' && t.status !== 'REVERSED')
-            .reduce((s, t) => s + Number(t.amount), 0),
-        ),
-        count: txns.filter((t) => t.network === n && t.status !== 'REVERSED').length,
-      })),
+      totals: accounts
+        .filter((a) => a.kind !== 'CASH')
+        .map((a) => a.kind)
+        .map((n) => ({
+          network: n,
+          deposits: round2(
+            txns
+              .filter((t) => t.network === n && t.kind === 'DEPOSIT' && t.status !== 'REVERSED')
+              .reduce((s, t) => s + Number(t.amount), 0),
+          ),
+          withdrawals: round2(
+            txns
+              .filter((t) => t.network === n && t.kind === 'WITHDRAWAL' && t.status !== 'REVERSED')
+              .reduce((s, t) => s + Number(t.amount), 0),
+          ),
+          count: txns.filter((t) => t.network === n && t.status !== 'REVERSED').length,
+        })),
       counts: counts.map((c) => ({
         id: c.id,
         kind: c.kind,
@@ -435,6 +441,7 @@ export function floatRoutes({ db }) {
       const input = txnSchema.parse(req.body);
       const s = await getSettings(db);
       const branch = await actingBranch(req, s);
+      await mustUse(db, branch.id, input.network);
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         await mustBeOpen(trx, branch.id, date);
@@ -924,14 +931,12 @@ export function floatRoutes({ db }) {
         const lines = input.lines?.length ? input.lines : submitted;
         const corrected = JSON.stringify(lines) !== JSON.stringify(submitted);
         if (corrected && !input.comment) throw badRequest('Say why the figures were corrected.');
-        await trx('float_counts')
-          .where({ id })
-          .update({
-            status: 'CONFIRMED',
-            confirmed_by: req.user.id,
-            confirmed_at: trx.fn.now(),
-            confirm_comment: input.comment,
-          });
+        await trx('float_counts').where({ id }).update({
+          status: 'CONFIRMED',
+          confirmed_by: req.user.id,
+          confirmed_at: trx.fn.now(),
+          confirm_comment: input.comment,
+        });
         const results = await applyCount(trx, {
           count,
           branch,
@@ -963,8 +968,7 @@ export function floatRoutes({ db }) {
         });
         return { count, branch, results };
       });
-      if (out.count.kind === 'CLOSE')
-        await sendCloseReport(s, out.branch, out.count.business_date, id, []);
+      if (out.count.kind === 'CLOSE') await sendCloseReport(s, out.branch, out.count.business_date, id, []);
       res.json({ id, results: out.results });
     }),
   );
@@ -1083,7 +1087,9 @@ export function floatRoutes({ db }) {
           throw badRequest('Choose where the money comes from.');
         if (input.fromBranchId === to && input.fromAccount === input.toAccount)
           throw badRequest('Choose a different account to move it to.');
+        await mustUse(db, input.fromBranchId, input.fromAccount);
       }
+      await mustUse(db, to, input.toAccount);
       const id = await db.transaction(async (trx) => {
         const [newId] = await trx('float_movements').insert({
           kind: input.kind,
@@ -1969,6 +1975,7 @@ export function floatRoutes({ db }) {
       const input = reqSchema.parse(req.body);
       const s = await getSettings(db);
       const branch = await actingBranch(req, s);
+      if (input.kind === 'FLOAT') await mustUse(db, branch.id, input.account);
       const id = await db.transaction(async (trx) => {
         const [qid] = await trx('float_requisitions').insert({
           branch_id: branch.id,
@@ -2235,6 +2242,10 @@ export function floatRoutes({ db }) {
         s,
         branches.map((b) => b.id),
       );
+      const N = await branchNetworks(
+        db,
+        branches.map((b) => b.id),
+      );
       res.json({
         configured: Boolean(s.companyId),
         canEdit: f(req).floatAdmin,
@@ -2244,6 +2255,7 @@ export function floatRoutes({ db }) {
           location: b.location,
           isActive: Boolean(b.is_active),
           hours: H.get(b.id),
+          networks: N.get(b.id),
           accounts: KINDS.map((k) => {
             const a = accounts.find((x) => x.branch_id === b.id && x.kind === k);
             return {
@@ -2285,7 +2297,27 @@ export function floatRoutes({ db }) {
     minimums: kindMoney.default({}),
     openings: kindMoney.default({}),
     hours: hoursSchema.nullish(),
+    // The mobile money networks the branch uses (D125); Cash is always kept.
+    networks: z
+      .array(z.enum(['AIRTEL', 'MTN']))
+      .min(1, 'choose Airtel Money, MTN MoMo or both')
+      .nullish(),
   });
+  /** Save a branch's days and hours. */
+  async function saveHours(trx, branchId, h, by) {
+    const row = {
+      working_days: DAYS.filter((d) => h.workingDays.includes(d)).join(','),
+      opens_at: h.opensAt,
+      closes_at: h.closesAt,
+      evening_from: h.eveningFrom,
+      updated_by: by,
+      updated_at: trx.fn.now(),
+    };
+    await trx('float_branch_hours')
+      .insert({ branch_id: branchId, ...row })
+      .onConflict('branch_id')
+      .merge();
+  }
   router.post(
     '/branches',
     asyncHandler(async (req, res) => {
@@ -2305,23 +2337,18 @@ export function floatRoutes({ db }) {
           location: input.location,
           is_active: input.isActive,
         });
-        const h = input.hours ?? defaultHours(s);
-        await trx('float_branch_hours').insert({
-          branch_id: bid,
-          working_days: DAYS.filter((d) => h.workingDays.includes(d)).join(','),
-          opens_at: h.opensAt,
-          closes_at: h.closesAt,
-          evening_from: h.eveningFrom,
-          updated_by: req.user.id,
-        });
+        await saveHours(trx, bid, input.hours ?? defaultHours(s), req.user.id);
+        const networks = input.networks ?? ['AIRTEL', 'MTN'];
         const date = await businessDate(trx);
         for (const k of KINDS) {
+          const used = k === 'CASH' || networks.includes(k);
           await trx('float_accounts').insert({
             branch_id: bid,
             kind: k,
             min_balance: round2(input.minimums[k]),
+            is_active: used,
           });
-          if (input.openings[k] > 0)
+          if (used && input.openings[k] > 0)
             await post(trx, {
               branchId: bid,
               kind: k,
@@ -2362,9 +2389,23 @@ export function floatRoutes({ db }) {
         await trx('stock_branches')
           .where({ id })
           .update({ name: input.name, location: input.location, is_active: input.isActive });
+        if (input.hours) await saveHours(trx, id, input.hours, req.user.id);
         const date = await businessDate(trx);
         for (const k of KINDS) {
           let acc = await trx('float_accounts').where({ branch_id: id, kind: k }).forUpdate().first();
+          // Switching a network on or off (D125): only when it holds no money.
+          if (input.networks && k !== 'CASH' && acc) {
+            const use = input.networks.includes(k);
+            if (!use && acc.is_active && Number(acc.balance) !== 0) {
+              throw conflict(
+                `${KIND_LABEL[k]} still holds ${kwacha(acc.balance)} at this branch. Move it or count it to zero before switching it off.`,
+              );
+            }
+            if (Boolean(acc.is_active) !== use) {
+              await trx('float_accounts').where({ id: acc.id }).update({ is_active: use });
+              acc = { ...acc, is_active: use };
+            }
+          }
           if (!acc) {
             await trx('float_accounts').insert({ branch_id: id, kind: k, min_balance: 0 });
             acc = await trx('float_accounts').where({ branch_id: id, kind: k }).first();
@@ -2378,7 +2419,7 @@ export function floatRoutes({ db }) {
             .whereNot('entry_type', 'OPENING')
             .first('id');
           const diff = round2(input.openings[k] - Number(acc.balance));
-          if (!used && diff !== 0)
+          if (!used && acc.is_active && diff !== 0)
             await post(trx, { branchId: id, kind: k, amount: diff, type: 'OPENING', date, by: req.user.id });
         }
         await writeAudit(trx, {
@@ -2407,6 +2448,7 @@ export function floatRoutes({ db }) {
       mustAdmin(req);
       const { s, b } = await amsBranch(idParam(req));
       const hours = (await branchHours(db, s, [b.id])).get(b.id);
+      const networks = (await branchNetworks(db, [b.id])).get(b.id);
       const staff = await db('employees as e')
         .leftJoin('access_users as u', (j) =>
           j.on('u.employee_id', 'e.id').andOnVal('u.module', '=', 'inventory'),
@@ -2440,6 +2482,7 @@ export function floatRoutes({ db }) {
         location: b.location,
         isActive: Boolean(b.is_active),
         hours,
+        networks,
         staff: staff.map((e) => ({
           id: e.id,
           firstName: e.first_name,

@@ -109,10 +109,35 @@ export async function staffBranch(db, settings, employeeId) {
     .first('b.id', 'b.name');
 }
 
+/** A branch's accounts in use: Cash, and the networks the System Admin set it to use (D125). */
 export async function accountsOf(db, branchId) {
   return db('float_accounts')
-    .where({ branch_id: branchId })
+    .where({ branch_id: branchId, is_active: true })
     .orderByRaw("FIELD(kind, 'CASH', 'AIRTEL', 'MTN')");
+}
+
+/** Refuse a network the branch does not use. */
+export async function mustUse(db, branchId, kind) {
+  if (kind === 'CASH') return;
+  const acc = await db('float_accounts').where({ branch_id: branchId, kind }).first('is_active');
+  if (!acc?.is_active) throw badRequest(`This branch does not use ${KIND_LABEL[kind]}.`);
+}
+
+/** The networks each branch uses, by branch id. */
+export async function branchNetworks(db, ids) {
+  const rows = ids.length
+    ? await db('float_accounts')
+        .whereIn('branch_id', ids)
+        .whereIn('kind', ['AIRTEL', 'MTN'])
+        .where('is_active', true)
+        .select('branch_id', 'kind')
+    : [];
+  return new Map(
+    ids.map((id) => [
+      id,
+      ['AIRTEL', 'MTN'].filter((k) => rows.some((r) => r.branch_id === id && r.kind === k)),
+    ]),
+  );
 }
 
 /** Change one account's balance and write the ledger row. */
