@@ -66,27 +66,59 @@ export const dayRows = (t) => [
 
 export function floatRoutes({ db }) {
   const router = Router();
+  /** The last closing before a day: what the store should open with (D123). */
+  async function previousClose(branchId, date) {
+    const c = await db('float_counts')
+      .where({ branch_id: branchId, kind: 'CLOSE', status: 'CONFIRMED' })
+      .where('business_date', '<', date)
+      .orderBy('id', 'desc')
+      .first('id', 'business_date', 'created_at');
+    if (!c) return null;
+    const lines = await db('float_count_lines as l')
+      .join('float_accounts as a', 'a.id', 'l.account_id')
+      .where('l.count_id', c.id)
+      .select('a.kind', 'l.counted');
+    return {
+      date: c.business_date,
+      at: c.created_at,
+      balances: Object.fromEntries(lines.map((l) => [l.kind, Number(l.counted)])),
+    };
+  }
   /** The store's state today: opened (and when), and whether it has been closed (D121). */
   async function storeState(k, branchId, date) {
     const counts = await k('float_counts')
       .where({ branch_id: branchId, business_date: date })
       .whereIn('kind', ['OPEN', 'CLOSE'])
       .orderBy('id')
-      .select('kind', 'created_at');
+      .select('kind', 'status', 'created_at');
     const open = counts.find((c) => c.kind === 'OPEN');
-    return { openedAt: open?.created_at ?? null, closed: counts.some((c) => c.kind === 'CLOSE') };
+    const close = counts.find((c) => c.kind === 'CLOSE');
+    return {
+      openedAt: open?.created_at ?? null,
+      openPending: open?.status === 'PENDING',
+      closed: Boolean(close),
+      closePending: close?.status === 'PENDING',
+    };
   }
   async function mustBeOpen(k, branchId, date) {
     const st = await storeState(k, branchId, date);
     if (!st.openedAt) {
       throw new AppError(409, 'STORE_NOT_OPEN', 'Open the store first: tap Open store to start the day.');
     }
-    if (st.closed)
+    if (st.openPending) {
+      throw new AppError(
+        409,
+        'OPENING_NOT_CONFIRMED',
+        'The opening is waiting for the Operations Officer to confirm it.',
+      );
+    }
+    if (st.closed) {
       throw new AppError(
         409,
         'STORE_CLOSED',
         'The store has been closed for today. Nothing more can be recorded until it opens again.',
       );
+    }
   }
   /** Past days with activity that no manager has signed off yet (the last 31 days). */
   async function unsignedDays() {
@@ -113,7 +145,9 @@ export function floatRoutes({ db }) {
    */
   const actsAnywhere = (req) => Boolean(f(req).floatSupervise || f(req).floatAdmin);
   async function anyBranch(settings, id) {
-    const b = await db('stock_branches').where({ id, company_id: settings.companyId, is_active: true }).first('id', 'name');
+    const b = await db('stock_branches')
+      .where({ id, company_id: settings.companyId, is_active: true })
+      .first('id', 'name');
     if (!b) throw notFound('AMS branch not found.');
     return b;
   }
@@ -142,6 +176,56 @@ export function floatRoutes({ db }) {
     if (!mine) throw badRequest('Your employee record has no AMS branch. Ask HR to post you to your branch.');
     return mine;
   }
+  /**
+   * Record what was counted against the books, account by account: differences above the
+   * allowed amount become a surplus or deficit against the person counting, and the books are
+   * set to what was counted (D117, D123). Used when opening, handing over and closing.
+   */
+  async function countLines(trx, { branchId, countId, lines, date, by, staffId, tolerance }) {
+    const results = [];
+    for (const line of lines) {
+      const acc = await trx('float_accounts')
+        .where({ branch_id: branchId, kind: line.kind })
+        .forUpdate()
+        .first();
+      if (!acc) continue;
+      const expected = Number(acc.balance);
+      const counted = round2(line.counted);
+      const difference = round2(counted - expected);
+      await trx('float_count_lines').insert({
+        count_id: countId,
+        account_id: acc.id,
+        expected,
+        counted,
+        difference,
+      });
+      let varianceId = null;
+      if (Math.abs(difference) > tolerance) {
+        [varianceId] = await trx('float_variances').insert({
+          count_id: countId,
+          branch_id: branchId,
+          account_id: acc.id,
+          employee_id: staffId ?? by,
+          business_date: date,
+          amount: difference,
+        });
+      }
+      if (difference !== 0) {
+        await post(trx, {
+          branchId,
+          kind: line.kind,
+          amount: difference,
+          type: 'VARIANCE',
+          date,
+          by,
+          varianceId,
+          allowNegative: true,
+        });
+      }
+      results.push({ kind: line.kind, expected, counted, difference, recorded: Boolean(varianceId) });
+    }
+    return results;
+  }
   const mustRecord = (req, msg) => must(f(req).floatRecord || actsAnywhere(req), msg);
 
   // ── Who the signed-in person is here ─────────────────────────────────────────────────────────
@@ -159,6 +243,9 @@ export function floatRoutes({ db }) {
           )) +
           (await n(db('float_transactions').where({ status: 'REVERSAL_PENDING' }))) +
           (await n(db('float_variances').where({ status: 'OPEN' })))
+        : 0;
+      const confirmWaiting = c.floatSupervise
+        ? await n(db('float_counts').where({ status: 'PENDING' }).whereNot('counted_by', req.user.id))
         : 0;
       const reqWaiting =
         (c.floatSupervise
@@ -193,7 +280,7 @@ export function floatRoutes({ db }) {
           admin: c.floatAdmin,
         },
         counts: {
-          approvals: approvals + director,
+          approvals: approvals + director + confirmWaiting,
           requisitions: reqWaiting,
           daysToSign: c.floatSupervise ? (await unsignedDays()).length : 0,
         },
@@ -278,9 +365,13 @@ export function floatRoutes({ db }) {
         at: c.created_at,
       })),
       closed: counts.some((c) => c.kind === 'CLOSE'),
+      closePending: counts.some((c) => c.kind === 'CLOSE' && c.status === 'PENDING'),
+      previousClose: await previousClose(branch.id, today),
       opened: (() => {
         const o = counts.find((c) => c.kind === 'OPEN');
-        return o ? { at: o.created_at, by: name(o.first_name, o.last_name) } : null;
+        return o
+          ? { at: o.created_at, by: name(o.first_name, o.last_name), pending: o.status === 'PENDING' }
+          : null;
       })(),
       movements: movements.map(movementView),
       tolerance: settings.cashTolerance,
@@ -305,7 +396,10 @@ export function floatRoutes({ db }) {
     '/branch',
     asyncHandler(async (req, res) => {
       const c = f(req);
-      must(c.floatRecord || c.floatViewAll || c.floatAdmin || c.floatSupervise, 'You do not have access to AMS cash and float.');
+      must(
+        c.floatRecord || c.floatViewAll || c.floatAdmin || c.floatSupervise,
+        'You do not have access to AMS cash and float.',
+      );
       const s = await getSettings(db);
       const branch = await branchFor(req, s, req.query.branch ? Number(req.query.branch) : null);
       const staff = await db('employees')
@@ -315,9 +409,13 @@ export function floatRoutes({ db }) {
       res.json({
         ...(await branchToday(branch, s)),
         staff: staff.map((e) => ({ id: e.id, name: name(e.first_name, e.last_name) })),
-        canRecord: actsAnywhere(req) || (c.floatRecord && (await staffBranch(db, s, req.user.id))?.id === branch.id),
+        canRecord:
+          actsAnywhere(req) || (c.floatRecord && (await staffBranch(db, s, req.user.id))?.id === branch.id),
         // Those who act anywhere choose the branch they are working on.
-        branches: actsAnywhere(req) || c.floatViewAll || c.floatAdmin ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name })) : null,
+        branches:
+          actsAnywhere(req) || c.floatViewAll || c.floatAdmin
+            ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name }))
+            : null,
       });
     }),
   );
@@ -554,6 +652,128 @@ export function floatRoutes({ db }) {
     // The commission the networks credited today, as shown on the phones (D118).
     commission: z.coerce.number().min(0).max(10000000).nullish(),
   });
+  /**
+   * Apply a count's figures to the books: the differences, any surplus or deficit against the
+   * person who counted, and a note to the Operations Officer for those (D117, D124).
+   */
+  async function applyCount(trx, { count, branch, lines, by, tolerance }) {
+    const results = await countLines(trx, {
+      branchId: branch.id,
+      countId: count.id,
+      lines,
+      date: count.business_date,
+      by,
+      staffId: count.counted_by,
+      tolerance,
+    });
+    const off = results.filter((r) => r.recorded);
+    if (off.length) {
+      const label = { OPEN: 'Opening', CLOSE: 'Closing', HANDOVER: 'Handover' }[count.kind];
+      const text = off
+        .map(
+          (r) =>
+            `${KIND_LABEL[r.kind]} ${r.difference > 0 ? 'surplus' : 'deficit'} ${kwacha(Math.abs(r.difference))}`,
+        )
+        .join(', ');
+      await notify(trx, {
+        recipients: await supervisors(trx, [by]),
+        event: 'FLOAT_VARIANCE',
+        title: `${label} at ${branch.name}: ${text}`,
+        body: 'Resolve it on Approvals.',
+        link: '/requisitions/float/approvals',
+        entityType: 'float_count',
+        entityId: count.id,
+        email: {
+          ...EMAIL,
+          subject: `Count difference at ${branch.name}`,
+          heading: 'Count difference',
+          intro: `The ${label.toLowerCase()} count at ${branch.name} did not match the books.`,
+          rows: off.map((r) => [
+            KIND_LABEL[r.kind],
+            `${r.difference > 0 ? 'Surplus' : 'Deficit'} ${kwacha(Math.abs(r.difference))}`,
+          ]),
+          action: 'Please resolve it in the inventory system.',
+        },
+      });
+    }
+    return results;
+  }
+
+  /** The branch's daily report, once its closing is confirmed: to supervisors, managers, directors and the System Admin. */
+  async function sendCloseReport(s, branch, date, countId, exclude) {
+    const day = await buildDay(db, s, date, [branch.id]);
+    const b = day.branches[0];
+    const at = (v) => (v ? lusakaTime(v) : '—');
+    await db.transaction(async (trx) =>
+      notify(trx, {
+        recipients: await reportRecipients(trx, exclude),
+        event: 'FLOAT_SIGNED_OUT',
+        title: `Daily report: ${branch.name} closed at ${at(b.signedOutAt)}, ${b.transactions.total} transactions`,
+        body: `Opened ${at(b.openedAt)}. Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}. Closing cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
+        link: `/requisitions/float/daily?from=${date}&to=${date}&branch=${branch.id}`,
+        entityType: 'float_count',
+        entityId: countId,
+        email: {
+          ...EMAIL,
+          subject: `AMS daily report: ${branch.name}, ${date}`,
+          heading: `${branch.name} daily report`,
+          intro: `${branch.name} has closed for ${date}, and the Operations Officer has confirmed the closing figures.`,
+          rows: [
+            [
+              'Opened',
+              `${at(b.openedAt)}${b.openedBy ? ` by ${b.openedBy.firstName} ${b.openedBy.lastName}` : ''}`,
+            ],
+            [
+              'Closed',
+              `${at(b.signedOutAt)}${b.signedOutBy ? ` by ${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : ''}`,
+            ],
+            ['Number of deposits', String(b.deposits.count)],
+            ['Deposits', kwacha(b.deposits.amount)],
+            ['Number of withdrawals', String(b.withdrawals.count)],
+            ['Withdrawals', kwacha(b.withdrawals.amount)],
+            ['Opening cash', kwacha(b.openingCash)],
+            ['Opening float', kwacha(b.openingFloat)],
+            ['Closing cash', kwacha(b.cash)],
+            ['Closing float', kwacha(b.float)],
+            ['Float transfers', `${b.floatTransfers.count} (${kwacha(b.floatTransfers.amount)})`],
+            ['Cash to finance', `${b.cashCollections.count} (${kwacha(b.cashCollections.amount)})`],
+            ['Customers turned down', String(b.turnedDown)],
+            ...(b.commission != null ? [['Daily commission', kwacha(b.commission)]] : []),
+            ...(b.deficit ? [['Deficit', kwacha(b.deficit)]] : []),
+            ...(b.surplus ? [['Surplus', kwacha(b.surplus)]] : []),
+          ],
+          action: 'The Operations Officer reconciles and signs off the day in the inventory system.',
+        },
+      }),
+    );
+    return b;
+  }
+
+  /** Ask the Operations Officer to confirm an opening or closing. */
+  async function askToConfirm(trx, { branch, countId, kind, lines, by }) {
+    const what = kind === 'OPEN' ? 'Opening' : 'Closing';
+    await notify(trx, {
+      recipients: await supervisors(trx, [by]),
+      event: 'FLOAT_COUNT_TO_CONFIRM',
+      title: `${what} to confirm: ${branch.name}`,
+      body: lines.map((l) => `${KIND_LABEL[l.kind]} ${kwacha(l.counted)}`).join(', '),
+      link: '/requisitions/float/approvals',
+      entityType: 'float_count',
+      entityId: countId,
+      email: {
+        ...EMAIL,
+        subject: `${what} to confirm: ${branch.name}`,
+        heading: `${what} to confirm`,
+        intro:
+          kind === 'OPEN'
+            ? `${branch.name} wants to open. The branch can trade once you confirm its opening figures.`
+            : `${branch.name} has closed. Its daily report goes out once you confirm the closing figures.`,
+        rows: lines.map((l) => [KIND_LABEL[l.kind], kwacha(l.counted)]),
+        action: 'Confirm or correct the figures on Approvals in the inventory system.',
+      },
+    });
+  }
+
   router.post(
     '/counts',
     asyncHandler(async (req, res) => {
@@ -563,6 +783,8 @@ export function floatRoutes({ db }) {
       const branch = await actingBranch(req, s);
       if (input.kind === 'HANDOVER' && !input.handedTo)
         throw badRequest('Choose who you are handing over to.');
+      // Branch staff's closing waits for the Operations Officer; theirs is confirmed at once (D124).
+      const pending = input.kind === 'CLOSE' && !actsAnywhere(req);
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         await mustBeOpen(trx, branch.id, date);
@@ -575,185 +797,175 @@ export function floatRoutes({ db }) {
           denominations: input.denominations ? JSON.stringify(input.denominations) : null,
           notes: input.notes,
           commission: input.kind === 'CLOSE' && input.commission != null ? round2(input.commission) : null,
+          status: pending ? 'PENDING' : 'CONFIRMED',
+          submitted: JSON.stringify(input.lines),
+          confirmed_by: pending ? null : req.user.id,
+          confirmed_at: pending ? null : trx.fn.now(),
         });
-        const results = [];
-        for (const line of input.lines) {
-          const acc = await trx('float_accounts')
-            .where({ branch_id: branch.id, kind: line.kind })
-            .forUpdate()
-            .first();
-          if (!acc) continue;
-          const expected = Number(acc.balance);
-          const counted = round2(line.counted);
-          const difference = round2(counted - expected);
-          await trx('float_count_lines').insert({
-            count_id: countId,
-            account_id: acc.id,
-            expected,
-            counted,
-            difference,
+        const count = await trx('float_counts').where({ id: countId }).first();
+        let results = [];
+        if (pending) {
+          await askToConfirm(trx, { branch, countId, kind: 'CLOSE', lines: input.lines, by: req.user.id });
+        } else {
+          results = await applyCount(trx, {
+            count,
+            branch,
+            lines: input.lines,
+            by: req.user.id,
+            tolerance: s.cashTolerance,
           });
-          let varianceId = null;
-          if (Math.abs(difference) > s.cashTolerance) {
-            [varianceId] = await trx('float_variances').insert({
-              count_id: countId,
-              branch_id: branch.id,
-              account_id: acc.id,
-              employee_id: req.user.id,
-              business_date: date,
-              amount: difference,
-            });
-          }
-          // The books now match what was counted.
-          if (difference !== 0) {
-            await post(trx, {
-              branchId: branch.id,
-              kind: line.kind,
-              amount: difference,
-              type: 'VARIANCE',
-              date,
-              by: req.user.id,
-              varianceId,
-              allowNegative: true,
-            });
-          }
-          results.push({ kind: line.kind, expected, counted, difference, recorded: Boolean(varianceId) });
         }
         await writeAudit(trx, {
           ...auditContext(req),
           action: input.kind === 'CLOSE' ? 'FLOAT_DAY_CLOSED' : 'FLOAT_HANDOVER',
           entityType: 'float_count',
           entityId: countId,
-          after: { branch: branch.name, results },
+          after: { branch: branch.name, submitted: input.lines, pending },
         });
-        const off = results.filter((r) => r.recorded);
-        if (off.length) {
-          const text = off
-            .map(
-              (r) =>
-                `${KIND_LABEL[r.kind]} ${r.difference > 0 ? 'surplus' : 'deficit'} ${kwacha(Math.abs(r.difference))}`,
-            )
-            .join(', ');
-          await notify(trx, {
-            recipients: await supervisors(trx, [req.user.id]),
-            event: 'FLOAT_VARIANCE',
-            title: `${input.kind === 'CLOSE' ? 'Day close' : 'Handover'} at ${branch.name}: ${text}`,
-            body: 'Resolve it on Surplus and deficit.',
-            link: '/requisitions/float/variances',
-            entityType: 'float_count',
-            entityId: countId,
-            email: {
-              ...EMAIL,
-              subject: `Count difference at ${branch.name}`,
-              heading: 'Count difference',
-              intro: `The ${input.kind === 'CLOSE' ? 'day close' : 'shift handover'} at ${branch.name} did not match the books.`,
-              rows: off.map((r) => [
-                KIND_LABEL[r.kind],
-                `${r.difference > 0 ? 'Surplus' : 'Deficit'} ${kwacha(Math.abs(r.difference))}`,
-              ]),
-              action: 'Please resolve it in the inventory system.',
-            },
-          });
-        }
-        return { id: countId, results, date };
+        return { id: countId, results, date, pending };
       });
-      let report = null;
-      if (input.kind === 'CLOSE') {
-        // Closing the store closes the day's transactions; the branch's daily report is made and
-        // submitted to the supervisor, the managers, the directors and the System Admin (D121).
-        const day = await buildDay(db, s, out.date, [branch.id]);
-        const b = day.branches[0];
-        report = b;
-        const at = (v) => (v ? lusakaTime(v) : '—');
-        await db.transaction(async (trx) =>
-          notify(trx, {
-            recipients: await reportRecipients(trx, [req.user.id]),
-            event: 'FLOAT_SIGNED_OUT',
-            title: `Daily report: ${branch.name} closed at ${at(b.signedOutAt)}, ${b.transactions.total} transactions`,
-            body: `Opened ${at(b.openedAt)}. Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}. Closing cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
-            link: `/requisitions/float/daily?from=${out.date}&to=${out.date}&branch=${branch.id}`,
-            entityType: 'float_count',
-            entityId: out.id,
-            email: {
-              ...EMAIL,
-              subject: `AMS daily report: ${branch.name}, ${out.date}`,
-              heading: `${branch.name} daily report`,
-              intro: `${branch.name} has closed for ${out.date}. The day's transactions are closed.`,
-              rows: [
-                [
-                  'Opened',
-                  `${at(b.openedAt)}${b.openedBy ? ` by ${b.openedBy.firstName} ${b.openedBy.lastName}` : ''}`,
-                ],
-                [
-                  'Closed',
-                  `${at(b.signedOutAt)}${b.signedOutBy ? ` by ${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : ''}`,
-                ],
-                ['Number of deposits', String(b.deposits.count)],
-                ['Deposits', kwacha(b.deposits.amount)],
-                ['Number of withdrawals', String(b.withdrawals.count)],
-                ['Withdrawals', kwacha(b.withdrawals.amount)],
-                ['Opening cash', kwacha(b.openingCash)],
-                ['Opening float', kwacha(b.openingFloat)],
-                ['Closing cash', kwacha(b.cash)],
-                ['Closing float', kwacha(b.float)],
-                ['Float transfers', `${b.floatTransfers.count} (${kwacha(b.floatTransfers.amount)})`],
-                ['Cash to finance', `${b.cashCollections.count} (${kwacha(b.cashCollections.amount)})`],
-                ['Customers turned down', String(b.turnedDown)],
-                ...(b.commission != null ? [['Daily commission', kwacha(b.commission)]] : []),
-                ...(b.deficit ? [['Deficit', kwacha(b.deficit)]] : []),
-                ...(b.surplus ? [['Surplus', kwacha(b.surplus)]] : []),
-              ],
-              action: 'The Operations Officer reconciles and signs off the day in the inventory system.',
-            },
-          }),
-        );
-      }
+      const report =
+        input.kind === 'CLOSE' && !pending
+          ? await sendCloseReport(s, branch, out.date, out.id, [req.user.id])
+          : null;
       res.status(201).json({ ...out, report });
     }),
   );
 
-  // ── Opening the store (D121): clocks the opening time and the balances it opened with ─────────
+  // ── Opening the store (D121, D123, D124): the time and the figures it opens with ─────────────
   router.post(
     '/open',
     asyncHandler(async (req, res) => {
       mustRecord(req, 'You cannot open an AMS branch.');
+      const input = z
+        .object({
+          lines: z
+            .array(z.object({ kind: z.enum(KINDS), counted: z.coerce.number().min(0).max(100000000) }))
+            .default([]),
+        })
+        .parse(req.body ?? {});
       const s = await getSettings(db);
       const branch = await actingBranch(req, s);
+      const pending = !actsAnywhere(req);
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         const st = await storeState(trx, branch.id, date);
         if (st.closed) throw conflict('The store has already been closed for today.');
-        if (st.openedAt) throw conflict('The store is already open.');
+        if (st.openedAt) throw conflict('The store has already been opened today.');
+        // What the store opens with, as counted; anything not given is taken from the books.
+        const accounts = await accountsOf(trx, branch.id);
+        const given = new Map(input.lines.map((l) => [l.kind, l.counted]));
+        const lines = accounts.map((a) => ({
+          kind: a.kind,
+          counted: round2(given.has(a.kind) ? given.get(a.kind) : Number(a.balance)),
+        }));
         const [countId] = await trx('float_counts').insert({
           branch_id: branch.id,
           kind: 'OPEN',
           business_date: date,
           counted_by: req.user.id,
+          status: pending ? 'PENDING' : 'CONFIRMED',
+          submitted: JSON.stringify(lines),
+          confirmed_by: pending ? null : req.user.id,
+          confirmed_at: pending ? null : trx.fn.now(),
         });
-        const accounts = await accountsOf(trx, branch.id);
-        for (const a of accounts) {
-          await trx('float_count_lines').insert({
-            count_id: countId,
-            account_id: a.id,
-            expected: a.balance,
-            counted: a.balance,
-            difference: 0,
+        const count = await trx('float_counts').where({ id: countId }).first();
+        let results = [];
+        if (pending) await askToConfirm(trx, { branch, countId, kind: 'OPEN', lines, by: req.user.id });
+        else
+          results = await applyCount(trx, {
+            count,
+            branch,
+            lines,
+            by: req.user.id,
+            tolerance: s.cashTolerance,
           });
-        }
         await writeAudit(trx, {
           ...auditContext(req),
           action: 'FLOAT_STORE_OPENED',
           entityType: 'float_count',
           entityId: countId,
-          after: { branch: branch.name },
+          after: { branch: branch.name, submitted: lines, pending },
         });
         return {
           id: countId,
           date,
-          balances: Object.fromEntries(accounts.map((a) => [a.kind, Number(a.balance)])),
+          pending,
+          results,
+          balances: Object.fromEntries(lines.map((l) => [l.kind, l.counted])),
         };
       });
       res.status(201).json(out);
+    }),
+  );
+
+  // The Operations Officer confirms an opening or closing, correcting the figures if needed.
+  router.post(
+    '/counts/:id/confirm',
+    asyncHandler(async (req, res) => {
+      must(f(req).floatSupervise, 'Only the Operations Officer confirms openings and closings.');
+      const id = idParam(req);
+      const input = z
+        .object({
+          lines: z
+            .array(z.object({ kind: z.enum(KINDS), counted: z.coerce.number().min(0).max(100000000) }))
+            .nullish(),
+          comment: optionalText(1000),
+        })
+        .parse(req.body ?? {});
+      const s = await getSettings(db);
+      const out = await db.transaction(async (trx) => {
+        const count = await trx('float_counts').where({ id }).forUpdate().first();
+        if (!count || count.status !== 'PENDING') throw conflict('This is not waiting to be confirmed.');
+        if (count.counted_by === req.user.id) throw forbidden('Someone else must confirm your own count.');
+        const branch = await trx('stock_branches').where({ id: count.branch_id }).first('id', 'name');
+        const submitted =
+          typeof count.submitted === 'string' ? JSON.parse(count.submitted) : (count.submitted ?? []);
+        const lines = input.lines?.length ? input.lines : submitted;
+        const corrected = JSON.stringify(lines) !== JSON.stringify(submitted);
+        if (corrected && !input.comment) throw badRequest('Say why the figures were corrected.');
+        await trx('float_counts')
+          .where({ id })
+          .update({
+            status: 'CONFIRMED',
+            confirmed_by: req.user.id,
+            confirmed_at: trx.fn.now(),
+            confirm_comment: input.comment,
+          });
+        const results = await applyCount(trx, {
+          count,
+          branch,
+          lines,
+          by: req.user.id,
+          tolerance: s.cashTolerance,
+        });
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: count.kind === 'OPEN' ? 'FLOAT_OPENING_CONFIRMED' : 'FLOAT_CLOSING_CONFIRMED',
+          entityType: 'float_count',
+          entityId: id,
+          before: { submitted },
+          after: { confirmed: lines, comment: input.comment },
+        });
+        await notify(trx, {
+          recipients: [count.counted_by],
+          event: count.kind === 'OPEN' ? 'FLOAT_OPENING_CONFIRMED' : 'FLOAT_CLOSING_CONFIRMED',
+          title:
+            count.kind === 'OPEN'
+              ? `Opening confirmed at ${branch.name}: you can start trading`
+              : `Closing confirmed at ${branch.name}: the daily report has been sent`,
+          body: corrected
+            ? `The figures were corrected: ${input.comment}`
+            : 'The figures were confirmed as entered.',
+          link: '/requisitions/float/branch',
+          entityType: 'float_count',
+          entityId: id,
+        });
+        return { count, branch, results };
+      });
+      if (out.count.kind === 'CLOSE')
+        await sendCloseReport(s, out.branch, out.count.business_date, id, []);
+      res.json({ id, results: out.results });
     }),
   );
 
@@ -1032,6 +1244,20 @@ export function floatRoutes({ db }) {
               .select('id', 'first_name', 'last_name')
           ).map((e) => [e.id, name(e.first_name, e.last_name)]),
         );
+      const confirmations = c.floatSupervise
+        ? await db('float_counts as fc')
+            .join('stock_branches as b', 'b.id', 'fc.branch_id')
+            .join('employees as e', 'e.id', 'fc.counted_by')
+            .where('fc.status', 'PENDING')
+            .orderBy('fc.id')
+            .select('fc.*', 'b.name as branch', 'e.first_name', 'e.last_name')
+        : [];
+      const books = confirmations.length
+        ? await db('float_accounts').whereIn(
+            'branch_id',
+            confirmations.map((x) => x.branch_id),
+          )
+        : [];
       const movements = c.floatSupervise
         ? await db('float_movements').where({ status: 'PENDING' }).orderBy('id')
         : [];
@@ -1086,6 +1312,19 @@ export function floatRoutes({ db }) {
           at: t.recorded_at,
         })),
         variances: variances.map(varianceView),
+        confirmations: confirmations.map((x) => ({
+          id: x.id,
+          kind: x.kind,
+          branch: x.branch,
+          date: x.business_date,
+          at: x.created_at,
+          by: { id: x.counted_by, firstName: x.first_name, lastName: x.last_name },
+          commission: x.commission == null ? null : Number(x.commission),
+          submitted: typeof x.submitted === 'string' ? JSON.parse(x.submitted) : (x.submitted ?? []),
+          books: Object.fromEntries(
+            books.filter((a) => a.branch_id === x.branch_id).map((a) => [a.kind, Number(a.balance)]),
+          ),
+        })),
       });
     }),
   );
@@ -1706,7 +1945,9 @@ export function floatRoutes({ db }) {
         items: rows.map((q) => reqView(q, u, mine?.id)),
         canRaise: actsAnywhere(req) || (c.floatRecord && Boolean(mine)),
         branch: mine,
-        branches: actsAnywhere(req) ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name })) : null,
+        branches: actsAnywhere(req)
+          ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name }))
+          : null,
       });
     }),
   );

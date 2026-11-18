@@ -250,7 +250,7 @@ export async function buildDay(db, settings, date, branchIds = null) {
       .select('c.*', 'e.first_name', 'e.last_name'),
     db('float_counts')
       .whereIn('branch_id', none)
-      .where({ kind: 'CLOSE' })
+      .where({ kind: 'CLOSE', status: 'CONFIRMED' })
       .whereBetween('business_date', [`${month}-01`, date])
       .orderBy('id')
       .select('id', 'branch_id', 'business_date', 'commission'),
@@ -266,7 +266,7 @@ export async function buildDay(db, settings, date, branchIds = null) {
     .whereIn('c.branch_id', none)
     .where({ 'c.business_date': date, 'c.kind': 'OPEN' })
     .orderBy('c.id')
-    .select('c.id', 'c.branch_id', 'c.created_at', 'e.first_name', 'e.last_name');
+    .select('c.id', 'c.branch_id', 'c.created_at', 'c.status', 'e.first_name', 'e.last_name');
   const firstOpen = new Map();
   for (const o of opens) if (!firstOpen.has(o.branch_id)) firstOpen.set(o.branch_id, o);
   // Opening balances: what the store opened with; without an opening, the books before the day
@@ -298,7 +298,11 @@ export async function buildDay(db, settings, date, branchIds = null) {
     return round2(line ? line.counted : (before.find((x) => x.branch_id === id && x.kind === kind)?.s ?? 0));
   };
   const lastClose = new Map();
-  for (const c of closes) lastClose.set(c.branch_id, c);
+  const closePending = new Set();
+  for (const c of closes) {
+    if (c.status === 'PENDING') closePending.add(c.branch_id);
+    else lastClose.set(c.branch_id, c);
+  }
   const lines = lastClose.size
     ? await db('float_count_lines as l')
         .join('float_accounts as a', 'a.id', 'l.account_id')
@@ -351,6 +355,8 @@ export async function buildDay(db, settings, date, branchIds = null) {
       hours: h,
       tradingDay: h.workingDays.includes(dayCode(date)),
       openedAt: firstOpen.get(b.id)?.created_at ?? null,
+      openPending: firstOpen.get(b.id)?.status === 'PENDING',
+      closePending: closePending.has(b.id),
       openedBy: firstOpen.get(b.id)
         ? { firstName: firstOpen.get(b.id).first_name, lastName: firstOpen.get(b.id).last_name }
         : null,

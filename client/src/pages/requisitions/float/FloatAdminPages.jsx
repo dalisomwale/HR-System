@@ -275,6 +275,8 @@ export function FloatDailyPage() {
                     <Td className="whitespace-nowrap">
                       {r.signedOut ? (
                         timeOf(r.signedOutAt)
+                      ) : r.closePending ? (
+                        <Badge tone="pending">To confirm</Badge>
                       ) : r.tradingDay ? (
                         <Badge tone="pending">Open</Badge>
                       ) : (

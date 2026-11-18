@@ -83,7 +83,21 @@ beforeEach(async () => {
   await giveRole('hr', 'AMS HR');
 });
 
-const open = () => as(people.teller).post('/api/float/open');
+// Branch staff open and close; the Operations Officer confirms (D124).
+const confirmLast = async (body = {}) => {
+  const c = await db('float_counts').where({ status: 'PENDING' }).orderBy('id', 'desc').first('id');
+  return as(people.officer).post(`/api/float/counts/${c.id}/confirm`, body);
+};
+const open = async (body = {}) => {
+  const r = await as(people.teller).post('/api/float/open', body);
+  if (r.status === 201) await confirmLast();
+  return r;
+};
+const close = async (body) => {
+  const r = await as(people.teller).post('/api/float/counts', { kind: 'CLOSE', ...body });
+  const c = await confirmLast();
+  return { r, c };
+};
 const txn = (network, kind, amount, extra = {}) =>
   as(people.teller).post('/api/float/transactions', { network, kind, amount, ...extra });
 
@@ -92,9 +106,12 @@ describe('AMS cash and float (D117, D121)', () => {
     const before = await txn('AIRTEL', 'DEPOSIT', 300);
     expect(before.status).toBe(409);
     expect(before.body.error.code).toBe('STORE_NOT_OPEN');
-    const o = await open();
+    const o = await as(people.teller).post('/api/float/open', {});
     expect(o.status, JSON.stringify(o.body)).toBe(201);
-    expect(o.body.balances).toEqual({ CASH: 2000, AIRTEL: 1000, MTN: 1000 });
+    expect(o.body).toMatchObject({ pending: true, balances: { CASH: 2000, AIRTEL: 1000, MTN: 1000 } });
+    // Waiting for the Operations Officer: no trading yet.
+    expect((await txn('AIRTEL', 'DEPOSIT', 300)).body.error.code).toBe('OPENING_NOT_CONFIRMED');
+    expect((await confirmLast()).status).toBe(200);
     expect((await open()).status).toBe(409); // already open
     expect((await txn('AIRTEL', 'DEPOSIT', 300)).status).toBe(201);
     expect(await balances(branch)).toEqual({ CASH: 2300, AIRTEL: 700, MTN: 1000 });
@@ -107,7 +124,7 @@ describe('AMS cash and float (D117, D121)', () => {
     expect((await txn('MTN', 'WITHDRAWAL', 5000)).status).toBe(409); // not enough cash
     // Close: the day's transactions are closed and the report goes to the officer, manager,
     // director and System Admin.
-    const close = await as(people.teller).post('/api/float/counts', {
+    const closing = await as(people.teller).post('/api/float/counts', {
       kind: 'CLOSE',
       lines: [
         { kind: 'CASH', counted: 2600 },
@@ -116,7 +133,19 @@ describe('AMS cash and float (D117, D121)', () => {
       ],
       commission: 12,
     });
-    expect(close.status, JSON.stringify(close.body)).toBe(201);
+    expect(closing.status, JSON.stringify(closing.body)).toBe(201);
+    expect(closing.body).toMatchObject({ pending: true, report: null });
+    expect(await notes(ids.officer, 'FLOAT_COUNT_TO_CONFIRM')).toHaveLength(2); // opening and closing
+    // Recording stops at once; the report waits for the Operations Officer.
+    expect((await txn('MTN', 'DEPOSIT', 10)).body.error.code).toBe('STORE_CLOSED');
+    expect(await notes(ids.director, 'FLOAT_SIGNED_OUT')).toHaveLength(0);
+    expect((await confirmLast()).status).toBe(200);
+    const today0 = todayInLusaka();
+    const close = {
+      body: {
+        report: (await as(people.officer).get(`/api/float/daily?from=${today0}&to=${today0}`)).body.rows[0],
+      },
+    };
     expect(close.body.report).toMatchObject({
       signedOut: true,
       openingCash: 2000,
@@ -128,8 +157,6 @@ describe('AMS cash and float (D117, D121)', () => {
     for (const k of ['officer', 'manager', 'director', 'admin']) {
       expect(await notes(ids[k], 'FLOAT_SIGNED_OUT')).toHaveLength(1);
     }
-    const after = await txn('MTN', 'DEPOSIT', 10);
-    expect(after.body.error.code).toBe('STORE_CLOSED');
   });
 
   it('sends staff requests to the Operations Officer, who approves them', async () => {
@@ -242,13 +269,14 @@ describe('AMS cash and float (D117, D121)', () => {
     });
     const big = await db('float_variances').orderBy('id', 'desc').first();
     expect(Number(big.amount)).toBe(-1500);
-    await as(people.teller).post('/api/float/counts', {
-      kind: 'CLOSE',
+    await close({
       lines: [{ kind: 'CASH', counted: 300 }],
     });
     const small = await db('float_variances').orderBy('id', 'desc').first();
     expect(Number(small.amount)).toBe(-200);
-    expect(await notes(ids.officer, 'FLOAT_VARIANCE')).toHaveLength(2);
+    // The handover's difference is sent to the officer; the closing's they saw as they confirmed it.
+    expect(await notes(ids.officer, 'FLOAT_VARIANCE')).toHaveLength(1);
+    expect(small.employee_id).toBe(ids.teller); // against the person who counted, not the confirmer
     const hr = (await as(people.hr).get('/api/float/variances')).body;
     expect(hr.byStaff).toEqual([expect.objectContaining({ id: ids.teller, count: 2, total: 1700 })]);
     expect(
@@ -275,8 +303,7 @@ describe('AMS cash and float (D117, D121)', () => {
     const d = await txn('AIRTEL', 'DEPOSIT', 500);
     await txn('MTN', 'WITHDRAWAL', 200);
     await as(people.teller).post('/api/float/turned-down', { reason: 'NO_FLOAT' });
-    await as(people.teller).post('/api/float/counts', {
-      kind: 'CLOSE',
+    await close({
       lines: [
         { kind: 'CASH', counted: 2300 },
         { kind: 'AIRTEL', counted: 500 },
@@ -395,5 +422,51 @@ describe('AMS cash and float (D117, D121)', () => {
     expect(
       (await as(people.teller).post('/api/float/turned-down', { reason: 'OTHER', branchId: 999 })).status,
     ).toBe(201);
+  });
+
+  it('opens with counted balances, filled in from the last closing (D123)', async () => {
+    // Day 1: open and close with what was counted.
+    await open();
+    await close({
+      lines: [
+        { kind: 'CASH', counted: 1990 },
+        { kind: 'AIRTEL', counted: 1000 },
+        { kind: 'MTN', counted: 1000 },
+      ],
+    });
+    // Pretend that close was yesterday, so today can open again.
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    await db('float_counts').update({ business_date: yesterday });
+    await db('float_entries').update({ business_date: yesterday });
+    const view = (await as(people.teller).get('/api/float/branch')).body;
+    expect(view.previousClose).toMatchObject({
+      date: yesterday,
+      balances: { CASH: 1990, AIRTEL: 1000, MTN: 1000 },
+    });
+    // Opening with K300 less cash than the closing: a deficit, and the Operations Officer is told.
+    const o = await as(people.teller).post('/api/float/open', {
+      lines: [
+        { kind: 'CASH', counted: 1690 },
+        { kind: 'AIRTEL', counted: 1000 },
+        { kind: 'MTN', counted: 1000 },
+      ],
+    });
+    expect(o.status, JSON.stringify(o.body)).toBe(201);
+    // The Operations Officer cannot change the figures without saying why.
+    expect((await confirmLast({ lines: [{ kind: 'CASH', counted: 1700 }] })).status).toBe(400);
+    const confirmed = await confirmLast();
+    expect(confirmed.body.results.find((r) => r.kind === 'CASH')).toMatchObject({
+      expected: 1990,
+      counted: 1690,
+      difference: -300,
+      recorded: true,
+    });
+    expect((await balances(branch)).CASH).toBe(1690);
+    const opening = await db('float_variances').orderBy('id', 'desc').first();
+    expect(opening).toMatchObject({ employee_id: ids.teller });
+    expect(Number(opening.amount)).toBe(-300);
+    const today = todayInLusaka();
+    const rep = (await as(people.officer).get(`/api/float/daily?from=${today}&to=${today}`)).body.rows[0];
+    expect(rep).toMatchObject({ openingCash: 1690, openingFloat: 2000 });
   });
 });

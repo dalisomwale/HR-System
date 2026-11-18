@@ -355,7 +355,12 @@ export function FloatApprovalsPage() {
       setBusy(null);
     }
   };
-  const nothing = !d.movements.length && !d.reversals.length && !d.large.length && !d.variances.length;
+  const nothing =
+    !d.confirmations.length &&
+    !d.movements.length &&
+    !d.reversals.length &&
+    !d.large.length &&
+    !d.variances.length;
   const yesNo = (key, path, extra = {}) => (
     <div className="flex gap-2">
       <Button
@@ -384,6 +389,30 @@ export function FloatApprovalsPage() {
           <div className="card p-0">
             <EmptyState title="Nothing waiting for you." />
           </div>
+        )}
+        {d.confirmations.length > 0 && (
+          <Section
+            title="Openings and closings to confirm"
+            description="Check the figures the branch entered against the books, correct them if needed, and confirm."
+            className="border-brand ring-1 ring-brand"
+          >
+            <div className="stack">
+              {d.confirmations.map((x) => (
+                <ConfirmCount
+                  key={x.id}
+                  count={x}
+                  mine={x.by.id === d.me}
+                  onDone={(text) => {
+                    setMsg({ tone: 'ok', text });
+                    qc.invalidateQueries({ queryKey: ['float-approvals'] });
+                    qc.invalidateQueries({ queryKey: ['float-me'] });
+                    qc.invalidateQueries({ queryKey: ['float-dashboard'] });
+                    qc.invalidateQueries({ queryKey: ['float-daily'] });
+                  }}
+                />
+              ))}
+            </div>
+          </Section>
         )}
         {d.movements.length > 0 && (
           <Section title="Top-ups and transfers">
@@ -511,6 +540,84 @@ export function FloatApprovalsPage() {
           </Section>
         )}
       </div>
+    </div>
+  );
+}
+
+/** One opening or closing: the figures entered against the books, editable, then confirm (D124). */
+function ConfirmCount({ count: x, mine, onDone }) {
+  const [v, setV] = useState(() => Object.fromEntries(x.submitted.map((l) => [l.kind, String(l.counted)])));
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const changed = x.submitted.some((l) => Number(v[l.kind]) !== Number(l.counted));
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.post(`/api/float/counts/${x.id}/confirm`, {
+        lines: x.submitted.map((l) => ({ kind: l.kind, counted: Number(v[l.kind]) || 0 })),
+        comment: comment.trim() || null,
+      });
+      onDone(
+        x.kind === 'OPEN'
+          ? `${x.branch}'s opening confirmed: they can start trading.`
+          : `${x.branch}'s closing confirmed: the daily report has been sent.`,
+      );
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="rounded-md border border-rule p-3 text-sm">
+      <p className="font-semibold">
+        {x.kind === 'OPEN' ? 'Opening' : 'Closing'} · {x.branch} · {formatDate(x.date)}
+      </p>
+      <p className="text-muted">
+        Entered by {x.by.firstName} {x.by.lastName} at {timeOf(x.at)}
+        {x.commission != null ? ` · commission ${money(x.commission)}` : ''}
+      </p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-3">
+        {x.submitted.map((l) => {
+          const diff = Math.round(((Number(v[l.kind]) || 0) - (x.books[l.kind] ?? 0)) * 100) / 100;
+          return (
+            <Field
+              key={l.kind}
+              id={`cf-${x.id}-${l.kind}`}
+              label={`${ACCOUNT[l.kind]} (K)`}
+              hint={`Books ${money(x.books[l.kind] ?? 0)}${diff ? ` · ${diff > 0 ? 'over' : 'short'} ${money(Math.abs(diff))}` : ' · matches'}`}
+            >
+              <Input
+                id={`cf-${x.id}-${l.kind}`}
+                type="number"
+                min={0}
+                step="0.01"
+                disabled={mine}
+                value={v[l.kind]}
+                onChange={(e) => setV({ ...v, [l.kind]: e.target.value })}
+              />
+            </Field>
+          );
+        })}
+      </div>
+      {!mine && (
+        <div className="mt-2 space-y-2">
+          <Field
+            id={`cfc-${x.id}`}
+            label="Comment"
+            hint={changed ? 'Required: say why you corrected the figures.' : 'Optional.'}
+          >
+            <Input id={`cfc-${x.id}`} value={comment} onChange={(e) => setComment(e.target.value)} />
+          </Field>
+          {error && <Notice tone="danger">{error}</Notice>}
+          <Button busy={busy} disabled={changed && !comment.trim()} onClick={confirm}>
+            {changed ? 'Correct and confirm' : 'Confirm'}
+          </Button>
+        </div>
+      )}
+      {mine && <p className="mt-2 text-muted">You entered this, so someone else confirms it.</p>}
     </div>
   );
 }

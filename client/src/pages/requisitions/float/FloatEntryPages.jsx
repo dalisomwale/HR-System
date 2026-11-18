@@ -93,29 +93,82 @@ export function BranchPicker({ branches, value, onChange }) {
 
 /** Opening the store (D121): one tap clocks the time and the balances it opens with. */
 function OpenStore({ data, onDone }) {
+  // Filled in from the last closing (D123); anyone opening checks it and corrects what differs.
+  const start =
+    data.previousClose?.balances ?? Object.fromEntries(data.accounts.map((a) => [a.kind, a.balance]));
+  const [v, setV] = useState(() =>
+    Object.fromEntries(['CASH', 'AIRTEL', 'MTN'].map((k) => [k, String(start[k] ?? 0)])),
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const open = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.post('/api/float/open', { branchId: data.branch.id });
-      onDone('Store open. You can record transactions now.');
+      const r = await api.post('/api/float/open', {
+        branchId: data.branch.id,
+        lines: Object.entries(v).map(([kind, x]) => ({ kind, counted: Number(x) || 0 })),
+      });
+      if (r.pending) {
+        onDone(
+          'Opening sent to the Operations Officer. You can start recording once they confirm it.',
+          'pending',
+        );
+        return;
+      }
+      const off = r.results.filter((x) => x.difference !== 0);
+      onDone(
+        off.length
+          ? `Store open. ${off
+              .map(
+                (x) =>
+                  `${ACCOUNT[x.kind]} ${x.difference > 0 ? 'over' : 'short'} by ${money(Math.abs(x.difference))}`,
+              )
+              .join(
+                ', ',
+              )} compared with the last closing${off.some((x) => x.recorded) ? '; the Operations Officer has been told' : ''}.`
+          : 'Store open. You can record transactions now.',
+        off.some((x) => x.recorded) ? 'pending' : 'ok',
+      );
     } catch (err) {
       setError(errorText(err));
     } finally {
       setBusy(false);
     }
   };
+  const valid = Object.values(v).every((x) => x !== '' && Number(x) >= 0);
   return (
-    <Section title="Open the store" className="border-brand ring-1 ring-brand">
+    <Section
+      title="Open the store"
+      description={
+        data.previousClose
+          ? `Filled in from the closing on ${data.previousClose.date}. Count and correct anything that is different.`
+          : 'Count what you are opening with.'
+      }
+      className="border-brand ring-1 ring-brand"
+    >
       <div className="stack">
-        <p className="text-sm">
-          Tap Open store when you start work. It records the time and the balances you open with:{' '}
-          {data.accounts.map((a) => `${a.label} ${money(a.balance)}`).join(', ')}.
-        </p>
+        <div className="form-row">
+          {['CASH', 'AIRTEL', 'MTN'].map((k) => (
+            <Field
+              key={k}
+              id={`op-${k}`}
+              label={`Opening ${k === 'CASH' ? 'cash' : `${ACCOUNT[k]} float`} (K)`}
+            >
+              <Input
+                id={`op-${k}`}
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={v[k]}
+                onChange={(e) => setV({ ...v, [k]: e.target.value })}
+              />
+            </Field>
+          ))}
+        </div>
         {error && <Notice tone="danger">{error}</Notice>}
-        <Button className="min-h-12 text-base" busy={busy} onClick={open}>
+        <Button className="min-h-12 text-base" busy={busy} disabled={!valid} onClick={open}>
           Open store
         </Button>
       </div>
@@ -183,7 +236,30 @@ export function FloatRecordPage() {
       <div className="max-w-2xl">
         <PageHeader title="Record a transaction" description={branch.name} />
         {picker}
-        <OpenStore data={today.data} onDone={() => qc.invalidateQueries({ queryKey: ['float-branch'] })} />
+        <OpenStore
+          data={today.data}
+          onDone={(text, tone = 'ok') => {
+            setMsg({ tone, text });
+            qc.invalidateQueries({ queryKey: ['float-branch'] });
+          }}
+        />
+      </div>
+    );
+  }
+  if (today.data.opened?.pending) {
+    return (
+      <div className="max-w-2xl">
+        <PageHeader title="Record a transaction" description={branch.name} />
+        {picker}
+        {msg && (
+          <div className="mb-4">
+            <Notice tone={msg.tone}>{msg.text}</Notice>
+          </div>
+        )}
+        <Notice tone="pending" title="Waiting for the Operations Officer">
+          Your opening figures have been sent. You can record transactions once the Operations Officer
+          confirms them.
+        </Notice>
       </div>
     );
   }
@@ -394,6 +470,7 @@ export function FloatBranchPage() {
         actions={
           d.canRecord &&
           d.opened &&
+          !d.opened.pending &&
           !d.closed && (
             <>
               <Link
@@ -421,12 +498,23 @@ export function FloatBranchPage() {
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {d.canRecord && !d.opened && !d.closed && <OpenStore data={d} onDone={refresh} />}
-        {d.closed && (
-          <Notice tone="neutral" title="Store closed">
-            The day's transactions are closed and the daily report has gone to the Operations Officer, the
-            managers, the directors and the System Admin.
+        {d.opened?.pending && (
+          <Notice tone="pending" title="Opening waiting for the Operations Officer">
+            Recording starts once the Operations Officer confirms the opening figures.
           </Notice>
         )}
+        {d.closed &&
+          (d.closePending ? (
+            <Notice tone="pending" title="Closing waiting for the Operations Officer">
+              The day's transactions are closed. The daily report goes out once the Operations Officer
+              confirms the closing figures.
+            </Notice>
+          ) : (
+            <Notice tone="neutral" title="Store closed">
+              The day's transactions are closed and the daily report has gone to the Operations Officer, the
+              managers, the directors and the System Admin.
+            </Notice>
+          ))}
         <Balances accounts={d.accounts} />
         {(panel === 'CLOSE' || panel === 'HANDOVER') && (
           <CountForm data={d} kind={panel} onDone={refresh} onCancel={() => setPanel(null)} />
@@ -569,7 +657,11 @@ function CountForm({ data, kind, onDone, onCancel }) {
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [commission, setCommission] = useState('');
-  const cash = Math.round(DENOMINATIONS.reduce((s, dn) => s + dn * (Number(notes[dn]) || 0), 0) * 100) / 100;
+  const [byNotes, setByNotes] = useState(false);
+  const [cashTyped, setCashTyped] = useState('');
+  const noteTotal =
+    Math.round(DENOMINATIONS.reduce((s, dn) => s + dn * (Number(notes[dn]) || 0), 0) * 100) / 100;
+  const cash = byNotes ? noteTotal : Number(cashTyped) || 0;
   const expected = Object.fromEntries(data.accounts.map((a) => [a.kind, a.balance]));
   const lines = [
     { kind: 'CASH', counted: cash },
@@ -586,7 +678,9 @@ function CountForm({ data, kind, onDone, onCancel }) {
         kind,
         handedTo: kind === 'HANDOVER' ? Number(handedTo) : null,
         lines,
-        denominations: Object.fromEntries(Object.entries(notes).filter(([, v]) => Number(v) > 0)),
+        denominations: byNotes
+          ? Object.fromEntries(Object.entries(notes).filter(([, v]) => Number(v) > 0))
+          : null,
         notes: comment.trim() || null,
         commission: kind === 'CLOSE' && commission !== '' ? Number(commission) : null,
       });
@@ -598,6 +692,19 @@ function CountForm({ data, kind, onDone, onCancel }) {
       setBusy(false);
     }
   };
+  if (result && result.length === 0 && kind === 'CLOSE') {
+    return (
+      <Section title="Store closed" className="border-brand ring-1 ring-brand">
+        <Notice tone="pending" title="Sent to the Operations Officer">
+          The day's transactions are closed. Your closing figures have gone to the Operations Officer; the
+          daily report goes out once they confirm them.
+        </Notice>
+        <div className="mt-3">
+          <Button onClick={() => onDone(null)}>Done</Button>
+        </div>
+      </Section>
+    );
+  }
   if (result) {
     const off = result.filter((r) => r.recorded);
     return (
@@ -657,32 +764,56 @@ function CountForm({ data, kind, onDone, onCancel }) {
           </Field>
         )}
         <div>
-          <p className="mb-2 text-sm font-semibold">Cash: how many of each</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {DENOMINATIONS.map((dn) => (
-              <Field key={dn} id={`dn-${dn}`} label={dn < 1 ? '50n' : `K${dn}`}>
-                <Input
-                  id={`dn-${dn}`}
-                  type="number"
-                  min={0}
-                  inputMode="numeric"
-                  value={notes[dn] ?? ''}
-                  onChange={(e) => setNotes({ ...notes, [dn]: e.target.value })}
-                />
-              </Field>
-            ))}
+          <div className="flex flex-wrap items-end gap-3">
+            <Field
+              id="ct-cash"
+              label={`${kind === 'CLOSE' ? 'Closing cash' : 'Cash'} (K)`}
+              hint={`The books say ${money(expected.CASH ?? 0)}.`}
+            >
+              <Input
+                id="ct-cash"
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                disabled={byNotes}
+                value={byNotes ? String(noteTotal) : cashTyped}
+                onChange={(e) => setCashTyped(e.target.value)}
+              />
+            </Field>
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 accent-brand"
+                checked={byNotes}
+                onChange={(e) => setByNotes(e.target.checked)}
+              />
+              Count it note by note
+            </label>
           </div>
-          <p className="mt-2 text-sm">
-            Cash counted: <span className="font-semibold">{money(cash)}</span>{' '}
-            <span className="text-muted">(the books say {money(expected.CASH ?? 0)})</span>
-          </p>
+          {byNotes && (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {DENOMINATIONS.map((dn) => (
+                <Field key={dn} id={`dn-${dn}`} label={dn < 1 ? '50n' : `K${dn}`}>
+                  <Input
+                    id={`dn-${dn}`}
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={notes[dn] ?? ''}
+                    onChange={(e) => setNotes({ ...notes, [dn]: e.target.value })}
+                  />
+                </Field>
+              ))}
+            </div>
+          )}
         </div>
         <div className="form-row">
           {['AIRTEL', 'MTN'].map((k) => (
             <Field
               key={k}
               id={`ph-${k}`}
-              label={`${ACCOUNT[k]} balance on the phone`}
+              label={`${kind === 'CLOSE' ? 'Closing ' : ''}${ACCOUNT[k]} float on the phone (K)`}
               hint={`The books say ${money(expected[k] ?? 0)}.`}
             >
               <Input
