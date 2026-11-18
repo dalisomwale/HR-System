@@ -25,6 +25,8 @@ import { requisitionRoutes } from './modules/requisitions/requisitions.routes.js
 import { stockRoutes } from './modules/requisitions/stock.routes.js';
 import { inventoryAdminRoutes } from './modules/requisitions/inventory-admin.routes.js';
 import { accessRoutes } from './modules/access/access.routes.js';
+import { recruitmentRoutes } from './modules/recruitment/recruitment.routes.js';
+import { performanceRoutes } from './modules/performance/performance.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -164,6 +166,10 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   app.use('/api/people', peopleRoutes(deps));
   app.use('/api/notifications', notificationRoutes(deps));
   app.use('/api/reports', reportRoutes(deps));
+  // Recruitment management (D114).
+  app.use('/api/recruitment', recruitmentRoutes(deps));
+  // Performance management (D115).
+  app.use('/api/performance', performanceRoutes(deps));
 
   app.use('/api', notFoundHandler);
 

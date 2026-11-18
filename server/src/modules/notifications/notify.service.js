@@ -1,4 +1,4 @@
-import { renderEmail } from './mail-template.js';
+import { renderEmail, SUBJECT_SUFFIX } from './mail-template.js';
 import { ruleFor } from './catalog.js';
 
 /*
@@ -69,7 +69,7 @@ export async function notify(trx, { recipients, event, title, body, link, entity
           recipient_id: p.id,
           to_address: p.email,
           subject:
-            `${email.subject ?? title} - Altus Group ${email.app === 'inventory' ? 'Inventory' : 'Leave'}`.slice(
+            `${email.subject ?? title} - Altus Group ${SUBJECT_SUFFIX[email.app] ?? SUBJECT_SUFFIX.leave}`.slice(
               0,
               255,
             ),

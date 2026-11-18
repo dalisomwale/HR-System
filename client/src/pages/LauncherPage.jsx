@@ -15,7 +15,8 @@ import { useRq } from './requisitions/rq.js';
 
 /*
  * The first page after sign-in: the Altus Group HR applications. Leave management is live
- * (phase 1); the others are shown as coming soon to HR, System Administrators and directors.
+ * (phase 1); Recruitment and Performance management are open to everyone (D114, D115); the
+ * others are shown as coming soon to HR, System Administrators and directors.
  * Everyone else sees only the applications they use: Leave management and My profile.
  */
 
@@ -46,18 +47,22 @@ const APPS = [
     requisitions: true,
   },
   {
+    // Live from 18 Nov 2026 (D114): everyone sees open positions and their applications.
     id: 'recruitment',
     name: 'Recruitment management',
-    description: 'Vacancies and applicants',
+    description: 'Hiring requests, vacancies and applicants',
     icon: Briefcase,
-    comingSoon: true,
+    to: '/recruitment',
+    everyone: true,
   },
   {
+    // Live from 18 Nov 2026 (D115): everyone has their own appraisal.
     id: 'performance',
     name: 'Performance management',
-    description: 'Goals and appraisals',
+    description: 'Goals, appraisals and probation',
     icon: TrendingUp,
-    comingSoon: true,
+    to: '/performance',
+    everyone: true,
   },
   {
     id: 'shifts',
@@ -84,7 +89,14 @@ const APPS = [
 ];
 
 // Each live application keeps its own colour, as the inventory dashboard's tiles do.
-const TONES = { leave: 'receive', employees: 'stock', requisitions: 'request', profile: 'reports' };
+const TONES = {
+  leave: 'receive',
+  employees: 'stock',
+  requisitions: 'request',
+  recruitment: 'issue',
+  performance: 'stock',
+  profile: 'reports',
+};
 
 export default function LauncherPage() {
   const { data: me } = useMe();

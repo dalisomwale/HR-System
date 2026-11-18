@@ -29,6 +29,8 @@ const MODULE_ROLES = {
   ],
   leave: ['System Admin', 'HR Officer', 'Director'],
   people: ['System Admin', 'HR Officer', 'Director'],
+  recruitment: ['System Admin', 'HR Officer', 'Director'],
+  performance: ['System Admin', 'HR Officer', 'Director'],
 };
 
 // Leave types installed by migration 009 from the Altus policy.

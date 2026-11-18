@@ -5,6 +5,13 @@ import {
   ArrowLeft,
   Bell,
   BellRing,
+  Briefcase,
+  CalendarRange,
+  Target,
+  CalendarClock,
+  ClipboardList,
+  FileText,
+  UserSearch,
   FileBarChart,
   Mail,
   House,
@@ -46,6 +53,9 @@ import { api } from '../lib/api.js';
 import LeaveTrail from './LeaveTrail.jsx';
 import { LogOutButton, PageFooter, UserAvatar } from './AppFrame.jsx';
 import RequisitionsTrail from './RequisitionsTrail.jsx';
+import ModuleTrail from './ModuleTrail.jsx';
+import { useRc } from '../pages/recruitment/rc.js';
+import { usePf } from '../pages/performance/pf.js';
 import { useRq } from '../pages/requisitions/rq.js';
 import { can, useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
@@ -490,6 +500,104 @@ function RequisitionsNav({ onNavigate }) {
   );
 }
 
+/** Recruitment management's menu (D114): what each person does, from their role in it. */
+function RecruitmentNav({ user, onNavigate }) {
+  const rc = useRc();
+  const a = rc.data ?? {};
+  const c = a.counts ?? {};
+  const hiring = [
+    { to: '/recruitment', label: 'Dashboard', icon: LayoutGrid, end: true },
+    ...(a.raise || a.review || a.approve || a.requestsAll
+      ? [
+          {
+            to: '/recruitment/requests',
+            label: 'Hiring requests',
+            icon: ClipboardList,
+            count: 'requests',
+            except: '/recruitment/requests/new',
+          },
+        ]
+      : []),
+    ...(a.raise ? [{ to: '/recruitment/requests/new', label: 'Request a hire', icon: FilePlus2 }] : []),
+    ...(a.view || c.myVacancies > 0
+      ? [
+          {
+            to: '/recruitment/vacancies',
+            label: 'Vacancies',
+            icon: UserSearch,
+            except: '/recruitment/vacancies/new',
+          },
+        ]
+      : []),
+  ];
+  const mine = [
+    { to: '/recruitment/jobs', label: 'Open positions', icon: Briefcase },
+    { to: '/recruitment/applications', label: 'My applications', icon: FileText },
+    { to: '/recruitment/interviews', label: 'My interviews', icon: CalendarClock, count: 'feedback' },
+  ];
+  const admin = [
+    { to: '/recruitment/users', label: 'Users', icon: Users, perm: 'recruitment.users' },
+    { to: '/recruitment/roles', label: 'Roles', icon: KeyRound, perm: 'recruitment.roles' },
+    { to: '/recruitment/audit', label: 'Audit trail', icon: History, perm: 'recruitment.audit' },
+  ];
+  const counts = { requests: (c.toReview ?? 0) + (c.toApprove ?? 0), feedback: c.feedbackDue ?? 0 };
+  return (
+    <>
+      <NavGroup title="Hiring" items={hiring} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="My recruitment" items={mine} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="Admin" items={allowed(user, admin)} onNavigate={onNavigate} />
+    </>
+  );
+}
+
+/** Performance management's menu (D115). */
+function PerformanceNav({ user, onNavigate }) {
+  const pf = usePf();
+  const a = pf.data ?? {};
+  const c = a.counts ?? {};
+  const work = [
+    { to: '/performance', label: 'Dashboard', icon: LayoutGrid, end: true },
+    { to: '/performance/mine', label: 'My appraisals', icon: Target, count: 'mine' },
+    ...(a.isManager || a.viewAll
+      ? [
+          {
+            to: '/performance/team',
+            label: a.isManager ? 'My team' : 'Appraisals',
+            icon: UsersRound,
+            count: 'team',
+          },
+        ]
+      : []),
+    ...(a.isManager || a.probation || c.probation > 0
+      ? [{ to: '/performance/probation', label: 'Probation reviews', icon: UserCheck, count: 'probation' }]
+      : []),
+  ];
+  const hr =
+    a.cycles || a.viewAll
+      ? [
+          {
+            to: '/performance/cycles',
+            label: 'Review cycles',
+            icon: CalendarRange,
+            except: '/performance/cycles/new',
+          },
+        ]
+      : [];
+  const admin = [
+    { to: '/performance/users', label: 'Users', icon: Users, perm: 'performance.users' },
+    { to: '/performance/roles', label: 'Roles', icon: KeyRound, perm: 'performance.roles' },
+    { to: '/performance/audit', label: 'Audit trail', icon: History, perm: 'performance.audit' },
+  ];
+  const counts = { mine: c.mine ?? 0, team: (c.team ?? 0) + (c.signoff ?? 0), probation: c.probation ?? 0 };
+  return (
+    <>
+      <NavGroup title="Appraisals" items={work} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="HR" items={hr} onNavigate={onNavigate} />
+      <NavGroup title="Admin" items={allowed(user, admin)} onNavigate={onNavigate} />
+    </>
+  );
+}
+
 /** The leave system's menu: what each person does, from their role in it (D108). */
 function LeaveNav({ user, counts, onNavigate }) {
   const hr = allowed(user, HR).map((i) =>
@@ -524,6 +632,8 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const inPeople = pathname === '/people' || pathname.startsWith('/people/');
   const inRequisitions = pathname === '/requisitions' || pathname.startsWith('/requisitions/');
+  const inRecruitment = pathname === '/recruitment' || pathname.startsWith('/recruitment/');
+  const inPerformance = pathname === '/performance' || pathname.startsWith('/performance/');
   const placeBase = pathname.match(/^\/people\/(companies|departments)\/\d+/)?.[0] ?? null;
   const [menuOpen, setMenuOpen] = useState(false);
   // Unread notifications, refreshed every minute and when the window regains focus.
@@ -549,7 +659,15 @@ export default function AppShell() {
 
   // Their role in this module, then their positions. A System Administrator holds every right,
   // so that title alone is shown.
-  const moduleKey = inRequisitions ? 'inventory' : inPeople ? 'people' : 'leave';
+  const moduleKey = inRequisitions
+    ? 'inventory'
+    : inRecruitment
+      ? 'recruitment'
+      : inPerformance
+        ? 'performance'
+        : inPeople
+          ? 'people'
+          : 'leave';
   const roleText = hasRole(user, 'HR_ADMIN')
     ? [
         ...user.roles.filter((r) => r.endsWith('_DIRECTOR')).map((r) => ROLE_LABELS[r]),
@@ -563,7 +681,15 @@ export default function AppShell() {
         .filter(Boolean)
         .join(', ') || 'Employee';
   const close = () => setMenuOpen(false);
-  const appName = inRequisitions ? 'Inventory system' : inPeople ? 'Employee management' : 'Leave management';
+  const appName = inRequisitions
+    ? 'Inventory system'
+    : inRecruitment
+      ? 'Recruitment management'
+      : inPerformance
+        ? 'Performance management'
+        : inPeople
+          ? 'Employee management'
+          : 'Leave management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
@@ -573,6 +699,10 @@ export default function AppShell() {
       </Link>
       {inRequisitions ? (
         <RequisitionsNav onNavigate={close} />
+      ) : inRecruitment ? (
+        <RecruitmentNav user={user} onNavigate={close} />
+      ) : inPerformance ? (
+        <PerformanceNav user={user} onNavigate={close} />
       ) : inPeople ? (
         <>
           <NavGroup
@@ -678,7 +808,15 @@ export default function AppShell() {
         */}
         <div className="w-full max-w-[1400px] [&>*]:mx-0! [&>*]:max-w-none!">
           {/* Employee management pages show their own path; every other page gets this one. */}
-          {inRequisitions ? <RequisitionsTrail /> : !inPeople && <LeaveTrail />}
+          {inRequisitions ? (
+            <RequisitionsTrail />
+          ) : inRecruitment ? (
+            <ModuleTrail module="recruitment" />
+          ) : inPerformance ? (
+            <ModuleTrail module="performance" />
+          ) : (
+            !inPeople && <LeaveTrail />
+          )}
           <Outlet />
         </div>
         <PageFooter />

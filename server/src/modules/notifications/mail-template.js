@@ -13,6 +13,23 @@ const APPS = {
     open: 'Open in the inventory system',
     sent: 'the Altus Group inventory system',
   },
+  recruitment: {
+    name: 'Recruitment Management',
+    open: 'Open in the recruitment system',
+    sent: 'the Altus Group recruitment system',
+  },
+  performance: {
+    name: 'Performance Management',
+    open: 'Open in the performance system',
+    sent: 'the Altus Group performance system',
+  },
+};
+/** The end of each email subject, e.g. "- Altus Group Leave". */
+export const SUBJECT_SUFFIX = {
+  leave: 'Leave',
+  inventory: 'Inventory',
+  recruitment: 'Recruitment',
+  performance: 'Performance',
 };
 
 const escape = (s) =>

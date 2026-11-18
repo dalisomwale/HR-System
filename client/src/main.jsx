@@ -51,6 +51,19 @@ import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import StockAlertsPage from './pages/requisitions/StockAlertsPage.jsx';
+import RecruitmentHomePage from './pages/recruitment/RecruitmentHomePage.jsx';
+import {
+  HiringRequestFormPage,
+  HiringRequestPage,
+  HiringRequestsPage,
+} from './pages/recruitment/RequestsPages.jsx';
+import { VacanciesPage, VacancyFormPage, VacancyPage } from './pages/recruitment/VacancyPages.jsx';
+import CandidatePage from './pages/recruitment/CandidatePage.jsx';
+import { ApplicationsPage, InterviewsPage, JobsPage } from './pages/recruitment/StaffPages.jsx';
+import PerformanceHomePage from './pages/performance/PerformanceHomePage.jsx';
+import { AppraisalPage, MyAppraisalsPage, TeamAppraisalsPage } from './pages/performance/AppraisalPages.jsx';
+import { ProbationListPage, ProbationReviewPage } from './pages/performance/ProbationPages.jsx';
+import { CycleFormPage, CyclePage, CyclesPage } from './pages/performance/CyclesPages.jsx';
 import SuppliersPage from './pages/requisitions/SuppliersPage.jsx';
 import AccessUsersPage from './pages/access/AccessUsersPage.jsx';
 import AccessRolesPage from './pages/access/AccessRolesPage.jsx';
@@ -221,6 +234,69 @@ createRoot(document.getElementById('root')).render(
               <Route
                 path="audit"
                 element={rqPage(<AuditTrailPage module="inventory" />, (a) => a.auditAdmin)}
+              />
+            </Route>
+            {/* Recruitment management (D114): open to everyone for Open positions. */}
+            <Route path="recruitment">
+              <Route index element={<RecruitmentHomePage />} />
+              <Route path="requests" element={<HiringRequestsPage />} />
+              <Route path="requests/new" element={<HiringRequestFormPage />} />
+              <Route path="requests/:id" element={<HiringRequestPage />} />
+              <Route path="vacancies" element={<VacanciesPage />} />
+              <Route path="vacancies/new" element={need('recruitment.manage', <VacancyFormPage />)} />
+              <Route path="vacancies/:id" element={<VacancyPage />} />
+              <Route path="vacancies/:id/edit" element={need('recruitment.manage', <VacancyFormPage />)} />
+              <Route path="candidates/:id" element={<CandidatePage />} />
+              <Route path="jobs" element={<JobsPage />} />
+              <Route path="applications" element={<ApplicationsPage />} />
+              <Route path="interviews" element={<InterviewsPage />} />
+              <Route
+                path="users"
+                element={need(
+                  'recruitment.users',
+                  <AccessUsersPage module="recruitment" base="/recruitment" />,
+                )}
+              />
+              <Route
+                path="roles"
+                element={need(
+                  'recruitment.roles',
+                  <AccessRolesPage module="recruitment" base="/recruitment" />,
+                )}
+              />
+              <Route
+                path="audit"
+                element={need('recruitment.audit', <AuditTrailPage module="recruitment" />)}
+              />
+            </Route>
+            {/* Performance management (D115): everyone has their own appraisal. */}
+            <Route path="performance">
+              <Route index element={<PerformanceHomePage />} />
+              <Route path="mine" element={<MyAppraisalsPage />} />
+              <Route path="team" element={<TeamAppraisalsPage />} />
+              <Route path="appraisals/:id" element={<AppraisalPage />} />
+              <Route path="probation" element={<ProbationListPage />} />
+              <Route path="probation/:id" element={<ProbationReviewPage />} />
+              <Route path="cycles" element={<CyclesPage />} />
+              <Route path="cycles/new" element={need('performance.cycles', <CycleFormPage />)} />
+              <Route path="cycles/:id" element={<CyclePage />} />
+              <Route
+                path="users"
+                element={need(
+                  'performance.users',
+                  <AccessUsersPage module="performance" base="/performance" />,
+                )}
+              />
+              <Route
+                path="roles"
+                element={need(
+                  'performance.roles',
+                  <AccessRolesPage module="performance" base="/performance" />,
+                )}
+              />
+              <Route
+                path="audit"
+                element={need('performance.audit', <AuditTrailPage module="performance" />)}
               />
             </Route>
             <Route path="admin">

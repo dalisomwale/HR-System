@@ -343,10 +343,103 @@ const INVENTORY_AREAS = [
   ...ADMIN_AREAS('admin.'),
 ];
 
+const RECRUITMENT_AREAS = [
+  {
+    key: 'requests',
+    label: 'Hiring requests',
+    hint: 'Asking for, checking and approving new positions',
+    multi: true,
+    levels: [
+      [
+        'Raise for any department',
+        'Ask for a position in any company and department. Managers can always ask for their own team without this.',
+        ['recruitment.raise_any'],
+      ],
+      [
+        'HR review',
+        'Check hiring requests and send them to a director, or turn them down with a reason.',
+        ['recruitment.review'],
+      ],
+      ['Director approval', 'Approve or reject hiring requests.', ['recruitment.approve']],
+      ['See all requests', 'See every hiring request at any stage.', ['recruitment.requests_all']],
+    ],
+  },
+  {
+    key: 'vacancies',
+    label: 'Vacancies & candidates',
+    hint: 'Running vacancies, candidates and interviews',
+    levels: [
+      [
+        'No access',
+        'Sees open positions to apply for, and the vacancies and interviews they are part of.',
+        [],
+      ],
+      ['View', 'See every vacancy, its candidates and their CVs.', ['recruitment.view']],
+      [
+        'Manage',
+        'Everything in View, plus open and change vacancies, add candidates, move them between stages, schedule interviews and make offers.',
+        ['recruitment.view', 'recruitment.manage'],
+      ],
+      [
+        'Manage & hire',
+        'Everything in Manage, plus hire a candidate who accepted an offer, which adds them to Employee management.',
+        ['recruitment.view', 'recruitment.manage', 'recruitment.hire'],
+      ],
+    ],
+  },
+  ...ADMIN_AREAS('recruitment.'),
+];
+
+const PERFORMANCE_AREAS = [
+  {
+    key: 'appraisals',
+    label: 'Appraisals',
+    hint: 'Whose appraisals they see, and HR sign-off',
+    levels: [
+      ['Own and their team', 'Their own appraisals, and their team’s as a manager.', []],
+      ['View all', 'Every appraisal in the group, read only.', ['performance.view_all']],
+      [
+        'View all and sign off',
+        'Every appraisal, plus the final HR sign-off of year-end appraisals (or sending them back to the manager).',
+        ['performance.view_all', 'performance.signoff'],
+      ],
+    ],
+  },
+  {
+    key: 'cycles',
+    label: 'Review cycles',
+    hint: 'Starting the year and moving it on',
+    levels: [
+      ['No access', "Can't open Review cycles.", []],
+      [
+        'Manage',
+        'Start a review cycle, which gives every employee an appraisal, and move it from goal setting to mid-year, year end and closed.',
+        ['performance.cycles'],
+      ],
+    ],
+  },
+  {
+    key: 'probation',
+    label: 'Probation reviews',
+    hint: 'Confirming staff at the end of probation',
+    levels: [
+      ['Their team only', 'Complete the probation reviews of the people who report to them.', []],
+      [
+        'Decide',
+        'See every probation review, start one, and make the final decision (confirm, extend or not confirm), which updates the employee record.',
+        ['performance.probation'],
+      ],
+    ],
+  },
+  ...ADMIN_AREAS('performance.'),
+];
+
 export const MODULES = {
   leave: { key: 'leave', label: 'Leave management', areas: LEAVE_AREAS },
   people: { key: 'people', label: 'Employee management', areas: PEOPLE_AREAS },
   inventory: { key: 'inventory', label: 'Inventory system', areas: INVENTORY_AREAS },
+  recruitment: { key: 'recruitment', label: 'Recruitment management', areas: RECRUITMENT_AREAS },
+  performance: { key: 'performance', label: 'Performance management', areas: PERFORMANCE_AREAS },
 };
 export const MODULE_KEYS = Object.keys(MODULES);
 
@@ -403,4 +496,25 @@ export function levelsSummary(module, perms) {
     }
   }
   return out;
+}
+
+/**
+ * Active employees whose role in `module` has any of `perms`, or is the module's System Admin
+ * role. Used to decide who is told about work waiting for them.
+ */
+export async function moduleHolders(db, module, perms, exclude = []) {
+  return db('access_users as u')
+    .join('access_roles as r', 'r.id', 'u.role_id')
+    .join('employees as e', 'e.id', 'u.employee_id')
+    .where({ 'u.module': module, 'u.is_active': true, 'e.status': 'ACTIVE' })
+    .where((w) =>
+      w
+        .where('r.is_system', true)
+        .orWhereExists(
+          db('access_role_permissions as p').whereRaw('p.role_id = r.id').whereIn('p.permission', perms),
+        ),
+    )
+    .whereNotIn('e.id', exclude.filter(Boolean))
+    .distinct()
+    .pluck('e.id');
 }

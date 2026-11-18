@@ -1,6 +1,7 @@
 import { processOutbox } from './email-worker.js';
 import { runDailyReminders } from './reminders.js';
 import { sendStockDigest } from '../requisitions/stock-alerts.js';
+import { runProbationJob } from '../performance/probation.js';
 
 /**
  * Background work inside the API process: send queued email every 30 seconds and run the daily
@@ -54,6 +55,9 @@ export function startBackgroundJobs({
       );
       const s = hour >= 7 ? await sendStockDigest(db) : { skipped: true };
       if (!s?.skipped) logger.info(s, 'Stock reorder summary run');
+      // Probation reviews due in the next 30 days (D115), also from 07:00.
+      const p = hour >= 7 ? await runProbationJob(db) : { skipped: true };
+      if (!p?.skipped) logger.info(p, 'Probation reviews started');
     } catch (err) {
       logger.error({ err }, 'Stock reorder summary failed');
     } finally {

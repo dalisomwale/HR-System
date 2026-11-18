@@ -15,7 +15,13 @@ import { MODULES, allPermissions, levelsFromPerms, levelsSummary, permsForLevels
  * Rights are read on every request, so a change applies on the person's next click.
  */
 
-const PREFIX = { leave: 'leave.', people: 'people.', inventory: 'admin.' };
+const PREFIX = {
+  leave: 'leave.',
+  people: 'people.',
+  inventory: 'admin.',
+  recruitment: 'recruitment.',
+  performance: 'performance.',
+};
 
 // Which audit entries belong to which module.
 function moduleAudit(module) {
@@ -35,7 +41,12 @@ function moduleAudit(module) {
         'leave_user',
       ])
         // Job runs, except the inventory's stock summary (D111).
-        .orWhere((q) => q.where('a.entity_type', 'job').whereNot('a.entity_id', 'like', 'STOCK_%'))
+        .orWhere((q) =>
+          q
+            .where('a.entity_type', 'job')
+            .whereNot('a.entity_id', 'like', 'STOCK_%')
+            .whereNot('a.entity_id', 'like', 'PROBATION_%'),
+        )
         .orWhere((q) =>
           q
             .where('a.entity_type', 'system_setting')
@@ -57,6 +68,24 @@ function moduleAudit(module) {
           ])
           .whereNot('a.action', 'like', 'INVENTORY_%'),
       ).orWhere((q) => q.where('a.entity_type', 'report').where('a.entity_id', 'like', 'people-%'));
+    } else if (module === 'recruitment') {
+      this.whereIn('a.entity_type', [
+        'hiring_request',
+        'vacancy',
+        'candidate',
+        'candidate_file',
+        'interview',
+        'recruitment_role',
+        'recruitment_user',
+      ]);
+    } else if (module === 'performance') {
+      this.whereIn('a.entity_type', [
+        'review_cycle',
+        'appraisal',
+        'probation_review',
+        'performance_role',
+        'performance_user',
+      ]).orWhere((q) => q.where('a.entity_type', 'job').where('a.entity_id', 'like', 'PROBATION_%'));
     } else {
       this.whereIn('a.entity_type', [
         'requisition',
