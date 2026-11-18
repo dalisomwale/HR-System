@@ -22,6 +22,16 @@ const PAGES = {
   '/requisitions/users': ['Users'],
   '/requisitions/roles': ['Roles'],
   '/requisitions/alerts': ['Stock alerts'],
+  '/requisitions/float': ['AMS dashboard'],
+  '/requisitions/float/record': ['Record a transaction'],
+  '/requisitions/float/branch': ['Branch today'],
+  '/requisitions/float/approvals': ['AMS approvals'],
+  '/requisitions/float/variances': ['Surplus and deficit'],
+  '/requisitions/float/transactions': ['AMS transactions'],
+  '/requisitions/float/reports': ['Weekly reports'],
+  '/requisitions/float/commission': ['Commission'],
+  '/requisitions/float/branches': ['AMS branches'],
+  '/requisitions/float/settings': ['AMS settings'],
   '/requisitions/audit': ['Audit trail'],
 };
 const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };

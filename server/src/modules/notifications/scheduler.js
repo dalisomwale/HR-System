@@ -2,6 +2,7 @@ import { processOutbox } from './email-worker.js';
 import { runDailyReminders } from './reminders.js';
 import { sendStockDigest } from '../requisitions/stock-alerts.js';
 import { runProbationJob } from '../performance/probation.js';
+import { runFloatJobs } from '../float/float.jobs.js';
 
 /**
  * Background work inside the API process: send queued email every 30 seconds and run the daily
@@ -58,6 +59,9 @@ export function startBackgroundJobs({
       // Probation reviews due in the next 30 days (D115), also from 07:00.
       const p = hour >= 7 ? await runProbationJob(db) : { skipped: true };
       if (!p?.skipped) logger.info(p, 'Probation reviews started');
+      // AMS cash and float (D117): weekly report, sign-off chase and day-close reminder.
+      const fl = await runFloatJobs(db);
+      if (fl && Object.keys(fl).length && !fl.skipped) logger.info(fl, 'AMS float jobs run');
     } catch (err) {
       logger.error({ err }, 'Stock reorder summary failed');
     } finally {

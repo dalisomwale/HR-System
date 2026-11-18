@@ -131,6 +131,14 @@ export function requisitionRoutes({ db, config, logger }) {
         rolesAdmin: c.rolesAdmin,
         auditAdmin: c.auditAdmin,
         alertsAdmin: c.alertsAdmin,
+        float: {
+          record: c.floatRecord,
+          viewAll: c.floatViewAll,
+          approve: c.floatApprove,
+          director: c.floatDirector,
+          shortages: c.floatShortages,
+          admin: c.floatAdmin,
+        },
         role: c.inventoryRole,
         waiting: Number(waiting.n),
       });

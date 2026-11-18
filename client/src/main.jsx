@@ -51,6 +51,20 @@ import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import StockAlertsPage from './pages/requisitions/StockAlertsPage.jsx';
+import { FloatBranchPage, FloatRecordPage } from './pages/requisitions/float/FloatEntryPages.jsx';
+import {
+  FloatApprovalsPage,
+  FloatDashboardPage,
+  FloatTransactionsPage,
+  FloatVariancesPage,
+} from './pages/requisitions/float/FloatManagePages.jsx';
+import {
+  FloatBranchesPage,
+  FloatCommissionPage,
+  FloatSettingsPage,
+  FloatWeekPage,
+  FloatWeeksPage,
+} from './pages/requisitions/float/FloatAdminPages.jsx';
 import RecruitmentHomePage from './pages/recruitment/RecruitmentHomePage.jsx';
 import {
   HiringRequestFormPage,
@@ -216,6 +230,39 @@ createRoot(document.getElementById('root')).render(
               <Route path="branches" element={<Navigate to="/people/branches" replace />} />
               <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
               <Route path="alerts" element={rqPage(<StockAlertsPage />, (a) => a.alertsAdmin)} />
+              {/* AMS cash and float (D117). */}
+              <Route
+                path="float"
+                element={rqPage(<FloatDashboardPage />, (a) => a.float?.viewAll || a.float?.admin)}
+              />
+              <Route path="float/record" element={rqPage(<FloatRecordPage />, (a) => a.float?.record)} />
+              <Route
+                path="float/branch"
+                element={rqPage(<FloatBranchPage />, (a) => a.float?.record || a.float?.viewAll)}
+              />
+              <Route
+                path="float/approvals"
+                element={rqPage(<FloatApprovalsPage />, (a) => a.float?.approve || a.float?.director)}
+              />
+              <Route
+                path="float/variances"
+                element={rqPage(
+                  <FloatVariancesPage />,
+                  (a) => a.float?.viewAll || a.float?.approve || a.float?.shortages,
+                )}
+              />
+              <Route
+                path="float/transactions"
+                element={rqPage(<FloatTransactionsPage />, (a) => a.float?.viewAll || a.float?.record)}
+              />
+              <Route path="float/reports" element={rqPage(<FloatWeeksPage />, (a) => a.float?.viewAll)} />
+              <Route path="float/reports/:id" element={rqPage(<FloatWeekPage />, (a) => a.float?.viewAll)} />
+              <Route
+                path="float/commission"
+                element={rqPage(<FloatCommissionPage />, (a) => a.float?.viewAll || a.float?.admin)}
+              />
+              <Route path="float/branches" element={rqPage(<FloatBranchesPage />, (a) => a.float?.admin)} />
+              <Route path="float/settings" element={rqPage(<FloatSettingsPage />, (a) => a.float?.admin)} />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
               <Route
                 path="users"

@@ -340,6 +340,65 @@ const INVENTORY_AREAS = [
       ],
     ],
   },
+  // Cash and float for Altus Money Solutions (D117).
+  {
+    key: 'float',
+    label: 'AMS cash and float',
+    hint: 'Deposits, withdrawals and float at the AMS branches',
+    levels: [
+      ['No access', "Can't open AMS cash and float.", []],
+      [
+        'Branch staff',
+        'Record deposits and withdrawals at their own branch (from their employee record), count at close and handover, ask for top-ups and reversals.',
+        ['float.record'],
+      ],
+      [
+        'View all branches',
+        'See every AMS branch, the dashboard, weekly reports and commission, read only.',
+        ['float.view_all'],
+      ],
+      [
+        'Manager',
+        'Everything in Branch staff and View all, plus approve top-ups, transfers and reversals, review large transactions, resolve surpluses and deficits, and sign off the weekly report.',
+        ['float.record', 'float.view_all', 'float.approve'],
+      ],
+    ],
+  },
+  {
+    key: 'float_director',
+    label: 'AMS director approvals',
+    hint: 'Write-offs above the limit',
+    levels: [
+      ['No access', 'No director approvals.', []],
+      [
+        'Approve',
+        'See every AMS branch and approve write-offs above the director limit; receives the signed-off weekly report.',
+        ['float.view_all', 'float.director'],
+      ],
+    ],
+  },
+  {
+    key: 'float_shortages',
+    label: 'AMS staff shortages',
+    hint: 'For HR follow-up',
+    levels: [
+      ['No access', "Can't see shortages by member of staff.", []],
+      ['View', 'See the deficits found at counts and who was on duty, for follow-up.', ['float.shortages']],
+    ],
+  },
+  {
+    key: 'float_admin',
+    label: 'AMS set-up',
+    hint: 'Branches, accounts, the week, limits and commission',
+    levels: [
+      ['No access', "Can't change the AMS set-up.", []],
+      [
+        'Manage',
+        'Add AMS branches and their opening balances, set minimum floats, the trading days, the week and report time, the limits and the commission tables, and record commission received.',
+        ['float.admin'],
+      ],
+    ],
+  },
   ...ADMIN_AREAS('admin.'),
 ];
 

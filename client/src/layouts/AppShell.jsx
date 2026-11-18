@@ -6,6 +6,15 @@ import {
   Bell,
   BellRing,
   Briefcase,
+  Banknote,
+  Calculator,
+  Coins,
+  FileSpreadsheet,
+  Scale as ScaleIcon,
+  Store,
+  Smartphone,
+  ListOrdered,
+  SlidersHorizontal,
   CalendarRange,
   Target,
   CalendarClock,
@@ -56,6 +65,7 @@ import RequisitionsTrail from './RequisitionsTrail.jsx';
 import ModuleTrail from './ModuleTrail.jsx';
 import { useRc } from '../pages/recruitment/rc.js';
 import { usePf } from '../pages/performance/pf.js';
+import { useFloat } from '../pages/requisitions/float/fl.js';
 import { useRq } from '../pages/requisitions/rq.js';
 import { can, useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
@@ -473,6 +483,53 @@ function RequisitionsNav({ onNavigate }) {
       ? [{ to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 }]
       : []),
     ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock alerts', icon: BellRing }] : []),
+    // AMS cash and float set-up (D117).
+    ...(a.float?.admin
+      ? [
+          { to: '/requisitions/float/branches', label: 'AMS branches', icon: Store },
+          { to: '/requisitions/float/settings', label: 'AMS settings', icon: SlidersHorizontal },
+        ]
+      : []),
+  ];
+  const fl = a.float ?? {};
+  // AMS cash and float (D117): Altus Money Solutions only.
+  const ams = [
+    ...(fl.record
+      ? [{ to: '/requisitions/float/record', label: 'Record a transaction', icon: Smartphone }]
+      : []),
+    ...(fl.record
+      ? [{ to: '/requisitions/float/branch', label: 'My branch today', icon: Banknote, end: true }]
+      : []),
+    ...(fl.viewAll ? [{ to: '/requisitions/float', label: 'AMS dashboard', icon: Coins, end: true }] : []),
+    ...(fl.approve || fl.director
+      ? [
+          {
+            to: '/requisitions/float/approvals',
+            label: 'AMS approvals',
+            icon: ScaleIcon,
+            count: 'floatApprovals',
+          },
+        ]
+      : []),
+    ...(fl.viewAll || fl.approve || fl.shortages
+      ? [{ to: '/requisitions/float/variances', label: 'Surplus and deficit', icon: Calculator }]
+      : []),
+    ...(fl.viewAll || fl.record
+      ? [{ to: '/requisitions/float/transactions', label: 'AMS transactions', icon: ListOrdered }]
+      : []),
+    ...(fl.viewAll
+      ? [
+          {
+            to: '/requisitions/float/reports',
+            label: 'Weekly reports',
+            icon: FileSpreadsheet,
+            count: 'floatWeeks',
+          },
+        ]
+      : []),
+    ...(fl.viewAll || fl.admin
+      ? [{ to: '/requisitions/float/commission', label: 'Commission', icon: Coins }]
+      : []),
   ];
   return (
     <>
@@ -481,6 +538,7 @@ function RequisitionsNav({ onNavigate }) {
         items={[{ to: '/requisitions', label: 'Dashboard', icon: LayoutGrid, end: true }]}
         onNavigate={onNavigate}
       />
+      {ams.length > 0 && <AmsNav items={ams} onNavigate={onNavigate} />}
       <NavGroup title="Stock" items={stock} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
       {(records.length > 0 || a.reports || a.stock) && (
         <div>
@@ -497,6 +555,20 @@ function RequisitionsNav({ onNavigate }) {
       )}
       {admin.length > 0 && <NavGroup title="Admin" items={admin} onNavigate={onNavigate} />}
     </>
+  );
+}
+
+/** The AMS cash and float part of the inventory menu, with its waiting counts. */
+function AmsNav({ items, onNavigate }) {
+  const me = useFloat();
+  const c = me.data?.counts ?? {};
+  return (
+    <NavGroup
+      title="AMS cash and float"
+      items={items}
+      counts={{ floatApprovals: c.approvals ?? 0, floatWeeks: c.weeksToSign ?? 0 }}
+      onNavigate={onNavigate}
+    />
   );
 }
 

@@ -45,13 +45,15 @@ function moduleAudit(module) {
           q
             .where('a.entity_type', 'job')
             .whereNot('a.entity_id', 'like', 'STOCK_%')
+            .whereNot('a.entity_id', 'like', 'FLOAT_%')
             .whereNot('a.entity_id', 'like', 'PROBATION_%'),
         )
         .orWhere((q) =>
           q
             .where('a.entity_type', 'system_setting')
             .whereNot('a.action', 'like', 'REQUISITION_%')
-            .whereNot('a.action', 'like', 'STOCK_%'),
+            .whereNot('a.action', 'like', 'STOCK_%')
+            .whereNot('a.action', 'like', 'FLOAT_%'),
         )
         .orWhere((q) => q.where('a.entity_type', 'report').whereNot('a.entity_id', 'like', 'people-%'));
     } else if (module === 'people') {
@@ -98,7 +100,14 @@ function moduleAudit(module) {
         .orWhere('a.action', 'like', 'INVENTORY_%')
         .orWhere('a.action', 'like', 'STOCK_%')
         .orWhere('a.action', 'like', 'REQUISITION_%')
-        .orWhere((q) => q.where('a.entity_type', 'job').where('a.entity_id', 'like', 'STOCK_%'));
+        .orWhere('a.action', 'like', 'FLOAT_%')
+        .orWhere((q) =>
+          q
+            .where('a.entity_type', 'job')
+            .where((w) =>
+              w.where('a.entity_id', 'like', 'STOCK_%').orWhere('a.entity_id', 'like', 'FLOAT_%'),
+            ),
+        );
     }
   };
 }
