@@ -59,6 +59,7 @@ import {
   FloatVariancesPage,
 } from './pages/requisitions/float/FloatManagePages.jsx';
 import {
+  FloatBranchAdminPage,
   FloatBranchesPage,
   FloatDailyPage,
   FloatSettingsPage,
@@ -258,6 +259,10 @@ createRoot(document.getElementById('root')).render(
                 element={rqPage(<FloatDailyPage />, (a) => a.float?.viewAll || a.float?.record)}
               />
               <Route path="float/branches" element={rqPage(<FloatBranchesPage />, (a) => a.float?.admin)} />
+              <Route
+                path="float/branches/:id"
+                element={rqPage(<FloatBranchAdminPage />, (a) => a.float?.admin)}
+              />
               <Route path="float/settings" element={rqPage(<FloatSettingsPage />, (a) => a.float?.admin)} />
               <Route
                 path="float/phone-access"

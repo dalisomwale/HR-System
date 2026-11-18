@@ -41,6 +41,12 @@ export default function RequisitionsTrail() {
   const reqId = pathname.match(/^\/requisitions\/requests\/(\d+)$/)?.[1];
   const itemId = pathname.match(/^\/requisitions\/stock\/(\d+)(\/edit)?$/)?.[1];
   const editing = /\/edit$/.test(pathname);
+  const amsBranchId = pathname.match(/^\/requisitions\/float\/branches\/(\d+)$/)?.[1];
+  const amsBranch = useQuery({
+    queryKey: ['float-branch-admin', amsBranchId],
+    queryFn: () => api.get(`/api/float/branches/${amsBranchId}`),
+    enabled: !!amsBranchId,
+  });
   const req = useQuery({
     queryKey: ['requisition', reqId],
     queryFn: () => api.get(`/api/requisitions/${reqId}`),
@@ -52,7 +58,12 @@ export default function RequisitionsTrail() {
     enabled: !!itemId,
   });
   const trail = [ROOT];
-  if (reqId) {
+  if (amsBranchId) {
+    trail.push(
+      { label: 'AMS branches', to: '/requisitions/float/branches' },
+      { label: amsBranch.data?.name ?? '…' },
+    );
+  } else if (reqId) {
     trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
   } else if (itemId) {
     trail.push({ label: 'Manage stock', to: PARENT['Manage stock'] });

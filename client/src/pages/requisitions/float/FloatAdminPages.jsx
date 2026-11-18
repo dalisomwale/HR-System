@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadFile } from '../../../lib/api.js';
 import { formatDate, formatDateTime } from '../../../lib/format.js';
 import {
   Badge,
   Button,
+  ConfirmDialog,
   EmptyState,
   Field,
   Input,
@@ -27,6 +28,22 @@ import { ACCOUNT, DAYS, money, timeOf } from './fl.js';
 import { DayReportCard } from './FloatEntryPages.jsx';
 
 // ── Daily reports (D118) ───────────────────────────────────────────────────────────────────────
+/** "Mon–Sat, 07:30–18:00" */
+export function hoursText(h) {
+  if (!h) return '—';
+  const order = DAYS.map(([k]) => k);
+  const idx = h.workingDays.map((d) => order.indexOf(d)).sort((a, b) => a - b);
+  const short = (i) => DAYS[i][1].slice(0, 3);
+  const run = idx.length > 2 && idx.every((v, i) => i === 0 || v === idx[i - 1] + 1);
+  const days =
+    idx.length === 7
+      ? 'Every day'
+      : run
+        ? `${short(idx[0])}–${short(idx.at(-1))}`
+        : idx.map(short).join(', ');
+  return `${days}, ${h.opensAt}–${h.closesAt}`;
+}
+
 const today = () => new Date(Date.now() + 2 * 3600000).toISOString().slice(0, 10); // Lusaka
 
 export function FloatDailyPage() {
@@ -161,8 +178,8 @@ export function FloatDailyPage() {
                 <Th className="text-right">Withdrawals</Th>
                 <Th className="text-right">Float transfers</Th>
                 <Th className="text-right">Cash to finance</Th>
-                <Th className="text-right">{`${d.settings.dayStart}–${d.settings.eveningFrom}`}</Th>
-                <Th className="text-right">{`After ${d.settings.eveningFrom}`}</Th>
+                <Th className="text-right">Daytime</Th>
+                <Th className="text-right">Evening</Th>
                 <Th className="text-right">Total</Th>
                 <Th className="text-right">Turned down</Th>
                 <Th className="text-right">Cash</Th>
@@ -175,12 +192,19 @@ export function FloatDailyPage() {
             <tbody>
               {d.branches.map((b) => (
                 <tr key={b.id}>
-                  <Td className="font-semibold">{b.name}</Td>
+                  <Td className="font-semibold">
+                    {b.name}
+                    <span className="block text-xs font-normal text-muted">
+                      {hoursText(b.hours)} · evening from {b.hours.eveningFrom}
+                    </span>
+                  </Td>
                   <Td>
                     {b.signedOut ? (
                       <Badge tone="ok">Signed out {timeOf(b.signedOutAt)}</Badge>
-                    ) : (
+                    ) : b.tradingDay ? (
                       <Badge tone="pending">Open</Badge>
+                    ) : (
+                      <Badge tone="neutral">Closed today</Badge>
                     )}
                     {b.signedOutBy && (
                       <span className="block text-xs text-muted">
@@ -310,6 +334,7 @@ export function FloatBranchesPage() {
               <tr>
                 <Th>Branch</Th>
                 <Th>Location</Th>
+                <Th>Days and hours</Th>
                 <Th className="text-right">Cash</Th>
                 <Th className="text-right">Airtel Money</Th>
                 <Th className="text-right">MTN MoMo</Th>
@@ -323,8 +348,13 @@ export function FloatBranchesPage() {
             <tbody>
               {d.items.map((b) => (
                 <tr key={b.id}>
-                  <Td className="font-semibold">{b.name}</Td>
+                  <Td className="font-semibold">
+                    <Link to={`/requisitions/float/branches/${b.id}`} className="text-brand hover:underline">
+                      {b.name}
+                    </Link>
+                  </Td>
                   <Td>{b.location ?? '—'}</Td>
+                  <Td>{hoursText(b.hours)}</Td>
                   {b.accounts.map((a) => (
                     <Td key={a.kind} className="text-right tabular-nums">
                       {money(a.balance)}
@@ -549,7 +579,10 @@ export function FloatSettingsPage() {
             </Select>
           </Field>
         </Section>
-        <Section title="Trading days and the daily report">
+        <Section
+          title="Defaults for new branches, and the daily report"
+          description="Each branch has its own days and hours, set on the branch's page. These are what a new branch starts with."
+        >
           <div className="stack">
             <div>
               <p className="mb-2 text-sm font-semibold">Trading days</p>
@@ -575,13 +608,13 @@ export function FloatSettingsPage() {
               </div>
             </div>
             <div className="form-row">
-              <Field id="st-ds" label="The day starts at">
+              <Field id="st-ds" label="Opens at">
                 <Input id="st-ds" type="time" value={v.dayStart} onChange={set('dayStart')} />
               </Field>
               <Field id="st-ev" label="Evening transactions from" hint="Counted separately in the report.">
                 <Input id="st-ev" type="time" value={v.eveningFrom} onChange={set('eveningFrom')} />
               </Field>
-              <Field id="st-ct" label="Sign-out reminder" hint="Branches not signed out are reminded.">
+              <Field id="st-ct" label="Closes at" hint="Branches not signed out by then are reminded.">
                 <Input
                   id="st-ct"
                   type="time"
@@ -779,5 +812,300 @@ export function FloatPhoneAccessPage() {
           ))}
       </div>
     </div>
+  );
+}
+
+// ── One AMS branch: details, days and hours, staff (D120) ──────────────────────────────────────
+export function FloatBranchAdminPage() {
+  const { id } = useParams();
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ['float-branch-admin', id],
+    queryFn: () => api.get(`/api/float/branches/${id}`),
+  });
+  const list = useQuery({ queryKey: ['float-branches'], queryFn: () => api.get('/api/float/branches') });
+  const [editing, setEditing] = useState(false);
+  const [msg, setMsg] = useState(null);
+  if (q.isPending || list.isPending) return <Loading />;
+  if (q.isError) return <LoadError error={q.error} onRetry={q.refetch} />;
+  const b = q.data;
+  const listed = list.data?.items.find((x) => x.id === b.id);
+  const refresh = (text, tone = 'ok') => {
+    if (text) setMsg({ tone, text });
+    qc.invalidateQueries({ queryKey: ['float-branch-admin', id] });
+    qc.invalidateQueries({ queryKey: ['float-branches'] });
+    qc.invalidateQueries({ queryKey: ['float-phone'] });
+  };
+  return (
+    <div>
+      <PageHeader
+        title={b.name}
+        description={`${b.location ? `${b.location} · ` : ''}${hoursText(b.hours)}`}
+        actions={
+          <>
+            <Badge tone={b.isActive ? 'ok' : 'neutral'}>{b.isActive ? 'Open' : 'Closed'}</Badge>
+            {!editing && listed && (
+              <Button variant="secondary" onClick={() => setEditing(true)}>
+                Change name, balances or minimums
+              </Button>
+            )}
+          </>
+        }
+      />
+      <div className="stack">
+        {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
+        {editing && listed && (
+          <BranchForm
+            branch={listed}
+            onCancel={() => setEditing(false)}
+            onDone={(text) => {
+              setEditing(false);
+              refresh(text);
+            }}
+          />
+        )}
+        <HoursForm branch={b} onDone={refresh} />
+        <BranchStaff branch={b} onDone={refresh} />
+      </div>
+    </div>
+  );
+}
+
+function HoursForm({ branch, onDone }) {
+  const [v, setV] = useState(branch.hours);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const changed = JSON.stringify(v) !== JSON.stringify(branch.hours);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await api.put(`/api/float/branches/${branch.id}/hours`, v);
+      onDone(`${branch.name}'s days and hours saved.`);
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section
+      title="Working days and hours"
+      description="Staff are reminded to sign out at the closing time on trading days. Transactions after the evening time are counted as evening transactions in the daily report."
+    >
+      <div className="stack">
+        <div className="flex flex-wrap gap-3">
+          {DAYS.map(([k, l]) => (
+            <label key={k} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 accent-brand"
+                checked={v.workingDays.includes(k)}
+                onChange={(e) =>
+                  setV({
+                    ...v,
+                    workingDays: e.target.checked
+                      ? [...v.workingDays, k]
+                      : v.workingDays.filter((x) => x !== k),
+                  })
+                }
+              />
+              {l}
+            </label>
+          ))}
+        </div>
+        <div className="form-row">
+          <Field id="bh-open" label="Opens at">
+            <Input
+              id="bh-open"
+              type="time"
+              value={v.opensAt}
+              onChange={(e) => setV({ ...v, opensAt: e.target.value })}
+            />
+          </Field>
+          <Field id="bh-close" label="Closes at">
+            <Input
+              id="bh-close"
+              type="time"
+              value={v.closesAt}
+              onChange={(e) => setV({ ...v, closesAt: e.target.value })}
+            />
+          </Field>
+          <Field id="bh-eve" label="Evening transactions from">
+            <Input
+              id="bh-eve"
+              type="time"
+              value={v.eveningFrom}
+              onChange={(e) => setV({ ...v, eveningFrom: e.target.value })}
+            />
+          </Field>
+        </div>
+        {error && <Notice tone="danger">{error}</Notice>}
+        <div>
+          <Button busy={busy} disabled={!changed} onClick={save}>
+            Save days and hours
+          </Button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function BranchStaff({ branch, onDone }) {
+  const [adding, setAdding] = useState('');
+  const [giveRole, setGiveRole] = useState(true);
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+  const [removing, setRemoving] = useState(null);
+  const [given, setGiven] = useState(null);
+  const run = async (key, fn, text) => {
+    setBusy(key);
+    setError(null);
+    try {
+      const r = await fn();
+      onDone(text?.(r));
+      return r;
+    } catch (err) {
+      setError(errorText(err));
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  };
+  const add = () =>
+    run(
+      'add',
+      () => api.post(`/api/float/branches/${branch.id}/staff`, { employeeId: Number(adding), giveRole }),
+      () => 'Added to the branch.',
+    ).then((r) => r && setAdding(''));
+  const code = (p) =>
+    run(`code${p.id}`, () => api.post(`/api/float/phone-access/${p.id}/code`)).then((r) => r && setGiven(r));
+  return (
+    <Section title="Staff" description="The people who work at this branch and record its transactions.">
+      <div className="stack">
+        {given && (
+          <Notice tone="ok" title={`One-time code for ${given.name}: ${given.code}`}>
+            They sign in with {given.phone} and this code, then choose their PIN. It works once and expires{' '}
+            {formatDateTime(given.expiresAt)}. It is not shown again.
+          </Notice>
+        )}
+        {error && <Notice tone="danger">{error}</Notice>}
+        {branch.staff.length === 0 ? (
+          <p className="muted-text">Nobody works here yet.</p>
+        ) : (
+          <Table title={`${branch.name} staff`} tools={false}>
+            <thead>
+              <tr>
+                <Th>First name</Th>
+                <Th>Last name</Th>
+                <Th>Phone number</Th>
+                <Th>Inventory role</Th>
+                <Th>Phone sign-in</Th>
+                <Th>
+                  <span className="sr-only">Actions</span>
+                </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {branch.staff.map((p) => (
+                <tr key={p.id}>
+                  <Td className="font-semibold">
+                    <Link to={`/people/employees/${p.id}`} className="text-brand hover:underline">
+                      {p.firstName}
+                    </Link>
+                  </Td>
+                  <Td className="font-semibold">{p.lastName}</Td>
+                  <Td>
+                    {p.phone ?? <span className="text-muted">None</span>}
+                    {!p.hasPhone && (
+                      <Link
+                        to={`/people/employees/${p.id}`}
+                        className="block text-xs text-brand hover:underline"
+                      >
+                        Add it on their record
+                      </Link>
+                    )}
+                  </Td>
+                  <Td>{p.role ?? <span className="text-muted">None: give one under Users</span>}</Td>
+                  <Td>
+                    <Badge tone={PHONE_STATUS[p.phoneSignIn][1]}>{PHONE_STATUS[p.phoneSignIn][0]}</Badge>
+                  </Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-2">
+                      {p.hasPhone && (
+                        <Button
+                          size="sm"
+                          variant={p.phoneSignIn === 'ACTIVE' ? 'secondary' : 'primary'}
+                          busy={busy === `code${p.id}`}
+                          onClick={() => code(p)}
+                        >
+                          {p.phoneSignIn === 'NOT_SET_UP'
+                            ? 'Set up phone sign-in'
+                            : p.phoneSignIn === 'LOCKED'
+                              ? 'Unlock: new code'
+                              : 'New code'}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="danger" onClick={() => setRemoving(p)}>
+                        Take off branch
+                      </Button>
+                    </div>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-64 flex-1">
+            <Field
+              id="bs-add"
+              label="Add someone to this branch"
+              hint="Altus Money Solutions staff. Their branch is set on their employee record."
+            >
+              <Select id="bs-add" value={adding} onChange={(e) => setAdding(e.target.value)}>
+                <option value="">Choose a member of staff</option>
+                {branch.candidates.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                    {c.jobTitle ? ` · ${c.jobTitle}` : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <label className="flex items-center gap-2 pb-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 accent-brand"
+              checked={giveRole}
+              onChange={(e) => setGiveRole(e.target.checked)}
+            />
+            Give them the AMS Branch Staff role
+          </label>
+          <Button busy={busy === 'add'} disabled={!adding} onClick={add}>
+            Add to branch
+          </Button>
+        </div>
+      </div>
+      <ConfirmDialog
+        open={Boolean(removing)}
+        title="Take off this branch"
+        confirmLabel="Take off branch"
+        tone="danger"
+        busy={busy === 'remove'}
+        onConfirm={() =>
+          run(
+            'remove',
+            () => api.del(`/api/float/branches/${branch.id}/staff/${removing.id}`),
+            () => `${removing.firstName} ${removing.lastName} taken off ${branch.name}.`,
+          ).then(() => setRemoving(null))
+        }
+        onCancel={() => setRemoving(null)}
+      >
+        {removing?.firstName} {removing?.lastName} will no longer be posted to {branch.name}. Their phone
+        sign-in ends and the AMS Branch Staff role is removed.
+      </ConfirmDialog>
+    </Section>
   );
 }

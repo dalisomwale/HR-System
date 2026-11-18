@@ -25,6 +25,7 @@ const as = (s) => ({
       .put(p)
       .set('X-CSRF-Token', s.csrf)
       .send(body ?? {}),
+  delete: (p) => s.agent.delete(p).set('X-CSRF-Token', s.csrf),
 });
 
 let ams;
@@ -325,5 +326,58 @@ describe('AMS cash and float (D117)', () => {
     ).toBe(200);
     const audit = await as(people.admin).get('/api/access/inventory/audit');
     expect(JSON.stringify(audit.body)).toContain('FLOAT_DEPOSIT');
+  });
+
+  it('gives each branch its own days, hours and staff (D120)', async () => {
+    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const today = days[(new Date(`${todayInLusaka()}T12:00:00Z`).getUTCDay() + 6) % 7];
+    // Bad hours are refused; good ones saved.
+    expect(
+      (
+        await as(people.admin).put(`/api/float/branches/${branch}/hours`, {
+          workingDays: [today],
+          opensAt: '09:00',
+          closesAt: '08:00',
+          eveningFrom: '17:00',
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await as(people.admin).put(`/api/float/branches/${branch}/hours`, {
+          workingDays: [today],
+          opensAt: '09:00',
+          closesAt: '21:00',
+          eveningFrom: '18:00',
+        })
+      ).status,
+    ).toBe(200);
+    // Add a new member of staff: posted to the branch and given the AMS Branch Staff role.
+    await person('newbie');
+    const added = await as(people.admin).post(`/api/float/branches/${branch}/staff`, {
+      employeeId: ids.newbie,
+    });
+    expect(added.status, JSON.stringify(added.body)).toBe(201);
+    expect((await db('employees').where({ id: ids.newbie }).first()).branch_id).toBe(branch);
+    const detail = (await as(people.admin).get(`/api/float/branches/${branch}`)).body;
+    expect(detail.hours).toMatchObject({ opensAt: '09:00', closesAt: '21:00', eveningFrom: '18:00' });
+    expect(detail.staff.find((x) => x.id === ids.newbie)).toMatchObject({
+      role: 'AMS Branch Staff',
+      phoneSignIn: 'NOT_SET_UP',
+    });
+    expect((await as(people.manager).get(`/api/float/branches/${branch}`)).status).toBe(403);
+    // The sign-out reminder waits for this branch's own closing time.
+    await runFloatJobs(db, new Date(`${todayInLusaka()}T20:00:00+02:00`));
+    expect(await notes(ids.teller, 'FLOAT_CLOSE_REMINDER')).toHaveLength(0);
+    await runFloatJobs(db, new Date(`${todayInLusaka()}T21:05:00+02:00`));
+    expect(await notes(ids.teller, 'FLOAT_CLOSE_REMINDER')).toHaveLength(1);
+    // Taking someone off the branch ends their branch role.
+    expect((await as(people.admin).delete(`/api/float/branches/${branch}/staff/${ids.newbie}`)).status).toBe(
+      200,
+    );
+    expect((await db('employees').where({ id: ids.newbie }).first()).branch_id).toBeNull();
+    expect(
+      await db('access_users').where({ module: 'inventory', employee_id: ids.newbie }).first(),
+    ).toBeUndefined();
   });
 });

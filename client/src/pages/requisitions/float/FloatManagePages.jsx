@@ -214,7 +214,18 @@ export function FloatDashboardPage() {
                     );
                   })}
                   <Td className="text-right">{b.totals.reduce((s, t) => s + t.count, 0)}</Td>
-                  <Td>{b.closed ? <Badge tone="ok">Closed</Badge> : <Badge tone="neutral">Open</Badge>}</Td>
+                  <Td>
+                    {b.closed ? (
+                      <Badge tone="ok">Signed out</Badge>
+                    ) : b.tradingToday ? (
+                      <Badge tone="pending">Open</Badge>
+                    ) : (
+                      <Badge tone="neutral">Closed today</Badge>
+                    )}
+                    <span className="block text-xs text-muted">
+                      {b.hours.opensAt}–{b.hours.closesAt}
+                    </span>
+                  </Td>
                   <Td className="text-right">{b.openVariances || '—'}</Td>
                 </tr>
               ))}

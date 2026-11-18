@@ -3,6 +3,7 @@ import { runOnce } from '../leave/jobs.service.js';
 import { notify } from '../notifications/notify.service.js';
 import {
   amsBranches,
+  branchHours,
   branchStaff,
   buildDay,
   dayCode,
@@ -18,9 +19,9 @@ import { addDays } from '../leave/calendar.js';
  * AMS cash and float, scheduled work (D117, D118), run by the background scheduler every 15
  * minutes; each part runs at most once per Lusaka day, guarded in the database.
  *
- *   Daily report    on trading days, from the report time: the day's figures for every branch go
+ *   Daily report    on days any branch trades, from the report time: every branch's figures go
  *                   to the managers (to sign off) and the directors, in the system and by email.
- *   Close reminder  on trading days, from the close reminder time: branches that have not signed
+ *   Close reminder  at each branch's own closing time on its trading days (D120): branches not signed
  *                   out are reminded, and the managers get the list.
  *   Sign-off chase  each morning, when a past day is still not signed off.
  */
@@ -30,7 +31,7 @@ const EMAIL = { app: 'inventory' };
 export async function sendDailyReport(db, settings, date) {
   const day = await buildDay(db, settings, date);
   const t = day.totals;
-  const open = day.branches.filter((b) => !b.signedOut).map((b) => b.name);
+  const open = day.branches.filter((b) => b.tradingDay && !b.signedOut).map((b) => b.name);
   await db.transaction(async (trx) =>
     notify(trx, {
       recipients: [...(await managers(trx)), ...(await directors(trx))],
@@ -65,47 +66,47 @@ export async function runFloatJobs(db, now = new Date()) {
   if (!settings.companyId) return { skipped: true };
   const today = todayInLusaka(now);
   const time = lusakaTime(now);
-  const trading = settings.workingDays.includes(dayCode(today));
   const out = {};
 
-  if (trading && time >= settings.closeReminderTime) {
-    out.close = await runOnce(
+  // Each branch is reminded at its own closing time, on its own trading days (D120).
+  const branches = await amsBranches(db, settings, { activeOnly: true });
+  const hours = await branchHours(
+    db,
+    settings,
+    branches.map((b) => b.id),
+  );
+  const reminded = [];
+  for (const b of branches) {
+    const h = hours.get(b.id);
+    if (!h.workingDays.includes(dayCode(today)) || time < h.closesAt) continue;
+    const r = await runOnce(
       db,
-      'FLOAT_CLOSE_REMINDER',
+      `FLOAT_CLOSE_REMINDER_${b.id}`,
       today,
       async () => {
-        const branches = await amsBranches(db, settings, { activeOnly: true });
-        const closed = new Set(
-          await db('float_counts').where({ kind: 'CLOSE', business_date: today }).pluck('branch_id'),
+        const closed = await db('float_counts')
+          .where({ kind: 'CLOSE', business_date: today, branch_id: b.id })
+          .first('id');
+        if (closed) return { reminded: false };
+        await db.transaction(async (trx) =>
+          notify(trx, {
+            recipients: [...(await branchStaff(trx, b.id)), ...(await managers(trx))],
+            event: 'FLOAT_CLOSE_REMINDER',
+            title: `Sign out at ${b.name}`,
+            body: `${b.name} closes at ${h.closesAt}. Count the cash and the Airtel and MTN balances, and close the day.`,
+            link: '/requisitions/float/branch',
+          }),
         );
-        const open = branches.filter((b) => !closed.has(b.id));
-        for (const b of open) {
-          await db.transaction(async (trx) =>
-            notify(trx, {
-              recipients: await branchStaff(trx, b.id),
-              event: 'FLOAT_CLOSE_REMINDER',
-              title: `Sign out at ${b.name}`,
-              body: 'Count the cash and the Airtel and MTN balances, and close the day.',
-              link: '/requisitions/float/branch',
-            }),
-          );
-        }
-        if (open.length) {
-          await db.transaction(async (trx) =>
-            notify(trx, {
-              recipients: await managers(trx),
-              event: 'FLOAT_NOT_CLOSED',
-              title: `${open.length} AMS ${open.length === 1 ? 'branch has' : 'branches have'} not signed out`,
-              body: open.map((b) => b.name).join(', '),
-              link: '/requisitions/float',
-            }),
-          );
-        }
-        return { notClosed: open.length };
+        return { reminded: true };
       },
       SYSTEM,
     );
+    if (r?.reminded) reminded.push(b.name);
   }
+  if (reminded.length) out.close = reminded;
+
+  // The daily report goes on any day at least one branch trades.
+  const trading = [...hours.values()].some((h) => h.workingDays.includes(dayCode(today)));
 
   if (trading && time >= settings.reportTime) {
     out.daily = await runOnce(

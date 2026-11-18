@@ -10,13 +10,16 @@ import { addDays } from '../leave/calendar.js';
 import { toXlsx } from '../reports/export-files.js';
 import { CODE_HOURS, hashSecret, isAmsBranchStaff, newCode } from '../auth/phone-login.js';
 import { formatPhone } from '../../utils/phone.js';
+import { updateEmployee, updateEmployeeSchema } from '../admin/employees.service.js';
 import {
   DAYS,
   KINDS,
   KIND_LABEL,
   accountsOf,
   amsBranches,
+  branchHours,
   businessDate,
+  defaultHours,
   buildDay,
   dayCode,
   dayText,
@@ -166,9 +169,12 @@ export function floatRoutes({ db }) {
       .where((w) => w.where('to_branch_id', branch.id).orWhere('from_branch_id', branch.id))
       .where((w) => w.where('status', 'PENDING').orWhere('business_date', today))
       .orderBy('id', 'desc');
+    const h = (await branchHours(db, settings, [branch.id])).get(branch.id);
     return {
       branch,
       date: today,
+      hours: h,
+      tradingToday: h.workingDays.includes(dayCode(today)),
       accounts: accounts.map((a) => ({
         id: a.id,
         kind: a.kind,
@@ -1190,6 +1196,8 @@ export function floatRoutes({ db }) {
           accounts: b.accounts,
           totals: b.totals,
           closed: b.closed,
+          hours: b.hours,
+          tradingToday: b.tradingToday,
           openVariances: OV.get(b.branch.id) ?? 0,
           pending: b.movements.filter((m) => m.status === 'PENDING').length,
         })),
@@ -1294,7 +1302,6 @@ export function floatRoutes({ db }) {
       res.json({
         ...day,
         branches: day.branches.map((b) => ({ ...b, text: dayText(b, date, s) })),
-        settings: { dayStart: s.dayStart, eveningFrom: s.eveningFrom },
         signedOff: signed
           ? { by: name(signed.first_name, signed.last_name), at: signed.signed_at, comment: signed.comment }
           : null,
@@ -1393,8 +1400,8 @@ export function floatRoutes({ db }) {
                 { key: 'ftAmount', label: 'Float transfers amount (K)', type: 'number' },
                 { key: 'ccCount', label: 'Cash collections count', type: 'number' },
                 { key: 'ccAmount', label: 'Cash collections amount (K)', type: 'number' },
-                { key: 'daytime', label: `Transactions ${s.dayStart}–${s.eveningFrom}`, type: 'number' },
-                { key: 'evening', label: `Transactions after ${s.eveningFrom}`, type: 'number' },
+                { key: 'daytime', label: 'Daytime transactions', type: 'number' },
+                { key: 'evening', label: 'Evening transactions', type: 'number' },
                 { key: 'total', label: 'Total transactions', type: 'number' },
                 { key: 'turnedDown', label: 'Customers turned down', type: 'number' },
                 { key: 'cash', label: 'Cash (K)', type: 'number' },
@@ -1471,6 +1478,11 @@ export function floatRoutes({ db }) {
               .pluck('account_id')
           : [],
       );
+      const H = await branchHours(
+        db,
+        s,
+        branches.map((b) => b.id),
+      );
       res.json({
         configured: Boolean(s.companyId),
         canEdit: f(req).floatAdmin,
@@ -1479,6 +1491,7 @@ export function floatRoutes({ db }) {
           name: b.name,
           location: b.location,
           isActive: Boolean(b.is_active),
+          hours: H.get(b.id),
           accounts: KINDS.map((k) => {
             const a = accounts.find((x) => x.branch_id === b.id && x.kind === k);
             return {
@@ -1500,12 +1513,26 @@ export function floatRoutes({ db }) {
     AIRTEL: z.coerce.number().min(0).default(0),
     MTN: z.coerce.number().min(0).default(0),
   });
+  // A branch's own trading days and hours (D120).
+  const hoursSchema = z
+    .object({
+      workingDays: z.array(z.enum(DAYS)).min(1, 'choose at least one trading day'),
+      opensAt: hhmm,
+      closesAt: hhmm,
+      eveningFrom: hhmm,
+    })
+    .refine((h) => h.closesAt > h.opensAt, { message: 'must be after the opening time', path: ['closesAt'] })
+    .refine((h) => h.eveningFrom > h.opensAt, {
+      message: 'must be after the opening time',
+      path: ['eveningFrom'],
+    });
   const branchSchema = z.object({
     name: requiredText(150),
     location: optionalText(200),
     isActive: z.boolean().default(true),
     minimums: kindMoney.default({}),
     openings: kindMoney.default({}),
+    hours: hoursSchema.nullish(),
   });
   router.post(
     '/branches',
@@ -1525,6 +1552,15 @@ export function floatRoutes({ db }) {
           name: input.name,
           location: input.location,
           is_active: input.isActive,
+        });
+        const h = input.hours ?? defaultHours(s);
+        await trx('float_branch_hours').insert({
+          branch_id: bid,
+          working_days: DAYS.filter((d) => h.workingDays.includes(d)).join(','),
+          opens_at: h.opensAt,
+          closes_at: h.closesAt,
+          evening_from: h.eveningFrom,
+          updated_by: req.user.id,
         });
         const date = await businessDate(trx);
         for (const k of KINDS) {
@@ -1606,6 +1642,196 @@ export function floatRoutes({ db }) {
     }),
   );
 
+  // ── One branch: its hours and its staff (D120) ──────────────────────────────────────────────
+  async function amsBranch(id) {
+    const s = await getSettings(db);
+    const b = s.companyId ? await db('stock_branches').where({ id, company_id: s.companyId }).first() : null;
+    if (!b) throw notFound('AMS branch not found.');
+    return { s, b };
+  }
+  router.get(
+    '/branches/:id',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const { s, b } = await amsBranch(idParam(req));
+      const hours = (await branchHours(db, s, [b.id])).get(b.id);
+      const staff = await db('employees as e')
+        .leftJoin('access_users as u', (j) =>
+          j.on('u.employee_id', 'e.id').andOnVal('u.module', '=', 'inventory'),
+        )
+        .leftJoin('access_roles as r', 'r.id', 'u.role_id')
+        .leftJoin('phone_logins as p', 'p.employee_id', 'e.id')
+        .where({ 'e.branch_id': b.id, 'e.status': 'ACTIVE' })
+        .orderBy(['e.first_name', 'e.last_name'])
+        .select(
+          'e.id',
+          'e.first_name',
+          'e.last_name',
+          'e.job_title',
+          'e.mobile_phone',
+          'e.phone_e164',
+          'r.name as role',
+          'u.is_active as role_active',
+          'p.employee_id as has_login',
+          'p.pin_hash',
+          'p.locked_at',
+          'p.code_expires_at',
+        );
+      const candidates = await db('employees')
+        .where({ company_id: s.companyId, status: 'ACTIVE' })
+        .where((w) => w.whereNull('branch_id').orWhereNot('branch_id', b.id))
+        .orderBy(['first_name', 'last_name'])
+        .select('id', 'first_name', 'last_name', 'job_title');
+      res.json({
+        id: b.id,
+        name: b.name,
+        location: b.location,
+        isActive: Boolean(b.is_active),
+        hours,
+        staff: staff.map((e) => ({
+          id: e.id,
+          firstName: e.first_name,
+          lastName: e.last_name,
+          jobTitle: e.job_title,
+          phone: e.phone_e164 ? formatPhone(e.phone_e164) : e.mobile_phone,
+          hasPhone: Boolean(e.phone_e164),
+          role: e.role ? `${e.role}${e.role_active ? '' : ' (disabled)'}` : null,
+          phoneSignIn: !e.has_login
+            ? 'NOT_SET_UP'
+            : e.locked_at
+              ? 'LOCKED'
+              : e.pin_hash
+                ? 'ACTIVE'
+                : new Date(e.code_expires_at) > new Date()
+                  ? 'CODE_GIVEN'
+                  : 'CODE_EXPIRED',
+        })),
+        candidates: candidates.map((e) => ({
+          id: e.id,
+          firstName: e.first_name,
+          lastName: e.last_name,
+          jobTitle: e.job_title,
+        })),
+      });
+    }),
+  );
+  router.put(
+    '/branches/:id/hours',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const { b } = await amsBranch(idParam(req));
+      const h = hoursSchema.parse(req.body);
+      const row = {
+        working_days: DAYS.filter((d) => h.workingDays.includes(d)).join(','),
+        opens_at: h.opensAt,
+        closes_at: h.closesAt,
+        evening_from: h.eveningFrom,
+        updated_by: req.user.id,
+        updated_at: db.fn.now(),
+      };
+      const before = await db('float_branch_hours').where({ branch_id: b.id }).first();
+      await db('float_branch_hours')
+        .insert({ branch_id: b.id, ...row })
+        .onConflict('branch_id')
+        .merge();
+      await writeAudit(db, {
+        ...auditContext(req),
+        action: 'FLOAT_BRANCH_HOURS_UPDATED',
+        entityType: 'branch',
+        entityId: b.id,
+        before: before ?? undefined,
+        after: h,
+      });
+      res.json({ id: b.id });
+    }),
+  );
+  // Post someone to the branch (on their employee record) and give them the AMS Branch Staff
+  // role if they have no inventory role yet.
+  router.post(
+    '/branches/:id/staff',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const { s, b } = await amsBranch(idParam(req));
+      const { employeeId, giveRole } = z
+        .object({ employeeId: z.coerce.number().int().positive(), giveRole: z.boolean().default(true) })
+        .parse(req.body);
+      await db.transaction(async (trx) => {
+        const e = await trx('employees')
+          .where({ id: employeeId, status: 'ACTIVE' })
+          .first('id', 'company_id');
+        if (!e || e.company_id !== s.companyId)
+          throw badRequest('Choose an active Altus Money Solutions employee.');
+        await updateEmployee(trx, employeeId, updateEmployeeSchema.parse({ branchId: b.id }), {
+          ...auditContext(req),
+          historyReason: `Posted to ${b.name}`,
+        });
+        let roleGiven = false;
+        if (
+          giveRole &&
+          !(await trx('access_users')
+            .where({ module: 'inventory', employee_id: employeeId })
+            .first('employee_id'))
+        ) {
+          const role = await trx('access_roles')
+            .where({ module: 'inventory', name: 'AMS Branch Staff' })
+            .first('id');
+          if (role) {
+            await trx('access_users').insert({
+              module: 'inventory',
+              employee_id: employeeId,
+              role_id: role.id,
+              added_by: req.user.id,
+            });
+            roleGiven = true;
+          }
+        }
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_STAFF_POSTED',
+          entityType: 'branch',
+          entityId: b.id,
+          after: { employeeId, roleGiven },
+        });
+      });
+      res.status(201).json({ id: employeeId });
+    }),
+  );
+  // Take someone off the branch: their branch is cleared, their phone sign-in ends, and the AMS
+  // Branch Staff role is removed (other inventory roles are left alone).
+  router.delete(
+    '/branches/:id/staff/:employeeId',
+    asyncHandler(async (req, res) => {
+      mustAdmin(req);
+      const { b } = await amsBranch(idParam(req));
+      const employeeId = idParam(req, 'employeeId');
+      await db.transaction(async (trx) => {
+        const e = await trx('employees').where({ id: employeeId, branch_id: b.id }).first('id');
+        if (!e) throw notFound('This person is not at this branch.');
+        await updateEmployee(trx, employeeId, updateEmployeeSchema.parse({ branchId: null }), {
+          ...auditContext(req),
+          historyReason: `Taken off ${b.name}`,
+        });
+        await trx('phone_logins').where({ employee_id: employeeId }).del();
+        const staffRole = await trx('access_roles')
+          .where({ module: 'inventory', name: 'AMS Branch Staff' })
+          .first('id');
+        if (staffRole) {
+          await trx('access_users')
+            .where({ module: 'inventory', employee_id: employeeId, role_id: staffRole.id })
+            .del();
+        }
+        await writeAudit(trx, {
+          ...auditContext(req),
+          action: 'FLOAT_STAFF_REMOVED',
+          entityType: 'branch',
+          entityId: b.id,
+          after: { employeeId },
+        });
+      });
+      res.json({ ok: true });
+    }),
+  );
+
   // ── Phone sign-in for AMS branch staff (D119) ───────────────────────────────────────────────
   router.get(
     '/phone-access',
@@ -1684,14 +1910,12 @@ export function floatRoutes({ db }) {
         entityType: 'employee',
         entityId: id,
       });
-      res
-        .status(201)
-        .json({
-          code,
-          expiresAt: expires,
-          name: name(e.first_name, e.last_name),
-          phone: formatPhone(e.phone_e164),
-        });
+      res.status(201).json({
+        code,
+        expiresAt: expires,
+        name: name(e.first_name, e.last_name),
+        phone: formatPhone(e.phone_e164),
+      });
     }),
   );
   router.post(

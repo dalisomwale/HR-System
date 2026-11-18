@@ -323,7 +323,7 @@ export function FloatBranchPage() {
     <div>
       <PageHeader
         title={d.branch.name}
-        description={`Business day ${d.date}${d.closed ? ' · Day closed' : ''}`}
+        description={`Business day ${d.date} · ${d.tradingToday ? `open ${d.hours.opensAt}–${d.hours.closesAt}` : 'not a trading day'}${d.closed ? ' · Signed out' : ''}`}
         actions={
           d.canRecord && (
             <>

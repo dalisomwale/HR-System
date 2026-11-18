@@ -41,6 +41,36 @@ export async function getSettings(db) {
   };
 }
 
+/** The AMS settings' hours, used for branches that have none of their own yet. */
+export const defaultHours = (settings) => ({
+  workingDays: settings.workingDays,
+  opensAt: settings.dayStart,
+  closesAt: settings.closeReminderTime,
+  eveningFrom: settings.eveningFrom,
+});
+
+/** Each branch's own trading days and hours (D120), by branch id. */
+export async function branchHours(db, settings, ids) {
+  const rows = ids.length ? await db('float_branch_hours').whereIn('branch_id', ids) : [];
+  const R = new Map(rows.map((r) => [r.branch_id, r]));
+  return new Map(
+    ids.map((id) => {
+      const r = R.get(id);
+      return [
+        id,
+        r
+          ? {
+              workingDays: String(r.working_days).split(',').filter(Boolean),
+              opensAt: r.opens_at,
+              closesAt: r.closes_at,
+              eveningFrom: r.evening_from,
+            }
+          : defaultHours(settings),
+      ];
+    }),
+  );
+}
+
 /** Lusaka time as 'HH:MM'. */
 export function lusakaTime(at = new Date()) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -223,11 +253,13 @@ export async function buildDay(db, settings, date, branchIds = null) {
     mtd.set(c.branch_id, round2((mtd.get(c.branch_id) ?? 0) + Number(c.commission ?? 0)));
 
   const sum = (rows) => round2(rows.reduce((s, r) => s + Number(r.amount), 0));
+  const hours = await branchHours(db, settings, ids);
   const out = branches.map((b) => {
+    const h = hours.get(b.id);
     const t = txns.filter((x) => x.branch_id === b.id);
     const dep = t.filter((x) => x.kind === 'DEPOSIT');
     const wd = t.filter((x) => x.kind === 'WITHDRAWAL');
-    const evening = t.filter((x) => lusakaTime(x.recorded_at) >= settings.eveningFrom).length;
+    const evening = t.filter((x) => lusakaTime(x.recorded_at) >= h.eveningFrom).length;
     const floatIn = moves.filter(
       (m) =>
         m.to_branch_id === b.id &&
@@ -253,6 +285,8 @@ export async function buildDay(db, settings, date, branchIds = null) {
     return {
       id: b.id,
       name: b.name,
+      hours: h,
+      tradingDay: h.workingDays.includes(dayCode(date)),
       signedOut: Boolean(close),
       signedOutAt: close?.created_at ?? null,
       signedOutBy: close ? { firstName: close.first_name, lastName: close.last_name } : null,
@@ -308,26 +342,27 @@ export async function buildDay(db, settings, date, branchIds = null) {
     deficit: add((b) => b.deficit),
     signedOut: out.filter((b) => b.signedOut).length,
     branches: out.length,
+    trading: out.filter((b) => b.tradingDay).length,
   };
   return { date, branches: out, totals };
 }
 
 /** The day's report for one branch as the text AMS shares with the team. */
-export function dayText(b, date, settings) {
+export function dayText(b, date) {
   const k = (n) => `K${Number(n).toLocaleString('en-GB', { maximumFractionDigits: 2 })}`;
   const who = b.signedOutBy ? `${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : '';
   return [
     `*${b.name}*`,
     date.split('-').reverse().join('/'),
-    `Status: ${b.signedOut ? `Signed out at ${lusakaTime(b.signedOutAt)}` : 'Open'}`,
+    `Status: ${b.signedOut ? `Signed out at ${lusakaTime(b.signedOutAt)}` : b.tradingDay ? 'Open' : 'Closed today'}`,
     '',
     `Deposits: ${b.deposits.count} (${k(b.deposits.amount)})`,
     `Withdrawals: ${b.withdrawals.count} (${k(b.withdrawals.amount)})`,
     `Float transfers: ${b.floatTransfers.count} (${k(b.floatTransfers.amount)})`,
     `Cash retired to finance: ${b.cashCollections.count} (${k(b.cashCollections.amount)})`,
     '',
-    `Transactions ${settings.dayStart}–${settings.eveningFrom}: ${b.transactions.daytime}`,
-    `Transactions after ${settings.eveningFrom}: ${b.transactions.evening}`,
+    `Transactions ${b.hours.opensAt}–${b.hours.eveningFrom}: ${b.transactions.daytime}`,
+    `Transactions after ${b.hours.eveningFrom}: ${b.transactions.evening}`,
     `Total transactions: ${b.transactions.total}`,
     `Customers turned down: ${b.turnedDown}`,
     `Walk-in customers: ${b.walkIns}`,
