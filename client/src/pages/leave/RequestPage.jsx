@@ -45,22 +45,15 @@ export default function RequestPage() {
   const r = q.data;
   const can = r.can;
   const openChange = r.changes.find((c) => c.status.startsWith('PENDING'));
-  // The last tab holds whatever the viewer can do here, named after the main action.
-  const actionLabel = can.accept
-    ? 'Offered dates'
-    : can.hrDecide
-      ? 'HR decision'
-      : can.managerDecide
-        ? 'Manager decision'
-        : openChange && (can.changeHrDecide || can.changeManagerDecide)
-          ? 'Cancellation decision'
-          : can.resubmit
-            ? 'Correct and resubmit'
-            : can.withdraw
-              ? 'Withdraw'
-              : can.cancel
-                ? 'Cancel leave'
-                : null;
+  // Decisions and answers the viewer owes are shown on the Request view itself, next to the
+  // details, so they are seen straight away. Withdrawing and cancelling stay in their own tab.
+  const decides =
+    can.managerDecide ||
+    can.hrDecide ||
+    (openChange && (can.changeManagerDecide || can.changeHrDecide)) ||
+    can.resubmit ||
+    can.accept;
+  const actionLabel = can.withdraw && !can.accept ? 'Withdraw' : can.cancel ? 'Cancel leave' : null;
   const handoverSheet = r.documents.find((d) => d.kind === 'HANDOVER');
   const tabs = [
     { id: 'request', label: 'Request' },
@@ -122,83 +115,117 @@ export default function RequestPage() {
           />
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
             {tab === 'request' && (
-              <div className="grid gap-4">
-                {r.offer && (
-                  <Notice
-                    tone="pending"
-                    title={can.accept ? 'Your manager offered different dates' : 'Different dates offered'}
-                  >
-                    <OfferSummary request={r} />
-                    {can.accept && (
-                      <p className="mt-1">
-                        <button
-                          type="button"
-                          className="font-medium underline"
-                          onClick={() => setTab('action')}
-                        >
-                          Accept or withdraw
-                        </button>
-                      </p>
+              <div
+                className={
+                  decides
+                    ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]'
+                    : 'grid gap-4'
+                }
+              >
+                {decides && (
+                  <div className="grid gap-4 lg:sticky lg:top-4 lg:order-last">
+                    {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
+                    {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
+                    {openChange && can.changeManagerDecide && (
+                      <ChangeDecisionPanel request={r} change={openChange} stage="manager" />
                     )}
-                  </Notice>
+                    {openChange && can.changeHrDecide && (
+                      <ChangeDecisionPanel request={r} change={openChange} stage="hr" />
+                    )}
+                    {can.resubmit && (
+                      <Section title="Returned for correction">
+                        <p className="mb-3 text-sm">
+                          HR returned this request. Read their comment under Approval, correct the details and
+                          send it again.
+                        </p>
+                        <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
+                      </Section>
+                    )}
+                    {can.accept && <OfferPanel request={r} />}
+                  </div>
                 )}
-                {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
-                  <Notice tone="pending" title="Cancellation in progress">
-                    {CHANGE_LABELS[openChange.reasonType]} – {STATUS_LABELS[openChange.status].toLowerCase()}.
-                  </Notice>
-                )}
-                <Section title="Request">
-                  <Details
-                    items={[
-                      ['Employee', `${r.employee.name} (${r.employee.employeeNumber})`],
-                      ['Department', r.employee.department],
-                      ['Leave type', r.leaveType.name],
-                      ['Dates', dateRange(r)],
-                      ['Days charged', days(r.chargeableDays)],
-                      ...(r.eventDate ? [['Date of birth', formatDate(r.eventDate)]] : []),
-                      ...(r.multipleBirth ? [['Multiple birth', 'Yes']] : []),
-                      [
-                        'Reason',
-                        r.reasonHidden ? (
-                          <span className="font-normal text-muted">Visible to HR only</span>
-                        ) : (
-                          r.reason
-                        ),
-                      ],
-                      ...(r.noticeShortfallReason ? [['Short notice reason', r.noticeShortfallReason]] : []),
-                      ['Covering', r.handoverContact],
-                      // Requests made before the handover sheet (D99) kept written notes.
-                      ...(r.handoverNotes ? [['Handover notes', r.handoverNotes]] : []),
-                      [
-                        'Handover sheet',
-                        handoverSheet ? (
-                          handoverSheet.restricted ? (
+                <div className="grid min-w-0 gap-4">
+                  {r.offer && (
+                    <Notice
+                      tone="pending"
+                      title={can.accept ? 'Your manager offered different dates' : 'Different dates offered'}
+                    >
+                      <OfferSummary request={r} />
+                      {can.accept && (
+                        <p className="mt-1">
+                          <button
+                            type="button"
+                            className="font-medium underline"
+                            onClick={() => setTab('action')}
+                          >
+                            Accept or withdraw
+                          </button>
+                        </p>
+                      )}
+                    </Notice>
+                  )}
+                  {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
+                    <Notice tone="pending" title="Cancellation in progress">
+                      {CHANGE_LABELS[openChange.reasonType]} –{' '}
+                      {STATUS_LABELS[openChange.status].toLowerCase()}.
+                    </Notice>
+                  )}
+                  <Approval request={r} />
+                  <Section title="Request">
+                    <Details
+                      items={[
+                        ['Employee', `${r.employee.name} (${r.employee.employeeNumber})`],
+                        ['Department', r.employee.department],
+                        ['Leave type', r.leaveType.name],
+                        ['Dates', dateRange(r)],
+                        ['Days charged', days(r.chargeableDays)],
+                        ...(r.eventDate ? [['Date of birth', formatDate(r.eventDate)]] : []),
+                        ...(r.multipleBirth ? [['Multiple birth', 'Yes']] : []),
+                        [
+                          'Reason',
+                          r.reasonHidden ? (
                             <span className="font-normal text-muted">Visible to HR only</span>
                           ) : (
-                            <a
-                              href={`/api/documents/${handoverSheet.id}/download`}
-                              className="text-brand hover:underline"
-                            >
-                              {handoverSheet.name}
-                            </a>
-                          )
-                        ) : (
-                          <span className="font-normal text-muted">None attached</span>
-                        ),
-                      ],
-                      [
-                        'Manager',
-                        r.sensitive
-                          ? 'Marked sensitive – sent straight to HR'
-                          : r.routedWithoutManager
-                            ? 'None recorded – sent straight to HR'
-                            : r.assignedManager,
-                      ],
-                      ['Submitted', formatDateTime(r.submittedAt)],
-                    ]}
-                  />
-                </Section>
-                <DayBreakdown items={r.days} />
+                            r.reason
+                          ),
+                        ],
+                        ...(r.noticeShortfallReason
+                          ? [['Short notice reason', r.noticeShortfallReason]]
+                          : []),
+                        ['Covering', r.handoverContact],
+                        // Requests made before the handover sheet (D99) kept written notes.
+                        ...(r.handoverNotes ? [['Handover notes', r.handoverNotes]] : []),
+                        [
+                          'Handover sheet',
+                          handoverSheet ? (
+                            handoverSheet.restricted ? (
+                              <span className="font-normal text-muted">Visible to HR only</span>
+                            ) : (
+                              <a
+                                href={`/api/documents/${handoverSheet.id}/download`}
+                                className="text-brand hover:underline"
+                              >
+                                {handoverSheet.name}
+                              </a>
+                            )
+                          ) : (
+                            <span className="font-normal text-muted">None attached</span>
+                          ),
+                        ],
+                        [
+                          'Manager',
+                          r.sensitive
+                            ? 'Marked sensitive – sent straight to HR'
+                            : r.routedWithoutManager
+                              ? 'None recorded – sent straight to HR'
+                              : r.assignedManager,
+                        ],
+                        ['Submitted', formatDateTime(r.submittedAt)],
+                      ]}
+                    />
+                  </Section>
+                  <DayBreakdown items={r.days} />
+                </div>
               </div>
             )}
             {tab === 'documents' && <DocumentsPanel request={r} />}
@@ -210,24 +237,6 @@ export default function RequestPage() {
             )}
             {tab === 'action' && (
               <div className="grid max-w-xl gap-4">
-                {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
-                {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
-                {openChange && can.changeManagerDecide && (
-                  <ChangeDecisionPanel request={r} change={openChange} stage="manager" />
-                )}
-                {openChange && can.changeHrDecide && (
-                  <ChangeDecisionPanel request={r} change={openChange} stage="hr" />
-                )}
-                {can.resubmit && (
-                  <Section title="Returned for correction">
-                    <p className="mb-3 text-sm">
-                      HR returned this request. Check the comment in the history, correct the details and send
-                      it again.
-                    </p>
-                    <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
-                  </Section>
-                )}
-                {can.accept && <OfferPanel request={r} />}
                 {can.withdraw && !can.accept && <WithdrawPanel request={r} />}
                 {can.cancel && <CancelPanel request={r} />}
               </div>
@@ -664,6 +673,87 @@ function ResubmitForm({ request: r, onDone }) {
       onSubmit={submit}
       onCancel={onDone}
     />
+  );
+}
+
+const DECISIONS = ['APPROVE', 'REJECT', 'RETURN', 'TRANSFER'];
+const DECISION_TONES = { APPROVE: 'ok', REJECT: 'danger', RETURN: 'pending', TRANSFER: 'pending' };
+
+/**
+ * Where the request stands at each stage: the manager's and HR's decisions, who made them, when,
+ * and their comment, or who it is waiting for. Read from the history since the latest
+ * submission, so a corrected and resubmitted request starts again.
+ */
+function Approval({ request: r }) {
+  const since = r.history.reduce(
+    (at, a, i) => (['SUBMIT', 'RESUBMIT', 'ACCEPT'].includes(a.action) ? i : at),
+    -1,
+  );
+  const recent = r.history.slice(since + 1);
+  const last = (stage) => recent.filter((a) => a.stage === stage && DECISIONS.includes(a.action)).at(-1);
+  const viaManager = !r.sensitive && !r.routedWithoutManager;
+  const finished = ['WITHDRAWN', 'CANCELLED', 'REJECTED_BY_MANAGER', 'REJECTED_BY_HR'].includes(r.status);
+  const stages = [
+    ...(viaManager
+      ? [
+          {
+            key: 'MANAGER',
+            title: 'Manager',
+            who: r.assignedManager,
+            decision: last('MANAGER'),
+            waiting: r.status === 'PENDING_MANAGER_APPROVAL',
+          },
+        ]
+      : []),
+    {
+      key: 'HR',
+      title: 'HR',
+      who: 'HR',
+      decision: last('HR'),
+      waiting: r.status === 'PENDING_HR_APPROVAL',
+    },
+  ];
+  return (
+    <Section title="Approval">
+      <ol className="grid gap-3 sm:grid-cols-2">
+        {stages.map((s) => {
+          const d = s.decision;
+          return (
+            <li key={s.key} className="rounded-md border border-rule p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold">{s.title}</span>
+                {d ? (
+                  <Badge tone={DECISION_TONES[d.action]}>{ACTION_LABELS[d.action]}</Badge>
+                ) : s.waiting ? (
+                  <Badge tone="pending">Waiting for a decision</Badge>
+                ) : (
+                  <Badge tone="neutral">{finished ? 'Not needed' : 'Not yet'}</Badge>
+                )}
+              </div>
+              {d ? (
+                <>
+                  <p className="mt-1 text-muted">
+                    {d.actor}
+                    {d.onBehalfOf ? ` on behalf of ${d.onBehalfOf}` : ''} · {formatDateTime(d.at)}
+                  </p>
+                  {d.comment && <p className="mt-2 whitespace-pre-line">“{d.comment}”</p>}
+                </>
+              ) : (
+                <p className="mt-1 text-muted">
+                  {s.waiting
+                    ? s.key === 'HR'
+                      ? 'With HR for the final decision.'
+                      : `With ${s.who ?? 'the manager'} for review.`
+                    : s.key === 'HR' && !finished
+                      ? 'HR gives the final decision after the manager.'
+                      : '—'}
+                </p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </Section>
   );
 }
 
