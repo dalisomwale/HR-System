@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, newActionKey } from '../../lib/api.js';
@@ -39,6 +39,16 @@ export default function RequestPage() {
   });
   const [editing, setEditing] = useState(false);
   const [tab, setTab] = useState('request');
+  const decideRef = useRef(null);
+  // Opened from a "Decide" button: bring the decision box into view.
+  const wantsDecide = Boolean(location.state?.decide);
+  const loaded = Boolean(q.data);
+  useEffect(() => {
+    if (wantsDecide && loaded && decideRef.current) {
+      decideRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      decideRef.current.focus({ preventScroll: true });
+    }
+  }, [wantsDecide, loaded]);
 
   if (q.isPending) return <Loading />;
   if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;
@@ -123,7 +133,11 @@ export default function RequestPage() {
                 }
               >
                 {decides && (
-                  <div className="grid gap-4 lg:sticky lg:top-4 lg:order-last">
+                  <div
+                    ref={decideRef}
+                    tabIndex={-1}
+                    className="grid scroll-mt-4 gap-4 outline-none lg:sticky lg:top-4 lg:order-last"
+                  >
                     {can.managerDecide && <DecisionPanel request={r} stage="manager" />}
                     {can.hrDecide && <DecisionPanel request={r} stage="hr" />}
                     {openChange && can.changeManagerDecide && (
@@ -304,8 +318,12 @@ function DecisionPanel({ request: r, stage }) {
     });
   };
   return (
-    <Section title={isHr ? 'HR decision' : 'Your decision'}>
+    <Section title={isHr ? 'HR decision' : 'Your decision'} className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
+        <p className="text-sm">
+          This request is waiting for your decision. Approve it
+          {isHr ? ', return it for correction' : ', offer different dates'} or reject it.
+        </p>
         {isHr && r.documentRequirement && !r.documentRequirement.provided && (
           <Notice tone="pending">
             The policy asks for {r.documentRequirement.description ?? 'a supporting document'}, and none has
@@ -497,8 +515,9 @@ function ChangeDecisionPanel({ request: r, change, stage }) {
   };
   return (
     <Section
-      title="Cancellation request"
+      title={stage === 'hr' ? 'HR decision: cancellation' : 'Your decision: cancellation'}
       description={`${change.reference} · ${CHANGE_LABELS[change.reasonType]}`}
+      className="border-brand ring-1 ring-brand"
     >
       <div className="space-y-3 text-sm">
         {change.reason && <p>{change.reason}</p>}

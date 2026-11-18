@@ -140,6 +140,8 @@ function hrRows(data, viewerId) {
     note: r.decision?.comment ?? null,
     overdue: r.isOverdue,
     own: r.isOwn,
+    // Waiting for HR, and not their own request: the person viewing decides it.
+    decide: group === 'WAITING' && !r.isOwn,
     date,
   });
   return [
@@ -164,6 +166,7 @@ function hrRows(data, viewerId) {
       end: c.endDate,
       days: c.daysToReverse,
       status: { label: CHANGE_LABELS[c.reasonType] ?? 'Cancellation', tone: 'pending' },
+      decide: true,
       date: { label: 'Asked', at: c.createdAt },
     })),
     ...data.withManagers.map((r) =>
@@ -323,6 +326,9 @@ export function HrApprovalsPage() {
                   <Th className="text-right">Days</Th>
                   <Th>Status</Th>
                   <Th>Date</Th>
+                  <Th>
+                    <span className="sr-only">Action</span>
+                  </Th>
                 </tr>
               </thead>
               <tbody>
@@ -353,6 +359,21 @@ export function HrApprovalsPage() {
                     <Td className="whitespace-nowrap">
                       <span className="block text-xs text-muted">{r.date.label}</span>
                       {formatDateTime(r.date.at)}
+                    </Td>
+                    <Td>
+                      {r.decide ? (
+                        <Link
+                          to={r.link}
+                          state={{ decide: true }}
+                          className="btn btn-primary btn-sm whitespace-nowrap"
+                        >
+                          Decide
+                        </Link>
+                      ) : (
+                        <Link to={r.link} className="btn btn-sm whitespace-nowrap">
+                          View
+                        </Link>
+                      )}
                     </Td>
                   </tr>
                 ))}

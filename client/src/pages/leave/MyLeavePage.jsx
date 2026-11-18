@@ -280,6 +280,11 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
           <Th className="text-right">Days</Th>
           <Th>Status</Th>
           <Th>Submitted</Th>
+          {yourTurn && (
+            <Th>
+              <span className="sr-only">Action</span>
+            </Th>
+          )}
         </tr>
       </thead>
       <tbody>
@@ -315,6 +320,23 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
               )}
             </Td>
             <Td>{formatDateTime(r.submittedAt)}</Td>
+            {yourTurn && (
+              <Td>
+                {r.status === yourTurn && !r.isOwn ? (
+                  <Link
+                    to={`/leave/requests/${r.id}`}
+                    state={{ decide: true }}
+                    className="btn btn-primary btn-sm whitespace-nowrap"
+                  >
+                    Decide
+                  </Link>
+                ) : (
+                  <Link to={`/leave/requests/${r.id}`} className="btn btn-sm whitespace-nowrap">
+                    View
+                  </Link>
+                )}
+              </Td>
+            )}
           </tr>
         ))}
       </tbody>

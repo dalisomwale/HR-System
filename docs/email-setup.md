@@ -4,7 +4,7 @@ The leave system sends email through Microsoft Graph from one mailbox, using its
 
 ## 1. Choose the sending mailbox
 
-Use a **shared mailbox** such as `leave@altus.co.zm` (Exchange admin centre → Recipients → Mailboxes → Add a shared mailbox). A shared mailbox needs no licence. Emails show this address as the sender.
+Altus sends from **`itadmin@altus.co.zm`** (project owner, 18 Nov 2026). Emails from the leave and inventory systems show this address as the sender, and any replies land in that mailbox. (Another option is a shared mailbox, which needs no licence: Exchange admin centre → Recipients → Mailboxes → Add a shared mailbox.)
 
 ## 2. Register the mail app
 
@@ -14,7 +14,7 @@ Use a separate app registration from the sign-in app, so the sign-in secret cann
 2. Name: `Altus Leave – Mail`. Supported account types: this organisation only. No redirect URI.
 3. Note the **Application (client) ID**.
 4. Certificates & secrets → New client secret. Copy the **value** straight away. Set a calendar reminder to replace it before it expires.
-5. **Do not add the Mail.Send permission here.** Granting Mail.Send in Entra lets the app send as _any_ mailbox in the tenant. Step 3 gives it permission for the leave mailbox only.
+5. **Do not add the Mail.Send permission here.** Granting Mail.Send in Entra lets the app send as _any_ mailbox in the tenant. Step 3 gives it permission for the itadmin mailbox only.
 
 ## 3. Allow the app to send from that mailbox only
 
@@ -27,13 +27,13 @@ $SP = Get-MgServicePrincipal -Filter "displayName eq 'Altus Leave – Mail'"
 Connect-ExchangeOnline
 New-ServicePrincipal -AppId $SP.AppId -ObjectId $SP.Id -DisplayName $SP.DisplayName
 
-# Check that the filter matches only the leave mailbox
-Get-Recipient -RecipientPreviewFilter "PrimarySmtpAddress -eq 'leave@altus.co.zm'"
+# Check that the filter matches only the itadmin mailbox
+Get-Recipient -RecipientPreviewFilter "PrimarySmtpAddress -eq 'itadmin@altus.co.zm'"
 
-New-ManagementScope -Name "Altus Leave mailbox" `
-  -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'leave@altus.co.zm'"
+New-ManagementScope -Name "Altus mail sender" `
+  -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'itadmin@altus.co.zm'"
 New-ManagementRoleAssignment -App $SP.AppId -Role "Application Mail.Send" `
-  -CustomResourceScope "Altus Leave mailbox"
+  -CustomResourceScope "Altus mail sender"
 ```
 
 This is Exchange Online's "RBAC for Applications". If the app was ever given Mail.Send in Entra, remove that permission so only the scoped grant remains.
@@ -44,7 +44,7 @@ In `.env` (and remove `MAIL_OFF_IN_PRODUCTION` if it was set while email was off
 
 ```
 MAIL_TRANSPORT=graph
-MAIL_SENDER_ADDRESS=leave@altus.co.zm
+MAIL_SENDER_ADDRESS=itadmin@altus.co.zm
 GRAPH_MAIL_CLIENT_ID=<application (client) ID from step 2>
 GRAPH_MAIL_CLIENT_SECRET=<secret value from step 2>
 ```
