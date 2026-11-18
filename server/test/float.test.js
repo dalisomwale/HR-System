@@ -361,4 +361,39 @@ describe('AMS cash and float (D117, D121)', () => {
       await db('access_users').where({ module: 'inventory', employee_id: ids.newbie }).first(),
     ).toBeUndefined();
   });
+
+  it('lets the System Admin and the Operations Officer work at any branch they choose (D122)', async () => {
+    // No branch on their records: they see the first branch, with the list to choose from.
+    const view = (await as(people.admin).get('/api/float/branch')).body;
+    expect(view).toMatchObject({ branch: { id: branch }, canRecord: true });
+    expect(view.branches.map((b) => b.id)).toEqual([branch]);
+    // Doing something needs the branch chosen.
+    const none = await as(people.admin).post('/api/float/open', {});
+    expect(none.body.error.code).toBe('CHOOSE_BRANCH');
+    expect((await as(people.admin).post('/api/float/open', { branchId: branch })).status).toBe(201);
+    expect(
+      (
+        await as(people.officer).post('/api/float/transactions', {
+          network: 'MTN',
+          kind: 'DEPOSIT',
+          amount: 100,
+          branchId: branch,
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await as(people.admin).post('/api/float/requisitions', {
+          kind: 'CASH',
+          amount: 500,
+          reason: 'Cash low',
+          branchId: branch,
+        })
+      ).status,
+    ).toBe(201);
+    // Branch staff stay at their own branch, whatever they send.
+    expect(
+      (await as(people.teller).post('/api/float/turned-down', { reason: 'OTHER', branchId: 999 })).status,
+    ).toBe(201);
+  });
 });

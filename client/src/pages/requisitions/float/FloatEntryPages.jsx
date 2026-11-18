@@ -22,7 +22,18 @@ import {
   Th,
 } from '../../../components/ui.jsx';
 import { errorText } from '../rq.js';
-import { ACCOUNT, DENOMINATIONS, KIND, NETWORK, TXN_STATUS, money, signed, timeOf, useFloat } from './fl.js';
+import {
+  ACCOUNT,
+  DENOMINATIONS,
+  KIND,
+  NETWORK,
+  TXN_STATUS,
+  money,
+  signed,
+  timeOf,
+  useFloat,
+  useWorkingBranch,
+} from './fl.js';
 
 const QUICK = [50, 100, 200, 500, 1000];
 const TURN_DOWN = [
@@ -33,13 +44,13 @@ const TURN_DOWN = [
 ];
 
 /** One tap to count a customer who could not be served, with why. */
-function TurnedDown() {
+function TurnedDown({ branchId }) {
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState(null);
   const tap = async (reason) => {
     setBusy(reason);
     try {
-      const r = await api.post('/api/float/turned-down', { reason });
+      const r = await api.post('/api/float/turned-down', { reason, branchId });
       setMsg(`Recorded. ${r.today} turned down today.`);
     } catch (err) {
       setMsg(errorText(err));
@@ -62,6 +73,24 @@ function TurnedDown() {
   );
 }
 
+/** For those who work across branches: which branch they are working on (D122). */
+export function BranchPicker({ branches, value, onChange }) {
+  if (!branches?.length) return null;
+  return (
+    <div className="mb-4 max-w-sm">
+      <Field id="work-branch" label="Branch you are working on">
+        <Select id="work-branch" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </Select>
+      </Field>
+    </div>
+  );
+}
+
 /** Opening the store (D121): one tap clocks the time and the balances it opens with. */
 function OpenStore({ data, onDone }) {
   const [busy, setBusy] = useState(false);
@@ -70,7 +99,7 @@ function OpenStore({ data, onDone }) {
     setBusy(true);
     setError(null);
     try {
-      await api.post('/api/float/open');
+      await api.post('/api/float/open', { branchId: data.branch.id });
       onDone('Store open. You can record transactions now.');
     } catch (err) {
       setError(errorText(err));
@@ -121,10 +150,12 @@ function Balances({ accounts }) {
 export function FloatRecordPage() {
   const qc = useQueryClient();
   const me = useFloat();
+  const [chosen, choose] = useWorkingBranch();
   const today = useQuery({
-    queryKey: ['float-branch', ''],
-    queryFn: () => api.get('/api/float/branch'),
-    enabled: Boolean(me.data?.branch),
+    queryKey: ['float-branch', chosen],
+    queryFn: () => api.get(`/api/float/branch${chosen ? `?branch=${chosen}` : ''}`),
+    enabled: Boolean(me.data),
+    retry: false,
   });
   const [network, setNetwork] = useState(null);
   const [kind, setKind] = useState(null);
@@ -137,18 +168,21 @@ export function FloatRecordPage() {
 
   if (me.isPending) return <Loading />;
   if (me.isError) return <LoadError error={me.error} onRetry={me.refetch} />;
-  if (!me.data.branch) {
+  if (today.isPending) return <Loading />;
+  if (today.isError) {
     return (
-      <Notice tone="pending" title="No AMS branch on your record">
-        Ask HR to set your branch on your employee record in Employee management. Then you can record here.
+      <Notice tone="pending" title="No AMS branch to work on">
+        {today.error.message}
       </Notice>
     );
   }
-  if (today.isPending) return <Loading />;
+  const branch = today.data.branch;
+  const picker = <BranchPicker branches={today.data.branches} value={branch.id} onChange={choose} />;
   if (today.data && !today.data.opened) {
     return (
       <div className="max-w-2xl">
-        <PageHeader title="Record a transaction" description={me.data.branch.name} />
+        <PageHeader title="Record a transaction" description={branch.name} />
+        {picker}
         <OpenStore data={today.data} onDone={() => qc.invalidateQueries({ queryKey: ['float-branch'] })} />
       </div>
     );
@@ -156,7 +190,8 @@ export function FloatRecordPage() {
   if (today.data?.closed) {
     return (
       <div className="max-w-2xl">
-        <PageHeader title="Record a transaction" description={me.data.branch.name} />
+        <PageHeader title="Record a transaction" description={branch.name} />
+        {picker}
         <Notice tone="neutral" title="The store is closed for today">
           The day's transactions are closed and the daily report has been sent. Open the store again on the
           next working day.
@@ -177,7 +212,7 @@ export function FloatRecordPage() {
     setBusy(true);
     setMsg(null);
     try {
-      await api.post('/api/float/transactions', { ...body, confirm });
+      await api.post('/api/float/transactions', { ...body, confirm, branchId: branch.id });
       setMsg({
         tone: 'ok',
         text: `${NETWORK[body.network]} ${KIND[body.kind].toLowerCase()} of ${money(body.amount)} recorded.`,
@@ -205,7 +240,8 @@ export function FloatRecordPage() {
       : `${big} border-rule bg-white text-ink hover:border-brand`;
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Record a transaction" description={me.data.branch.name} />
+      <PageHeader title="Record a transaction" description={branch.name} />
+      {picker}
       <div className="stack">
         {today.data && <Balances accounts={today.data.accounts} />}
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
@@ -287,7 +323,7 @@ export function FloatRecordPage() {
             )}
           </div>
         </div>
-        <TurnedDown />
+        <TurnedDown branchId={branch.id} />
         <p className="text-sm">
           <Link to="/requisitions/float/branch" className="text-brand hover:underline">
             Today at the branch: transactions, cash to finance, hand over, close the store
@@ -311,13 +347,18 @@ export function FloatRecordPage() {
 
 /** A branch today: balances, transactions, day close and handover, top-up requests. */
 export function FloatBranchPage() {
-  const [params] = useSearchParams();
-  const branchParam = params.get('branch') ?? '';
+  const [params, setParams] = useSearchParams();
+  const [chosen, choose] = useWorkingBranch();
+  const branchParam = params.get('branch') ?? chosen ?? '';
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ['float-branch', branchParam],
     queryFn: () => api.get(`/api/float/branch${branchParam ? `?branch=${branchParam}` : ''}`),
   });
+  const pick = (v) => {
+    choose(v);
+    setParams(v ? { branch: v } : {});
+  };
   const [panel, setPanel] = useState(null); // 'CLOSE' | 'HANDOVER' | 'TOPUP'
   const [reversing, setReversing] = useState(null);
   const [reason, setReason] = useState('');
@@ -355,7 +396,11 @@ export function FloatBranchPage() {
           d.opened &&
           !d.closed && (
             <>
-              <Link to="/requisitions/float/record" className="btn btn-primary">
+              <Link
+                to="/requisitions/float/record"
+                className="btn btn-primary"
+                onClick={() => choose(String(d.branch.id))}
+              >
                 Record a transaction
               </Link>
               <Button variant="secondary" onClick={() => setPanel('COLLECT')}>
@@ -372,6 +417,7 @@ export function FloatBranchPage() {
           )
         }
       />
+      <BranchPicker branches={d.branches} value={d.branch.id} onChange={pick} />
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {d.canRecord && !d.opened && !d.closed && <OpenStore data={d} onDone={refresh} />}
@@ -385,7 +431,9 @@ export function FloatBranchPage() {
         {(panel === 'CLOSE' || panel === 'HANDOVER') && (
           <CountForm data={d} kind={panel} onDone={refresh} onCancel={() => setPanel(null)} />
         )}
-        {panel === 'COLLECT' && <CollectionForm onDone={refresh} onCancel={() => setPanel(null)} />}
+        {panel === 'COLLECT' && (
+          <CollectionForm branchId={d.branch.id} onDone={refresh} onCancel={() => setPanel(null)} />
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           {d.totals.map((t) => (
             <div key={t.network} className="card">
@@ -534,6 +582,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
     setError(null);
     try {
       const r = await api.post('/api/float/counts', {
+        branchId: data.branch.id,
         kind,
         handedTo: kind === 'HANDOVER' ? Number(handedTo) : null,
         lines,
@@ -678,7 +727,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
   );
 }
 
-function CollectionForm({ onDone, onCancel }) {
+function CollectionForm({ branchId, onDone, onCancel }) {
   const [amount, setAmount] = useState('');
   const [by, setBy] = useState('');
   const [busy, setBusy] = useState(false);
@@ -687,7 +736,11 @@ function CollectionForm({ onDone, onCancel }) {
     setBusy(true);
     setError(null);
     try {
-      await api.post('/api/float/collections', { amount: Number(amount), collectedBy: by.trim() || null });
+      await api.post('/api/float/collections', {
+        amount: Number(amount),
+        collectedBy: by.trim() || null,
+        branchId,
+      });
       onDone('Cash to finance recorded. A manager confirms finance received it.');
     } catch (err) {
       setError(errorText(err));

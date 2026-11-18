@@ -17,7 +17,7 @@ import {
   Textarea,
 } from '../../../components/ui.jsx';
 import { errorText } from '../rq.js';
-import { ACCOUNT, money } from './fl.js';
+import { ACCOUNT, money, useWorkingBranch } from './fl.js';
 
 /*
  * AMS requisitions (D121): a dead or faulty device, or cash or float run out. Branch staff raise
@@ -73,6 +73,7 @@ export default function FloatRequisitionsPage() {
         {raising && (
           <RaiseForm
             branch={d.branch}
+            branches={d.branches}
             onCancel={() => setRaising(false)}
             onDone={(text) => {
               setRaising(false);
@@ -104,8 +105,10 @@ export default function FloatRequisitionsPage() {
   );
 }
 
-function RaiseForm({ branch, onDone, onCancel }) {
+function RaiseForm({ branch, branches, onDone, onCancel }) {
+  const [chosen, choose] = useWorkingBranch();
   const [v, setV] = useState({ kind: 'FLOAT', account: 'AIRTEL', amount: '', device: '', reason: '' });
+  const branchId = branches ? Number(chosen) || branch?.id || branches[0]?.id : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const send = async () => {
@@ -118,6 +121,7 @@ function RaiseForm({ branch, onDone, onCancel }) {
         amount: v.kind === 'DEVICE' ? null : Number(v.amount),
         device: v.kind === 'DEVICE' ? v.device : null,
         reason: v.reason,
+        branchId,
       });
       onDone('Requisition sent to the Operations Officer.');
     } catch (err) {
@@ -133,6 +137,17 @@ function RaiseForm({ branch, onDone, onCancel }) {
       className="border-brand ring-1 ring-brand"
     >
       <div className="stack">
+        {branches && (
+          <Field id="rq-branch" label="For branch">
+            <Select id="rq-branch" value={String(branchId ?? '')} onChange={(e) => choose(e.target.value)}>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
         <div className="grid grid-cols-3 gap-2">
           {KINDS.map(([k, l]) => (
             <button

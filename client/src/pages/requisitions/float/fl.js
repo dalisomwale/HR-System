@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../../lib/api.js';
 
@@ -43,3 +44,28 @@ export const timeOf = (v) =>
   new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Lusaka' }).format(
     new Date(v),
   );
+
+/**
+ * The branch someone who works across branches (Operations Officer, manager, System Admin) has
+ * chosen, remembered on this device (D122). Branch staff always work at their own branch.
+ */
+const KEY = 'ams-branch';
+export function useWorkingBranch() {
+  const [id, setId] = useState(() => {
+    try {
+      return window.localStorage.getItem(KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
+  const choose = (v) => {
+    setId(String(v ?? ''));
+    try {
+      if (v) window.localStorage.setItem(KEY, String(v));
+      else window.localStorage.removeItem(KEY);
+    } catch {
+      // storage unavailable: the choice lasts for this page only
+    }
+  };
+  return [id, choose];
+}

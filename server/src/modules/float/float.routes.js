@@ -107,18 +107,42 @@ export function floatRoutes({ db }) {
   };
 
   /** The branch the request is about: staff are held to their own; others may choose. */
+  /**
+   * The Operations Officer, managers and the System Admin act at any AMS branch: they choose it
+   * (D122). Branch staff always act at the branch on their employee record.
+   */
+  const actsAnywhere = (req) => Boolean(f(req).floatSupervise || f(req).floatAdmin);
+  async function anyBranch(settings, id) {
+    const b = await db('stock_branches').where({ id, company_id: settings.companyId, is_active: true }).first('id', 'name');
+    if (!b) throw notFound('AMS branch not found.');
+    return b;
+  }
+  /** For viewing: a chosen branch, their own, or (for those who see every branch) the first. */
   async function branchFor(req, settings, wanted) {
     const mine = await staffBranch(db, settings, req.user.id);
-    if (wanted && (f(req).floatViewAll || f(req).floatAdmin)) {
-      const b = await db('stock_branches')
-        .where({ id: wanted, company_id: settings.companyId })
-        .first('id', 'name');
-      if (!b) throw notFound('Branch not found.');
-      return b;
+    const seesAll = f(req).floatViewAll || f(req).floatAdmin || actsAnywhere(req);
+    if (wanted && seesAll) return anyBranch(settings, wanted);
+    if (mine) return mine;
+    if (seesAll) {
+      const first = (await amsBranches(db, settings, { activeOnly: true }))[0];
+      if (first) return { id: first.id, name: first.name };
+      throw badRequest('There are no AMS branches yet. Add them under AMS branches.');
+    }
+    throw badRequest('Your employee record has no AMS branch. Ask HR to post you to your branch.');
+  }
+  /** For doing: the branch chosen (branchId in the body) by those who act anywhere, else their own. */
+  async function actingBranch(req, settings) {
+    const wanted = Number(req.body?.branchId) || null;
+    const mine = await staffBranch(db, settings, req.user.id);
+    if (actsAnywhere(req)) {
+      if (wanted) return anyBranch(settings, wanted);
+      if (mine) return mine;
+      throw new AppError(400, 'CHOOSE_BRANCH', 'Choose the branch you are working on.');
     }
     if (!mine) throw badRequest('Your employee record has no AMS branch. Ask HR to post you to your branch.');
     return mine;
   }
+  const mustRecord = (req, msg) => must(f(req).floatRecord || actsAnywhere(req), msg);
 
   // ── Who the signed-in person is here ─────────────────────────────────────────────────────────
   router.get(
@@ -281,7 +305,7 @@ export function floatRoutes({ db }) {
     '/branch',
     asyncHandler(async (req, res) => {
       const c = f(req);
-      must(c.floatRecord || c.floatViewAll || c.floatAdmin, 'You do not have access to AMS cash and float.');
+      must(c.floatRecord || c.floatViewAll || c.floatAdmin || c.floatSupervise, 'You do not have access to AMS cash and float.');
       const s = await getSettings(db);
       const branch = await branchFor(req, s, req.query.branch ? Number(req.query.branch) : null);
       const staff = await db('employees')
@@ -291,7 +315,9 @@ export function floatRoutes({ db }) {
       res.json({
         ...(await branchToday(branch, s)),
         staff: staff.map((e) => ({ id: e.id, name: name(e.first_name, e.last_name) })),
-        canRecord: c.floatRecord && (await staffBranch(db, s, req.user.id))?.id === branch.id,
+        canRecord: actsAnywhere(req) || (c.floatRecord && (await staffBranch(db, s, req.user.id))?.id === branch.id),
+        // Those who act anywhere choose the branch they are working on.
+        branches: actsAnywhere(req) || c.floatViewAll || c.floatAdmin ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name })) : null,
       });
     }),
   );
@@ -307,12 +333,10 @@ export function floatRoutes({ db }) {
   router.post(
     '/transactions',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'You cannot record AMS transactions.');
+      mustRecord(req, 'You cannot record AMS transactions.');
       const input = txnSchema.parse(req.body);
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch)
-        throw badRequest('Your employee record has no AMS branch. Ask HR to post you to your branch.');
+      const branch = await actingBranch(req, s);
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         await mustBeOpen(trx, branch.id, date);
@@ -533,11 +557,10 @@ export function floatRoutes({ db }) {
   router.post(
     '/counts',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'You cannot count at an AMS branch.');
+      mustRecord(req, 'You cannot count at an AMS branch.');
       const input = countSchema.parse(req.body);
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const branch = await actingBranch(req, s);
       if (input.kind === 'HANDOVER' && !input.handedTo)
         throw badRequest('Choose who you are handing over to.');
       const out = await db.transaction(async (trx) => {
@@ -693,10 +716,9 @@ export function floatRoutes({ db }) {
   router.post(
     '/open',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'You cannot open an AMS branch.');
+      mustRecord(req, 'You cannot open an AMS branch.');
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const branch = await actingBranch(req, s);
       const out = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         const st = await storeState(trx, branch.id, date);
@@ -739,11 +761,10 @@ export function floatRoutes({ db }) {
   router.post(
     '/collections',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'You cannot record at an AMS branch.');
+      mustRecord(req, 'You cannot record at an AMS branch.');
       const input = z.object({ amount, collectedBy: optionalText(150) }).parse(req.body);
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const branch = await actingBranch(req, s);
       const id = await db.transaction(async (trx) => {
         const date = await businessDate(trx);
         await mustBeOpen(trx, branch.id, date);
@@ -795,7 +816,7 @@ export function floatRoutes({ db }) {
   router.post(
     '/turned-down',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'You cannot record at an AMS branch.');
+      mustRecord(req, 'You cannot record at an AMS branch.');
       const input = z
         .object({
           reason: z.enum(['NO_FLOAT', 'NO_CASH', 'NETWORK_DOWN', 'OTHER']),
@@ -803,8 +824,7 @@ export function floatRoutes({ db }) {
         })
         .parse(req.body);
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const branch = await actingBranch(req, s);
       await mustBeOpen(db, branch.id, await businessDate(db));
       const [id] = await db('float_turned_down').insert({
         branch_id: branch.id,
@@ -1684,8 +1704,9 @@ export function floatRoutes({ db }) {
       const u = { id: req.user.id, rq: req.rq };
       res.json({
         items: rows.map((q) => reqView(q, u, mine?.id)),
-        canRaise: c.floatRecord && Boolean(mine),
+        canRaise: actsAnywhere(req) || (c.floatRecord && Boolean(mine)),
         branch: mine,
+        branches: actsAnywhere(req) ? (await amsBranches(db, s, { activeOnly: true })).map((b) => ({ id: b.id, name: b.name })) : null,
       });
     }),
   );
@@ -1703,11 +1724,10 @@ export function floatRoutes({ db }) {
   router.post(
     '/requisitions',
     asyncHandler(async (req, res) => {
-      must(f(req).floatRecord, 'Only branch staff raise AMS requisitions.');
+      mustRecord(req, 'Only branch staff raise AMS requisitions.');
       const input = reqSchema.parse(req.body);
       const s = await getSettings(db);
-      const branch = await staffBranch(db, s, req.user.id);
-      if (!branch) throw badRequest('Your employee record has no AMS branch.');
+      const branch = await actingBranch(req, s);
       const id = await db.transaction(async (trx) => {
         const [qid] = await trx('float_requisitions').insert({
           branch_id: branch.id,
