@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../../../lib/api.js';
+import { api } from '../../lib/api.js';
 
 /* Shared by the AMS cash and float pages (D117). */
 

@@ -47,6 +47,15 @@ const APPS = [
     requisitions: true,
   },
   {
+    // AMS cash and float (D126): its own module, for those with a role in it.
+    id: 'float',
+    name: 'Float system',
+    description: 'AMS branches: cash, Airtel and MTN float',
+    icon: Wallet,
+    to: '/float',
+    needsAny: 'float.',
+  },
+  {
     // Live from 18 Nov 2026 (D114): everyone sees open positions and their applications.
     id: 'recruitment',
     name: 'Recruitment management',
@@ -94,6 +103,7 @@ const TONES = {
   employees: 'stock',
   requisitions: 'request',
   recruitment: 'issue',
+  float: 'receive',
   performance: 'stock',
   profile: 'reports',
 };
@@ -103,7 +113,13 @@ export default function LauncherPage() {
   const seesAll = seesWholeGroup(me) || can(me, 'people.view') || hasRole(me, 'HR_ADMIN');
   const rq = useRq();
   const apps = APPS.filter((a) =>
-    a.requisitions ? Boolean(rq.data) : a.needs ? can(me, a.needs) : a.everyone || seesAll,
+    a.requisitions
+      ? Boolean(rq.data)
+      : a.needsAny
+        ? (me?.perms ?? []).some((p) => p.startsWith(a.needsAny))
+        : a.needs
+          ? can(me, a.needs)
+          : a.everyone || seesAll,
   );
 
   return (

@@ -26,7 +26,7 @@ import { addDays } from '../leave/calendar.js';
  *   Sign-off chase  each morning, when a past day is still not signed off.
  */
 const SYSTEM = { actorType: 'SYSTEM' };
-const EMAIL = { app: 'inventory' };
+const EMAIL = { app: 'float' };
 
 export async function sendDailyReport(db, settings, date) {
   const day = await buildDay(db, settings, date);
@@ -38,7 +38,7 @@ export async function sendDailyReport(db, settings, date) {
       event: 'FLOAT_DAILY_REPORT',
       title: `AMS daily report ${date}: ${t.transactions.total} transactions, float + cash ${kwacha(t.total)}`,
       body: open.length ? `Not signed out yet: ${open.join(', ')}.` : 'Every branch has signed out.',
-      link: `/requisitions/float/daily?date=${date}`,
+      link: `/float/daily?date=${date}`,
       email: {
         ...EMAIL,
         subject: `AMS daily report: ${date}`,
@@ -94,7 +94,7 @@ export async function runFloatJobs(db, now = new Date()) {
             event: 'FLOAT_CLOSE_REMINDER',
             title: `Sign out at ${b.name}`,
             body: `${b.name} closes at ${h.closesAt}. Count the cash and the Airtel and MTN balances, and close the day.`,
-            link: '/requisitions/float/branch',
+            link: '/float/branch',
           }),
         );
         return { reminded: true };
@@ -140,7 +140,7 @@ export async function runFloatJobs(db, now = new Date()) {
           event: 'FLOAT_DAY_REMINDER',
           title: `${late.length === 1 ? 'An AMS daily report is' : `${late.length} AMS daily reports are`} not signed off`,
           body: late.join(', '),
-          link: `/requisitions/float/daily?date=${late[0]}`,
+          link: `/float/daily?date=${late[0]}`,
         }),
       );
       return { reminded: late.length };

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, downloadFile } from '../../../lib/api.js';
-import { formatDate, formatDateTime } from '../../../lib/format.js';
+import { api, downloadFile } from '../../lib/api.js';
+import { formatDate, formatDateTime } from '../../lib/format.js';
 import {
   Badge,
   Button,
@@ -22,8 +22,8 @@ import {
   Td,
   Textarea,
   Th,
-} from '../../../components/ui.jsx';
-import { errorText } from '../rq.js';
+} from '../../components/ui.jsx';
+import { errorText } from '../requisitions/rq.js';
 import { ACCOUNT, DAYS, money, timeOf, useFloat } from './fl.js';
 
 // ── Daily reports (D118) ───────────────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ export function FloatBranchesPage() {
         {!d.configured && (
           <Notice tone="pending">
             Choose the AMS company in{' '}
-            <Link to="/requisitions/float/settings" className="underline">
+            <Link to="/float/settings" className="underline">
               AMS settings
             </Link>{' '}
             first.
@@ -402,7 +402,7 @@ export function FloatBranchesPage() {
               {d.items.map((b) => (
                 <tr key={b.id}>
                   <Td className="font-semibold">
-                    <Link to={`/requisitions/float/branches/${b.id}`} className="text-brand hover:underline">
+                    <Link to={`/float/branches/${b.id}`} className="text-brand hover:underline">
                       {b.name}
                     </Link>
                   </Td>
@@ -441,7 +441,7 @@ export function FloatBranchesPage() {
                   <Td>
                     {d.canEdit && (
                       <div className="flex flex-wrap gap-2">
-                        <Link to={`/requisitions/float/branches/${b.id}`} className="btn btn-sm btn-primary">
+                        <Link to={`/float/branches/${b.id}`} className="btn btn-sm btn-primary">
                           Manage
                         </Link>
                         <Button size="sm" variant="secondary" onClick={() => setEditing(b)}>

@@ -21,6 +21,7 @@ const PREFIX = {
   inventory: 'admin.',
   recruitment: 'recruitment.',
   performance: 'performance.',
+  float: 'float.',
 };
 
 // Which audit entries belong to which module.
@@ -80,6 +81,20 @@ function moduleAudit(module) {
         'recruitment_role',
         'recruitment_user',
       ]);
+    } else if (module === 'float') {
+      this.whereIn('a.entity_type', [
+        'float_transaction',
+        'float_movement',
+        'float_count',
+        'float_variance',
+        'float_day',
+        'float_requisition',
+        'float_account',
+        'float_role',
+        'float_user',
+      ])
+        .orWhere('a.action', 'like', 'FLOAT_%')
+        .orWhere((q) => q.where('a.entity_type', 'job').where('a.entity_id', 'like', 'FLOAT_%'));
     } else if (module === 'performance') {
       this.whereIn('a.entity_type', [
         'review_cycle',
@@ -100,14 +115,7 @@ function moduleAudit(module) {
         .orWhere('a.action', 'like', 'INVENTORY_%')
         .orWhere('a.action', 'like', 'STOCK_%')
         .orWhere('a.action', 'like', 'REQUISITION_%')
-        .orWhere('a.action', 'like', 'FLOAT_%')
-        .orWhere((q) =>
-          q
-            .where('a.entity_type', 'job')
-            .where((w) =>
-              w.where('a.entity_id', 'like', 'STOCK_%').orWhere('a.entity_id', 'like', 'FLOAT_%'),
-            ),
-        );
+        .orWhere((q) => q.where('a.entity_type', 'job').where('a.entity_id', 'like', 'STOCK_%'));
     }
   };
 }

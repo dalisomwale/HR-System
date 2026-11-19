@@ -18,6 +18,11 @@ const APPS = {
     open: 'Open in the recruitment system',
     sent: 'the Altus Group recruitment system',
   },
+  float: {
+    name: 'Float System',
+    open: 'Open in the float system',
+    sent: 'the Altus Group float system',
+  },
   performance: {
     name: 'Performance Management',
     open: 'Open in the performance system',
@@ -30,6 +35,7 @@ export const SUBJECT_SUFFIX = {
   inventory: 'Inventory',
   recruitment: 'Recruitment',
   performance: 'Performance',
+  float: 'Float',
 };
 
 const escape = (s) =>

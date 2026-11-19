@@ -1,14 +1,4 @@
-import {
-  Banknote,
-  Boxes,
-  Coins,
-  FileBarChart,
-  FilePlus2,
-  PackageMinus,
-  PackagePlus,
-  ShoppingCart,
-  Smartphone,
-} from 'lucide-react';
+import { Boxes, FileBarChart, FilePlus2, PackageMinus, PackagePlus, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
@@ -106,33 +96,6 @@ export default function RequisitionsHomePage() {
 
         {/* Shortcuts, as on the inventory system's dashboard. */}
         <ActionTiles>
-          {a.float?.record && (
-            <ActionTile
-              to="/requisitions/float/record"
-              icon={Smartphone}
-              title="Record a transaction"
-              desc="Airtel or MTN deposit or withdrawal"
-              tone="receive"
-            />
-          )}
-          {a.float?.record && (
-            <ActionTile
-              to="/requisitions/float/branch"
-              icon={Banknote}
-              title="My branch today"
-              desc="Balances, close the day, top-ups"
-              tone="issue"
-            />
-          )}
-          {a.float?.viewAll && (
-            <ActionTile
-              to="/requisitions/float"
-              icon={Coins}
-              title="AMS dashboard"
-              desc="Every AMS branch live"
-              tone="stock"
-            />
-          )}
           {a.receive && (
             <ActionTile
               to="/requisitions/receive"

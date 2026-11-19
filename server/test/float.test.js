@@ -37,8 +37,8 @@ async function person(key, over = {}) {
   people[key] = { ...(await signIn(app, entra, { oid: e.oid })), id: e.id };
 }
 async function giveRole(key, roleName) {
-  const role = await db('access_roles').where({ module: 'inventory', name: roleName }).first('id');
-  await db('access_users').insert({ module: 'inventory', employee_id: ids[key], role_id: role.id });
+  const role = await db('access_roles').where({ module: 'float', name: roleName }).first('id');
+  await db('access_users').insert({ module: 'float', employee_id: ids[key], role_id: role.id });
 }
 const balances = async (branchId) =>
   Object.fromEntries(
@@ -76,11 +76,11 @@ beforeEach(async () => {
   await person('manager');
   await person('director');
   await person('hr');
-  await giveRole('teller', 'AMS Branch Staff');
-  await giveRole('manager', 'AMS Manager');
-  await giveRole('officer', 'AMS Operations Officer');
+  await giveRole('teller', 'Branch Staff');
+  await giveRole('manager', 'Manager');
+  await giveRole('officer', 'Operations Officer');
   await giveRole('director', 'Director');
-  await giveRole('hr', 'AMS HR');
+  await giveRole('hr', 'HR');
 });
 
 // Branch staff open and close; the Operations Officer confirms (D124).
@@ -375,7 +375,7 @@ describe('AMS cash and float (D117, D121)', () => {
       (await as(people.admin).post(`/api/float/branches/${branch}/staff`, { employeeId: ids.newbie })).status,
     ).toBe(201);
     const detail = (await as(people.admin).get(`/api/float/branches/${branch}`)).body;
-    expect(detail.staff.find((x) => x.id === ids.newbie)).toMatchObject({ role: 'AMS Branch Staff' });
+    expect(detail.staff.find((x) => x.id === ids.newbie)).toMatchObject({ role: 'Branch Staff' });
     await runFloatJobs(db, new Date(`${todayInLusaka()}T20:00:00+02:00`));
     expect(await notes(ids.teller, 'FLOAT_CLOSE_REMINDER')).toHaveLength(0);
     await runFloatJobs(db, new Date(`${todayInLusaka()}T21:05:00+02:00`));
@@ -385,7 +385,7 @@ describe('AMS cash and float (D117, D121)', () => {
       200,
     );
     expect(
-      await db('access_users').where({ module: 'inventory', employee_id: ids.newbie }).first(),
+      await db('access_users').where({ module: 'float', employee_id: ids.newbie }).first(),
     ).toBeUndefined();
   });
 
@@ -524,5 +524,35 @@ describe('AMS cash and float (D117, D121)', () => {
     expect(
       (await as(people.admin).get('/api/float/branches')).body.items.find((x) => x.id === b.body.id).networks,
     ).toEqual(['AIRTEL', 'MTN']);
+  });
+
+  it('is its own module, separate from the Inventory system (D126)', async () => {
+    // Branch staff have the Float system, not the Inventory system.
+    expect((await as(people.teller).get('/api/float/me')).status).toBe(200);
+    expect((await as(people.teller).get('/api/requisitions/me')).status).toBe(403);
+    // Someone with no float role cannot open the Float system.
+    await person('stranger');
+    expect((await as(people.stranger).get('/api/float/me')).status).toBe(403);
+    // Its own Users, Roles and Audit trail.
+    const roles = (await as(people.admin).get('/api/access/float/roles')).body;
+    expect(roles.items.map((r) => r.name)).toEqual(
+      expect.arrayContaining([
+        'System Admin',
+        'Branch Staff',
+        'Operations Officer',
+        'Manager',
+        'HR',
+        'Director',
+      ]),
+    );
+    const users = (await as(people.admin).get('/api/access/float/users')).body.items.map((u) => u.employeeId);
+    expect(users).toEqual(expect.arrayContaining([ids.teller, ids.officer, ids.manager]));
+    await open();
+    expect(JSON.stringify((await as(people.admin).get('/api/access/float/audit')).body)).toContain(
+      'FLOAT_STORE_OPENED',
+    );
+    expect(JSON.stringify((await as(people.admin).get('/api/access/inventory/audit')).body)).not.toContain(
+      'FLOAT_',
+    );
   });
 });

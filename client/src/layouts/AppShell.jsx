@@ -65,7 +65,7 @@ import RequisitionsTrail from './RequisitionsTrail.jsx';
 import ModuleTrail from './ModuleTrail.jsx';
 import { useRc } from '../pages/recruitment/rc.js';
 import { usePf } from '../pages/performance/pf.js';
-import { useFloat } from '../pages/requisitions/float/fl.js';
+import { useFloat } from '../pages/float/fl.js';
 import { useRq } from '../pages/requisitions/rq.js';
 import { can, useMe, hasRole, seesWholeGroup } from '../lib/auth.jsx';
 import { ROLE_LABELS, fullName } from '../lib/format.js';
@@ -483,61 +483,6 @@ function RequisitionsNav({ onNavigate }) {
       ? [{ to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 }]
       : []),
     ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock alerts', icon: BellRing }] : []),
-    // AMS cash and float set-up (D117).
-    ...(a.float?.admin
-      ? [
-          { to: '/requisitions/float/branches', label: 'AMS branches', icon: Store },
-          { to: '/requisitions/float/settings', label: 'AMS settings', icon: SlidersHorizontal },
-          { to: '/requisitions/float/phone-access', label: 'Phone sign-in', icon: Smartphone },
-        ]
-      : []),
-  ];
-  const fl = a.float ?? {};
-  // AMS cash and float (D117): Altus Money Solutions only.
-  const ams = [
-    ...(fl.record
-      ? [{ to: '/requisitions/float/record', label: 'Record a transaction', icon: Smartphone }]
-      : []),
-    ...(fl.record
-      ? [{ to: '/requisitions/float/branch', label: 'My branch: open and close', icon: Banknote, end: true }]
-      : []),
-    ...(fl.viewAll ? [{ to: '/requisitions/float', label: 'AMS dashboard', icon: Coins, end: true }] : []),
-    ...(fl.supervise || fl.director
-      ? [
-          {
-            to: '/requisitions/float/approvals',
-            label: 'Approvals',
-            icon: ScaleIcon,
-            count: 'floatApprovals',
-          },
-        ]
-      : []),
-    ...(fl.record || fl.supervise || fl.approve || fl.director
-      ? [
-          {
-            to: '/requisitions/float/requisitions',
-            label: 'AMS requisitions',
-            icon: ClipboardList,
-            count: 'floatRequisitions',
-          },
-        ]
-      : []),
-    ...(fl.viewAll || fl.supervise || fl.shortages
-      ? [{ to: '/requisitions/float/variances', label: 'Surplus and deficit', icon: Calculator }]
-      : []),
-    ...(fl.viewAll || fl.record
-      ? [{ to: '/requisitions/float/transactions', label: 'AMS transactions', icon: ListOrdered }]
-      : []),
-    ...(fl.viewAll || fl.record
-      ? [
-          {
-            to: '/requisitions/float/daily',
-            label: 'Daily reports',
-            icon: FileSpreadsheet,
-            count: 'floatDays',
-          },
-        ]
-      : []),
   ];
   return (
     <>
@@ -546,7 +491,6 @@ function RequisitionsNav({ onNavigate }) {
         items={[{ to: '/requisitions', label: 'Dashboard', icon: LayoutGrid, end: true }]}
         onNavigate={onNavigate}
       />
-      {ams.length > 0 && <AmsNav items={ams} onNavigate={onNavigate} />}
       <NavGroup title="Stock" items={stock} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
       {(records.length > 0 || a.reports || a.stock) && (
         <div>
@@ -566,21 +510,58 @@ function RequisitionsNav({ onNavigate }) {
   );
 }
 
-/** The AMS cash and float part of the inventory menu, with its waiting counts. */
-function AmsNav({ items, onNavigate }) {
+/** The Float system's menu (D126): AMS cash and float, by what each person does in it. */
+function FloatNav({ user, onNavigate }) {
   const me = useFloat();
+  const fl = me.data?.rights ?? {};
   const c = me.data?.counts ?? {};
+  const branch = [
+    ...(fl.viewAll || fl.supervise || fl.admin
+      ? [{ to: '/float', label: 'Dashboard', icon: LayoutGrid, end: true }]
+      : []),
+    ...(fl.record || fl.supervise || fl.admin
+      ? [
+          { to: '/float/branch', label: 'Branch: open and close', icon: Banknote, end: true },
+          { to: '/float/record', label: 'Record a transaction', icon: Smartphone },
+        ]
+      : []),
+    ...(fl.supervise || fl.director
+      ? [{ to: '/float/approvals', label: 'Approvals', icon: ScaleIcon, count: 'approvals' }]
+      : []),
+    { to: '/float/requisitions', label: 'Requisitions', icon: ClipboardList, count: 'requisitions' },
+  ];
+  const records = [
+    ...(fl.viewAll || fl.record || fl.supervise
+      ? [{ to: '/float/daily', label: 'Daily reports', icon: FileSpreadsheet, count: 'days' }]
+      : []),
+    ...(fl.viewAll || fl.record
+      ? [{ to: '/float/transactions', label: 'Transactions', icon: ListOrdered }]
+      : []),
+    ...(fl.viewAll || fl.supervise || fl.shortages
+      ? [{ to: '/float/variances', label: 'Surplus and deficit', icon: Calculator }]
+      : []),
+  ];
+  const admin = [
+    { to: '/float/users', label: 'Users', icon: Users, perm: 'float.users' },
+    { to: '/float/roles', label: 'Roles', icon: KeyRound, perm: 'float.roles' },
+    { to: '/float/audit', label: 'Audit trail', icon: History, perm: 'float.audit' },
+    {
+      to: '/float/branches',
+      label: 'Branches',
+      icon: Store,
+      perm: 'float.admin',
+      except: '/float/branches/',
+    },
+    { to: '/float/phone-access', label: 'Phone sign-in', icon: Smartphone, perm: 'float.admin' },
+    { to: '/float/settings', label: 'Settings', icon: SlidersHorizontal, perm: 'float.admin' },
+  ];
+  const counts = { approvals: c.approvals ?? 0, requisitions: c.requisitions ?? 0, days: c.daysToSign ?? 0 };
   return (
-    <NavGroup
-      title="AMS cash and float"
-      items={items}
-      counts={{
-        floatApprovals: c.approvals ?? 0,
-        floatDays: c.daysToSign ?? 0,
-        floatRequisitions: c.requisitions ?? 0,
-      }}
-      onNavigate={onNavigate}
-    />
+    <>
+      <NavGroup title="Branches" items={branch} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="Records" items={records} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="Admin" items={allowed(user, admin)} onNavigate={onNavigate} />
+    </>
   );
 }
 
@@ -718,6 +699,7 @@ export default function AppShell() {
   const inRequisitions = pathname === '/requisitions' || pathname.startsWith('/requisitions/');
   const inRecruitment = pathname === '/recruitment' || pathname.startsWith('/recruitment/');
   const inPerformance = pathname === '/performance' || pathname.startsWith('/performance/');
+  const inFloat = pathname === '/float' || pathname.startsWith('/float/');
   const placeBase = pathname.match(/^\/people\/(companies|departments)\/\d+/)?.[0] ?? null;
   const [menuOpen, setMenuOpen] = useState(false);
   // Unread notifications, refreshed every minute and when the window regains focus.
@@ -745,13 +727,15 @@ export default function AppShell() {
   // so that title alone is shown.
   const moduleKey = inRequisitions
     ? 'inventory'
-    : inRecruitment
-      ? 'recruitment'
-      : inPerformance
-        ? 'performance'
-        : inPeople
-          ? 'people'
-          : 'leave';
+    : inFloat
+      ? 'float'
+      : inRecruitment
+        ? 'recruitment'
+        : inPerformance
+          ? 'performance'
+          : inPeople
+            ? 'people'
+            : 'leave';
   const roleText = hasRole(user, 'HR_ADMIN')
     ? [
         ...user.roles.filter((r) => r.endsWith('_DIRECTOR')).map((r) => ROLE_LABELS[r]),
@@ -767,13 +751,15 @@ export default function AppShell() {
   const close = () => setMenuOpen(false);
   const appName = inRequisitions
     ? 'Inventory system'
-    : inRecruitment
-      ? 'Recruitment management'
-      : inPerformance
-        ? 'Performance management'
-        : inPeople
-          ? 'Employee management'
-          : 'Leave management';
+    : inFloat
+      ? 'Float system'
+      : inRecruitment
+        ? 'Recruitment management'
+        : inPerformance
+          ? 'Performance management'
+          : inPeople
+            ? 'Employee management'
+            : 'Leave management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
@@ -783,6 +769,8 @@ export default function AppShell() {
       </Link>
       {inRequisitions ? (
         <RequisitionsNav onNavigate={close} />
+      ) : inFloat ? (
+        <FloatNav user={user} onNavigate={close} />
       ) : inRecruitment ? (
         <RecruitmentNav user={user} onNavigate={close} />
       ) : inPerformance ? (
@@ -894,6 +882,8 @@ export default function AppShell() {
           {/* Employee management pages show their own path; every other page gets this one. */}
           {inRequisitions ? (
             <RequisitionsTrail />
+          ) : inFloat ? (
+            <ModuleTrail module="float" />
           ) : inRecruitment ? (
             <ModuleTrail module="recruitment" />
           ) : inPerformance ? (

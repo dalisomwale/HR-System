@@ -25,6 +25,25 @@ const MODULES = {
     },
     record: { requests: 'Hiring request', vacancies: 'Vacancy', candidates: 'Candidate' },
   },
+  float: {
+    root: { label: 'Float system', to: '/float' },
+    pages: {
+      branch: ['Branch'],
+      record: ['Record a transaction'],
+      approvals: ['Approvals'],
+      requisitions: ['Requisitions'],
+      daily: ['Daily reports'],
+      transactions: ['Transactions'],
+      variances: ['Surplus and deficit'],
+      branches: ['Branches', '/float/branches'],
+      'phone-access': ['Phone sign-in'],
+      settings: ['Settings'],
+      users: ['Users'],
+      roles: ['Roles'],
+      audit: ['Audit trail'],
+    },
+    record: { branches: 'Branch' },
+  },
   performance: {
     root: { label: 'Performance management', to: '/performance' },
     pages: {

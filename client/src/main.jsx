@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, Link, useParams, useLocation } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './styles.css';
-import { RequireAuth, RequirePerm } from './lib/auth.jsx';
+import { RequireAuth, RequirePerm, can, useMe } from './lib/auth.jsx';
 import AppShell from './layouts/AppShell.jsx';
 import LauncherPage from './pages/LauncherPage.jsx';
 import { SignInPage, AccessNotConfiguredPage, SignedOutPage } from './pages/auth/PublicPages.jsx';
@@ -51,21 +51,21 @@ import CategoriesPage from './pages/requisitions/CategoriesPage.jsx';
 import BranchesPage from './pages/people/BranchesPage.jsx';
 import RequisitionSettingsPage from './pages/requisitions/RequisitionSettingsPage.jsx';
 import StockAlertsPage from './pages/requisitions/StockAlertsPage.jsx';
-import { FloatBranchPage, FloatRecordPage } from './pages/requisitions/float/FloatEntryPages.jsx';
-import FloatRequisitionsPage from './pages/requisitions/float/FloatRequisitionsPage.jsx';
+import { FloatBranchPage, FloatRecordPage } from './pages/float/FloatEntryPages.jsx';
+import FloatRequisitionsPage from './pages/float/FloatRequisitionsPage.jsx';
 import {
   FloatApprovalsPage,
   FloatDashboardPage,
   FloatTransactionsPage,
   FloatVariancesPage,
-} from './pages/requisitions/float/FloatManagePages.jsx';
+} from './pages/float/FloatManagePages.jsx';
 import {
   FloatBranchAdminPage,
   FloatBranchesPage,
   FloatDailyPage,
   FloatPhoneAccessPage,
   FloatSettingsPage,
-} from './pages/requisitions/float/FloatAdminPages.jsx';
+} from './pages/float/FloatAdminPages.jsx';
 import RecruitmentHomePage from './pages/recruitment/RecruitmentHomePage.jsx';
 import {
   HiringRequestFormPage,
@@ -122,6 +122,42 @@ function RqGate({ need, children }) {
   return children;
 }
 const rqPage = (el, need) => <RqGate need={need}>{el}</RqGate>;
+
+/** The Float system's pages (D126): open to those whose role in it gives the right. */
+function FloatGate({ check, children }) {
+  const { data: me } = useMe();
+  if (!me) return null;
+  const r = {
+    record: can(me, 'float.record'),
+    viewAll: can(me, 'float.view_all'),
+    supervise: can(me, 'float.supervise'),
+    approve: can(me, 'float.approve'),
+    director: can(me, 'float.director'),
+    shortages: can(me, 'float.shortages'),
+    admin: can(me, 'float.admin'),
+  };
+  if (!Object.values(r).some(Boolean) || (check && !check(r))) {
+    return (
+      <div className="max-w-xl">
+        <h1 className="text-[1.3rem] leading-snug">You don't have access to this page</h1>
+        <p className="mt-2 text-sm text-muted">
+          The Float system is open to the people who take part in it.{' '}
+          <Link to="/" className="text-brand underline">
+            Back to applications
+          </Link>
+        </p>
+      </div>
+    );
+  }
+  return children;
+}
+const floatPage = (el, check) => <FloatGate check={check}>{el}</FloatGate>;
+
+/** Links to the Float system from when it was part of the Inventory system. */
+function ToFloat() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={`${pathname.replace(/^\/requisitions\/float/, '/float')}${search}`} replace />;
+}
 
 function NotFound() {
   return (
@@ -231,57 +267,6 @@ createRoot(document.getElementById('root')).render(
               <Route path="branches" element={<Navigate to="/people/branches" replace />} />
               <Route path="settings" element={rqPage(<RequisitionSettingsPage />, (a) => a.orgAdmin)} />
               <Route path="alerts" element={rqPage(<StockAlertsPage />, (a) => a.alertsAdmin)} />
-              {/* AMS cash and float (D117). */}
-              <Route
-                path="float"
-                element={rqPage(<FloatDashboardPage />, (a) => a.float?.viewAll || a.float?.admin)}
-              />
-              <Route path="float/record" element={rqPage(<FloatRecordPage />, (a) => a.float?.record)} />
-              <Route
-                path="float/branch"
-                element={rqPage(<FloatBranchPage />, (a) => a.float?.record || a.float?.viewAll)}
-              />
-              <Route
-                path="float/approvals"
-                element={rqPage(<FloatApprovalsPage />, (a) => a.float?.supervise || a.float?.director)}
-              />
-              <Route
-                path="float/variances"
-                element={rqPage(
-                  <FloatVariancesPage />,
-                  (a) => a.float?.viewAll || a.float?.approve || a.float?.shortages,
-                )}
-              />
-              <Route
-                path="float/transactions"
-                element={rqPage(<FloatTransactionsPage />, (a) => a.float?.viewAll || a.float?.record)}
-              />
-              <Route
-                path="float/requisitions"
-                element={rqPage(
-                  <FloatRequisitionsPage />,
-                  (a) =>
-                    a.float?.record ||
-                    a.float?.supervise ||
-                    a.float?.approve ||
-                    a.float?.director ||
-                    a.float?.viewAll,
-                )}
-              />
-              <Route
-                path="float/daily"
-                element={rqPage(<FloatDailyPage />, (a) => a.float?.viewAll || a.float?.record)}
-              />
-              <Route path="float/branches" element={rqPage(<FloatBranchesPage />, (a) => a.float?.admin)} />
-              <Route
-                path="float/branches/:id"
-                element={rqPage(<FloatBranchAdminPage />, (a) => a.float?.admin)}
-              />
-              <Route path="float/settings" element={rqPage(<FloatSettingsPage />, (a) => a.float?.admin)} />
-              <Route
-                path="float/phone-access"
-                element={rqPage(<FloatPhoneAccessPage />, (a) => a.float?.admin)}
-              />
               <Route path="suppliers" element={rqPage(<SuppliersPage />, (a) => a.stock)} />
               <Route
                 path="users"
@@ -365,6 +350,49 @@ createRoot(document.getElementById('root')).render(
                 element={need('performance.audit', <AuditTrailPage module="performance" />)}
               />
             </Route>
+            {/* The Float system (D117, D126): AMS cash and float, its own module. */}
+            <Route path="float">
+              <Route
+                index
+                element={floatPage(<FloatDashboardPage />, (r) => r.viewAll || r.admin || r.supervise)}
+              />
+              <Route
+                path="record"
+                element={floatPage(<FloatRecordPage />, (r) => r.record || r.supervise || r.admin)}
+              />
+              <Route path="branch" element={floatPage(<FloatBranchPage />)} />
+              <Route
+                path="approvals"
+                element={floatPage(<FloatApprovalsPage />, (r) => r.supervise || r.director)}
+              />
+              <Route
+                path="variances"
+                element={floatPage(<FloatVariancesPage />, (r) => r.viewAll || r.supervise || r.shortages)}
+              />
+              <Route
+                path="transactions"
+                element={floatPage(<FloatTransactionsPage />, (r) => r.viewAll || r.record)}
+              />
+              <Route path="requisitions" element={floatPage(<FloatRequisitionsPage />)} />
+              <Route
+                path="daily"
+                element={floatPage(<FloatDailyPage />, (r) => r.viewAll || r.record || r.supervise)}
+              />
+              <Route path="branches" element={floatPage(<FloatBranchesPage />, (r) => r.admin)} />
+              <Route path="branches/:id" element={floatPage(<FloatBranchAdminPage />, (r) => r.admin)} />
+              <Route path="settings" element={floatPage(<FloatSettingsPage />, (r) => r.admin)} />
+              <Route path="phone-access" element={floatPage(<FloatPhoneAccessPage />, (r) => r.admin)} />
+              <Route
+                path="users"
+                element={need('float.users', <AccessUsersPage module="float" base="/float" />)}
+              />
+              <Route
+                path="roles"
+                element={need('float.roles', <AccessRolesPage module="float" base="/float" />)}
+              />
+              <Route path="audit" element={need('float.audit', <AuditTrailPage module="float" />)} />
+            </Route>
+            <Route path="requisitions/float/*" element={<ToFloat />} />
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />
               <Route path="employees" element={<ToPeople base="/people/employees" />} />

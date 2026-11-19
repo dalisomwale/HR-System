@@ -21,7 +21,7 @@ export const round2 = (n) => Math.round(Number(n) * 100) / 100;
 export const kwacha = (n) =>
   `K${Number(n).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export const dayCode = (iso) => DAYS[(new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7];
-const EMAIL = { app: 'inventory' };
+const EMAIL = { app: 'float' };
 
 export async function getSettings(db) {
   const s = await db('float_settings').where({ id: 1 }).first();
@@ -170,19 +170,19 @@ export async function post(
   return { account: acc, before, after };
 }
 
-/** Inventory users who can record at a branch (their employee record's branch). */
+/** Float system users who can record at a branch (their employee record's branch). */
 export async function branchStaff(db, branchId) {
-  const ids = await moduleHolders(db, 'inventory', ['float.record']);
+  const ids = await moduleHolders(db, 'float', ['float.record']);
   if (!ids.length) return [];
   return db('employees').whereIn('id', ids).where({ branch_id: branchId, status: 'ACTIVE' }).pluck('id');
 }
-export const managers = (db, exclude = []) => moduleHolders(db, 'inventory', ['float.approve'], exclude);
-export const directors = (db, exclude = []) => moduleHolders(db, 'inventory', ['float.director'], exclude);
+export const managers = (db, exclude = []) => moduleHolders(db, 'float', ['float.approve'], exclude);
+export const directors = (db, exclude = []) => moduleHolders(db, 'float', ['float.director'], exclude);
 /** The Operations Officers (supervisors): branch staff report to them (D121). */
 export async function supervisors(db, exclude = []) {
   // The Operations Officers; managers (who can also supervise) only when there is no officer.
-  const all = await moduleHolders(db, 'inventory', ['float.supervise'], exclude);
-  const managerIds = new Set(await moduleHolders(db, 'inventory', ['float.approve'], exclude));
+  const all = await moduleHolders(db, 'float', ['float.supervise'], exclude);
+  const managerIds = new Set(await moduleHolders(db, 'float', ['float.approve'], exclude));
   const officers = all.filter((id) => !managerIds.has(id));
   return officers.length ? officers : all;
 }
@@ -196,7 +196,7 @@ export async function reportRecipients(db, exclude = []) {
   const ids = [
     ...(await moduleHolders(
       db,
-      'inventory',
+      'float',
       ['float.supervise', 'float.approve', 'float.director', 'float.admin'],
       exclude,
     )),
@@ -216,7 +216,7 @@ export async function lowFloatCheck(trx, { branchId, kind, before, after, accoun
     event: 'FLOAT_LOW',
     title,
     body: `${kwacha(after)} left; the minimum is ${kwacha(min)}. Ask for a top-up.`,
-    link: `/requisitions/float/branch?branch=${branchId}`,
+    link: `/float/branch?branch=${branchId}`,
     entityType: 'float_account',
     entityId: account.id,
     email: {

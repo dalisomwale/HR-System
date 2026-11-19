@@ -100,15 +100,6 @@ export async function requisitionContext(db, user) {
   ctx.rolesAdmin = isAdmin;
   ctx.auditAdmin = isAdmin;
   ctx.alertsAdmin = isAdmin;
-  // AMS cash and float (D117): only the System Administrator without an inventory role.
-  ctx.floatRecord = isAdmin;
-  ctx.floatViewAll = isAdmin;
-  ctx.floatApprove = isAdmin;
-  ctx.floatSupervise = isAdmin;
-  ctx.floatDirector = isAdmin;
-  ctx.floatShortages = isAdmin;
-  ctx.floatAdmin = isAdmin;
-  ctx.canOpen = ctx.canOpen || isAdmin;
   ctx.inventoryRole = isAdmin ? 'System Administrator' : null;
   return ctx;
 }
@@ -167,13 +158,6 @@ function roleContext({ user, me, perms, role }) {
   ctx.rolesAdmin = can('admin.roles');
   ctx.auditAdmin = can('admin.audit');
   ctx.alertsAdmin = can('admin.alerts');
-  ctx.floatRecord = can('float.record');
-  ctx.floatViewAll = can('float.view_all');
-  ctx.floatApprove = can('float.approve');
-  ctx.floatSupervise = can('float.supervise');
-  ctx.floatDirector = can('float.director');
-  ctx.floatShortages = can('float.shortages');
-  ctx.floatAdmin = can('float.admin');
   ctx.canOpen =
     ctx.canRaise ||
     ctx.it ||
@@ -190,11 +174,7 @@ function roleContext({ user, me, perms, role }) {
     ctx.usersAdmin ||
     ctx.rolesAdmin ||
     ctx.auditAdmin ||
-    ctx.alertsAdmin ||
-    ctx.floatRecord ||
-    ctx.floatViewAll ||
-    ctx.floatShortages ||
-    ctx.floatAdmin;
+    ctx.alertsAdmin;
   return ctx;
 }
 

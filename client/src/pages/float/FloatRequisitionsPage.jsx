@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../../../lib/api.js';
-import { formatDateTime } from '../../../lib/format.js';
+import { api } from '../../lib/api.js';
+import { formatDateTime } from '../../lib/format.js';
 import {
   Badge,
   Button,
@@ -15,8 +15,8 @@ import {
   Section,
   Select,
   Textarea,
-} from '../../../components/ui.jsx';
-import { errorText } from '../rq.js';
+} from '../../components/ui.jsx';
+import { errorText } from '../requisitions/rq.js';
 import { ACCOUNT, money, useWorkingBranch } from './fl.js';
 
 /*

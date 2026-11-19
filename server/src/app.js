@@ -27,7 +27,7 @@ import { inventoryAdminRoutes } from './modules/requisitions/inventory-admin.rou
 import { accessRoutes } from './modules/access/access.routes.js';
 import { recruitmentRoutes } from './modules/recruitment/recruitment.routes.js';
 import { performanceRoutes } from './modules/performance/performance.routes.js';
-import { floatRoutes } from './modules/float/float.routes.js';
+import { floatGate, floatRoutes } from './modules/float/float.routes.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -156,13 +156,8 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
     need((c) => c.canOpen, 'You do not have access to Requisitions.'),
     stockRoutes(deps),
   );
-  // AMS cash and float, in the Inventory system (D117).
-  app.use(
-    '/api/float',
-    loadRequisitionContext(deps),
-    need((c) => c.canOpen, 'You do not have access to the inventory system.'),
-    floatRoutes(deps),
-  );
+  // The Float system (D117, D126): AMS cash and float, its own module.
+  app.use('/api/float', floatGate, floatRoutes(deps));
   // The inventory's Users, Roles and Suppliers (D107).
   app.use(
     '/api/inventory',

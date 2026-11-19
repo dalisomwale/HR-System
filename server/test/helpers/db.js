@@ -26,15 +26,12 @@ const MODULE_ROLES = {
     'Accountant',
     'Accounts Manager',
     'Chief Finance Officer',
-    'AMS Branch Staff',
-    'AMS Manager',
-    'AMS HR',
-    'AMS Operations Officer',
   ],
   leave: ['System Admin', 'HR Officer', 'Director'],
   people: ['System Admin', 'HR Officer', 'Director'],
   recruitment: ['System Admin', 'HR Officer', 'Director'],
   performance: ['System Admin', 'HR Officer', 'Director'],
+  float: ['System Admin', 'Branch Staff', 'Operations Officer', 'Manager', 'HR', 'Director'],
 };
 
 // Leave types installed by migration 009 from the Altus policy.

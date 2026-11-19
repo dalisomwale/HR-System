@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Delete, Repeat } from 'lucide-react';
-import { api } from '../../../lib/api.js';
+import { api } from '../../lib/api.js';
 import {
   Badge,
   Button,
@@ -20,8 +20,8 @@ import {
   Td,
   Textarea,
   Th,
-} from '../../../components/ui.jsx';
-import { errorText } from '../rq.js';
+} from '../../components/ui.jsx';
+import { errorText } from '../requisitions/rq.js';
 import {
   ACCOUNT,
   DENOMINATIONS,
@@ -410,7 +410,7 @@ export function FloatRecordPage() {
         </div>
         <TurnedDown branchId={branch.id} />
         <p className="text-sm">
-          <Link to="/requisitions/float/branch" className="text-brand hover:underline">
+          <Link to="/float/branch" className="text-brand hover:underline">
             Today at the branch: transactions, cash to finance, hand over, close the store
           </Link>
         </p>
@@ -483,7 +483,7 @@ export function FloatBranchPage() {
           !d.closed && (
             <>
               <Link
-                to="/requisitions/float/record"
+                to="/float/record"
                 className="btn btn-primary"
                 onClick={() => choose(String(d.branch.id))}
               >
@@ -495,7 +495,7 @@ export function FloatBranchPage() {
               <Button variant="secondary" onClick={() => setPanel('HANDOVER')}>
                 Hand over
               </Button>
-              <Link to="/requisitions/float/requisitions" className="btn">
+              <Link to="/float/requisitions" className="btn">
                 Raise a requisition
               </Link>
               <Button onClick={() => setPanel('CLOSE')}>Close store</Button>

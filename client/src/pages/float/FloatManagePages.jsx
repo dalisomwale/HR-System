@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, downloadFile } from '../../../lib/api.js';
-import { formatDate } from '../../../lib/format.js';
+import { api, downloadFile } from '../../lib/api.js';
+import { formatDate } from '../../lib/format.js';
 import {
   Badge,
   Button,
@@ -21,8 +21,8 @@ import {
   Td,
   Th,
   TodayDate,
-} from '../../../components/ui.jsx';
-import { errorText } from '../rq.js';
+} from '../../components/ui.jsx';
+import { errorText } from '../requisitions/rq.js';
 import {
   ACCOUNT,
   KIND,
@@ -57,7 +57,7 @@ export function FloatDashboardPage() {
         {r.admin ? (
           <>
             Choose the AMS company in{' '}
-            <Link to="/requisitions/float/settings" className="underline">
+            <Link to="/float/settings" className="underline">
               AMS settings
             </Link>
             , then add the branches.
@@ -85,7 +85,7 @@ export function FloatDashboardPage() {
           <Kpi
             label="Waiting for you"
             value={c.approvals}
-            to="/requisitions/float/approvals"
+            to="/float/approvals"
             tone={c.approvals ? 'warn' : undefined}
             small
           />
@@ -93,7 +93,7 @@ export function FloatDashboardPage() {
         {d.unsignedDays > 0 && (
           <Notice tone="pending" title="Daily reports waiting for sign-off">
             {d.unsignedDays} {d.unsignedDays === 1 ? 'day' : 'days'} not yet signed off.{' '}
-            <Link to="/requisitions/float/daily" className="font-medium underline">
+            <Link to="/float/daily" className="font-medium underline">
               Open the daily report
             </Link>
           </Notice>
@@ -174,7 +174,7 @@ export function FloatDashboardPage() {
         {d.branches.length === 0 ? (
           <div className="card p-0">
             <EmptyState title="No AMS branches yet.">
-              {r.admin && <Link to="/requisitions/float/branches">Add the AMS branches</Link>}
+              {r.admin && <Link to="/float/branches">Add the AMS branches</Link>}
             </EmptyState>
           </div>
         ) : (
@@ -194,10 +194,7 @@ export function FloatDashboardPage() {
               {d.branches.map((b) => (
                 <tr key={b.id}>
                   <Td className="font-semibold">
-                    <Link
-                      to={`/requisitions/float/branch?branch=${b.id}`}
-                      className="text-brand hover:underline"
-                    >
+                    <Link to={`/float/branch?branch=${b.id}`} className="text-brand hover:underline">
                       {b.name}
                     </Link>
                   </Td>

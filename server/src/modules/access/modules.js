@@ -340,66 +340,6 @@ const INVENTORY_AREAS = [
       ],
     ],
   },
-  // Cash and float for Altus Money Solutions (D117, D121).
-  {
-    key: 'float',
-    label: 'AMS cash and float',
-    hint: 'Deposits, withdrawals and float at the AMS branches',
-    levels: [
-      ['No access', "Can't open AMS cash and float.", []],
-      [
-        'Branch staff',
-        'Open and close their own branch (from their employee record), record deposits and withdrawals, count at handover, record cash to finance and raise requisitions. Reports to the Operations Officer.',
-        ['float.record'],
-      ],
-      ['View all branches', 'See every AMS branch, the dashboard and the daily reports, read only.', ['float.view_all']],
-      [
-        'Operations Officer',
-        'Supervises every branch: approves float movements, reversals and cash to finance, reviews large transactions, handles surpluses and deficits, reconciles and signs off the daily report, and approves requisitions on to the manager.',
-        ['float.view_all', 'float.supervise'],
-      ],
-      [
-        'Manager',
-        'Everything the Operations Officer does, plus approves requisitions on to the directors.',
-        ['float.view_all', 'float.supervise', 'float.approve'],
-      ],
-    ],
-  },
-  {
-    key: 'float_director',
-    label: 'AMS director approvals',
-    hint: 'Write-offs above the limit',
-    levels: [
-      ['No access', 'No director approvals.', []],
-      [
-        'Approve',
-        'See every AMS branch, approve write-offs above the director limit and give the final approval of AMS requisitions; receives the daily reports.',
-        ['float.view_all', 'float.director'],
-      ],
-    ],
-  },
-  {
-    key: 'float_shortages',
-    label: 'AMS staff shortages',
-    hint: 'For HR follow-up',
-    levels: [
-      ['No access', "Can't see shortages by member of staff.", []],
-      ['View', 'See the deficits found at counts and who was on duty, for follow-up.', ['float.shortages']],
-    ],
-  },
-  {
-    key: 'float_admin',
-    label: 'AMS set-up',
-    hint: 'Branches, accounts, the week, limits and commission',
-    levels: [
-      ['No access', "Can't change the AMS set-up.", []],
-      [
-        'Manage',
-        'Add AMS branches and their opening balances, set minimum floats, the trading days, the week and report time, the limits and the commission tables, and record commission received.',
-        ['float.admin'],
-      ],
-    ],
-  },
   ...ADMIN_AREAS('admin.'),
 ];
 
@@ -494,12 +434,82 @@ const PERFORMANCE_AREAS = [
   ...ADMIN_AREAS('performance.'),
 ];
 
+// The Float system (D126): AMS cash and float, its own module.
+const FLOAT_AREAS = [
+  // Cash and float for Altus Money Solutions (D117, D121).
+  {
+    key: 'float',
+    label: 'AMS cash and float',
+    hint: 'Deposits, withdrawals and float at the AMS branches',
+    levels: [
+      ['No access', "Can't open AMS cash and float.", []],
+      [
+        'Branch staff',
+        'Open and close their own branch (from their employee record), record deposits and withdrawals, count at handover, record cash to finance and raise requisitions. Reports to the Operations Officer.',
+        ['float.record'],
+      ],
+      [
+        'View all branches',
+        'See every AMS branch, the dashboard and the daily reports, read only.',
+        ['float.view_all'],
+      ],
+      [
+        'Operations Officer',
+        'Supervises every branch: approves float movements, reversals and cash to finance, reviews large transactions, handles surpluses and deficits, reconciles and signs off the daily report, and approves requisitions on to the manager.',
+        ['float.view_all', 'float.supervise'],
+      ],
+      [
+        'Manager',
+        'Everything the Operations Officer does, plus approves requisitions on to the directors.',
+        ['float.view_all', 'float.supervise', 'float.approve'],
+      ],
+    ],
+  },
+  {
+    key: 'float_director',
+    label: 'AMS director approvals',
+    hint: 'Write-offs above the limit',
+    levels: [
+      ['No access', 'No director approvals.', []],
+      [
+        'Approve',
+        'See every AMS branch, approve write-offs above the director limit and give the final approval of AMS requisitions; receives the daily reports.',
+        ['float.view_all', 'float.director'],
+      ],
+    ],
+  },
+  {
+    key: 'float_shortages',
+    label: 'AMS staff shortages',
+    hint: 'For HR follow-up',
+    levels: [
+      ['No access', "Can't see shortages by member of staff.", []],
+      ['View', 'See the deficits found at counts and who was on duty, for follow-up.', ['float.shortages']],
+    ],
+  },
+  {
+    key: 'float_admin',
+    label: 'AMS set-up',
+    hint: 'Branches, accounts, the week, limits and commission',
+    levels: [
+      ['No access', "Can't change the AMS set-up.", []],
+      [
+        'Manage',
+        'Add AMS branches and their opening balances, set minimum floats, the trading days, the week and report time, the limits and the commission tables, and record commission received.',
+        ['float.admin'],
+      ],
+    ],
+  },
+  ...ADMIN_AREAS('float.'),
+];
+
 export const MODULES = {
   leave: { key: 'leave', label: 'Leave management', areas: LEAVE_AREAS },
   people: { key: 'people', label: 'Employee management', areas: PEOPLE_AREAS },
   inventory: { key: 'inventory', label: 'Inventory system', areas: INVENTORY_AREAS },
   recruitment: { key: 'recruitment', label: 'Recruitment management', areas: RECRUITMENT_AREAS },
   performance: { key: 'performance', label: 'Performance management', areas: PERFORMANCE_AREAS },
+  float: { key: 'float', label: 'Float system', areas: FLOAT_AREAS },
 };
 export const MODULE_KEYS = Object.keys(MODULES);
 

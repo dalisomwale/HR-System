@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { auditContext } from '../../middleware/auth.js';
+import { auditContext, can } from '../../middleware/auth.js';
 import { writeAudit } from '../audit/audit.service.js';
 import { notify } from '../notifications/notify.service.js';
 import { asyncHandler, idParam, optionalText, requiredText } from '../../utils/validation.js';
@@ -47,7 +47,7 @@ import {
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const MOVE_LABEL = { TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash collection' };
-const EMAIL = { app: 'inventory' };
+const EMAIL = { app: 'float' };
 const name = (f, l) => [f, l].filter(Boolean).join(' ') || null;
 const amount = z.coerce.number().positive('must be more than zero').max(100000000).transform(round2);
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a time like 17:30');
@@ -65,6 +65,30 @@ export const dayRows = (t) => [
   ['Daily commission', kwacha(t.commission)],
   ['Deficits', kwacha(t.deficit)],
 ];
+
+/** What someone can do in the Float system, from their access rights (D126). */
+export function floatRights(user) {
+  const has = (p) => can(user, p);
+  return {
+    floatRecord: has('float.record'),
+    floatViewAll: has('float.view_all'),
+    floatSupervise: has('float.supervise'),
+    floatApprove: has('float.approve'),
+    floatDirector: has('float.director'),
+    floatShortages: has('float.shortages'),
+    floatAdmin: has('float.admin'),
+    usersAdmin: has('float.users'),
+    rolesAdmin: has('float.roles'),
+    auditAdmin: has('float.audit'),
+  };
+}
+/** Opens the Float system to anyone with a part in it. */
+export function floatGate(req, res, next) {
+  const r = floatRights(req.user);
+  return Object.values(r).some(Boolean)
+    ? next()
+    : next(forbidden('You do not have access to the Float system.'));
+}
 
 export function floatRoutes({ db }) {
   const router = Router();
@@ -135,7 +159,8 @@ export function floatRoutes({ db }) {
     );
     return active.filter((d) => !signed.has(d)).sort();
   }
-  const f = (req) => req.rq;
+  // The Float system's rights (D126), from the person's role in it (System Administrators hold all).
+  const f = (req) => floatRights(req.user);
   const must = (ok, msg) => {
     if (!ok) throw forbidden(msg);
   };
@@ -560,7 +585,7 @@ export function floatRoutes({ db }) {
           event: 'FLOAT_REVERSAL_TO_APPROVE',
           title: `Reversal to approve: ${KIND_LABEL[t.network]} ${t.kind.toLowerCase()} ${kwacha(t.amount)}`,
           body: reason,
-          link: '/requisitions/float/approvals',
+          link: '/float/approvals',
           entityType: 'float_transaction',
           entityId: id,
         });
@@ -619,7 +644,7 @@ export function floatRoutes({ db }) {
           event: approve ? 'FLOAT_REVERSED' : 'FLOAT_REVERSAL_REFUSED',
           title: `Reversal ${approve ? 'approved' : 'not approved'}: ${kwacha(t.amount)}`,
           body: comment ?? (approve ? 'The balances have been put back.' : 'The transaction stands.'),
-          link: '/requisitions/float/branch',
+          link: '/float/branch',
           entityType: 'float_transaction',
           entityId: id,
         });
@@ -687,7 +712,7 @@ export function floatRoutes({ db }) {
         event: 'FLOAT_VARIANCE',
         title: `${label} at ${branch.name}: ${text}`,
         body: 'Resolve it on Approvals.',
-        link: '/requisitions/float/approvals',
+        link: '/float/approvals',
         entityType: 'float_count',
         entityId: count.id,
         email: {
@@ -717,7 +742,7 @@ export function floatRoutes({ db }) {
         event: 'FLOAT_SIGNED_OUT',
         title: `Daily report: ${branch.name} closed at ${at(b.signedOutAt)}, ${b.transactions.total} transactions`,
         body: `Opened ${at(b.openedAt)}. Deposits ${b.deposits.count}, withdrawals ${b.withdrawals.count}. Closing cash ${kwacha(b.cash)}, float ${kwacha(b.float)}.`,
-        link: `/requisitions/float/daily?from=${date}&to=${date}&branch=${branch.id}`,
+        link: `/float/daily?from=${date}&to=${date}&branch=${branch.id}`,
         entityType: 'float_count',
         entityId: countId,
         email: {
@@ -764,7 +789,7 @@ export function floatRoutes({ db }) {
       event: 'FLOAT_COUNT_TO_CONFIRM',
       title: `${what} to confirm: ${branch.name}`,
       body: lines.map((l) => `${KIND_LABEL[l.kind]} ${kwacha(l.counted)}`).join(', '),
-      link: '/requisitions/float/approvals',
+      link: '/float/approvals',
       entityType: 'float_count',
       entityId: countId,
       email: {
@@ -962,7 +987,7 @@ export function floatRoutes({ db }) {
           body: corrected
             ? `The figures were corrected: ${input.comment}`
             : 'The figures were confirmed as entered.',
-          link: '/requisitions/float/branch',
+          link: '/float/branch',
           entityType: 'float_count',
           entityId: id,
         });
@@ -1020,7 +1045,7 @@ export function floatRoutes({ db }) {
           body: input.collectedBy
             ? `Collected by ${input.collectedBy}. Confirm finance received it.`
             : 'Confirm finance received it.',
-          link: '/requisitions/float/approvals',
+          link: '/float/approvals',
           entityType: 'float_movement',
           entityId: mid,
         });
@@ -1114,7 +1139,7 @@ export function floatRoutes({ db }) {
           event: 'FLOAT_MOVEMENT_TO_APPROVE',
           title: `${input.kind === 'TOPUP' ? 'Top-up' : 'Transfer'} to approve: ${KIND_LABEL[input.toAccount]} ${kwacha(input.amount)} for ${b.name}`,
           body: input.reason ?? '',
-          link: '/requisitions/float/approvals',
+          link: '/float/approvals',
           entityType: 'float_movement',
           entityId: newId,
           email: {
@@ -1207,7 +1232,7 @@ export function floatRoutes({ db }) {
           event: approve ? 'FLOAT_MOVEMENT_APPROVED' : 'FLOAT_MOVEMENT_REFUSED',
           title: `${MOVE_LABEL[m.kind]} ${approve ? (m.kind === 'COLLECTION' ? 'confirmed' : 'approved') : 'not approved'}: ${KIND_LABEL[m.to_account]} ${kwacha(m.amount)}`,
           body: comment ?? (approve ? 'The balance has been updated.' : ''),
-          link: '/requisitions/float/branch',
+          link: '/float/branch',
           entityType: 'float_movement',
           entityId: id,
         });
@@ -1464,7 +1489,7 @@ export function floatRoutes({ db }) {
             event: 'FLOAT_WRITE_OFF_TO_APPROVE',
             title: `Write-off to approve: ${kwacha(Math.abs(amt))} ${KIND_LABEL[v.kind]}`,
             body: input.comment,
-            link: '/requisitions/float/approvals',
+            link: '/float/approvals',
             entityType: 'float_variance',
             entityId: id,
             email: {
@@ -1513,7 +1538,7 @@ export function floatRoutes({ db }) {
             event: approve ? 'FLOAT_WRITE_OFF_APPROVED' : 'FLOAT_WRITE_OFF_REFUSED',
             title: `Write-off ${approve ? 'approved' : 'not approved'}: ${kwacha(Math.abs(v.amount))}`,
             body: comment ?? '',
-            link: '/requisitions/float/variances',
+            link: '/float/variances',
             entityType: 'float_variance',
             entityId: id,
           });
@@ -1837,7 +1862,7 @@ export function floatRoutes({ db }) {
           event: 'FLOAT_DAY_SIGNED_OFF',
           title: `AMS daily report reconciled and signed off: ${date}`,
           body: `${t.transactions.total} transactions at ${t.signedOut} branches; closing cash ${kwacha(t.cash)}, float ${kwacha(t.float)}.`,
-          link: `/requisitions/float/daily?from=${date}&to=${date}`,
+          link: `/float/daily?from=${date}&to=${date}`,
           email: {
             ...EMAIL,
             subject: `AMS daily report signed off: ${date}`,
@@ -1882,7 +1907,7 @@ export function floatRoutes({ db }) {
       );
   const reqView = (q, u, mine) => {
     const step = REQ_STEP[q.status];
-    const c = f({ rq: u.rq });
+    const c = floatRights(u);
     return {
       id: q.id,
       reference: q.reference,
@@ -1946,7 +1971,7 @@ export function floatRoutes({ db }) {
         .modify((q) => req.query.status && q.where('q.status', String(req.query.status)))
         .orderBy('q.id', 'desc')
         .limit(1000);
-      const u = { id: req.user.id, rq: req.rq };
+      const u = req.user;
       res.json({
         items: rows.map((q) => reqView(q, u, mine?.id)),
         canRaise: actsAnywhere(req) || (c.floatRecord && Boolean(mine)),
@@ -2004,7 +2029,7 @@ export function floatRoutes({ db }) {
           event: 'FLOAT_REQUISITION_TO_APPROVE',
           title: `Requisition from ${branch.name}: ${what}`,
           body: input.reason,
-          link: '/requisitions/float/requisitions',
+          link: '/float/requisitions',
           entityType: 'float_requisition',
           entityId: qid,
           email: {
@@ -2071,7 +2096,7 @@ export function floatRoutes({ db }) {
             event: 'FLOAT_REQUISITION_TO_APPROVE',
             title: `AMS requisition to approve: ${q.reference} (${branch.name})`,
             body: `${REQ_KIND[q.kind]}. ${q.reason}`,
-            link: '/requisitions/float/requisitions',
+            link: '/float/requisitions',
             entityType: 'float_requisition',
             entityId: id,
             email: {
@@ -2100,7 +2125,7 @@ export function floatRoutes({ db }) {
                   ? 'The Operations Officer will arrange it.'
                   : 'Confirm it on Requisitions when the money arrives at the branch.'
                 : comment,
-            link: '/requisitions/float/requisitions',
+            link: '/float/requisitions',
             entityType: 'float_requisition',
             entityId: id,
           });
@@ -2451,7 +2476,7 @@ export function floatRoutes({ db }) {
       const networks = (await branchNetworks(db, [b.id])).get(b.id);
       const staff = await db('employees as e')
         .leftJoin('access_users as u', (j) =>
-          j.on('u.employee_id', 'e.id').andOnVal('u.module', '=', 'inventory'),
+          j.on('u.employee_id', 'e.id').andOnVal('u.module', '=', 'float'),
         )
         .leftJoin('access_roles as r', 'r.id', 'u.role_id')
         .leftJoin('phone_logins as p', 'p.employee_id', 'e.id')
@@ -2564,15 +2589,13 @@ export function floatRoutes({ db }) {
         if (
           giveRole &&
           !(await trx('access_users')
-            .where({ module: 'inventory', employee_id: employeeId })
+            .where({ module: 'float', employee_id: employeeId })
             .first('employee_id'))
         ) {
-          const role = await trx('access_roles')
-            .where({ module: 'inventory', name: 'AMS Branch Staff' })
-            .first('id');
+          const role = await trx('access_roles').where({ module: 'float', name: 'Branch Staff' }).first('id');
           if (role) {
             await trx('access_users').insert({
-              module: 'inventory',
+              module: 'float',
               employee_id: employeeId,
               role_id: role.id,
               added_by: req.user.id,
@@ -2608,11 +2631,11 @@ export function floatRoutes({ db }) {
         });
         await trx('phone_logins').where({ employee_id: employeeId }).del();
         const staffRole = await trx('access_roles')
-          .where({ module: 'inventory', name: 'AMS Branch Staff' })
+          .where({ module: 'float', name: 'Branch Staff' })
           .first('id');
         if (staffRole) {
           await trx('access_users')
-            .where({ module: 'inventory', employee_id: employeeId, role_id: staffRole.id })
+            .where({ module: 'float', employee_id: employeeId, role_id: staffRole.id })
             .del();
         }
         await writeAudit(trx, {

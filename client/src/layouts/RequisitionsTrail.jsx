@@ -22,17 +22,6 @@ const PAGES = {
   '/requisitions/users': ['Users'],
   '/requisitions/roles': ['Roles'],
   '/requisitions/alerts': ['Stock alerts'],
-  '/requisitions/float': ['AMS dashboard'],
-  '/requisitions/float/record': ['Record a transaction'],
-  '/requisitions/float/branch': ['My branch'],
-  '/requisitions/float/approvals': ['Approvals'],
-  '/requisitions/float/variances': ['Surplus and deficit'],
-  '/requisitions/float/transactions': ['AMS transactions'],
-  '/requisitions/float/daily': ['Daily reports'],
-  '/requisitions/float/requisitions': ['AMS requisitions'],
-  '/requisitions/float/branches': ['AMS branches'],
-  '/requisitions/float/settings': ['AMS settings'],
-  '/requisitions/float/phone-access': ['Phone sign-in'],
   '/requisitions/audit': ['Audit trail'],
 };
 const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };
@@ -42,12 +31,6 @@ export default function RequisitionsTrail() {
   const reqId = pathname.match(/^\/requisitions\/requests\/(\d+)$/)?.[1];
   const itemId = pathname.match(/^\/requisitions\/stock\/(\d+)(\/edit)?$/)?.[1];
   const editing = /\/edit$/.test(pathname);
-  const amsBranchId = pathname.match(/^\/requisitions\/float\/branches\/(\d+)$/)?.[1];
-  const amsBranch = useQuery({
-    queryKey: ['float-branch-admin', amsBranchId],
-    queryFn: () => api.get(`/api/float/branches/${amsBranchId}`),
-    enabled: !!amsBranchId,
-  });
   const req = useQuery({
     queryKey: ['requisition', reqId],
     queryFn: () => api.get(`/api/requisitions/${reqId}`),
@@ -59,12 +42,7 @@ export default function RequisitionsTrail() {
     enabled: !!itemId,
   });
   const trail = [ROOT];
-  if (amsBranchId) {
-    trail.push(
-      { label: 'AMS branches', to: '/requisitions/float/branches' },
-      { label: amsBranch.data?.name ?? '…' },
-    );
-  } else if (reqId) {
+  if (reqId) {
     trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
   } else if (itemId) {
     trail.push({ label: 'Manage stock', to: PARENT['Manage stock'] });

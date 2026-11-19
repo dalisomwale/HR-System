@@ -64,7 +64,9 @@ describe('phone numbers on the employee record (D119)', () => {
       (await as(admin).patch(`/api/admin/employees/${teller.id}`, { mobilePhone: '0971234567' })).status,
     ).toBe(200);
     expect((await db('employees').where({ id: teller.id }).first()).phone_e164).toBe('+260971234567');
-    const dup = await as(admin).patch(`/api/admin/employees/${office.id}`, { mobilePhone: '+260 97 123 4567' });
+    const dup = await as(admin).patch(`/api/admin/employees/${office.id}`, {
+      mobilePhone: '+260 97 123 4567',
+    });
     expect(dup.status).toBe(409);
     expect(dup.body.error.message).toMatch(/already has this phone number/);
     expect(
