@@ -62,7 +62,7 @@ export default function ReportsPage({ base = '/api/reports', listInMenu = false 
   return (
     <div className="max-w-7xl">
       <PeopleTrail />
-      <PageHeader title="Reports" />
+      <PageHeader title={base === '/api/reports' ? 'Leave Reports' : 'Reports'} />
       <div className={listInMenu ? 'grid gap-4' : 'grid gap-4 xl:grid-cols-[16rem_minmax(0,1fr)]'}>
         {!listInMenu && (
           <>

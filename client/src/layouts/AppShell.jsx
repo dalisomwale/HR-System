@@ -214,7 +214,12 @@ function ExpandNav({
 }
 
 /** Reports segment: opens to list each report; the chosen one is lit up (D64). */
-function ReportsNav({ onNavigate, to = '/people/reports', source = '/api/people/reports' }) {
+function ReportsNav({
+  onNavigate,
+  to = '/people/reports',
+  source = '/api/people/reports',
+  label = 'Reports',
+}) {
   const { pathname, search } = useLocation();
   const inside = pathname === to;
   const current = new URLSearchParams(search).get('report');
@@ -236,7 +241,7 @@ function ReportsNav({ onNavigate, to = '/people/reports', source = '/api/people/
           {/* The chosen report below is the one lit up, so this stays plain. */}
           <NavLink to={to} end onClick={onNavigate} className={`${navLinkClass({ isActive: false })} flex-1`}>
             <FileBarChart aria-hidden />
-            Reports
+            {label}
           </NavLink>
           <button
             type="button"
@@ -688,7 +693,7 @@ function LeaveNav({ user, counts, onNavigate }) {
       {(user.isManager || user.isDelegate || seesWholeGroup(user)) && (
         <div className="[&>div]:mt-0">
           <p className={SECTION_LABEL}>Reports</p>
-          <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
+          <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" label="Leave Reports" />
         </div>
       )}
       <NavGroup title="Admin" items={allowed(user, LEAVE_ADMIN)} onNavigate={onNavigate} />

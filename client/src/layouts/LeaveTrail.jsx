@@ -25,7 +25,7 @@ const PAGES = {
   '/admin/delegations': 'Delegations',
   '/admin/holidays': 'Public Holidays',
   '/admin/schedules': 'Working Schedules',
-  '/reports': 'Reports',
+  '/reports': 'Leave Reports',
   '/admin/roles': 'Roles',
   '/admin/settings': 'Workflow Settings',
   '/admin/notifications': 'Notifications',
@@ -77,7 +77,7 @@ export default function LeaveTrail() {
   } else if (pathname === '/reports') {
     const items = reports.data?.items ?? [];
     const chosen = items.find((x) => x.id === search.get('report')) ?? items[0];
-    trail.push(chosen ? { label: 'Reports', to: '/reports' } : { label: 'Reports' });
+    trail.push(chosen ? { label: 'Leave Reports', to: '/reports' } : { label: 'Leave Reports' });
     if (chosen) trail.push({ label: chosen.title });
   } else if (PAGES[pathname]) {
     trail.push({ label: PAGES[pathname] });
