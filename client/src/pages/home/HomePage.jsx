@@ -57,7 +57,7 @@ function Shortcuts({ me, i }) {
       <ActionTile
         to="/leave/balances"
         icon={Scale}
-        title="My Balances"
+        title="My Leave Balances"
         desc="Days you have left"
         tone="reports"
       />

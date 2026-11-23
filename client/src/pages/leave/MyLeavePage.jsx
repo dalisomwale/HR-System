@@ -120,7 +120,7 @@ export function MyBalancesPage() {
   const [year, setYear] = useState(thisYear);
   return (
     <div className="stack">
-      <PageHeader title="My Balances" actions={<YearSelect year={year} setYear={setYear} />} />
+      <PageHeader title="My Leave Balances" actions={<YearSelect year={year} setYear={setYear} />} />
       <Balances year={year} bare />
       <LeaveHistory year={year} />
     </div>

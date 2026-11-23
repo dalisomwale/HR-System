@@ -15,7 +15,7 @@ const PAGES = {
   '/leave': 'My Leave',
   '/leave/apply': 'Apply For Leave',
   '/leave/policy': 'Leave Policy',
-  '/leave/balances': 'My Balances',
+  '/leave/balances': 'My Leave Balances',
   '/notifications': 'Notifications',
   '/team': 'Departmental Overview',
   '/team/members': 'Members',
