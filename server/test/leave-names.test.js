@@ -14,3 +14,11 @@ describe('leave type names (D134)', () => {
     expect(t.description).toMatch(/third-trimester miscarriage or a stillbirth/);
   });
 });
+
+describe('leave without pay (D136)', () => {
+  it('is switched off but kept, so past requests still read correctly', async () => {
+    const t = await db('leave_types').where({ code: 'UNPAID' }).first('name', 'is_active');
+    expect(t).toBeTruthy();
+    expect(Boolean(t.is_active)).toBe(false);
+  });
+});

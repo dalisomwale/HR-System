@@ -71,8 +71,8 @@ import { ROLE_LABELS, fullName } from '../lib/format.js';
 
 const MY_WORK = [
   { to: '/home', label: 'Home', icon: House },
-  { to: '/leave/balances', label: 'My Leave Balances', icon: Scale },
   { to: '/leave/apply', label: 'Apply For Leave', icon: CalendarPlus },
+  { to: '/leave/balances', label: 'My Leave Balances', icon: Scale },
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
 ];
 const MANAGER = [
@@ -85,6 +85,9 @@ const MANAGER = [
 const HR = [
   { to: '/hr', label: 'HR Overview', icon: LayoutGrid, end: true, perm: 'leave.overview' },
   { to: '/hr/approvals', label: 'HR Approvals', icon: ShieldCheck, perm: 'leave.approve_final' },
+];
+// Leave settings (D136): kept apart from the HR work queues.
+const LEAVE_SETTINGS = [
   { to: '/admin/leave-types', label: 'Leave Types', icon: ListChecks, perm: 'leave.types' },
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck, perm: 'leave.delegations' },
   { to: '/admin/holidays', label: 'Public Holidays', icon: CalendarDays, perm: 'leave.calendar' },
@@ -667,7 +670,7 @@ function LeaveNav({ user, counts, onNavigate }) {
   );
   return (
     <>
-      <NavGroup title="My Work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="My Leaves" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
           title="Department Manager"
@@ -676,13 +679,17 @@ function LeaveNav({ user, counts, onNavigate }) {
         />
       )}
       <NavGroup
-        title={can(user, 'leave.approve_final') ? 'HR' : 'Group'}
+        title={can(user, 'leave.approve_final') ? 'Human Resource Dept' : 'Group'}
         items={hr}
         onNavigate={onNavigate}
       />
+      <NavGroup title="Settings" items={allowed(user, LEAVE_SETTINGS)} onNavigate={onNavigate} />
       {/* Leave reports, for managers, delegates and whoever sees the whole group (D68). */}
       {(user.isManager || user.isDelegate || seesWholeGroup(user)) && (
-        <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
+        <div className="[&>div]:mt-0">
+          <p className={SECTION_LABEL}>Reports</p>
+          <ReportsNav onNavigate={onNavigate} to="/reports" source="/api/reports" />
+        </div>
       )}
       <NavGroup title="Admin" items={allowed(user, LEAVE_ADMIN)} onNavigate={onNavigate} />
     </>
