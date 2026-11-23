@@ -43,6 +43,7 @@ import RequisitionPage from './pages/requisitions/RequisitionPage.jsx';
 import StockPage from './pages/requisitions/StockPage.jsx';
 import ItemPage from './pages/requisitions/ItemPage.jsx';
 import ItemFormPage from './pages/requisitions/ItemFormPage.jsx';
+import LeavePolicyPage from './pages/leave/LeavePolicyPage.jsx';
 import ReceivePage from './pages/requisitions/ReceivePage.jsx';
 import IssuePage from './pages/requisitions/IssuePage.jsx';
 import TransactionsPage from './pages/requisitions/TransactionsPage.jsx';
@@ -213,6 +214,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="reports" element={<ReportsPage listInMenu />} />
             <Route path="leave" element={<MyLeavePage />} />
             <Route path="leave/apply" element={<ApplyPage />} />
+            <Route path="leave/policy" element={<LeavePolicyPage />} />
             <Route path="leave/balances" element={<MyBalancesPage />} />
             <Route path="leave/requests/:id" element={<RequestPage />} />
             <Route path="approvals" element={<ManagerApprovalsPage />} />

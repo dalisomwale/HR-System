@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router';
+import { useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 import { PageHeader } from '../../components/ui.jsx';
@@ -6,6 +7,10 @@ import { LeaveForm } from '../../components/LeaveForm.jsx';
 
 export default function ApplyPage() {
   const navigate = useNavigate();
+  // "Apply Leave" on a leave balance opens the form with that leave type chosen (?type=).
+  const [params] = useSearchParams();
+  const type = params.get('type');
+  const initial = useMemo(() => (/^\d+$/.test(type ?? '') ? { leaveTypeId: type } : undefined), [type]);
   const qc = useQueryClient();
   const submit = async (payload, idempotencyKey, files = []) => {
     const created = await api.post('/api/leave/requests', payload, { idempotencyKey });
@@ -30,7 +35,7 @@ export default function ApplyPage() {
   return (
     <div className="max-w-6xl">
       <PageHeader title="Apply For Leave" />
-      <LeaveForm submitLabel="Submit Request" onSubmit={submit} />
+      <LeaveForm initial={initial} submitLabel="Submit Request" onSubmit={submit} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
 import { Activity } from '../home/dashboard-ui.jsx';
-import { BalanceMeter } from '../home/dashboard-charts.jsx';
+import { BalanceTiles } from './BalanceTiles.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
@@ -220,32 +220,9 @@ export function Balances({ year, bare = false }) {
   ) : q.isError ? (
     <LoadError error={q.error} onRetry={() => q.refetch()} />
   ) : (
-    <Meters items={q.data.items} />
+    <BalanceTiles items={q.data.items} />
   );
   return bare ? body : <Section title={`Balances ${year}`}>{body}</Section>;
-}
-
-/** One card per leave type: days left first, then what is used, waiting and allowed. */
-function Meters({ items }) {
-  if (!items.length) {
-    return (
-      <EmptyState title="No Leave Types Are Active Yet">
-        HR activates leave types after reviewing the policy settings.
-      </EmptyState>
-    );
-  }
-  // Types with a limit first, so the days you can still take come first.
-  const order = { BALANCE: 0, ALLOWANCE: 1, PER_OCCASION: 2, UNLIMITED: 3 };
-  const sorted = [...items].sort((x, y) => (order[x.kind] ?? 9) - (order[y.kind] ?? 9));
-  return (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {sorted.map((b) => (
-        <li key={b.leaveType.id} className="h-full">
-          <BalanceMeter b={b} />
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function Requests({ year, setYear }) {
