@@ -213,7 +213,7 @@ export async function remindCarryForwardExpiry(db, today = todayInLusaka()) {
         event,
         title: `${unused} carried-forward days lapse after ${day(expiry)}`,
         body: 'Days carried over from last year that are not taken by then are lost.',
-        link: '/leave',
+        link: '/leave/balances',
         entityType: 'leave_year',
         entityId: year,
         email: {

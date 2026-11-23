@@ -12,7 +12,6 @@ import { can, useMe } from '../lib/auth.jsx';
 const ROOT = { label: 'Leave Management', to: '/home' };
 const PAGES = {
   '/home': 'Home',
-  '/leave': 'My Leave',
   '/leave/apply': 'Apply For Leave',
   '/leave/policy': 'Leave Policy',
   '/leave/balances': 'My Leave Balances',
@@ -66,7 +65,7 @@ export default function LeaveTrail() {
     const r = request.data;
     const own = r && r.employee?.id === me?.id;
     const parent = own
-      ? { label: 'My Leave', to: '/leave' }
+      ? { label: 'My Leave Balances', to: '/leave/balances' }
       : can(me, 'leave.approve_final')
         ? { label: 'HR Approvals', to: '/hr/approvals' }
         : me?.isManager || me?.isDelegate

@@ -23,7 +23,7 @@ import HolidaysPage from './pages/admin/HolidaysPage.jsx';
 import SchedulesPage from './pages/admin/SchedulesPage.jsx';
 import SettingsPage from './pages/admin/SettingsPage.jsx';
 import LeaveTypesPage from './pages/admin/LeaveTypesPage.jsx';
-import MyLeavePage, { MyBalancesPage } from './pages/leave/MyLeavePage.jsx';
+import { MyBalancesPage } from './pages/leave/MyLeavePage.jsx';
 import ApplyPage from './pages/leave/ApplyPage.jsx';
 import RequestPage from './pages/leave/RequestPage.jsx';
 import { ManagerApprovalsPage, HrApprovalsPage } from './pages/approvals/ApprovalsPages.jsx';
@@ -212,7 +212,8 @@ createRoot(document.getElementById('root')).render(
             <Route path="delegation" element={<DelegationsPage />} />
             <Route path="notifications" element={<NotificationsPage />} />
             <Route path="reports" element={<ReportsPage listInMenu />} />
-            <Route path="leave" element={<MyLeavePage />} />
+            {/* My Leave is now part of My Leave Balances (D135); old links still work. */}
+            <Route path="leave" element={<Navigate to="/leave/balances" replace />} />
             <Route path="leave/apply" element={<ApplyPage />} />
             <Route path="leave/policy" element={<LeavePolicyPage />} />
             <Route path="leave/balances" element={<MyBalancesPage />} />

@@ -153,8 +153,8 @@ export default function ProfilePage() {
               >
                 <Balances year={year} bare />
                 <p className="mt-4 text-sm">
-                  <Link to="/leave" className="text-brand hover:underline">
-                    See all my requests
+                  <Link to="/leave/balances" className="text-brand hover:underline">
+                    See my active, upcoming and past leave
                   </Link>
                 </p>
               </Section>

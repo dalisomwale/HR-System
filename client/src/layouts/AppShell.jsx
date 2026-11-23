@@ -27,7 +27,6 @@ import {
   LayoutGrid,
   UserCheck,
   UsersRound,
-  CalendarCheck,
   CalendarPlus,
   ClipboardCheck,
   ListChecks,
@@ -72,7 +71,6 @@ import { ROLE_LABELS, fullName } from '../lib/format.js';
 
 const MY_WORK = [
   { to: '/home', label: 'Home', icon: House },
-  { to: '/leave', label: 'My Leave', icon: CalendarCheck, end: true },
   { to: '/leave/balances', label: 'My Leave Balances', icon: Scale },
   { to: '/leave/apply', label: 'Apply For Leave', icon: CalendarPlus },
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },

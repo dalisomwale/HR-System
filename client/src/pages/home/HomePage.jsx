@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarCheck, CalendarPlus, ClipboardCheck, LayoutGrid, Scale, ShieldCheck } from 'lucide-react';
+import { CalendarPlus, ClipboardCheck, LayoutGrid, Scale, ShieldCheck } from 'lucide-react';
 import { api } from '../../lib/api.js';
 import { can, hasRole, seesWholeGroup, useMe } from '../../lib/auth.jsx';
 import { formatDate } from '../../lib/format.js';
@@ -53,7 +53,6 @@ function Shortcuts({ me, i }) {
         desc="Book time off"
         tone="receive"
       />
-      <ActionTile to="/leave" icon={CalendarCheck} title="My Leave" desc="Your requests" tone="stock" />
       <ActionTile
         to="/leave/balances"
         icon={Scale}
@@ -171,7 +170,7 @@ function Insights({ i, year }) {
         label="Your Pending Requests"
         value={i.awaitingDecision}
         tone={i.awaitingDecision > 0 ? 'warn' : undefined}
-        to="/leave"
+        to="/leave/balances"
       />
       {i.onLeaveNow ? (
         <Kpi

@@ -2,11 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
-import { Activity } from '../home/dashboard-ui.jsx';
 import { BalanceTiles } from './BalanceTiles.jsx';
 import { LeaveHistory } from './LeaveHistory.jsx';
 import { formatDateTime } from '../../lib/format.js';
-import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
+import { STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
   Badge,
   EmptyState,
@@ -21,99 +20,6 @@ import {
 } from '../../components/ui.jsx';
 
 const thisYear = new Date().getFullYear();
-
-export default function MyLeavePage() {
-  const [year, setYear] = useState(thisYear);
-  return (
-    <div className="stack">
-      <PageHeader title="My Leave" />
-      <MyLeaveTop />
-      <Requests year={year} setYear={setYear} />
-      <RecentActivity />
-    </div>
-  );
-}
-
-/*
- * Active leave and recent activity come from the same summary as the home page, so the two
- * pages share one request. Days left are worked out on the server from today's date; the
- * summary is refreshed every hour and whenever the page is opened again.
- */
-function useSummary() {
-  return useQuery({
-    queryKey: ['dashboard', 'employee'],
-    queryFn: () => api.get('/api/dashboard/employee'),
-    refetchInterval: 60 * 60 * 1000,
-  });
-}
-
-function MyLeaveTop() {
-  const q = useSummary();
-  return (
-    <Section title="Active Leave">
-      {q.isPending ? (
-        <Loading />
-      ) : q.isError ? (
-        <LoadError error={q.error} onRetry={() => q.refetch()} />
-      ) : q.data.active.length === 0 ? (
-        <p className="muted-text">You are not on leave.</p>
-      ) : (
-        <ul className="grid grid-cols-2 gap-3">
-          {q.data.active.map((r) => (
-            <ActiveLeave key={r.id} r={r} />
-          ))}
-        </ul>
-      )}
-    </Section>
-  );
-}
-
-function ActiveLeave({ r }) {
-  const used = Math.max(0, r.chargeableDays - r.daysLeft);
-  const pct = r.chargeableDays > 0 ? Math.round((used / r.chargeableDays) * 100) : 100;
-  return (
-    <li className="rounded-md border border-rule p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <Link to={`/leave/requests/${r.id}`} className="font-medium text-brand hover:underline">
-          {r.leaveType}
-        </Link>
-        <span className="text-xs whitespace-nowrap text-muted">{r.reference}</span>
-      </div>
-      <p className="mt-0.5 text-sm text-muted">{dateRange(r)}</p>
-      <p className="mt-3">
-        <span className="font-head text-[1.75rem] leading-tight font-bold text-brand tabular-nums">
-          {r.daysLeft}
-        </span>{' '}
-        <span className="muted-text">of {days(r.chargeableDays)} left</span>
-      </p>
-      <div
-        className="progress-track mt-2"
-        role="progressbar"
-        aria-label={`${r.leaveType}: ${used} of ${r.chargeableDays} days used`}
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div className="progress-fill" style={{ width: `${pct}%` }} />
-      </div>
-    </li>
-  );
-}
-
-function RecentActivity() {
-  const q = useSummary();
-  return (
-    <Section title="Recent Activity">
-      {q.isPending ? (
-        <Loading />
-      ) : q.isError ? (
-        <LoadError error={q.error} onRetry={() => q.refetch()} />
-      ) : (
-        <Activity items={q.data.activity.filter((a) => a.own)} />
-      )}
-    </Section>
-  );
-}
 
 /** Balances on their own page (My balances in the menu). */
 export function MyBalancesPage() {
@@ -225,31 +131,6 @@ export function Balances({ year, bare = false }) {
     <BalanceTiles items={q.data.items} />
   );
   return bare ? body : <Section title={`Balances ${year}`}>{body}</Section>;
-}
-
-function Requests({ year, setYear }) {
-  const q = useQuery({
-    queryKey: ['my-requests', year],
-    queryFn: () => api.get(`/api/leave/requests${qs({ year })}`),
-  });
-  if (q.isPending) return <Loading />;
-  if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} />;
-  const items = q.data.items;
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h2 className="font-head text-base font-semibold text-ink">Requests {year}</h2>
-        <YearSelect year={year} setYear={setYear} />
-      </div>
-      {items.length === 0 ? (
-        <div className="card p-0">
-          <EmptyState title={`No Requests In ${year}`} />
-        </div>
-      ) : (
-        <RequestTable items={items} />
-      )}
-    </div>
-  );
 }
 
 export function RequestTable({ items, showEmployee = false, yourTurn }) {
