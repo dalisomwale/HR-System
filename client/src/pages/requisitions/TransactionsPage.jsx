@@ -25,6 +25,7 @@ function MovementTable({ items, showStock = true, onExport }) {
           <Th>Date</Th>
           <Th>Type</Th>
           <Th>Item</Th>
+          <Th>Category</Th>
           <Th className="text-right">Qty</Th>
           <Th>Branch</Th>
           <Th>Supplier Or Department</Th>
@@ -43,8 +44,8 @@ function MovementTable({ items, showStock = true, onExport }) {
               <Link to={`/requisitions/stock/${t.itemId}`} className="font-medium text-brand hover:underline">
                 {t.item}
               </Link>
-              <p className="text-xs text-muted">{t.category}</p>
             </Td>
+            <Td>{t.category ?? '—'}</Td>
             <Td className="text-right font-semibold tabular-nums">{units(t.quantity)}</Td>
             <Td>{t.branch ?? '—'}</Td>
             <Td>
