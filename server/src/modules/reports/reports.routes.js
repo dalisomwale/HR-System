@@ -7,6 +7,7 @@ import { asyncHandler } from '../../utils/validation.js';
 import { AppError } from '../../utils/errors.js';
 import { todayInLusaka } from '../../utils/dates.js';
 import {
+  LISTED_REPORTS,
   REPORTS,
   ENTRY_TYPES,
   STATUS_OPTIONS,
@@ -39,12 +40,14 @@ export function reportRoutes({ db }) {
     '/',
     asyncHandler(async (req, res) => {
       const scope = await reportScope(db, req.user);
-      const items = REPORTS.filter((r) => r.levels.includes(scope.level)).map((r) => ({
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        filters: r.filters,
-      }));
+      const items = REPORTS.filter((r) => r.levels.includes(scope.level) && LISTED_REPORTS.includes(r.id))
+        .sort((a, b) => LISTED_REPORTS.indexOf(a.id) - LISTED_REPORTS.indexOf(b.id))
+        .map((r) => ({
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          filters: r.filters,
+        }));
       // Filter choices limited to what the viewer may see.
       const employees = await db('employees as e')
         .modify((q) => scope.ids && q.whereIn('e.id', scope.ids.length ? scope.ids : [0]))

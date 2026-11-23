@@ -107,7 +107,15 @@ describe('who can run reports', () => {
 
     const list = await as(mgr).get('/api/reports');
     expect(list.body.scope).toBe('MANAGER');
-    expect(list.body.items).toHaveLength(12);
+    // Only the vital reports are listed (D137).
+    expect(list.body.items.map((r) => r.id)).toEqual([
+      'requests',
+      'taken-by-employee',
+      'balances',
+      'upcoming',
+      'outstanding',
+      'carry-forward',
+    ]);
     expect(list.body.options.employees.map((e) => e.id)).toEqual([emp.id]);
 
     const mine = await as(mgr).get('/api/reports/requests?year=2027');

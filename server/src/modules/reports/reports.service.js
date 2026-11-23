@@ -210,6 +210,19 @@ async function utilisation(db, scope, f, byDepartment) {
 
 // ---------------------------------------------------------------------------------------------
 
+/*
+ * The reports listed under Reports (D137): only the vital ones. The others stay defined below,
+ * so a link to one still opens it, and adding its id here lists it again.
+ */
+export const LISTED_REPORTS = [
+  'requests',
+  'taken-by-employee',
+  'balances',
+  'upcoming',
+  'outstanding',
+  'carry-forward',
+];
+
 export const REPORTS = [
   {
     id: 'requests',
