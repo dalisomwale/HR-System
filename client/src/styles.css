@@ -421,10 +421,11 @@
   .tone-reports {
     --tone: #116e7a;
   }
+  /* Applications not built yet: greyed out and not clickable, with no label (D138). */
   .action-tile.is-off {
-    --tone: #8a91a0;
-    cursor: default;
-    opacity: 0.75;
+    --tone: #a3aab8;
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   /* Buttons */

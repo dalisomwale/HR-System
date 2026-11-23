@@ -135,7 +135,6 @@ export default function LauncherPage() {
             desc={app.description}
             tone={TONES[app.id]}
             off={app.comingSoon}
-            badge={app.comingSoon ? 'Coming Soon' : undefined}
           />
         ))}
       </ActionTiles>
