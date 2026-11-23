@@ -3,7 +3,7 @@ import { COLORS } from '../../components/charts.jsx';
 
 /*
  * Leave balances as tiles (D130, D131, D132): every leave type the person is entitled to, in the
- * platform's colours: Altus navy for the tile and its title; in the ring, used days in
+ * platform's colours: each tile with a small accent of its own (see ACCENTS); in the ring, used days in
  * the chart blue, waiting in the chart orange and what is left in the light track, as on every
  * other chart. Types with no fixed quota (per occasion, unlimited) show what they allow.
  */
@@ -81,7 +81,15 @@ function Row({ swatch, outline, label, value }) {
   );
 }
 
-function Tile({ b }) {
+/*
+ * A small accent per tile so they are easy to tell apart (D133), taken only from the platform's
+ * own colours (styles.css, charts.jsx): Altus navy, the chart orange, the accent green and the chart blue,
+ * in turn, so neighbouring tiles always differ. It marks the top edge, the name and a light tint
+ * behind it; the ring keeps the same meaning on every tile (used blue, waiting orange).
+ */
+const ACCENTS = ['#25398d', '#d0700c', '#6f9a2e', '#3a54b4'];
+
+function Tile({ b, accent }) {
   const quota = b.kind === 'BALANCE' || b.kind === 'ALLOWANCE';
   const used = Number(b.taken) || 0;
   const waiting = Number(b.pending) || 0;
@@ -109,17 +117,25 @@ function Tile({ b }) {
         label: `${b.leaveType.name}: ${used} used this year`,
       };
   return (
-    <div className="flex h-full flex-col rounded-md border border-rule border-t-[3px] border-t-brand bg-white p-3 shadow-card">
-      <h3 className="mb-2 flex min-h-[2.1rem] items-center justify-center text-center font-head text-xs leading-tight font-semibold tracking-wide text-brand uppercase">
+    <div
+      className="flex h-full flex-col overflow-hidden rounded-md border border-rule bg-white shadow-card"
+      style={{ borderTop: `3px solid ${accent}` }}
+    >
+      <h3
+        className="flex min-h-[2.6rem] items-center justify-center px-2 text-center font-head text-xs leading-tight font-semibold tracking-wide uppercase"
+        style={{ color: accent, background: `${accent}14` }}
+      >
         {b.leaveType.name}
       </h3>
-      <Ring {...ring} />
-      <div className="mt-2.5 space-y-1">
-        {quota && <Row swatch={COLORS.track} outline label="Available" value={daysText(available)} />}
-        <Row swatch={COLORS.taken} label={quota ? 'Used' : 'Used This Year'} value={daysText(used)} />
-        {waiting > 0 && <Row swatch={COLORS.waiting} label="Waiting" value={daysText(waiting)} />}
+      <div className="flex flex-1 flex-col p-3 pt-2.5">
+        <Ring {...ring} />
+        <div className="mt-2.5 space-y-1">
+          {quota && <Row swatch={COLORS.track} outline label="Available" value={daysText(available)} />}
+          <Row swatch={COLORS.taken} label={quota ? 'Used' : 'Used This Year'} value={daysText(used)} />
+          {waiting > 0 && <Row swatch={COLORS.waiting} label="Waiting" value={daysText(waiting)} />}
+        </div>
+        {b.eligibility && <p className="mt-2 text-[0.7rem] leading-snug text-pending">{b.eligibility}</p>}
       </div>
-      {b.eligibility && <p className="mt-2 text-[0.7rem] leading-snug text-pending">{b.eligibility}</p>}
     </div>
   );
 }
@@ -137,9 +153,9 @@ export function BalanceTiles({ items }) {
   const sorted = [...items].sort((x, y) => (order[x.kind] ?? 2) - (order[y.kind] ?? 2));
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-      {sorted.map((b) => (
+      {sorted.map((b, i) => (
         <li key={b.leaveType.id}>
-          <Tile b={b} />
+          <Tile b={b} accent={ACCENTS[i % ACCENTS.length]} />
         </li>
       ))}
     </ul>
