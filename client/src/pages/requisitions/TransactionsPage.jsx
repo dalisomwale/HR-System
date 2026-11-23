@@ -17,7 +17,7 @@ import {
 } from '../../components/ui.jsx';
 import { today, units } from './rq.js';
 
-function MovementTable({ items, showStock = true, onExport }) {
+function MovementTable({ items, onExport }) {
   return (
     <Table onExport={onExport}>
       <thead>
@@ -29,7 +29,6 @@ function MovementTable({ items, showStock = true, onExport }) {
           <Th className="text-right">Qty</Th>
           <Th>Branch</Th>
           <Th>Supplier Or Department</Th>
-          {showStock && <Th className="text-right">Branch Stock</Th>}
           <Th>By</Th>
         </tr>
       </thead>
@@ -54,11 +53,6 @@ function MovementTable({ items, showStock = true, onExport }) {
                 <p className="text-xs text-muted">{[t.recipient, t.purpose].filter(Boolean).join(' · ')}</p>
               )}
             </Td>
-            {showStock && (
-              <Td className="text-right text-muted tabular-nums">
-                {t.oldStock ?? '—'} → {t.newStock ?? '—'}
-              </Td>
-            )}
             <Td>{t.by ?? '—'}</Td>
           </tr>
         ))}
@@ -176,7 +170,6 @@ export default function TransactionsPage() {
             <MovementTable
               onExport={() => downloadFile(`/api/stock/transactions${qs({ ...params, format: 'xlsx' })}`)}
               items={q.data.items}
-              showStock={!scoped}
             />
           )}
         </>
