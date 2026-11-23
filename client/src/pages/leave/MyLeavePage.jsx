@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
 import { Activity } from '../home/dashboard-ui.jsx';
 import { BalanceTiles } from './BalanceTiles.jsx';
+import { LeaveHistory } from './LeaveHistory.jsx';
 import { formatDateTime } from '../../lib/format.js';
 import { STATUS_LABELS, STATUS_TONES, PERIOD_LABELS, dateRange, days, statusLabel } from '../../lib/leave.js';
 import {
@@ -121,6 +122,7 @@ export function MyBalancesPage() {
     <div className="stack">
       <PageHeader title="My Balances" actions={<YearSelect year={year} setYear={setYear} />} />
       <Balances year={year} bare />
+      <LeaveHistory year={year} />
     </div>
   );
 }

@@ -154,8 +154,6 @@ export async function employeeBalances(db, employeeId, year, { activeOnly = true
         leaveType: { id: t.id, code: t.code, name: t.name },
         kind: 'BALANCE',
         eligibility,
-        // The yearly entitlement, shown as the annual quota (D130).
-        quota: policy.entitlementDays ?? null,
         ...(await annualPosition(db, employeeId, t.id, year)),
       });
     } else if (
