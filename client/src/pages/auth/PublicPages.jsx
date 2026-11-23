@@ -85,8 +85,10 @@ const INPUT =
 
 /** AMS branch staff: phone number and PIN, or the one-time code the first time (D119). */
 function PhoneSignIn() {
+  // The link the System Admin shares with a new code fills in the phone number (?phone=).
+  const [params] = useSearchParams();
   const [step, setStep] = useState('LOGIN'); // LOGIN | SET_PIN
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(() => (params.get('phone') ?? '').replace(/[^\d+ ]/g, '').slice(0, 20));
   const [pin, setPin] = useState('');
   const [pin2, setPin2] = useState('');
   const [busy, setBusy] = useState(false);

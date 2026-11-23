@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Copy, Share2 } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadFile } from '../../lib/api.js';
@@ -854,33 +855,106 @@ const PHONE_STATUS = {
   ACTIVE: ['Active', 'ok'],
   LOCKED: ['Locked', 'danger'],
 };
-/**
- * A one-time sign-in code that was just given (D127): texted to the person's phone when text
- * messages are set up. The code shows here once too, so the admin can pass it on if the text
- * does not arrive.
- */
-function CodeGiven({ given }) {
-  const sms = given.sms ?? {};
-  const rest = (
-    <>
-      They sign in with {given.phone} and this code, then choose their PIN. It works once and expires{' '}
-      {formatDateTime(given.expiresAt)}. It is not shown again.
-    </>
-  );
-  if (sms.sent) {
-    return (
-      <Notice tone="ok" title={`Code texted to ${given.name} on ${given.phone}`}>
-        {rest} If it does not arrive within a few minutes, read them the code: <strong>{given.code}</strong>.
-      </Notice>
-    );
+/** Copies text, also where the browser has no clipboard API (plain http on the office network). */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const box = document.createElement('textarea');
+    box.value = text;
+    box.setAttribute('readonly', '');
+    box.style.position = 'fixed';
+    box.style.opacity = '0';
+    document.body.appendChild(box);
+    box.select();
+    const ok = document.execCommand('copy');
+    box.remove();
+    return ok;
   }
+}
+
+/**
+ * A one-time sign-in code the System Admin has just set up (D119, D127). It shows here once, with
+ * a ready-made message the admin copies or shares (WhatsApp, SMS, email: whatever the device
+ * offers) so the person can sign in. The code is stored only as a hash, so if it is lost the
+ * admin gives a new one.
+ */
+export function CodeShare({ given, onDone }) {
+  const ref = useRef(null);
+  const [copied, setCopied] = useState(null);
+  useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    ref.current?.focus();
+  }, [given.code]);
+  const first = String(given.name ?? '').trim().split(/\s+/)[0] || 'there';
+  const digits = String(given.phone ?? '').replace(/[^\d+]/g, '');
+  const link = `${window.location.origin}/sign-in${digits ? `?phone=${encodeURIComponent(digits)}` : ''}`;
+  const spaced = `${given.code.slice(0, 4)} ${given.code.slice(4)}`;
+  const message = [
+    `Hello ${first}, your Altus sign-in code is ${given.code}.`,
+    `Open ${link} and sign in with your phone number ${given.phone} and this code, then choose your own 6-digit PIN.`,
+    `The code works once and expires ${formatDateTime(given.expiresAt)}. Do not share it with anyone.`,
+  ].join('\n\n');
+  const copy = async (what, text) => {
+    if (await copyText(text)) {
+      setCopied(what);
+      setTimeout(() => setCopied((c) => (c === what ? null : c)), 2500);
+    }
+  };
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  const share = async () => {
+    try {
+      await navigator.share({ title: 'Altus sign-in code', text: message });
+    } catch {
+      // Closed the share sheet: nothing to do.
+    }
+  };
   return (
-    <Notice tone="pending" title={`One-time code for ${given.name}: ${given.code}`}>
-      {sms.enabled
-        ? `The text message was not sent: ${sms.error}. `
-        : 'Text messages are not set up, so the code was not sent to their phone. '}
-      Give it to them in person or by phone. {rest}
-    </Notice>
+    <div
+      ref={ref}
+      tabIndex={-1}
+      role="status"
+      className="rounded-lg border-2 border-emerald-600/40 bg-emerald-50/60 p-4 outline-none dark:bg-emerald-950/20"
+    >
+      <p className="text-[0.95rem] font-semibold">Sign-in code for {given.name}</p>
+      <p className="mt-1 text-[0.85rem] text-muted">
+        Share it with {first} only. It is shown here once: if it is lost, give a new code.
+      </p>
+      <p className="my-3 font-mono text-3xl font-bold tracking-[0.25em]" aria-label={`Code ${given.code.split('').join(' ')}`}>
+        {spaced}
+      </p>
+      <dl className="mb-3 grid gap-x-4 gap-y-1 text-[0.85rem] sm:grid-cols-[auto_1fr]">
+        <dt className="text-muted">Phone number</dt>
+        <dd>{given.phone}</dd>
+        <dt className="text-muted">Sign-in page</dt>
+        <dd className="break-all">{link}</dd>
+        <dt className="text-muted">Expires</dt>
+        <dd>{formatDateTime(given.expiresAt)}</dd>
+      </dl>
+      <p className="mb-3 text-[0.85rem]">
+        They sign in with their phone number and this code once, then choose their own 6-digit PIN for next
+        time.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {canShare && (
+          <Button size="sm" onClick={share}>
+            <Share2 className="size-4" aria-hidden /> Share message
+          </Button>
+        )}
+        <Button size="sm" variant={canShare ? 'secondary' : 'primary'} onClick={() => copy('message', message)}>
+          {copied === 'message' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+          {copied === 'message' ? 'Message copied' : 'Copy message'}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => copy('code', given.code)}>
+          {copied === 'code' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
+          {copied === 'code' ? 'Code copied' : 'Copy code'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onDone}>
+          Done
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -909,17 +983,10 @@ export function FloatPhoneAccessPage() {
     <div>
       <PageHeader
         title="Phone sign-in"
-        description="AMS branch staff sign in with their phone number and a 6-digit PIN. Give each one a one-time code: it is texted to their phone, they sign in with it once, then choose their PIN."
+        description="AMS branch staff sign in with their phone number and a 6-digit PIN. Set each one up here: a one-time code appears for you to share with them. They sign in with it once, then choose their PIN."
       />
       <div className="stack">
-        {q.data && !q.data.smsEnabled && (
-          <Notice tone="pending" title="Text messages are not set up">
-            Codes are not sent to staff phones yet: each code shows here once and you pass it on yourself.
-            To text them, IT sets SMS_PROVIDER=africastalking with the Africa’s Talking username and API key
-            on the server.
-          </Notice>
-        )}
-        {given && <CodeGiven given={given} />}
+        {given && <CodeShare given={given} onDone={() => setGiven(null)} />}
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {q.isPending && <Loading />}
         {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
@@ -1179,7 +1246,7 @@ function BranchStaff({ branch, onDone }) {
   return (
     <Section title="Staff" description="The people who work at this branch and record its transactions.">
       <div className="stack">
-        {given && <CodeGiven given={given} />}
+        {given && <CodeShare given={given} onDone={() => setGiven(null)} />}
         {error && <Notice tone="danger">{error}</Notice>}
         {branch.staff.length === 0 ? (
           <p className="muted-text">Nobody works here yet.</p>

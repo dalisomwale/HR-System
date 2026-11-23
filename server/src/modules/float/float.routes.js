@@ -90,7 +90,7 @@ export function floatGate(req, res, next) {
     : next(forbidden('You do not have access to the Float system.'));
 }
 
-export function floatRoutes({ db, config, sms }) {
+export function floatRoutes({ db }) {
   const router = Router();
   /** The last closing before a day: what the store should open with (D123). */
   async function previousClose(branchId, date) {
@@ -2656,7 +2656,7 @@ export function floatRoutes({ db, config, sms }) {
     asyncHandler(async (req, res) => {
       mustAdmin(req);
       const s = await getSettings(db);
-      if (!s.companyId) return res.json({ smsEnabled: Boolean(sms?.enabled), items: [] });
+      if (!s.companyId) return res.json({ items: [] });
       const rows = await db('employees as e')
         .join('stock_branches as b', 'b.id', 'e.branch_id')
         .leftJoin('phone_logins as p', 'p.employee_id', 'e.id')
@@ -2676,7 +2676,6 @@ export function floatRoutes({ db, config, sms }) {
           'p.last_sign_in_at',
         );
       res.json({
-        smsEnabled: Boolean(sms?.enabled),
         items: rows.map((r) => ({
           id: r.id,
           firstName: r.first_name,
@@ -2723,29 +2722,17 @@ export function floatRoutes({ db, config, sms }) {
         .insert({ employee_id: id, ...row })
         .onConflict('employee_id')
         .merge();
-      // Texted to the phone they will sign in with (D127). The code also shows on the admin's
-      // screen once, in case the text does not arrive.
-      const site = String(config?.isProduction ? config.appBaseUrl : config?.clientOrigin ?? '').replace(/\/$/, '');
-      const text =
-        sms?.enabled
-          ? await sms.send({
-              to: e.phone_e164,
-              message: `Altus sign-in code: ${code}. Use it once with this phone number${site ? ` at ${site}/sign-in` : ''}, then choose your PIN. Expires in ${CODE_HOURS} hours. Do not share it.`,
-            })
-          : { sent: false, error: 'text messages are not set up' };
       await writeAudit(db, {
         ...auditContext(req),
         action: 'FLOAT_PHONE_CODE_GIVEN',
         entityType: 'employee',
         entityId: id,
-        after: { sms: text.sent ? 'SENT' : 'NOT_SENT', ...(text.sent ? {} : { smsProblem: text.error }) },
       });
       res.status(201).json({
         code,
         expiresAt: expires,
         name: name(e.first_name, e.last_name),
         phone: formatPhone(e.phone_e164),
-        sms: { enabled: Boolean(sms?.enabled), sent: Boolean(text.sent), error: text.sent ? null : text.error },
       });
     }),
   );
