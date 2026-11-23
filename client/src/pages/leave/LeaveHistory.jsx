@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
-import { STATUS_TONES, dateRange, days, leaveColor, statusLabel } from '../../lib/leave.js';
+import { STATUS_TONES, dateRange, days, statusLabel } from '../../lib/leave.js';
 import { Badge, EmptyState, LoadError, Loading, Table, Td, Th } from '../../components/ui.jsx';
 
 /*
@@ -33,7 +33,6 @@ export function splitLeave(items, today = isoToday()) {
 const daysBetween = (a, b) => Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 86400000);
 
 function LeaveItem({ r, today, mode }) {
-  const color = leaveColor(r.leaveType);
   const when =
     mode === 'active'
       ? r.endDate === today
@@ -47,13 +46,14 @@ function LeaveItem({ r, today, mode }) {
     <li>
       <Link
         to={`/leave/requests/${r.id}`}
-        className="flex items-center gap-3 rounded-md border border-rule bg-white p-3 hover:border-brand"
-        style={{ borderLeft: `4px solid ${color}` }}
+        className={`flex items-center gap-3 rounded-md border border-rule border-l-4 bg-white p-3 hover:bg-hover ${
+          mode === 'active' ? 'border-l-accent-green' : 'border-l-brand'
+        }`}
       >
         <div className="min-w-0 flex-1">
           <p className="font-medium text-ink">{r.leaveType.name}</p>
           <p className="text-sm text-muted">{dateRange(r)}</p>
-          <p className="mt-1 text-xs font-medium" style={{ color }}>
+          <p className={`mt-1 text-xs font-semibold ${mode === 'active' ? 'text-ok' : 'text-brand'}`}>
             {when} · {days(r.chargeableDays)}
           </p>
         </div>
@@ -133,14 +133,7 @@ export function LeaveHistory({ year }) {
               {past.map((r) => (
                 <tr key={r.id}>
                   <Td>
-                    <span className="flex items-center gap-2">
-                      <span
-                        className="inline-block size-2.5 shrink-0 rounded-full"
-                        style={{ background: leaveColor(r.leaveType) }}
-                        aria-hidden
-                      />
-                      {r.leaveType.name}
-                    </span>
+                    <span className="font-medium">{r.leaveType.name}</span>
                   </Td>
                   <Td>{dateRange(r)}</Td>
                   <Td className="text-right tabular-nums">{r.chargeableDays}</Td>

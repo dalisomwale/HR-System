@@ -77,25 +77,3 @@ export const PERIOD_LABELS = {
   ROLLING_12_MONTHS: 'in any 12 months',
   CALENDAR_MONTH: 'per month',
 };
-
-/*
- * A colour for each leave type (D131), so a type looks the same on balances, lists and history.
- * Types added later get one from FALLBACK, chosen by their id.
- */
-const LEAVE_COLORS = {
-  ANNUAL: '#2563eb',
-  SICK: '#dc2626',
-  MOTHERS_DAY: '#db2777',
-  COMPASSIONATE: '#7c3aed',
-  FAMILY_RESPONSIBILITY: '#0d9488',
-  STUDY: '#d97706',
-  MATERNITY: '#c026d3',
-  PREGNANCY_LOSS: '#9333ea',
-  PATERNITY: '#0284c7',
-  UNPAID: '#64748b',
-};
-const FALLBACK = ['#16a34a', '#ea580c', '#4f46e5', '#0891b2', '#be123c', '#65a30d'];
-export function leaveColor(type) {
-  if (!type) return FALLBACK[0];
-  return LEAVE_COLORS[type.code] ?? FALLBACK[Number(type.id || 0) % FALLBACK.length];
-}
