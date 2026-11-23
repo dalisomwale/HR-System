@@ -272,7 +272,6 @@ function ReportView({ base, report, options, applied, onApply }) {
               {q.data.total} {q.data.total === 1 ? 'row' : 'rows'}
               {q.data.truncated && `; showing the first ${q.data.rows.length}. Export to get them all.`}
             </p>
-            {q.data.total > 0 && <ExportButtons url={exportUrl} />}
           </div>
           {q.data.total === 0 ? (
             <div className="card p-0">
@@ -321,31 +320,6 @@ function ReportView({ base, report, options, applied, onApply }) {
           )}
         </>
       )}
-    </div>
-  );
-}
-
-function ExportButtons({ url }) {
-  const [busy, setBusy] = useState(null);
-  const [error, setError] = useState(null);
-  const run = async (format) => {
-    setBusy(format);
-    setError(null);
-    try {
-      await downloadFile(url(format));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(null);
-    }
-  };
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {error && <span className="text-sm text-danger">{error}</span>}
-      <Button variant="secondary" busy={busy === 'csv'} onClick={() => run('csv')}>
-        {' '}
-        CSV
-      </Button>
     </div>
   );
 }
