@@ -113,68 +113,77 @@ export function LeaveTypeChart({ byType, year, empty }) {
   );
 }
 
-/** Taken, waiting and available as one bar, with the figures beneath it. */
+/**
+ * One leave type at a glance: how many days are left in large print, a bar of what is used and
+ * waiting, one short line with those figures, and the allowance as a small note. Types with no
+ * fixed limit (per occasion, unlimited) show what they allow and what was taken this year.
+ */
 export function BalanceMeter({ b, compact = false }) {
-  let parts;
-  let headline;
-  let of;
-  if (b.kind === 'BALANCE') {
-    parts = [
-      { key: 'taken', name: 'Taken', value: b.taken, color: COLORS.taken },
-      { key: 'waiting', name: 'Waiting', value: b.pending, color: COLORS.waiting },
-      { key: 'available', name: 'Available', value: Math.max(0, b.available), color: COLORS.track },
-    ];
-    headline = b.available;
-    of = `Out of ${days(Math.round((b.taken + b.balance) * 100) / 100)} for ${b.year}`;
-  } else if (b.kind === 'ALLOWANCE') {
-    parts = [
-      { key: 'taken', name: 'Taken', value: b.taken, color: COLORS.taken },
-      { key: 'waiting', name: 'Waiting', value: b.pending, color: COLORS.waiting },
-      { key: 'available', name: 'Available', value: b.remaining, color: COLORS.track },
-    ];
-    headline = b.remaining;
-    of = `Out of ${days(b.entitlement)} ${PERIOD_LABELS[b.period] ?? ''}`.trim();
-  } else {
-    return null;
+  const card = compact ? '' : 'flex h-full flex-col rounded-md border border-rule bg-white p-4 shadow-card';
+  const title = !compact && <p className="font-medium text-ink">{b.leaveType.name}</p>;
+  const note = (text) => text && <p className="mt-auto pt-3 text-xs text-muted">{text}</p>;
+  const warn = b.eligibility && <p className="mt-2 text-xs text-pending">{b.eligibility}</p>;
+
+  if (b.kind === 'PER_OCCASION' || b.kind === 'UNLIMITED') {
+    return (
+      <div className={card}>
+        {title}
+        <p className="mt-2 text-lg font-semibold text-ink">
+          {b.kind === 'UNLIMITED'
+            ? 'No fixed limit'
+            : b.maxPerRequest
+              ? `Up to ${days(b.maxPerRequest)} each time`
+              : 'As needed'}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {b.taken ? `${days(b.taken)} taken this year` : 'None taken this year'}
+          {b.pending ? ` · ${days(b.pending)} waiting` : ''}
+        </p>
+        {warn}
+      </div>
+    );
   }
+  if (b.kind !== 'BALANCE' && b.kind !== 'ALLOWANCE') return null;
+
+  const left = Math.max(0, b.kind === 'BALANCE' ? b.available : b.remaining);
+  const total = b.kind === 'BALANCE' ? Math.round((b.taken + b.balance) * 100) / 100 : Number(b.entitlement);
+  const allowance =
+    b.kind === 'BALANCE'
+      ? total > 0
+        ? `${days(total)} for ${b.year}${b.carriedForward > 0 ? `, including ${days(b.carriedForward)} carried forward` : ''}`
+        : `No days for ${b.year} yet`
+      : `${days(total)} ${PERIOD_LABELS[b.period] ?? ''}`.trim();
+  const used = [
+    { key: 'taken', name: 'Used', value: b.taken, color: COLORS.taken },
+    { key: 'waiting', name: 'Waiting', value: b.pending, color: COLORS.waiting },
+  ];
   return (
-    <div className={compact ? '' : 'rounded-md border border-rule bg-white shadow-card p-4'}>
-      {!compact && <p className="text-sm font-medium">{b.leaveType.name}</p>}
-      <p className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-3xl font-semibold tabular-nums">{headline}</span>
-        <span className="text-sm text-muted">{headline === 1 ? 'day' : 'days'} available</span>
+    <div className={card}>
+      {title}
+      <p className="mt-2 flex items-baseline gap-1.5">
+        <span className={`text-3xl font-semibold tabular-nums ${left > 0 ? 'text-ink' : 'text-muted'}`}>
+          {left}
+        </span>
+        <span className="text-sm text-muted">{left === 1 ? 'day' : 'days'} left</span>
       </p>
-      <p className="text-xs text-muted">{of}</p>
       <div className="mt-3">
         <Meter
-          label={`${b.leaveType.name}`}
-          total={parts.reduce((s, p) => s + p.value, 0)}
-          segments={parts.filter((p) => p.key !== 'available')}
-          height={12}
+          label={b.leaveType.name}
+          total={Math.max(total, b.taken + b.pending)}
+          segments={used}
+          height={8}
         />
       </div>
-      <ul className="mt-3 grid grid-cols-3 gap-2 text-xs text-muted">
-        {parts.map((p) => (
-          <li key={p.key}>
-            <span className="flex items-center gap-1.5">
-              <span
-                className="inline-block size-2.5 rounded-sm"
-                style={{
-                  background: p.color,
-                  outline: p.key === 'available' ? '1px solid #c7cfe8' : undefined,
-                }}
-                aria-hidden
-              />
-              {p.name}
-            </span>
-            <span className="mt-0.5 block text-sm font-semibold text-ink tabular-nums">{p.value}</span>
-          </li>
+      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+        {used.map((u) => (
+          <span key={u.key} className="inline-flex items-center gap-1.5">
+            <span className="inline-block size-2 rounded-full" style={{ background: u.color }} aria-hidden />
+            <span className="font-semibold text-ink tabular-nums">{u.value}</span> {u.name.toLowerCase()}
+          </span>
         ))}
-      </ul>
-      {b.carriedForward > 0 && (
-        <p className="mt-2 text-xs text-muted">Includes {days(b.carriedForward)} carried forward</p>
-      )}
-      {b.eligibility && <p className="mt-2 text-xs text-pending">{b.eligibility}</p>}
+      </p>
+      {warn}
+      {note(allowance)}
     </div>
   );
 }

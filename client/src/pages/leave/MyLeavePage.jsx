@@ -220,22 +220,27 @@ export function Balances({ year, bare = false }) {
   ) : q.isError ? (
     <LoadError error={q.error} onRetry={() => q.refetch()} />
   ) : (
-    <div className="stack">
-      <Meters items={q.data.items} />
-      <BalanceCards items={q.data.items} />
-    </div>
+    <Meters items={q.data.items} />
   );
   return bare ? body : <Section title={`Balances ${year}`}>{body}</Section>;
 }
 
-/** One bar per leave type that has a limit: taken, waiting and what is left. */
+/** One card per leave type: days left first, then what is used, waiting and allowed. */
 function Meters({ items }) {
-  const limited = items.filter((b) => b.kind === 'BALANCE' || b.kind === 'ALLOWANCE');
-  if (!limited.length) return null;
+  if (!items.length) {
+    return (
+      <EmptyState title="No Leave Types Are Active Yet">
+        HR activates leave types after reviewing the policy settings.
+      </EmptyState>
+    );
+  }
+  // Types with a limit first, so the days you can still take come first.
+  const order = { BALANCE: 0, ALLOWANCE: 1, PER_OCCASION: 2, UNLIMITED: 3 };
+  const sorted = [...items].sort((x, y) => (order[x.kind] ?? 9) - (order[y.kind] ?? 9));
   return (
     <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {limited.map((b) => (
-        <li key={b.leaveType.id}>
+      {sorted.map((b) => (
+        <li key={b.leaveType.id} className="h-full">
           <BalanceMeter b={b} />
         </li>
       ))}
