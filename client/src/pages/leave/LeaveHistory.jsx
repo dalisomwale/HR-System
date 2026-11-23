@@ -107,7 +107,7 @@ export function LeaveHistory({ year }) {
         <Column
           title="Upcoming Leave"
           items={upcoming}
-          empty="No leave coming up. Use Apply Leave on a balance above."
+          empty="No leave coming up."
           today={today}
           mode="upcoming"
         />
