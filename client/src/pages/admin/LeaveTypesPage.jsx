@@ -47,6 +47,7 @@ export default function LeaveTypesPage() {
             <thead>
               <tr>
                 <Th>Name</Th>
+                <Th>Policy Reference</Th>
                 <Th>Allowance</Th>
                 <Th>Counted In</Th>
                 <Th>Status</Th>
@@ -65,8 +66,12 @@ export default function LeaveTypesPage() {
                     >
                       {t.name}
                     </Link>
-                    {t.current?.sourceReference && (
-                      <p className="text-xs text-muted">Policy {t.current.sourceReference}</p>
+                  </Td>
+                  <Td className="whitespace-nowrap">
+                    {t.current?.sourceReference ? (
+                      t.current.sourceReference
+                    ) : (
+                      <span className="text-muted">—</span>
                     )}
                   </Td>
                   <Td>{t.current ? allowance(t.current) : 'No policy recorded'}</Td>
