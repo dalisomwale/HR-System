@@ -85,6 +85,15 @@ const schema = z.object({
 
   DOCUMENT_STORAGE_DIR: optionalString,
   DOCUMENT_MAX_BYTES: intWithDefault(5 * 1024 * 1024),
+
+  // Text messages (phone sign-in codes for AMS branch staff, D127). Africa's Talking.
+  SMS_PROVIDER: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.enum(['africastalking', 'disabled']).default('disabled'),
+  ),
+  AT_USERNAME: optionalString,
+  AT_API_KEY: optionalString,
+  AT_SENDER_ID: optionalString,
 });
 
 export class ConfigError extends Error {
@@ -169,6 +178,12 @@ export function buildConfig(env, { forTool = false } = {}) {
     }
   }
 
+  if (e.SMS_PROVIDER === 'africastalking' && !forTool) {
+    for (const key of ['AT_USERNAME', 'AT_API_KEY']) {
+      if (!e[key]) problems.push(`${key} is required when SMS_PROVIDER=africastalking`);
+    }
+  }
+
   if (problems.length) throw new ConfigError(problems);
 
   return Object.freeze({
@@ -217,6 +232,12 @@ export function buildConfig(env, { forTool = false } = {}) {
       tenantId: e.ENTRA_TENANT_ID,
     }),
     backgroundJobs: (e.BACKGROUND_JOBS || (e.NODE_ENV === 'test' ? 'off' : 'on')) === 'on',
+    sms: Object.freeze({
+      provider: e.SMS_PROVIDER,
+      username: e.AT_USERNAME,
+      apiKey: e.AT_API_KEY,
+      senderId: e.AT_SENDER_ID,
+    }),
     documents: Object.freeze({
       storageDir: e.DOCUMENT_STORAGE_DIR,
       maxBytes: e.DOCUMENT_MAX_BYTES,

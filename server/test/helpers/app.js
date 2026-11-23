@@ -36,7 +36,7 @@ export function fakeEntra() {
   };
 }
 
-export function testApp(db, env = {}) {
+export function testApp(db, env = {}, { sms = null } = {}) {
   const config = buildConfig({
     ...process.env,
     SIGN_IN_RATE_LIMIT: '100000', // tests sign in hundreds of times from one address
@@ -54,6 +54,7 @@ export function testApp(db, env = {}) {
     logger: pino({ level: process.env.TEST_LOG ?? 'silent' }),
     entra,
     sessionStore,
+    sms,
   });
   return { app, entra, config };
 }

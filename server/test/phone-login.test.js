@@ -89,6 +89,8 @@ describe('AMS branch staff sign in with their phone number (D119)', () => {
     const given = await as(admin).post(`/api/float/phone-access/${teller.id}/code`);
     expect(given.status, JSON.stringify(given.body)).toBe(201);
     expect(given.body.code).toMatch(/^\d{8}$/);
+    // Text messages are not set up in this app: the code is only on the admin's screen.
+    expect(given.body.sms).toEqual({ enabled: false, sent: false, error: 'text messages are not set up' });
 
     // The code works once, then they choose a PIN; a weak PIN is refused.
     const agent = request.agent(app);
@@ -131,5 +133,52 @@ describe('AMS branch staff sign in with their phone number (D119)', () => {
     const r = await login(agent, '0979999999', '123456');
     expect(r.status).toBe(401);
     expect(r.body.error.message).toBe('The phone number or PIN is not right.');
+  });
+});
+
+describe('the one-time code is texted to the staff member (D127)', () => {
+  it('sends it to the phone they sign in with, and says when the text fails', async () => {
+    const texts = [];
+    let fail = null;
+    const sms = {
+      enabled: true,
+      async send(m) {
+        texts.push(m);
+        return fail ? { sent: false, error: fail } : { sent: true, messageId: 'ATX1' };
+      },
+    };
+    const texting = testApp(db, {}, { sms });
+    const oid = `00000000-0000-0000-0000-${String(admin.id).padStart(12, '0')}`;
+    const boss = await signIn(texting.app, texting.entra, { oid });
+    const as2 = (p) => boss.agent.post(p).set('X-CSRF-Token', boss.csrf).send({});
+    await as(admin).patch(`/api/admin/employees/${teller.id}`, { mobilePhone: '0971234567' });
+
+    expect((await boss.agent.get('/api/float/phone-access')).body.smsEnabled).toBe(true);
+    const given = await as2(`/api/float/phone-access/${teller.id}/code`);
+    expect(given.status, JSON.stringify(given.body)).toBe(201);
+    expect(given.body.sms).toEqual({ enabled: true, sent: true, error: null });
+    expect(texts).toHaveLength(1);
+    expect(texts[0].to).toBe('+260971234567');
+    expect(texts[0].message).toContain(given.body.code);
+    expect(texts[0].message.length).toBeLessThanOrEqual(160);
+    // The code in the text works.
+    const agent = request.agent(texting.app);
+    expect(
+      (await agent.post('/api/auth/phone/login').set('Content-Type', 'application/json').send({ phone: '0971234567', pin: given.body.code })).body,
+    ).toEqual({ status: 'SET_PIN' });
+
+    // A failed text still gives the admin the code, with the reason; the audit says so too.
+    fail = 'the Africa\u2019s Talking account has no credit left';
+    const again = await as2(`/api/float/phone-access/${teller.id}/code`);
+    expect(again.status).toBe(201);
+    expect(again.body.code).toMatch(/^\d{8}$/);
+    expect(again.body.sms).toMatchObject({ sent: false, error: fail });
+    const audit = await db('audit_log')
+      .where({ action: 'FLOAT_PHONE_CODE_GIVEN', entity_id: String(teller.id) })
+      .orderBy('id');
+    const after = (r) => (typeof r.after_data === 'string' ? JSON.parse(r.after_data) : r.after_data);
+    expect(audit.map((r) => after(r).sms)).toEqual(['SENT', 'NOT_SENT']);
+    // The code itself is never written to the audit trail.
+    expect(JSON.stringify(audit)).not.toContain(again.body.code);
   });
 });

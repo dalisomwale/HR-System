@@ -854,6 +854,36 @@ const PHONE_STATUS = {
   ACTIVE: ['Active', 'ok'],
   LOCKED: ['Locked', 'danger'],
 };
+/**
+ * A one-time sign-in code that was just given (D127): texted to the person's phone when text
+ * messages are set up. The code shows here once too, so the admin can pass it on if the text
+ * does not arrive.
+ */
+function CodeGiven({ given }) {
+  const sms = given.sms ?? {};
+  const rest = (
+    <>
+      They sign in with {given.phone} and this code, then choose their PIN. It works once and expires{' '}
+      {formatDateTime(given.expiresAt)}. It is not shown again.
+    </>
+  );
+  if (sms.sent) {
+    return (
+      <Notice tone="ok" title={`Code texted to ${given.name} on ${given.phone}`}>
+        {rest} If it does not arrive within a few minutes, read them the code: <strong>{given.code}</strong>.
+      </Notice>
+    );
+  }
+  return (
+    <Notice tone="pending" title={`One-time code for ${given.name}: ${given.code}`}>
+      {sms.enabled
+        ? `The text message was not sent: ${sms.error}. `
+        : 'Text messages are not set up, so the code was not sent to their phone. '}
+      Give it to them in person or by phone. {rest}
+    </Notice>
+  );
+}
+
 export function FloatPhoneAccessPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['float-phone'], queryFn: () => api.get('/api/float/phone-access') });
@@ -879,15 +909,17 @@ export function FloatPhoneAccessPage() {
     <div>
       <PageHeader
         title="Phone sign-in"
-        description="AMS branch staff sign in with their phone number and a 6-digit PIN. Give each one a one-time code: they sign in with it once, then choose their PIN."
+        description="AMS branch staff sign in with their phone number and a 6-digit PIN. Give each one a one-time code: it is texted to their phone, they sign in with it once, then choose their PIN."
       />
       <div className="stack">
-        {given && (
-          <Notice tone="ok" title={`One-time code for ${given.name}: ${given.code}`}>
-            Give it to them in person or by phone. They sign in with {given.phone} and this code, then choose
-            their PIN. It works once and expires {formatDateTime(given.expiresAt)}. It is not shown again.
+        {q.data && !q.data.smsEnabled && (
+          <Notice tone="pending" title="Text messages are not set up">
+            Codes are not sent to staff phones yet: each code shows here once and you pass it on yourself.
+            To text them, IT sets SMS_PROVIDER=africastalking with the Africa’s Talking username and API key
+            on the server.
           </Notice>
         )}
+        {given && <CodeGiven given={given} />}
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {q.isPending && <Loading />}
         {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
@@ -1147,12 +1179,7 @@ function BranchStaff({ branch, onDone }) {
   return (
     <Section title="Staff" description="The people who work at this branch and record its transactions.">
       <div className="stack">
-        {given && (
-          <Notice tone="ok" title={`One-time code for ${given.name}: ${given.code}`}>
-            They sign in with {given.phone} and this code, then choose their PIN. It works once and expires{' '}
-            {formatDateTime(given.expiresAt)}. It is not shown again.
-          </Notice>
-        )}
+        {given && <CodeGiven given={given} />}
         {error && <Notice tone="danger">{error}</Notice>}
         {branch.staff.length === 0 ? (
           <p className="muted-text">Nobody works here yet.</p>

@@ -28,6 +28,7 @@ import { accessRoutes } from './modules/access/access.routes.js';
 import { recruitmentRoutes } from './modules/recruitment/recruitment.routes.js';
 import { performanceRoutes } from './modules/performance/performance.routes.js';
 import { floatGate, floatRoutes } from './modules/float/float.routes.js';
+import { sendSms, smsEnabled } from './modules/notifications/sms.js';
 import { idempotency } from './middleware/idempotency.js';
 import { REPO_ROOT } from './config/env.js';
 
@@ -35,7 +36,7 @@ import { REPO_ROOT } from './config/env.js';
  * Build the Express application. Dependencies are passed in so tests can use the test
  * database, a silent logger and a stand-in for Microsoft's servers.
  */
-export function createApp({ config, db, logger, entra = null, sessionStore }) {
+export function createApp({ config, db, logger, entra = null, sessionStore, sms = null }) {
   const app = express();
   app.disable('x-powered-by');
   // Links in emails open the client: the API's own address in production, Vite in development.
@@ -134,7 +135,9 @@ export function createApp({ config, db, logger, entra = null, sessionStore }) {
   );
   app.use(loadCurrentUser({ db, config }));
 
-  const deps = { db, config, logger, entra };
+  // Text messages (D127): Africa's Talking, or a stand-in passed by the tests.
+  const smsSender = sms ?? { enabled: smsEnabled(config.sms), send: (m) => sendSms(config.sms, m, { logger }) };
+  const deps = { db, config, logger, entra, sms: smsSender };
   app.use('/api/auth', authRoutes(deps));
 
   // Everything below needs a signed-in user and a CSRF token for changes.
