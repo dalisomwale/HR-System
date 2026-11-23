@@ -292,8 +292,8 @@ export async function recordAdjustment(db, { employeeId, leaveTypeId, year, amou
         heading: kind === 'OPENING' ? 'Opening balance recorded' : 'Leave balance adjusted',
         intro: `HR has ${kind === 'OPENING' ? 'recorded your opening balance' : 'adjusted your leave balance'}.`,
         rows: [
-          ['Leave type', type.is_confidential ? 'Leave (details in the system)' : type.name],
-          ['Leave year', String(year)],
+          ['Leave Type', type.is_confidential ? 'Leave (details in the system)' : type.name],
+          ['Leave Year', String(year)],
           ['Change', change],
           ['Reason', reason.trim()],
         ],

@@ -38,10 +38,10 @@ export default function CompanyOverviewPage() {
     <div className="stack">
       <PeopleTrail />
       <PageHeader
-        title="Company overview"
+        title="Company Overview"
         description="Every company in the group, side by side"
         actions={
-          can(me, 'people.org') && <ButtonLink to="/people/companies/manage"> Manage companies</ButtonLink>
+          can(me, 'people.org') && <ButtonLink to="/people/companies/manage"> Manage Companies</ButtonLink>
         }
       />
       {q.isPending ? (
@@ -65,7 +65,7 @@ export default function CompanyOverviewPage() {
             </Notice>
           )}
           <Statistics companies={q.data.companies} year={q.data.year} />
-          <h2 className="pt-2 font-head text-base font-semibold text-ink">Each company</h2>
+          <h2 className="pt-2 font-head text-base font-semibold text-ink">Each Company</h2>
           <div className="grid-2">
             {q.data.companies.map((c) => (
               <CompanyCard key={c.id} c={c} year={q.data.year} />
@@ -110,15 +110,15 @@ function CompanyCard({ c, year }) {
         items={[
           ['Departments', c.departments.length],
           ['Managers', c.managers],
-          ['On probation', c.onProbation],
-          ['Contracts ending in 60 days', c.contractsEnding],
+          ['On Probation', c.onProbation],
+          ['Contracts Ending In 60 Days', c.contractsEnding],
           [`Joined in ${year}`, c.joinedThisYear],
           [`Left in ${year}`, c.leftThisYear],
-          ['Average service', c.headcount ? `${c.averageServiceYears} yrs` : '—'],
-          ['No line manager', c.noManager],
+          ['Average Service', c.headcount ? `${c.averageServiceYears} yrs` : '—'],
+          ['No Line Manager', c.noManager],
         ]}
       />
-      <h3 className="section-divider mt-5">Staff by department</h3>
+      <h3 className="section-divider mt-5">Staff By Department</h3>
       <BarList
         empty="No staff in a department yet."
         format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
@@ -158,22 +158,22 @@ function Statistics({ companies, year }) {
   }));
   return (
     <div className="grid-2">
-      <Section title="Staff by company" description="Active staff, by employment type">
-        <TypesByGroup groups={groups} label="Active staff in each company by employment type" />
+      <Section title="Staff By Company" description="Active staff, by employment type">
+        <TypesByGroup groups={groups} label="Active Staff In Each Company By Employment Type" />
       </Section>
-      <Section title="Employment type" description="Altus Group">
+      <Section title="Employment Type" description="Altus Group">
         <TypeDonutChart byType={sumTypes(companies)} />
       </Section>
-      <Section title="Gender by company" description="Active staff">
-        <GenderByGroup groups={groups} label="Active staff in each company by gender" />
+      <Section title="Gender By Company" description="Active staff">
+        <GenderByGroup groups={groups} label="Active Staff In Each Company By Gender" />
       </Section>
       <Section title="Gender" description="Altus Group">
         <GenderDonutChart bySex={sumSex(companies)} />
       </Section>
-      <Section title={`Joined and left in ${year}`} description="By company">
-        <MovesByGroup groups={groups} label={`Joined and left in ${year} by company`} />
+      <Section title={`Joined And Left In ${year}`} description="By company">
+        <MovesByGroup groups={groups} label={`Joined And Left In ${year} By Company`} />
       </Section>
-      <Section title="Length of service" description="Altus Group">
+      <Section title="Length Of Service" description="Altus Group">
         <ServiceChart bands={sumBands(companies)} />
       </Section>
     </div>

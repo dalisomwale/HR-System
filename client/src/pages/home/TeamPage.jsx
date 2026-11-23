@@ -13,7 +13,7 @@ export default function TeamPage() {
   });
   return (
     <div className="stack">
-      <PageHeader title="Departmental overview" />
+      <PageHeader title="Departmental Overview" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -30,30 +30,30 @@ function Body({ d }) {
   return (
     <>
       {d.coveringFor.length > 0 && (
-        <Notice tone="neutral" title={`You are covering approvals for ${d.coveringFor.join(', ')}.`} />
+        <Notice tone="neutral" title={`You Are Covering Approvals For ${d.coveringFor.join(', ')}.`} />
       )}
       <Stats color>
-        <Stat label="Waiting for you" value={d.awaiting.length + d.awaitingChanges} to="/approvals" />
+        <Stat label="Waiting For You" value={d.awaiting.length + d.awaitingChanges} to="/approvals" />
         <Stat label="Overdue" value={overdue} tone="danger" to="/approvals" />
-        <Stat label="On leave today" value={d.onLeave.length} />
-        <Stat label="People in your team" value={d.teamSize} />
+        <Stat label="On Leave Today" value={d.onLeave.length} />
+        <Stat label="People In Your Team" value={d.teamSize} />
       </Stats>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Section title="Your team today">
+        <Section title="Your Team Today">
           <TeamTodayDonut size={d.teamSize} onLeave={d.onLeave.length} />
         </Section>
-        <Section title="Who is off in the next 30 days" className="xl:col-span-2">
+        <Section title="Who Is Off In The Next 30 Days" className="xl:col-span-2">
           <PeopleOffChart daily={d.charts.offDaily} />
         </Section>
       </div>
 
-      <Section title={`Team leave by month, ${d.charts.year}`}>
+      <Section title={`Team Leave By Month, ${d.charts.year}`}>
         <MonthlyLeaveChart months={d.charts.monthly} year={d.charts.year} />
       </Section>
 
       <Section
-        title="Waiting for your review"
+        title="Waiting For Your Review"
         actions={
           <Link to="/approvals" className="card-link">
             All approvals
@@ -78,16 +78,16 @@ function Body({ d }) {
       </Section>
 
       <div className="grid-2">
-        <Section title="On leave today">
+        <Section title="On Leave Today">
           <RequestList items={d.onLeave} showEmployee empty="Nobody in your team is on leave today." />
         </Section>
-        <Section title="Coming up in the next 30 days">
+        <Section title="Coming Up In The Next 30 Days">
           <RequestList items={d.upcoming} showEmployee empty="No leave planned in the next 30 days." />
         </Section>
       </div>
 
       <div className="grid-2">
-        <Section title="Overlapping absences">
+        <Section title="Overlapping Absences">
           {d.overlaps.length === 0 ? (
             <p className="muted-text">No overlaps in the next 30 days.</p>
           ) : (
@@ -104,7 +104,7 @@ function Body({ d }) {
             </ul>
           )}
         </Section>
-        <Section title="Cover not arranged">
+        <Section title="Cover Not Arranged">
           <RequestList
             items={d.handoversOutstanding}
             showEmployee

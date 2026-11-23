@@ -34,7 +34,7 @@ export default function LeaveTypesPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader title="Leave types" />
+      <PageHeader title="Leave Types" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -48,7 +48,7 @@ export default function LeaveTypesPage() {
               <tr>
                 <Th>Name</Th>
                 <Th>Allowance</Th>
-                <Th>Counted in</Th>
+                <Th>Counted In</Th>
                 <Th>Status</Th>
                 <Th>
                   <span className="sr-only">Actions</span>
@@ -74,7 +74,7 @@ export default function LeaveTypesPage() {
                   <Td>
                     <div className="flex flex-wrap gap-1">
                       {t.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
-                      {t.current?.requiresHrConfirmation && <Badge tone="pending">Awaiting review</Badge>}
+                      {t.current?.requiresHrConfirmation && <Badge tone="pending">Awaiting Review</Badge>}
                       {t.isConfidential && <Badge tone="brand">Confidential</Badge>}
                     </div>
                   </Td>
@@ -103,10 +103,10 @@ export default function LeaveTypesPage() {
 }
 
 const JOB_LABELS = {
-  MONTHLY_ACCRUAL: 'Monthly accrual',
-  CARRY_FORWARD: 'Year-end carry forward',
-  CARRY_FORWARD_EXPIRY: 'Carry-forward expiry',
-  DAILY_REMINDERS: 'Daily reminders',
+  MONTHLY_ACCRUAL: 'Monthly Accrual',
+  CARRY_FORWARD: 'Year-end Carry Forward',
+  CARRY_FORWARD_EXPIRY: 'Carry-forward Expiry',
+  DAILY_REMINDERS: 'Daily Reminders',
 };
 
 function JobsSection() {
@@ -137,10 +137,10 @@ function JobsSection() {
   };
 
   return (
-    <Section title="Balance jobs">
+    <Section title="Balance Jobs">
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
-          <Field id="accrual-period" label="Monthly accrual for">
+          <Field id="accrual-period" label="Monthly Accrual For">
             <Input
               id="accrual-period"
               type="month"
@@ -153,11 +153,11 @@ function JobsSection() {
             busy={busy === 'MONTHLY_ACCRUAL'}
             onClick={() => run('MONTHLY_ACCRUAL', '/api/admin/jobs/monthly-accrual', { period })}
           >
-            Run accrual
+            Run Accrual
           </Button>
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Field id="cf-year" label="Leave year ending">
+          <Field id="cf-year" label="Leave Year Ending">
             <Input
               id="cf-year"
               className="w-32"
@@ -172,7 +172,7 @@ function JobsSection() {
               busy={busy === 'CARRY_FORWARD'}
               onClick={() => run('CARRY_FORWARD', '/api/admin/jobs/carry-forward', { year: Number(year) })}
             >
-              Run carry forward
+              Run Carry Forward
             </Button>
             <Button
               variant="secondary"
@@ -181,7 +181,7 @@ function JobsSection() {
                 run('CARRY_FORWARD_EXPIRY', '/api/admin/jobs/carry-forward-expiry', { year: Number(year) })
               }
             >
-              Run expiry
+              Run Expiry
             </Button>
           </div>
         </div>
@@ -191,7 +191,7 @@ function JobsSection() {
           <Notice tone={result.tone}>{result.text}</Notice>
         </div>
       )}
-      <h3 className="section-divider mt-5">Recent runs</h3>
+      <h3 className="section-divider mt-5">Recent Runs</h3>
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -251,7 +251,7 @@ function AccrualNotice({ items }) {
   return (
     <Notice
       tone="pending"
-      title={`Accrual is off until the ${names.join(', ').toLowerCase()} rule is confirmed.`}
+      title={`Accrual Is Off Until The ${names.join(', ').toLowerCase()} rule is confirmed.`}
     >
       Open the leave type, choose Change rules and tick “Accrual rule confirmed by HR”.
     </Notice>

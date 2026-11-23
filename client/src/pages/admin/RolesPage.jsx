@@ -104,9 +104,9 @@ function RoleSection({ role, people }) {
           if (adding) add.mutate();
         }}
       >
-        <Field id={`add-${role.code}`} label={`Give the ${role.name} role to`} className="w-full max-w-md">
+        <Field id={`add-${role.code}`} label={`Give The ${role.name} Role To`} className="w-full max-w-md">
           <Select id={`add-${role.code}`} value={adding} onChange={(e) => setAdding(e.target.value)}>
-            <option value="">Choose a person</option>
+            <option value="">Choose A Person</option>
             {people
               .filter((p) => !holderIds.has(p.id))
               .map((p) => (
@@ -137,8 +137,8 @@ function RoleSection({ role, people }) {
           <Table>
             <thead>
               <tr>
-                <Th>First name</Th>
-                <Th>Last name</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
                 <Th>Employee no.</Th>
                 <Th>
                   <span className="sr-only">Actions</span>
@@ -172,7 +172,7 @@ function RoleSection({ role, people }) {
       <ConfirmDialog
         open={!!removing}
         title={`Remove ${role.name} role?`}
-        confirmLabel="Remove role"
+        confirmLabel="Remove Role"
         tone="danger"
         busy={remove.isPending}
         onConfirm={() => remove.mutate(removing)}
@@ -248,7 +248,7 @@ function ManagersSection({ managers, people }) {
               assign.reset();
             }}
           >
-            <option value="">Choose a person</option>
+            <option value="">Choose A Person</option>
             {people.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
@@ -292,7 +292,7 @@ function ManagersSection({ managers, people }) {
           <Button type="submit" busy={assign.isPending} disabled={!managerId || chosen.size === 0}>
             {chosen.size
               ? `Add ${chosen.size} direct ${chosen.size === 1 ? 'report' : 'reports'}`
-              : 'Add direct reports'}
+              : 'Add Direct Reports'}
           </Button>
         </div>
       </form>
@@ -310,7 +310,7 @@ function ManagersSection({ managers, people }) {
             <thead>
               <tr>
                 <Th>Manager</Th>
-                <Th>Direct reports</Th>
+                <Th>Direct Reports</Th>
               </tr>
             </thead>
             <tbody>

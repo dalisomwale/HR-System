@@ -78,7 +78,7 @@ export default function AccessUsersPage({ module, base }) {
             </Link>
           </>
         }
-        actions={editing !== 'new' && <Button onClick={() => setEditing('new')}>Add user</Button>}
+        actions={editing !== 'new' && <Button onClick={() => setEditing('new')}>Add User</Button>}
       />
       {msg && (
         <div className="mb-4">
@@ -109,8 +109,8 @@ export default function AccessUsersPage({ module, base }) {
           <Table>
             <thead>
               <tr>
-                <Th>First name</Th>
-                <Th>Last name</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
                 <Th>Email</Th>
                 <Th>Company</Th>
                 <Th>Branch</Th>
@@ -182,7 +182,7 @@ export default function AccessUsersPage({ module, base }) {
         ))}
       <ConfirmDialog
         open={!!removing}
-        title="Remove user"
+        title="Remove User"
         confirmLabel="Remove"
         tone="danger"
         busy={busy}
@@ -229,7 +229,7 @@ function UserForm({ module, user, roles, onDone, onCancel }) {
     }
   };
   return (
-    <Section title={user ? `Edit ${user.name}` : 'Add user'}>
+    <Section title={user ? `Edit ${user.name}` : 'Add User'}>
       <form onSubmit={save} noValidate>
         {error && (
           <div className="mb-4">
@@ -252,10 +252,10 @@ function UserForm({ module, user, roles, onDone, onCancel }) {
             <Field
               id="iu-employee"
               label="Employee"
-              hint="Active employees in Employee management without a role here."
+              hint="Active employees in Employee Management without a role here."
             >
               <Select id="iu-employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                <option value="">{candidates.isPending ? 'Loading…' : 'Choose an employee'}</option>
+                <option value="">{candidates.isPending ? 'Loading…' : 'Choose An Employee'}</option>
                 {(candidates.data?.items ?? []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -267,7 +267,7 @@ function UserForm({ module, user, roles, onDone, onCancel }) {
           )}
           <Field id="iu-role" label="Role">
             <Select id="iu-role" value={roleId} onChange={(e) => setRoleId(e.target.value)}>
-              <option value="">Choose a role</option>
+              <option value="">Choose A Role</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -278,7 +278,7 @@ function UserForm({ module, user, roles, onDone, onCancel }) {
         </div>
         <div className="form-actions">
           <Button type="submit" busy={busy} disabled={!roleId || (!user && !employeeId)}>
-            {user ? 'Save changes' : 'Add user'}
+            {user ? 'Save Changes' : 'Add User'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

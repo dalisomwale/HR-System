@@ -45,11 +45,11 @@ export function CyclesPage() {
   return (
     <div>
       <PageHeader
-        title="Review cycles"
+        title="Review Cycles"
         actions={
           q.data?.canManage && (
             <ButtonLink to="/performance/cycles/new" variant="primary">
-              New review cycle
+              New Review Cycle
             </ButtonLink>
           )
         }
@@ -62,7 +62,7 @@ export function CyclesPage() {
             <EmptyState title="No review cycles yet." />
           </div>
         ) : (
-          <Table title="Review cycles">
+          <Table title="Review Cycles">
             <thead>
               <tr>
                 <Th>Name</Th>
@@ -70,7 +70,7 @@ export function CyclesPage() {
                 <Th>Company</Th>
                 <Th>Step</Th>
                 <Th className="text-right">Appraisals</Th>
-                <Th className="text-right">Signed off</Th>
+                <Th className="text-right">Signed Off</Th>
               </tr>
             </thead>
             <tbody>
@@ -133,7 +133,7 @@ export function CycleFormPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title="New review cycle"
+        title="New Review Cycle"
         description="Nothing is sent until you start goal setting on the next page."
       />
       <form onSubmit={save} className="card stack">
@@ -153,9 +153,9 @@ export function CycleFormPage() {
               onChange={set('year')}
             />
           </Field>
-          <Field id="cy-co" label="Who it covers">
+          <Field id="cy-co" label="Who It Covers">
             <Select id="cy-co" value={v.companyId} onChange={set('companyId')}>
-              <option value="">Every company in the group</option>
+              <option value="">Every Company In The Group</option>
               {(companies.data?.companies ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -165,19 +165,19 @@ export function CycleFormPage() {
           </Field>
         </div>
         <div className="form-row">
-          <Field id="cy-g" label="Goals due" optional>
+          <Field id="cy-g" label="Goals Due" optional>
             <Input id="cy-g" type="date" value={v.goalsDue} onChange={set('goalsDue')} />
           </Field>
-          <Field id="cy-m" label="Mid-year review due" optional>
+          <Field id="cy-m" label="Mid-year Review Due" optional>
             <Input id="cy-m" type="date" value={v.midYearDue} onChange={set('midYearDue')} />
           </Field>
-          <Field id="cy-y" label="Year-end appraisal due" optional>
+          <Field id="cy-y" label="Year-end Appraisal Due" optional>
             <Input id="cy-y" type="date" value={v.yearEndDue} onChange={set('yearEndDue')} />
           </Field>
         </div>
         <div className="form-actions">
           <Button type="submit" busy={busy}>
-            Create review cycle
+            Create Review Cycle
           </Button>
           <ButtonLink to="/performance/cycles">Cancel</ButtonLink>
         </div>
@@ -247,7 +247,7 @@ export function CyclePage() {
             <Badge tone={PHASE[c.status][1]}>{PHASE[c.status][0]}</Badge>
             {c.canManage && !['DRAFT', 'CLOSED'].includes(c.status) && (
               <Button variant="secondary" busy={busy && !confirm} onClick={addMissing}>
-                Add new staff
+                Add New Staff
               </Button>
             )}
             {c.canManage && next && <Button onClick={() => setConfirm(true)}>{PHASE_ACTION[next][0]}</Button>}
@@ -257,7 +257,7 @@ export function CyclePage() {
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {c.items.length > 0 && (
-          <Section title="Where everyone is">
+          <Section title="Where Everyone Is">
             <BarList
               items={Object.entries(STATUS).map(([k, [label]]) => ({
                 key: k,
@@ -285,8 +285,8 @@ export function CyclePage() {
             <Table title={c.name}>
               <thead>
                 <tr>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Department</Th>
                   <Th>Manager</Th>
                   <Th>Status</Th>

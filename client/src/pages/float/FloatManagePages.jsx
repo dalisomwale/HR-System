@@ -53,7 +53,7 @@ export function FloatDashboardPage() {
   const c = me.data.counts;
   if (!me.data.configured) {
     return (
-      <Notice tone="pending" title="AMS is not set up yet">
+      <Notice tone="pending" title="AMS Is Not Set Up Yet">
         {r.admin ? (
           <>
             Choose the AMS company in{' '}
@@ -70,20 +70,20 @@ export function FloatDashboardPage() {
   }
   return (
     <div>
-      <PageHeader title="AMS cash and float" description={`Business day ${d.date}`} actions={<TodayDate />} />
+      <PageHeader title="AMS Cash And Float" description={`Business day ${d.date}`} actions={<TodayDate />} />
       <div className="stack">
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         <KpiRow cols={3}>
-          <Kpi label="Cash at all branches" value={money(d.totals.CASH)} small />
-          <Kpi label="Airtel Money float" value={money(d.totals.AIRTEL)} small />
-          <Kpi label="MTN MoMo float" value={money(d.totals.MTN)} small />
+          <Kpi label="Cash At All Branches" value={money(d.totals.CASH)} small />
+          <Kpi label="Airtel Money Float" value={money(d.totals.AIRTEL)} small />
+          <Kpi label="MTN MoMo Float" value={money(d.totals.MTN)} small />
         </KpiRow>
         <KpiRow cols={4}>
-          <Kpi label="Deposits today" value={money(d.totals.deposits)} small />
-          <Kpi label="Withdrawals today" value={money(d.totals.withdrawals)} small />
-          <Kpi label="Transactions today" value={d.totals.transactions} small />
+          <Kpi label="Deposits Today" value={money(d.totals.deposits)} small />
+          <Kpi label="Withdrawals Today" value={money(d.totals.withdrawals)} small />
+          <Kpi label="Transactions Today" value={d.totals.transactions} small />
           <Kpi
-            label="Waiting for you"
+            label="Waiting For You"
             value={c.approvals}
             to="/float/approvals"
             tone={c.approvals ? 'warn' : undefined}
@@ -91,7 +91,7 @@ export function FloatDashboardPage() {
           />
         </KpiRow>
         {d.unsignedDays > 0 && (
-          <Notice tone="pending" title="Daily reports waiting for sign-off">
+          <Notice tone="pending" title="Daily Reports Waiting For Sign-off">
             {d.unsignedDays} {d.unsignedDays === 1 ? 'day' : 'days'} not yet signed off.{' '}
             <Link to="/float/daily" className="font-medium underline">
               Open the daily report
@@ -99,7 +99,7 @@ export function FloatDashboardPage() {
           </Notice>
         )}
         {d.suggestions.length > 0 && (
-          <Section title="Suggested top-ups" description="Accounts below their minimum, or running out today">
+          <Section title="Suggested Top-ups" description="Accounts below their minimum, or running out today">
             <ul className="divide-y divide-rule text-sm">
               {d.suggestions.map((s, i) => (
                 <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
@@ -128,7 +128,7 @@ export function FloatDashboardPage() {
                         })
                       }
                     >
-                      {s.from ? 'Move it' : 'Top up'}
+                      {s.from ? 'Move It' : 'Top Up'}
                     </Button>
                   )}
                 </li>
@@ -153,7 +153,7 @@ export function FloatDashboardPage() {
                   })
                 }
               >
-                Move money between branches
+                Move Money Between Branches
               </Button>
             )}
             {transfer && (
@@ -178,7 +178,7 @@ export function FloatDashboardPage() {
             </EmptyState>
           </div>
         ) : (
-          <Table title="AMS branches today">
+          <Table title="AMS Branches Today">
             <thead>
               <tr>
                 <Th>Branch</Th>
@@ -187,7 +187,7 @@ export function FloatDashboardPage() {
                 <Th className="text-right">MTN MoMo</Th>
                 <Th className="text-right">Transactions</Th>
                 <Th>Day</Th>
-                <Th className="text-right">To resolve</Th>
+                <Th className="text-right">To Resolve</Th>
               </tr>
             </thead>
             <tbody>
@@ -213,11 +213,11 @@ export function FloatDashboardPage() {
                   <Td className="text-right">{b.totals.reduce((s, t) => s + t.count, 0)}</Td>
                   <Td>
                     {b.closed ? (
-                      <Badge tone="ok">Signed out</Badge>
+                      <Badge tone="ok">Signed Out</Badge>
                     ) : b.tradingToday ? (
                       <Badge tone="pending">Open</Badge>
                     ) : (
-                      <Badge tone="neutral">Closed today</Badge>
+                      <Badge tone="neutral">Closed Today</Badge>
                     )}
                     <span className="block text-xs text-muted">
                       {b.hours.opensAt}–{b.hours.closesAt}
@@ -260,7 +260,7 @@ function MoveForm({ initial, branches, onDone, onCancel }) {
   };
   const branchSelect = (id, value, key) => (
     <Select id={id} value={value} onChange={set(key)}>
-      <option value="">Choose a branch</option>
+      <option value="">Choose A Branch</option>
       {branches.map((b) => (
         <option key={b.id} value={b.id}>
           {b.name}
@@ -279,31 +279,31 @@ function MoveForm({ initial, branches, onDone, onCancel }) {
   );
   return (
     <Section
-      title={v.kind === 'TOPUP' ? 'Top up a branch' : 'Move money'}
+      title={v.kind === 'TOPUP' ? 'Top Up A Branch' : 'Move Money'}
       className="border-brand ring-1 ring-brand"
     >
       <div className="stack">
         <Field id="mv-kind" label="What">
           <Select id="mv-kind" value={v.kind} onChange={set('kind')}>
-            <option value="TRANSFER">Move from another branch or account</option>
-            <option value="TOPUP">Top up from head office or the network</option>
+            <option value="TRANSFER">Move From Another Branch Or Account</option>
+            <option value="TOPUP">Top Up From Head Office Or The Network</option>
           </Select>
         </Field>
         {v.kind === 'TRANSFER' && (
           <div className="form-row">
-            <Field id="mv-fb" label="From branch">
+            <Field id="mv-fb" label="From Branch">
               {branchSelect('mv-fb', v.fromBranchId, 'fromBranchId')}
             </Field>
-            <Field id="mv-fa" label="From account">
+            <Field id="mv-fa" label="From Account">
               {accountSelect('mv-fa', v.fromAccount, 'fromAccount')}
             </Field>
           </div>
         )}
         <div className="form-row">
-          <Field id="mv-tb" label="To branch">
+          <Field id="mv-tb" label="To Branch">
             {branchSelect('mv-tb', v.toBranchId, 'toBranchId')}
           </Field>
-          <Field id="mv-ta" label="To account">
+          <Field id="mv-ta" label="To Account">
             {accountSelect('mv-ta', v.toAccount, 'toAccount')}
           </Field>
           <Field id="mv-amount" label="Amount (K)">
@@ -316,7 +316,7 @@ function MoveForm({ initial, branches, onDone, onCancel }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy} disabled={!v.toBranchId || !(Number(v.amount) > 0)} onClick={send}>
-            Send for approval
+            Send For Approval
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
@@ -389,7 +389,7 @@ export function FloatApprovalsPage() {
         )}
         {d.confirmations.length > 0 && (
           <Section
-            title="Openings and closings to confirm"
+            title="Openings And Closings To Confirm"
             description="Check the figures the branch entered against the books, correct them if needed, and confirm."
             className="border-brand ring-1 ring-brand"
           >
@@ -412,13 +412,13 @@ export function FloatApprovalsPage() {
           </Section>
         )}
         {d.movements.length > 0 && (
-          <Section title="Top-ups and transfers">
+          <Section title="Top-ups And Transfers">
             <ul className="divide-y divide-rule text-sm">
               {d.movements.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <span>
                     <span className="font-semibold">
-                      {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash to finance' }[m.kind]}{' '}
+                      {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash To Finance' }[m.kind]}{' '}
                       {money(m.amount)} {ACCOUNT[m.toAccount]} {m.kind === 'COLLECTION' ? 'from' : 'to'}{' '}
                       {m.toBranch}
                     </span>
@@ -433,7 +433,7 @@ export function FloatApprovalsPage() {
                     </span>
                   </span>
                   {m.requestedBy === d.me ? (
-                    <Badge tone="neutral">Your request</Badge>
+                    <Badge tone="neutral">Your Request</Badge>
                   ) : (
                     yesNo(`m${m.id}`, `/api/float/movements/${m.id}/decide`)
                   )}
@@ -456,7 +456,7 @@ export function FloatApprovalsPage() {
                     </span>
                   </span>
                   {t.requestedBy === d.me ? (
-                    <Badge tone="neutral">Your request</Badge>
+                    <Badge tone="neutral">Your Request</Badge>
                   ) : (
                     yesNo(`r${t.id}`, `/api/float/transactions/${t.id}/reversal`)
                   )}
@@ -466,7 +466,7 @@ export function FloatApprovalsPage() {
           </Section>
         )}
         {d.variances.length > 0 && (
-          <Section title="Surpluses and deficits">
+          <Section title="Surpluses And Deficits">
             <ul className="divide-y divide-rule text-sm">
               {d.variances.map((v) => (
                 <li key={v.id} className="py-3">
@@ -508,7 +508,7 @@ export function FloatApprovalsPage() {
           </Section>
         )}
         {d.large.length > 0 && (
-          <Section title="Large transactions to review">
+          <Section title="Large Transactions To Review">
             <ul className="divide-y divide-rule text-sm">
               {d.large.map((t) => (
                 <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -610,7 +610,7 @@ function ConfirmCount({ count: x, mine, onDone }) {
           </Field>
           {error && <Notice tone="danger">{error}</Notice>}
           <Button busy={busy} disabled={changed && !comment.trim()} onClick={confirm}>
-            {changed ? 'Correct and confirm' : 'Confirm'}
+            {changed ? 'Correct And Confirm' : 'Confirm'}
           </Button>
         </div>
       )}
@@ -626,12 +626,12 @@ function ResolveForm({ variance: v, busy, onSend, onCancel }) {
     <div className="mt-3 space-y-3 rounded-md border border-rule p-3">
       <Field id={`res-${v.id}`} label="Outcome">
         <Select id={`res-${v.id}`} value={resolution} onChange={(e) => setResolution(e.target.value)}>
-          <option value="EXPLAINED">Explained (an error was found)</option>
-          {v.amount < 0 && <option value="RECOVERED">Recovered (the money was paid back)</option>}
-          <option value="WRITTEN_OFF">Written off</option>
+          <option value="EXPLAINED">Explained (An Error Was Found)</option>
+          {v.amount < 0 && <option value="RECOVERED">Recovered (The Money Was Paid Back)</option>}
+          <option value="WRITTEN_OFF">Written Off</option>
         </Select>
       </Field>
-      <Field id={`resc-${v.id}`} label="What happened">
+      <Field id={`resc-${v.id}`} label="What Happened">
         <Input id={`resc-${v.id}`} value={comment} onChange={(e) => setComment(e.target.value)} />
       </Field>
       <div className="flex gap-2">
@@ -662,7 +662,7 @@ export function FloatVariancesPage() {
   return (
     <div>
       <PageHeader
-        title="Surplus and deficit"
+        title="Surplus And Deficit"
         description="Differences found at store closings and handovers. The Operations Officer resolves them on Approvals."
       />
       <div className="mb-4 w-64">
@@ -686,12 +686,12 @@ export function FloatVariancesPage() {
       {q.data && (
         <div className="stack">
           {q.data.byStaff.length > 0 && (
-            <Section title="Deficits by member of staff">
-              <Table title="Deficits by staff" tools={false}>
+            <Section title="Deficits By Member Of Staff">
+              <Table title="Deficits By Staff" tools={false}>
                 <thead>
                   <tr>
-                    <Th>First name</Th>
-                    <Th>Last name</Th>
+                    <Th>First Name</Th>
+                    <Th>Last Name</Th>
                     <Th className="text-right">Deficits</Th>
                     <Th className="text-right">Total</Th>
                   </tr>
@@ -714,7 +714,7 @@ export function FloatVariancesPage() {
               <EmptyState title="No surpluses or deficits." />
             </div>
           ) : (
-            <Table title="Surplus and deficit">
+            <Table title="Surplus And Deficit">
               <thead>
                 <tr>
                   <Th>Date</Th>
@@ -722,8 +722,8 @@ export function FloatVariancesPage() {
                   <Th>Account</Th>
                   <Th>Type</Th>
                   <Th className="text-right">Amount</Th>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Count</Th>
                   <Th>Status</Th>
                   <Th>Outcome</Th>
@@ -783,7 +783,7 @@ export function FloatTransactionsPage() {
   return (
     <div>
       <PageHeader
-        title="AMS transactions"
+        title="AMS Transactions"
         actions={
           <Button
             variant="secondary"
@@ -791,7 +791,7 @@ export function FloatTransactionsPage() {
               downloadFile(`/api/float/transactions?${qs}&format=xlsx`).catch((e) => setError(e.message))
             }
           >
-            Export to Excel
+            Export To Excel
           </Button>
         }
       />
@@ -806,7 +806,7 @@ export function FloatTransactionsPage() {
           <div className="w-60">
             <Field id="tx-branch" label="Branch">
               <Select id="tx-branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
-                <option value="">All branches</option>
+                <option value="">All Branches</option>
                 {(branches.data?.items ?? []).map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -826,7 +826,7 @@ export function FloatTransactionsPage() {
             <EmptyState title="No transactions in this period." />
           </div>
         ) : (
-          <Table title="AMS transactions" tools={false}>
+          <Table title="AMS Transactions" tools={false}>
             <thead>
               <tr>
                 <Th>Date</Th>
@@ -837,8 +837,8 @@ export function FloatTransactionsPage() {
                 <Th className="text-right">Amount</Th>
                 <Th className="text-right">Commission</Th>
                 <Th>Reference</Th>
-                <Th>First name</Th>
-                <Th>Last name</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
                 <Th>Status</Th>
               </tr>
             </thead>

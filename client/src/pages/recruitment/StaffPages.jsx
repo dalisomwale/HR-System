@@ -34,7 +34,7 @@ export function JobsPage() {
     setMsg(null);
     try {
       await api.post(`/api/recruitment/jobs/${job.id}/apply`, { note: note.trim() || null });
-      setMsg({ tone: 'ok', text: `Application sent for ${job.jobTitle}. Add your CV on My applications.` });
+      setMsg({ tone: 'ok', text: `Application sent for ${job.jobTitle}. Add your CV on My Applications.` });
       setApplying(null);
       setNote('');
       qc.invalidateQueries({ queryKey: ['rc-jobs'] });
@@ -48,7 +48,7 @@ export function JobsPage() {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        title="Open positions"
+        title="Open Positions"
         description="Positions in the group open to staff. Applying tells HR; your manager is not told by the system."
       />
       {msg && (
@@ -92,10 +92,10 @@ export function JobsPage() {
                     </div>
                   )}
                   {j.applied ? (
-                    <Badge tone="ok">You have applied</Badge>
+                    <Badge tone="ok">You Have Applied</Badge>
                   ) : applying === j.id ? (
                     <div className="space-y-3 rounded-md border border-rule p-3">
-                      <Field id={`note-${j.id}`} label="A note to HR" optional>
+                      <Field id={`note-${j.id}`} label="A Note To HR" optional>
                         <Textarea
                           id={`note-${j.id}`}
                           rows={3}
@@ -105,7 +105,7 @@ export function JobsPage() {
                       </Field>
                       <div className="flex gap-2">
                         <Button busy={busy} onClick={() => apply(j)}>
-                          Send application
+                          Send Application
                         </Button>
                         <Button variant="secondary" onClick={() => setApplying(null)}>
                           Cancel
@@ -167,7 +167,7 @@ export function ApplicationsPage() {
     ({ Successful: 'ok', 'Not successful': 'danger', Withdrawn: 'neutral', Offer: 'pending' })[s] ?? 'brand';
   return (
     <div>
-      <PageHeader title="My applications" description="Positions you have applied for inside the group." />
+      <PageHeader title="My Applications" description="Positions you have applied for inside the group." />
       {error && (
         <div className="mb-4">
           <Notice tone="danger">{error}</Notice>
@@ -195,7 +195,7 @@ export function ApplicationsPage() {
             />
           </div>
         ) : (
-          <Table title="My applications">
+          <Table title="My Applications">
             <thead>
               <tr>
                 <Th>Position</Th>
@@ -277,7 +277,7 @@ export function InterviewsPage() {
   });
   return (
     <div>
-      <PageHeader title="My interviews" description="Interviews you are on the panel for." />
+      <PageHeader title="My Interviews" description="Interviews you are on the panel for." />
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {q.data &&
@@ -286,15 +286,15 @@ export function InterviewsPage() {
             <EmptyState title="You are not on any interview panels." />
           </div>
         ) : (
-          <Table title="My interviews">
+          <Table title="My Interviews">
             <thead>
               <tr>
                 <Th>When</Th>
-                <Th>First name</Th>
-                <Th>Last name</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
                 <Th>Position</Th>
                 <Th>Where</Th>
-                <Th>Your feedback</Th>
+                <Th>Your Feedback</Th>
                 <Th>
                   <span className="sr-only">Action</span>
                 </Th>

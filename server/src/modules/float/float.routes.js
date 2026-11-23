@@ -40,13 +40,13 @@ import {
 } from './float.service.js';
 
 /*
- * AMS cash and float (D117), in the Inventory system, for Altus Money Solutions only.
+ * AMS cash and float (D117), in the Inventory System, for Altus Money Solutions only.
  * Rights come from the inventory roles: float.record (branch staff, their own branch),
  * float.view_all, float.approve (manager), float.director, float.shortages (HR), float.admin.
  */
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const MOVE_LABEL = { TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash collection' };
+const MOVE_LABEL = { TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash Collection' };
 const EMAIL = { app: 'float' };
 const name = (f, l) => [f, l].filter(Boolean).join(' ') || null;
 const amount = z.coerce.number().positive('must be more than zero').max(100000000).transform(round2);
@@ -54,19 +54,19 @@ const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'must be a time like 
 
 /** Email rows for a day's totals. */
 export const dayRows = (t) => [
-  ['Branches signed out', `${t.signedOut} of ${t.branches}`],
+  ['Branches Signed Out', `${t.signedOut} of ${t.branches}`],
   ['Deposits', `${t.deposits.count} (${kwacha(t.deposits.amount)})`],
   ['Withdrawals', `${t.withdrawals.count} (${kwacha(t.withdrawals.amount)})`],
-  ['Float transfers', `${t.floatTransfers.count} (${kwacha(t.floatTransfers.amount)})`],
-  ['Cash retired to finance', `${t.cashCollections.count} (${kwacha(t.cashCollections.amount)})`],
-  ['Total transactions', String(t.transactions.total)],
-  ['Customers turned down', String(t.turnedDown)],
-  ['Float + cash', kwacha(t.total)],
-  ['Daily commission', kwacha(t.commission)],
+  ['Float Transfers', `${t.floatTransfers.count} (${kwacha(t.floatTransfers.amount)})`],
+  ['Cash Retired To Finance', `${t.cashCollections.count} (${kwacha(t.cashCollections.amount)})`],
+  ['Total Transactions', String(t.transactions.total)],
+  ['Customers Turned Down', String(t.turnedDown)],
+  ['Float + Cash', kwacha(t.total)],
+  ['Daily Commission', kwacha(t.commission)],
   ['Deficits', kwacha(t.deficit)],
 ];
 
-/** What someone can do in the Float system, from their access rights (D126). */
+/** What someone can do in the Float System, from their access rights (D126). */
 export function floatRights(user) {
   const has = (p) => can(user, p);
   return {
@@ -82,12 +82,12 @@ export function floatRights(user) {
     auditAdmin: has('float.audit'),
   };
 }
-/** Opens the Float system to anyone with a part in it. */
+/** Opens the Float System to anyone with a part in it. */
 export function floatGate(req, res, next) {
   const r = floatRights(req.user);
   return Object.values(r).some(Boolean)
     ? next()
-    : next(forbidden('You do not have access to the Float system.'));
+    : next(forbidden('You do not have access to the Float System.'));
 }
 
 export function floatRoutes({ db }) {
@@ -759,18 +759,18 @@ export function floatRoutes({ db }) {
               'Closed',
               `${at(b.signedOutAt)}${b.signedOutBy ? ` by ${b.signedOutBy.firstName} ${b.signedOutBy.lastName}` : ''}`,
             ],
-            ['Number of deposits', String(b.deposits.count)],
+            ['Number Of Deposits', String(b.deposits.count)],
             ['Deposits', kwacha(b.deposits.amount)],
-            ['Number of withdrawals', String(b.withdrawals.count)],
+            ['Number Of Withdrawals', String(b.withdrawals.count)],
             ['Withdrawals', kwacha(b.withdrawals.amount)],
-            ['Opening cash', kwacha(b.openingCash)],
-            ['Opening float', kwacha(b.openingFloat)],
-            ['Closing cash', kwacha(b.cash)],
-            ['Closing float', kwacha(b.float)],
-            ['Float transfers', `${b.floatTransfers.count} (${kwacha(b.floatTransfers.amount)})`],
-            ['Cash to finance', `${b.cashCollections.count} (${kwacha(b.cashCollections.amount)})`],
-            ['Customers turned down', String(b.turnedDown)],
-            ...(b.commission != null ? [['Daily commission', kwacha(b.commission)]] : []),
+            ['Opening Cash', kwacha(b.openingCash)],
+            ['Opening Float', kwacha(b.openingFloat)],
+            ['Closing Cash', kwacha(b.cash)],
+            ['Closing Float', kwacha(b.float)],
+            ['Float Transfers', `${b.floatTransfers.count} (${kwacha(b.floatTransfers.amount)})`],
+            ['Cash To Finance', `${b.cashCollections.count} (${kwacha(b.cashCollections.amount)})`],
+            ['Customers Turned Down', String(b.turnedDown)],
+            ...(b.commission != null ? [['Daily Commission', kwacha(b.commission)]] : []),
             ...(b.deficit ? [['Deficit', kwacha(b.deficit)]] : []),
             ...(b.surplus ? [['Surplus', kwacha(b.surplus)]] : []),
           ],
@@ -1665,7 +1665,7 @@ export function floatRoutes({ db }) {
         lastName: t.last_name,
       }));
       if (req.query.format === 'xlsx') {
-        const STATUS = { POSTED: 'Recorded', REVERSAL_PENDING: 'Reversal requested', REVERSED: 'Reversed' };
+        const STATUS = { POSTED: 'Recorded', REVERSAL_PENDING: 'Reversal Requested', REVERSED: 'Reversed' };
         return res
           .set('Content-Type', XLSX)
           .set('Content-Disposition', `attachment; filename="AMS transactions ${from} to ${to}.xlsx"`)
@@ -1680,8 +1680,8 @@ export function floatRoutes({ db }) {
                 { key: 'amount', label: 'Amount (K)', type: 'number' },
                 { key: 'commission', label: 'Commission (K)', type: 'number' },
                 { key: 'reference', label: 'Reference' },
-                { key: 'firstName', label: 'First name' },
-                { key: 'lastName', label: 'Last name' },
+                { key: 'firstName', label: 'First Name' },
+                { key: 'lastName', label: 'Last Name' },
                 { key: 'status', label: 'Status' },
               ],
               items.map((i) => ({
@@ -1706,23 +1706,23 @@ export function floatRoutes({ db }) {
     { key: 'branch', label: 'Branch' },
     { key: 'opened', label: 'Opened' },
     { key: 'closed', label: 'Closed' },
-    { key: 'depCount', label: 'Number of deposits', type: 'number' },
+    { key: 'depCount', label: 'Number Of Deposits', type: 'number' },
     { key: 'depAmount', label: 'Deposits (K)', type: 'number' },
-    { key: 'wdCount', label: 'Number of withdrawals', type: 'number' },
+    { key: 'wdCount', label: 'Number Of Withdrawals', type: 'number' },
     { key: 'wdAmount', label: 'Withdrawals (K)', type: 'number' },
-    { key: 'openingCash', label: 'Opening cash (K)', type: 'number' },
-    { key: 'openingFloat', label: 'Opening float (K)', type: 'number' },
-    { key: 'closingCash', label: 'Closing cash (K)', type: 'number' },
-    { key: 'closingFloat', label: 'Closing float (K)', type: 'number' },
-    { key: 'ftCount', label: 'Number of float transfers', type: 'number' },
-    { key: 'ftAmount', label: 'Float transfers (K)', type: 'number' },
-    { key: 'ccCount', label: 'Number of cash to finance', type: 'number' },
-    { key: 'ccAmount', label: 'Cash to finance (K)', type: 'number' },
-    { key: 'daytime', label: 'Daytime transactions', type: 'number' },
-    { key: 'evening', label: 'Evening transactions', type: 'number' },
-    { key: 'total', label: 'Total transactions', type: 'number' },
-    { key: 'turnedDown', label: 'Customers turned down', type: 'number' },
-    { key: 'commission', label: 'Daily commission (K)', type: 'number' },
+    { key: 'openingCash', label: 'Opening Cash (K)', type: 'number' },
+    { key: 'openingFloat', label: 'Opening Float (K)', type: 'number' },
+    { key: 'closingCash', label: 'Closing Cash (K)', type: 'number' },
+    { key: 'closingFloat', label: 'Closing Float (K)', type: 'number' },
+    { key: 'ftCount', label: 'Number Of Float Transfers', type: 'number' },
+    { key: 'ftAmount', label: 'Float Transfers (K)', type: 'number' },
+    { key: 'ccCount', label: 'Number Of Cash To Finance', type: 'number' },
+    { key: 'ccAmount', label: 'Cash To Finance (K)', type: 'number' },
+    { key: 'daytime', label: 'Daytime Transactions', type: 'number' },
+    { key: 'evening', label: 'Evening Transactions', type: 'number' },
+    { key: 'total', label: 'Total Transactions', type: 'number' },
+    { key: 'turnedDown', label: 'Customers Turned Down', type: 'number' },
+    { key: 'commission', label: 'Daily Commission (K)', type: 'number' },
     { key: 'deficit', label: 'Deficit (K)', type: 'number' },
     { key: 'surplus', label: 'Surplus (K)', type: 'number' },
   ];
@@ -1885,7 +1885,7 @@ export function floatRoutes({ db }) {
     PENDING_MANAGER: ['floatApprove', 'manager', 'PENDING_DIRECTOR'],
     PENDING_DIRECTOR: ['floatDirector', 'director', 'APPROVED'],
   };
-  const REQ_KIND = { DEVICE: 'Device dead or faulty', CASH: 'Cash run out', FLOAT: 'Float run out' };
+  const REQ_KIND = { DEVICE: 'Device Dead Or Faulty', CASH: 'Cash Run Out', FLOAT: 'Float Run Out' };
   const reqRows = () =>
     db('float_requisitions as q')
       .join('stock_branches as b', 'b.id', 'q.branch_id')

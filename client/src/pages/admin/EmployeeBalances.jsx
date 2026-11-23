@@ -20,15 +20,15 @@ import { BalanceCards } from '../leave/MyLeavePage.jsx';
 
 const thisYear = new Date().getFullYear();
 const ENTRY_LABELS = {
-  OPENING: 'Opening balance',
+  OPENING: 'Opening Balance',
   ACCRUAL: 'Accrual',
   ENTITLEMENT: 'Entitlement',
-  DEDUCTION: 'Leave taken',
+  DEDUCTION: 'Leave Taken',
   REVERSAL: 'Returned',
   ADJUSTMENT: 'Adjustment',
-  CARRY_FORWARD_IN: 'Carried forward',
-  CARRY_FORWARD_OUT: 'Carried out',
-  CARRY_FORWARD_EXPIRY: 'Carry-forward expired',
+  CARRY_FORWARD_IN: 'Carried Forward',
+  CARRY_FORWARD_OUT: 'Carried Out',
+  CARRY_FORWARD_EXPIRY: 'Carry-forward Expired',
 };
 
 /** HR Officer view of one employee's balances, ledger and adjustments. */
@@ -40,7 +40,7 @@ export default function EmployeeBalances({ employeeId }) {
   });
   return (
     <Section
-      title="Leave balances"
+      title="Leave Balances"
       actions={
         <Select
           aria-label="Year"
@@ -77,7 +77,7 @@ export default function EmployeeBalances({ employeeId }) {
                 <thead>
                   <tr>
                     <Th>When</Th>
-                    <Th>Leave type</Th>
+                    <Th>Leave Type</Th>
                     <Th>Entry</Th>
                     <Th className="text-right">Days</Th>
                     <Th>Reason</Th>
@@ -155,7 +155,7 @@ function AdjustmentForm({ employeeId, year, types }) {
       className="grid gap-3 rounded-md bg-canvas p-3 sm:grid-cols-4"
     >
       <p className="text-sm font-medium sm:col-span-4">Record an opening balance or adjustment for {year}</p>
-      <Field id="adj-type" label="Leave type">
+      <Field id="adj-type" label="Leave Type">
         <Select id="adj-type" {...register('leaveTypeId')}>
           {types.map((t) => (
             <option key={t.id} value={t.id}>
@@ -166,7 +166,7 @@ function AdjustmentForm({ employeeId, year, types }) {
       </Field>
       <Field id="adj-kind" label="Kind">
         <Select id="adj-kind" {...register('kind')}>
-          <option value="OPENING">Opening balance</option>
+          <option value="OPENING">Opening Balance</option>
           <option value="ADJUSTMENT">Adjustment</option>
         </Select>
       </Field>

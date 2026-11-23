@@ -68,7 +68,7 @@ export default function StockAlertsPage() {
   return (
     <div>
       <PageHeader
-        title="Stock alerts"
+        title="Stock Alerts"
         description={
           <>
             Who is emailed when an item falls to its reorder level or runs out, and gets the daily reorder
@@ -83,7 +83,7 @@ export default function StockAlertsPage() {
         actions={
           people.length > 0 && (
             <Button onClick={save} busy={busy} disabled={!changed}>
-              Save changes
+              Save Changes
             </Button>
           )
         }
@@ -100,7 +100,7 @@ export default function StockAlertsPage() {
           </EmptyState>
         </div>
       ) : (
-        <Table title="Stock alerts">
+        <Table title="Stock Alerts">
           <thead>
             <tr>
               <Th>
@@ -112,11 +112,11 @@ export default function StockAlertsPage() {
                     onChange={() => setOn(allOn ? new Set() : new Set(people.map((p) => p.employeeId)))}
                     aria-label="Everyone gets the alerts"
                   />
-                  Gets alerts
+                  Gets Alerts
                 </label>
               </Th>
-              <Th>First name</Th>
-              <Th>Last name</Th>
+              <Th>First Name</Th>
+              <Th>Last Name</Th>
               <Th>Email</Th>
               <Th>Company</Th>
               <Th>Branch</Th>

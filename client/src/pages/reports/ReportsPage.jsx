@@ -19,7 +19,7 @@ import {
 import DepartmentOptions from '../../components/DepartmentOptions.jsx';
 import PeopleTrail from '../people/PeopleTrail.jsx';
 
-// Filters and the Run report / Clear filters buttons share one line where space allows (D80).
+// Filters and the Run Report / Clear filters buttons share one line where space allows (D80).
 const FIELD = 'w-full sm:w-52';
 const thisYear = new Date().getFullYear();
 const FILTER_KEYS = [
@@ -166,7 +166,7 @@ function Filters({ report, options, applied, onApply }) {
             value={v.companyId}
             onChange={(e) => setV((s) => ({ ...s, companyId: e.target.value, departmentId: '' }))}
           >
-            <option value="">{options.scope === 'HR' ? 'Altus Group' : 'All companies'}</option>
+            <option value="">{options.scope === 'HR' ? 'Altus Group' : 'All Companies'}</option>
             {options.companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -178,7 +178,7 @@ function Filters({ report, options, applied, onApply }) {
       {has('department') && options.departments.length > 1 && (
         <Field className={FIELD} id="departmentId" label="Department">
           <Select id="departmentId" value={v.departmentId} onChange={set('departmentId')}>
-            <option value="">All departments</option>
+            <option value="">All Departments</option>
             <DepartmentOptions
               departments={options.departments.filter(
                 (d) => !v.companyId || String(d.companyId) === v.companyId,
@@ -188,9 +188,9 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       {has('leaveType') && (
-        <Field className={FIELD} id="leaveTypeId" label="Leave type">
+        <Field className={FIELD} id="leaveTypeId" label="Leave Type">
           <Select id="leaveTypeId" value={v.leaveTypeId} onChange={set('leaveTypeId')}>
-            <option value="">All leave types</option>
+            <option value="">All Leave Types</option>
             {options.leaveTypes.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
@@ -202,7 +202,7 @@ function Filters({ report, options, applied, onApply }) {
       {has('status') && (
         <Field className={FIELD} id="status" label="Status">
           <Select id="status" value={v.status} onChange={set('status')}>
-            <option value="">All statuses</option>
+            <option value="">All Statuses</option>
             {options.statuses.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -214,7 +214,7 @@ function Filters({ report, options, applied, onApply }) {
       {has('entryType') && (
         <Field className={FIELD} id="entryType" label="Entry">
           <Select id="entryType" value={v.entryType} onChange={set('entryType')}>
-            <option value="">All entries</option>
+            <option value="">All Entries</option>
             {options.entryTypes.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -224,7 +224,7 @@ function Filters({ report, options, applied, onApply }) {
         </Field>
       )}
       <div className="flex items-end gap-2">
-        <Button type="submit">Run report</Button>
+        <Button type="submit">Run Report</Button>
         <Button
           variant="ghost"
           onClick={() => {
@@ -233,7 +233,7 @@ function Filters({ report, options, applied, onApply }) {
             onApply(blank);
           }}
         >
-          Clear filters
+          Clear Filters
         </Button>
       </div>
     </form>
@@ -262,7 +262,7 @@ function ReportView({ base, report, options, applied, onApply }) {
       </div>
       <Filters report={report} options={options} applied={applied} onApply={onApply} />
       {q.isPending ? (
-        <Loading label="Running report" />
+        <Loading label="Running Report" />
       ) : q.isError ? (
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (

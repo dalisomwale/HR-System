@@ -26,7 +26,7 @@ export default function EmployeeOverview({ employee, source }) {
   return (
     <div className="stack">
       <Section
-        title="Record completeness"
+        title="Record Completeness"
         description={`${done} of ${o.completeness.length} details recorded`}
       >
         <div className="flex items-baseline gap-2">
@@ -37,7 +37,7 @@ export default function EmployeeOverview({ employee, source }) {
         </div>
         <div className="mt-2">
           <Meter
-            label="Record completeness"
+            label="Record Completeness"
             total={o.completeness.length}
             segments={[{ key: 'done', name: 'Recorded', value: done, color: COLORS.taken }]}
             height={10}
@@ -58,13 +58,13 @@ export default function EmployeeOverview({ employee, source }) {
       </Section>
 
       <div className="grid-2 wide-left">
-        <Section title={`Leave by month, ${o.year}`}>
+        <Section title={`Leave By Month, ${o.year}`}>
           <MonthlyLeaveChart months={o.monthly} year={o.year} />
         </Section>
-        <Section title={o.annual ? `${o.annual.leaveType}, ${o.year}` : 'Annual leave'}>
+        <Section title={o.annual ? `${o.annual.leaveType}, ${o.year}` : 'Annual Leave'}>
           {o.annual ? (
             <Donut
-              label="Annual leave"
+              label="Annual Leave"
               centre={o.annual.available}
               centreLabel="days available"
               segments={[
@@ -91,14 +91,14 @@ export default function EmployeeOverview({ employee, source }) {
       </div>
 
       <div className="grid-2">
-        <Section title={`Days by leave type, ${o.year}`} description="Approved days">
+        <Section title={`Days By Leave Type, ${o.year}`} description="Approved days">
           <TypeDonut
-            label={`Approved days by leave type, ${o.year}`}
+            label={`Approved Days By Leave Type, ${o.year}`}
             empty={`No leave taken yet in ${o.year}.`}
             items={o.byType}
           />
         </Section>
-        <Section title={`Requests for ${o.year}`} description="Where each request stands now">
+        <Section title={`Requests For ${o.year}`} description="Where each request stands now">
           <OutcomesDonut outcomes={o.outcomes} />
         </Section>
       </div>

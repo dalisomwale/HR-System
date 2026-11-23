@@ -65,7 +65,7 @@ function DelegationTable({ items, showDelegator, canRevoke }) {
         <thead>
           <tr>
             {showDelegator && <Th>Manager</Th>}
-            <Th>Covered by</Th>
+            <Th>Covered By</Th>
             <Th>Dates</Th>
             <Th>Reason</Th>
             <Th>Status</Th>
@@ -136,7 +136,7 @@ function DelegationForm({ people, admin }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-4 sm:grid-cols-2">
       {admin && (
-        <Field id="delegatorId" label="Manager who is away" error={err('delegatorId')}>
+        <Field id="delegatorId" label="Manager Who Is Away" error={err('delegatorId')}>
           <Select id="delegatorId" invalid={!!err('delegatorId')} {...register('delegatorId', req)}>
             <option value="">Choose…</option>
             {people.map((p) => (
@@ -161,7 +161,7 @@ function DelegationForm({ people, admin }) {
       <Field id="startDate" label="From" error={err('startDate')}>
         <Input id="startDate" type="date" invalid={!!err('startDate')} {...register('startDate', req)} />
       </Field>
-      <Field id="endDate" label="Until (inclusive)" error={err('endDate')}>
+      <Field id="endDate" label="Until (Inclusive)" error={err('endDate')}>
         <Input id="endDate" type="date" invalid={!!err('endDate')} {...register('endDate', req)} />
       </Field>
       <Field id="reason" label="Reason" className="sm:col-span-2">
@@ -169,7 +169,7 @@ function DelegationForm({ people, admin }) {
       </Field>
       <div className="flex items-center gap-3 sm:col-span-2">
         <Button type="submit" busy={isSubmitting}>
-          Save delegation
+          Save Delegation
         </Button>
         {message && (
           <span className={message.tone === 'ok' ? 'text-sm text-ok' : 'text-sm text-danger'}>
@@ -199,16 +199,16 @@ export function DelegationsPage() {
       ) : (
         <>
           {q.data.received.length > 0 && (
-            <Section title="You are covering for">
+            <Section title="You Are Covering For">
               <DelegationTable items={q.data.received} showDelegator canRevoke={false} />
             </Section>
           )}
           {q.data.canDelegate ? (
             <>
-              <Section title="Delegate your approvals">
+              <Section title="Delegate Your Approvals">
                 <DelegationForm people={people.data.items} />
               </Section>
-              <Section title="Your delegations">
+              <Section title="Your Delegations">
                 {q.data.given.length === 0 ? (
                   <EmptyState title="You have not delegated your approvals." />
                 ) : (
@@ -218,7 +218,7 @@ export function DelegationsPage() {
             </>
           ) : (
             q.data.received.length === 0 && (
-              <EmptyState title="Nothing to show">
+              <EmptyState title="Nothing To Show">
                 Delegation is for managers. Nobody has asked you to cover their approvals.
               </EmptyState>
             )
@@ -243,7 +243,7 @@ export function AdminDelegationsPage() {
   return (
     <div className="stack">
       <PageHeader title="Delegations" />
-      <Section title="Set up a delegation">
+      <Section title="Set Up A Delegation">
         {people.isPending ? (
           <Loading />
         ) : people.isError ? (
@@ -253,11 +253,11 @@ export function AdminDelegationsPage() {
         )}
       </Section>
       <Section
-        title={scope === 'current' ? 'Current and upcoming' : 'All delegations'}
+        title={scope === 'current' ? 'Current And Upcoming' : 'All Delegations'}
         actions={
           <Select aria-label="Show" className="w-48" value={scope} onChange={(e) => setScope(e.target.value)}>
-            <option value="current">Current and upcoming</option>
-            <option value="all">All, including past</option>
+            <option value="current">Current And Upcoming</option>
+            <option value="all">All, Including Past</option>
           </Select>
         }
       >

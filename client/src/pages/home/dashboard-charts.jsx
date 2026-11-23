@@ -39,7 +39,7 @@ export function MonthlyLeaveChart({ months, year, empty }) {
     <div className="space-y-3">
       <Legend items={TAKEN_BOOKED} />
       <ColumnChart
-        label={`Approved leave days by month, ${year}`}
+        label={`Approved Leave Days By Month, ${year}`}
         series={TAKEN_BOOKED}
         empty={empty}
         data={months.map((m) => ({
@@ -65,7 +65,7 @@ export function PeopleOffChart({ daily, empty }) {
     <div className="space-y-3">
       <Legend items={[...OFF, { key: 'we', name: 'Weekend', color: COLORS.weekend, outline: true }]} />
       <ColumnChart
-        label="People off on each of the next 30 days"
+        label="People Off On Each Of The Next 30 Days"
         series={OFF}
         unit="people"
         whole
@@ -99,7 +99,7 @@ export function LeaveTypeChart({ byType, year, empty }) {
     <div className="space-y-3">
       {series.length > 0 && <Legend items={series} />}
       <ColumnChart
-        label={`Approved leave days by month and leave type, ${year}`}
+        label={`Approved Leave Days By Month And Leave Type, ${year}`}
         series={series}
         empty={empty}
         data={byType.months.map((m) => ({
@@ -227,7 +227,7 @@ const OUTCOME_COLORS = {
 export function OutcomesDonut({ outcomes }) {
   return (
     <Donut
-      label="Requests by outcome"
+      label="Requests By Outcome"
       unit="requests"
       empty="No requests this year yet."
       segments={outcomes.map((o) => ({
@@ -244,7 +244,7 @@ export function OutcomesDonut({ outcomes }) {
 export function TeamTodayDonut({ size, onLeave }) {
   return (
     <Donut
-      label="Your team today"
+      label="Your Team Today"
       centre={size}
       centreLabel={size === 1 ? 'person' : 'people'}
       empty="Nobody reports to you yet."

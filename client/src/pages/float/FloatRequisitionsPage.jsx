@@ -26,19 +26,19 @@ import { ACCOUNT, money, useWorkingBranch } from './fl.js';
  */
 
 const STATUS = {
-  PENDING_SUPERVISOR: ['With the Operations Officer', 'pending'],
-  PENDING_MANAGER: ['With the manager', 'pending'],
-  PENDING_DIRECTOR: ['With a director', 'pending'],
+  PENDING_SUPERVISOR: ['With The Operations Officer', 'pending'],
+  PENDING_MANAGER: ['With The Manager', 'pending'],
+  PENDING_DIRECTOR: ['With A Director', 'pending'],
   APPROVED: ['Approved', 'ok'],
   RECEIVED: ['Received', 'ok'],
   DONE: ['Done', 'ok'],
-  REJECTED: ['Turned down', 'danger'],
+  REJECTED: ['Turned Down', 'danger'],
   CANCELLED: ['Cancelled', 'neutral'],
 };
 const KINDS = [
-  ['FLOAT', 'Float run out'],
-  ['CASH', 'Cash run out'],
-  ['DEVICE', 'Device dead or faulty'],
+  ['FLOAT', 'Float Run Out'],
+  ['CASH', 'Cash Run Out'],
+  ['DEVICE', 'Device Dead Or Faulty'],
 ];
 
 export default function FloatRequisitionsPage() {
@@ -62,10 +62,10 @@ export default function FloatRequisitionsPage() {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="AMS requisitions"
+        title="AMS Requisitions"
         description="When a device dies or is faulty, or cash or float runs out. Approved by the Operations Officer, then the manager, then a director."
         actions={
-          d.canRaise && !raising && <Button onClick={() => setRaising(true)}>Raise a requisition</Button>
+          d.canRaise && !raising && <Button onClick={() => setRaising(true)}>Raise A Requisition</Button>
         }
       />
       <div className="stack">
@@ -133,12 +133,12 @@ function RaiseForm({ branch, branches, onDone, onCancel }) {
   const ready = v.reason.trim() && (v.kind === 'DEVICE' ? v.device.trim() : Number(v.amount) > 0);
   return (
     <Section
-      title={`Raise a requisition${branch ? ` · ${branch.name}` : ''}`}
+      title={`Raise A Requisition${branch ? ` · ${branch.name}` : ''}`}
       className="border-brand ring-1 ring-brand"
     >
       <div className="stack">
         {branches && (
-          <Field id="rq-branch" label="For branch">
+          <Field id="rq-branch" label="For Branch">
             <Select id="rq-branch" value={String(branchId ?? '')} onChange={(e) => choose(e.target.value)}>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -175,7 +175,7 @@ function RaiseForm({ branch, branches, onDone, onCancel }) {
           </div>
         )}
         {v.kind === 'DEVICE' ? (
-          <Field id="rq-dev" label="Which device">
+          <Field id="rq-dev" label="Which Device">
             <Input
               id="rq-dev"
               placeholder="e.g. Airtel agent phone"
@@ -184,7 +184,7 @@ function RaiseForm({ branch, branches, onDone, onCancel }) {
             />
           </Field>
         ) : (
-          <Field id="rq-amt" label="Amount needed (K)">
+          <Field id="rq-amt" label="Amount Needed (K)">
             <Input
               id="rq-amt"
               type="number"
@@ -206,7 +206,7 @@ function RaiseForm({ branch, branches, onDone, onCancel }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy} disabled={!ready} onClick={send}>
-            Send to the Operations Officer
+            Send To The Operations Officer
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
@@ -242,7 +242,7 @@ function RequisitionCard({ r, onDone }) {
     <Section
       title={`${r.reference} · ${r.kindLabel}`}
       description={`${r.branch} · raised by ${r.raisedBy.firstName} ${r.raisedBy.lastName}, ${formatDateTime(r.raisedAt)}`}
-      actions={<Badge tone={yourTurn ? 'pending' : tone}>{yourTurn ? 'Your turn' : label}</Badge>}
+      actions={<Badge tone={yourTurn ? 'pending' : tone}>{yourTurn ? 'Your Turn' : label}</Badge>}
       className={yourTurn ? 'border-brand ring-1 ring-brand' : undefined}
     >
       <div className="stack text-sm">
@@ -286,14 +286,14 @@ function RequisitionCard({ r, onDone }) {
                   act('n', 'decide', { approve: false, comment: comment.trim() || null }, 'Turned down.')
                 }
               >
-                Turn down
+                Turn Down
               </Button>
             </div>
           </div>
         )}
         {r.can.receive && (
           <div className="flex flex-wrap items-end gap-2">
-            <Field id={`rqr-${r.id}`} label="Amount that arrived (K)">
+            <Field id={`rqr-${r.id}`} label="Amount That Arrived (K)">
               <Input
                 id={`rqr-${r.id}`}
                 type="number"
@@ -309,18 +309,18 @@ function RequisitionCard({ r, onDone }) {
                 act('r', 'received', { amount: Number(got) }, 'Received: the balance has been updated.')
               }
             >
-              It has arrived
+              It Has Arrived
             </Button>
           </div>
         )}
         {r.can.done && (
           <Button busy={busy === 'd'} onClick={() => act('d', 'done', {}, 'Marked done.')}>
-            Device sorted: mark done
+            Device Sorted: Mark Done
           </Button>
         )}
         {r.can.cancel && (
           <Button variant="ghost" busy={busy === 'c'} onClick={() => act('c', 'cancel', {}, 'Cancelled.')}>
-            Cancel requisition
+            Cancel Requisition
           </Button>
         )}
         {error && <Notice tone="danger">{error}</Notice>}

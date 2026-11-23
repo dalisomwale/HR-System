@@ -25,7 +25,7 @@ import {
 import { errorText } from '../requisitions/rq.js';
 import { EMPLOYMENT_LABEL, EMPLOYMENT_TYPES, REQUEST_STATUS, useRc, useRcOptions } from './rc.js';
 
-const REASON_LABEL = { NEW_POSITION: 'New position', REPLACEMENT: 'Replacement' };
+const REASON_LABEL = { NEW_POSITION: 'New Position', REPLACEMENT: 'Replacement' };
 
 /** Hiring requests (D114): the viewer's own, or every one for HR and directors. */
 export function HiringRequestsPage() {
@@ -39,12 +39,12 @@ export function HiringRequestsPage() {
   return (
     <div>
       <PageHeader
-        title="Hiring requests"
+        title="Hiring Requests"
         description={q.data?.all ? 'Every request for a new position.' : 'The positions you have asked for.'}
         actions={
           rc.data?.raise && (
             <ButtonLink to="/recruitment/requests/new" variant="primary">
-              Request a hire
+              Request A Hire
             </ButtonLink>
           )
         }
@@ -73,7 +73,7 @@ export function HiringRequestsPage() {
             <EmptyState title="No hiring requests here." />
           </div>
         ) : (
-          <Table title="Hiring requests">
+          <Table title="Hiring Requests">
             <thead>
               <tr>
                 <Th>Reference</Th>
@@ -81,7 +81,7 @@ export function HiringRequestsPage() {
                 <Th>Department</Th>
                 <Th className="text-right">Positions</Th>
                 <Th>Reason</Th>
-                <Th>Requested by</Th>
+                <Th>Requested By</Th>
                 <Th>Status</Th>
                 <Th>Requested</Th>
               </tr>
@@ -174,16 +174,16 @@ export function HiringRequestFormPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title="Request a hire"
+        title="Request A Hire"
         description="Ask for a new or replacement position. HR checks it, then a director approves it, and HR opens the vacancy."
       />
       <form onSubmit={submit} className="card stack">
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="form-row">
-          <Field id="h-title" label="Position (job title)">
+          <Field id="h-title" label="Position (Job Title)">
             <Input id="h-title" required value={val.jobTitle} onChange={set('jobTitle')} />
           </Field>
-          <Field id="h-positions" label="How many people">
+          <Field id="h-positions" label="How Many People">
             <Input
               id="h-positions"
               type="number"
@@ -203,7 +203,7 @@ export function HiringRequestFormPage() {
               value={val.companyId}
               onChange={(e) => setV({ ...val, companyId: e.target.value, departmentId: '', branchId: '' })}
             >
-              <option value="">Choose a company</option>
+              <option value="">Choose A Company</option>
               {o.companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -219,7 +219,7 @@ export function HiringRequestFormPage() {
               value={val.departmentId}
               onChange={set('departmentId')}
             >
-              <option value="">Choose a department</option>
+              <option value="">Choose A Department</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -229,7 +229,7 @@ export function HiringRequestFormPage() {
           </Field>
           <Field id="h-branch" label="Branch" optional>
             <Select id="h-branch" value={val.branchId} onChange={set('branchId')}>
-              <option value="">Not set</option>
+              <option value="">Not Set</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -239,7 +239,7 @@ export function HiringRequestFormPage() {
           </Field>
         </div>
         <div className="form-row">
-          <Field id="h-type" label="Employment type">
+          <Field id="h-type" label="Employment Type">
             <Select id="h-type" value={val.employmentType} onChange={set('employmentType')}>
               {EMPLOYMENT_TYPES.map(([k, l]) => (
                 <option key={k} value={k}>
@@ -250,8 +250,8 @@ export function HiringRequestFormPage() {
           </Field>
           <Field id="h-reason" label="Reason">
             <Select id="h-reason" value={val.reason} onChange={set('reason')}>
-              <option value="NEW_POSITION">New position</option>
-              <option value="REPLACEMENT">Replacing someone who is leaving</option>
+              <option value="NEW_POSITION">New Position</option>
+              <option value="REPLACEMENT">Replacing Someone Who Is Leaving</option>
             </Select>
           </Field>
           {val.reason === 'REPLACEMENT' && (
@@ -262,7 +262,7 @@ export function HiringRequestFormPage() {
                 value={val.replacingEmployeeId}
                 onChange={set('replacingEmployeeId')}
               >
-                <option value="">Choose the employee</option>
+                <option value="">Choose The Employee</option>
                 {o.employees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
@@ -274,19 +274,19 @@ export function HiringRequestFormPage() {
           )}
         </div>
         <div className="form-row">
-          <Field id="h-grade" label="Pay grade" optional>
+          <Field id="h-grade" label="Pay Grade" optional>
             <Input id="h-grade" value={val.payGrade} onChange={set('payGrade')} />
           </Field>
-          <Field id="h-start" label="Wanted from" optional>
+          <Field id="h-start" label="Wanted From" optional>
             <Input id="h-start" type="date" value={val.targetStartDate} onChange={set('targetStartDate')} />
           </Field>
         </div>
-        <Field id="h-why" label="Why the position is needed">
+        <Field id="h-why" label="Why The Position Is Needed">
           <Textarea id="h-why" rows={4} required value={val.justification} onChange={set('justification')} />
         </Field>
         <div className="form-actions">
           <Button type="submit" busy={busy}>
-            Send to HR
+            Send To HR
           </Button>
           <ButtonLink to="/recruitment/requests">Cancel</ButtonLink>
         </div>
@@ -341,7 +341,7 @@ export function HiringRequestPage() {
       <PageHeader
         title={`${r.jobTitle} · ${r.reference}`}
         description={`${r.department}, ${r.company}`}
-        actions={<Badge tone={tone}>{deciding ? 'Waiting for your decision' : label}</Badge>}
+        actions={<Badge tone={tone}>{deciding ? 'Waiting For Your Decision' : label}</Badge>}
       />
       <div
         className={
@@ -354,7 +354,7 @@ export function HiringRequestPage() {
           <div className="grid gap-4 lg:sticky lg:top-4 lg:order-last">
             {deciding && (
               <Section
-                title={r.can.review ? 'HR check' : 'Director’s decision'}
+                title={r.can.review ? 'HR Check' : 'Director’s Decision'}
                 className="border-brand ring-1 ring-brand"
               >
                 <div className="space-y-3">
@@ -380,7 +380,7 @@ export function HiringRequestPage() {
                         act(r.can.review ? 'review' : 'decide', r.can.review ? 'FORWARD' : 'APPROVE')
                       }
                     >
-                      {r.can.review ? 'Send to a director' : 'Approve'}
+                      {r.can.review ? 'Send To A Director' : 'Approve'}
                     </Button>
                     <Button
                       variant="danger"
@@ -388,28 +388,28 @@ export function HiringRequestPage() {
                       disabled={!!busy}
                       onClick={() => act(r.can.review ? 'review' : 'decide', 'REJECT')}
                     >
-                      Turn down
+                      Turn Down
                     </Button>
                   </div>
                 </div>
               </Section>
             )}
             {r.can.openVacancy && (
-              <Section title="Open the vacancy" className="border-brand ring-1 ring-brand">
+              <Section title="Open The Vacancy" className="border-brand ring-1 ring-brand">
                 <p className="mb-3 text-sm">
                   This request is approved. Open the vacancy to start recording candidates.
                 </p>
                 <ButtonLink to={`/recruitment/vacancies/new?request=${r.id}`} variant="primary">
-                  Open vacancy
+                  Open Vacancy
                 </ButtonLink>
               </Section>
             )}
             {r.can.cancel && (
-              <Section title="Cancel request">
+              <Section title="Cancel Request">
                 <p className="mb-3 text-sm">Cancel it if the position is no longer needed.</p>
                 {error && !deciding && <Notice tone="danger">{error}</Notice>}
                 <Button variant="secondary" busy={busy === 'cancel'} onClick={() => act('cancel')}>
-                  Cancel request
+                  Cancel Request
                 </Button>
               </Section>
             )}
@@ -419,13 +419,13 @@ export function HiringRequestPage() {
           <Section title="Approval">
             <ol className="grid gap-3 sm:grid-cols-2">
               <Step
-                title="HR check"
+                title="HR Check"
                 done={r.review}
                 outcome={
                   r.review &&
                   (r.status === 'REJECTED' && !r.decision
-                    ? ['Turned down', 'danger']
-                    : ['Sent to a director', 'ok'])
+                    ? ['Turned Down', 'danger']
+                    : ['Sent To A Director', 'ok'])
                 }
                 waiting={r.status === 'PENDING_REVIEW'}
               />
@@ -433,7 +433,7 @@ export function HiringRequestPage() {
                 title="Director"
                 done={r.decision}
                 outcome={
-                  r.decision && (r.status === 'APPROVED' ? ['Approved', 'ok'] : ['Not approved', 'danger'])
+                  r.decision && (r.status === 'APPROVED' ? ['Approved', 'ok'] : ['Not Approved', 'danger'])
                 }
                 waiting={r.status === 'PENDING_APPROVAL'}
               />
@@ -454,21 +454,21 @@ export function HiringRequestPage() {
             <Details
               items={[
                 ['Position', r.jobTitle],
-                ['How many', String(r.positions)],
+                ['How Many', String(r.positions)],
                 ['Company', r.company],
                 ['Department', r.department],
                 ['Branch', r.branch],
-                ['Employment type', EMPLOYMENT_LABEL[r.employmentType]],
+                ['Employment Type', EMPLOYMENT_LABEL[r.employmentType]],
                 ['Reason', REASON_LABEL[r.reason] + (r.replacing ? `: ${r.replacing}` : '')],
-                ['Pay grade', r.payGrade],
-                ['Wanted from', r.targetStartDate && formatDate(r.targetStartDate)],
+                ['Pay Grade', r.payGrade],
+                ['Wanted From', r.targetStartDate && formatDate(r.targetStartDate)],
                 [
                   'Why',
                   <span key="why" className="whitespace-pre-line">
                     {r.justification}
                   </span>,
                 ],
-                ['Requested by', `${r.requestedBy.name} · ${formatDateTime(r.requestedAt)}`],
+                ['Requested By', `${r.requestedBy.name} · ${formatDateTime(r.requestedAt)}`],
               ]}
             />
           </Section>
@@ -486,9 +486,9 @@ function Step({ title, done, outcome, waiting }) {
         {done ? (
           <Badge tone={outcome[1]}>{outcome[0]}</Badge>
         ) : waiting ? (
-          <Badge tone="pending">Waiting for a decision</Badge>
+          <Badge tone="pending">Waiting For A Decision</Badge>
         ) : (
-          <Badge tone="neutral">Not yet</Badge>
+          <Badge tone="neutral">Not Yet</Badge>
         )}
       </div>
       {done && (

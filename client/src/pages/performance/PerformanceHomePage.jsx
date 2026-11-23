@@ -35,35 +35,35 @@ export default function PerformanceHomePage() {
     {
       to: '/performance/mine',
       icon: Target,
-      title: c.mine ? `My appraisal: your turn (${c.mine})` : 'My appraisals',
+      title: c.mine ? `My Appraisal: Your Turn (${c.mine})` : 'My Appraisals',
       desc: 'Goals, mid-year and year-end',
       tone: c.mine ? 'issue' : 'receive',
     },
     (a.isManager || s.team.length > 0) && {
       to: '/performance/team',
       icon: UsersRound,
-      title: c.team ? `My team: your turn (${c.team})` : 'My team',
+      title: c.team ? `My Team: Your Turn (${c.team})` : 'My Team',
       desc: 'Agree goals, review and rate',
       tone: c.team ? 'issue' : 'stock',
     },
     a.signoff && {
       to: '/performance/team?scope=all&status=FINAL_MANAGER_DONE',
       icon: ClipboardCheck,
-      title: `To sign off (${c.signoff})`,
+      title: `To Sign Off (${c.signoff})`,
       desc: 'Year-end appraisals waiting for HR',
       tone: c.signoff ? 'issue' : 'reports',
     },
     (a.isManager || a.probation || c.probation > 0) && {
       to: '/performance/probation',
       icon: UserCheck,
-      title: `Probation reviews${c.probation ? ` (${c.probation})` : ''}`,
+      title: `Probation Reviews${c.probation ? ` (${c.probation})` : ''}`,
       desc: a.probation ? 'Recommendations and decisions' : 'Your team’s probation reviews',
       tone: c.probation ? 'issue' : 'request',
     },
     a.cycles && {
       to: '/performance/cycles',
       icon: CalendarRange,
-      title: 'Review cycles',
+      title: 'Review Cycles',
       desc: 'Start the year and move it on',
       tone: 'reports',
     },
@@ -84,7 +84,7 @@ export default function PerformanceHomePage() {
           return (
             <Section
               key={m.id}
-              title={`My appraisal · ${m.cycle.name}`}
+              title={`My Appraisal · ${m.cycle.name}`}
               description={PHASE[m.cycle.phase][0]}
               actions={
                 <Link
@@ -104,12 +104,12 @@ export default function PerformanceHomePage() {
         })}
 
         {s.team.length > 0 && (
-          <Section title="My team" description="Appraisals in the current review cycle">
-            <Table title="My team" tools={false}>
+          <Section title="My Team" description="Appraisals in the current review cycle">
+            <Table title="My Team" tools={false}>
               <thead>
                 <tr>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Status</Th>
                   <Th>Next</Th>
                   <Th>
@@ -146,7 +146,7 @@ export default function PerformanceHomePage() {
 
         {a.viewAll &&
           s.cycles.map((cy) => (
-            <Section key={cy.id} title={`${cy.name}: where everyone is`} description={PHASE[cy.status][0]}>
+            <Section key={cy.id} title={`${cy.name}: Where Everyone Is`} description={PHASE[cy.status][0]}>
               <BarList
                 items={Object.entries(STATUS).map(([k, [label]]) => ({
                   key: k,

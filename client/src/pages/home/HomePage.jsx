@@ -49,15 +49,15 @@ function Shortcuts({ me, i }) {
       <ActionTile
         to="/leave/apply"
         icon={CalendarPlus}
-        title="Apply for leave"
+        title="Apply For Leave"
         desc="Book time off"
         tone="receive"
       />
-      <ActionTile to="/leave" icon={CalendarCheck} title="My leave" desc="Your requests" tone="stock" />
+      <ActionTile to="/leave" icon={CalendarCheck} title="My Leave" desc="Your requests" tone="stock" />
       <ActionTile
         to="/leave/balances"
         icon={Scale}
-        title="My balances"
+        title="My Balances"
         desc="Days you have left"
         tone="reports"
       />
@@ -75,7 +75,7 @@ function Shortcuts({ me, i }) {
         <ActionTile
           to="/hr/approvals"
           icon={ShieldCheck}
-          title="HR approvals"
+          title="HR Approvals"
           desc="Final decisions"
           badge={waiting(i.hrApprovals)}
           tone="request"
@@ -85,7 +85,7 @@ function Shortcuts({ me, i }) {
         <ActionTile
           to="/hr"
           icon={LayoutGrid}
-          title="Group overview"
+          title="Group Overview"
           desc="Leave across the group"
           tone="request"
         />
@@ -102,7 +102,7 @@ function Body({ d, me }) {
       <Shortcuts me={me} i={d.insights} />
 
       {d.actions.length > 0 && (
-        <Notice tone="pending" title="Needs your attention">
+        <Notice tone="pending" title="Needs Your Attention">
           <ul className="space-y-0.5">
             {d.actions.map((a) => (
               <li key={`${a.kind}-${a.requestId}`}>
@@ -128,9 +128,9 @@ function Body({ d, me }) {
             <BalanceDonut b={main} />
           </Section>
         )}
-        <Section title={`Days taken by leave type, ${d.year}`}>
+        <Section title={`Days Taken By Leave Type, ${d.year}`}>
           <TypeDonut
-            label={`Days taken by leave type, ${d.year}`}
+            label={`Days Taken By Leave Type, ${d.year}`}
             empty={`No leave taken yet in ${d.year}.`}
             items={d.balances.map((b) => ({
               key: b.leaveType.id,
@@ -141,15 +141,15 @@ function Body({ d, me }) {
         </Section>
       </div>
 
-      <Section title={`Your leave by month, ${d.year}`}>
+      <Section title={`Your Leave By Month, ${d.year}`}>
         <MonthlyLeaveChart months={d.charts.monthly} year={d.year} />
       </Section>
 
       <div className="grid-2">
-        <Section title="Waiting for a decision">
+        <Section title="Waiting For A Decision">
           <RequestList items={d.pending} empty="No requests are waiting for a decision." />
         </Section>
-        <Section title="Upcoming approved leave">
+        <Section title="Upcoming Approved Leave">
           <RequestList items={d.upcoming} empty="No approved leave coming up." />
         </Section>
       </div>
@@ -161,28 +161,28 @@ function Insights({ i, year }) {
   return (
     <KpiRow>
       <Kpi
-        label={i.main ? `${i.main.leaveType} available` : 'Days available'}
+        label={i.main ? `${i.main.leaveType} available` : 'Days Available'}
         value={i.main ? i.main.available : '—'}
         unit={i.main ? 'days' : undefined}
         to="/leave/balances"
       />
-      <Kpi label={`Taken in ${year}`} value={i.takenThisYear} unit="days" to="/leave/balances" />
+      <Kpi label={`Taken In ${year}`} value={i.takenThisYear} unit="days" to="/leave/balances" />
       <Kpi
-        label="Your pending requests"
+        label="Your Pending Requests"
         value={i.awaitingDecision}
         tone={i.awaitingDecision > 0 ? 'warn' : undefined}
         to="/leave"
       />
       {i.onLeaveNow ? (
         <Kpi
-          label="On leave"
+          label="On Leave"
           value={`Until ${formatDate(i.onLeaveNow.endDate)}`}
           small
           to={`/leave/requests/${i.onLeaveNow.id}`}
         />
       ) : (
         <Kpi
-          label="Next leave"
+          label="Next Leave"
           value={i.nextLeave ? formatDate(i.nextLeave.startDate) : 'None booked'}
           note={i.nextLeave ? days(i.nextLeave.chargeableDays) : undefined}
           small

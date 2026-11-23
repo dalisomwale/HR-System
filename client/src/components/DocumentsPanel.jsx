@@ -38,7 +38,7 @@ export default function DocumentsPanel({ request: r }) {
   return (
     <div className="grid gap-4">
       <Section
-        title="Handover sheet"
+        title="Handover Sheet"
         description="The handover template in Excel, filled in by the employee."
         actions={
           r.can.uploadDocument && (
@@ -52,7 +52,7 @@ export default function DocumentsPanel({ request: r }) {
       </Section>
       {(req || supporting.length > 0) && (
         <Section
-          title="Supporting documents"
+          title="Supporting Documents"
           description={req ? `Required: ${req.description ?? 'a supporting document'}.` : undefined}
         >
           {req && !req.provided && (
@@ -196,7 +196,7 @@ function DocList({ request: r, docs, kind, canAdd }) {
             onChange={(e) => upload(e.target.files?.[0])}
           />
           <Button variant="secondary" busy={busy === 'upload'} onClick={() => input.current?.click()}>
-            {kind === 'HANDOVER' ? 'Attach handover sheet' : 'Upload a document'}
+            {kind === 'HANDOVER' ? 'Attach Handover Sheet' : 'Upload A Document'}
           </Button>
           <p className="mt-1 text-xs text-muted">
             {kind === 'HANDOVER'

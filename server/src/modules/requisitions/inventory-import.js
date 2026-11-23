@@ -193,7 +193,7 @@ export async function runImport(
   const { source: s, company, department, deptName, person, personName } = plan;
   if (plan.report.blockingCompanies.length) {
     throw new Error(
-      `These inventory companies have no match in the HR system: ${plan.report.blockingCompanies.join(', ')}. Add them in Employee management, or map them with --map "Inventory name=HR name".`,
+      `These inventory companies have no match in the HR system: ${plan.report.blockingCompanies.join(', ')}. Add them in Employee Management, or map them with --map "Inventory name=HR name".`,
     );
   }
   const already =

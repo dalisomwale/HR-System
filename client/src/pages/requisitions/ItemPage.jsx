@@ -59,7 +59,7 @@ export default function ItemPage() {
             <Button
               variant="danger"
               disabled={it.hasHistory}
-              title={it.hasHistory ? "Items with stock history can't be deleted" : undefined}
+              title={it.hasHistory ? "Items With Stock History Can't Be Deleted" : undefined}
               onClick={() => setDel(true)}
             >
               Delete
@@ -73,28 +73,28 @@ export default function ItemPage() {
         </div>
       )}
       <div className="grid-2">
-        <Section title={it.scoped ? 'Issued to your department' : 'Stock'}>
+        <Section title={it.scoped ? 'Issued To Your Department' : 'Stock'}>
           {it.scoped ? (
             <Details
               items={[
-                ['Total issued', units(it.issued)],
-                ['Times issued', units(it.history.length)],
-                ['Value issued', kwacha(it.issued * it.unitPrice)],
+                ['Total Issued', units(it.issued)],
+                ['Times Issued', units(it.history.length)],
+                ['Value Issued', kwacha(it.issued * it.unitPrice)],
               ]}
             />
           ) : (
             <Details
               items={[
                 [
-                  'In stock',
+                  'In Stock',
                   <span key="q" className="text-lg">
                     {units(it.quantity)}
                   </span>,
                 ],
-                ['Reorder level', units(it.reorderLevel)],
-                ['Days left', daysLeftLabel(it.daysLeft, it.quantity)],
-                ['Used per week', it.perWeek > 0 ? it.perWeek.toFixed(it.perWeek < 10 ? 1 : 0) : '—'],
-                ['Suggested order', it.suggest > 0 ? units(it.suggest) : '—'],
+                ['Reorder Level', units(it.reorderLevel)],
+                ['Days Left', daysLeftLabel(it.daysLeft, it.quantity)],
+                ['Used Per Week', it.perWeek > 0 ? it.perWeek.toFixed(it.perWeek < 10 ? 1 : 0) : '—'],
+                ['Suggested Order', it.suggest > 0 ? units(it.suggest) : '—'],
               ]}
             />
           )}
@@ -104,12 +104,12 @@ export default function ItemPage() {
             items={[
               ['Category', it.category],
               ['Description', it.description],
-              ['Unit price', kwacha(it.unitPrice)],
+              ['Unit Price', kwacha(it.unitPrice)],
               ...(it.scoped
                 ? []
                 : [
-                    ['Received in total', units(it.received)],
-                    ['Issued in total', units(it.issued)],
+                    ['Received In Total', units(it.received)],
+                    ['Issued In Total', units(it.issued)],
                   ]),
             ]}
           />
@@ -133,7 +133,7 @@ export default function ItemPage() {
 
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="mb-3 font-head text-base font-semibold text-ink">Stock history</h2>
+          <h2 className="mb-3 font-head text-base font-semibold text-ink">Stock History</h2>
           {it.history.length > 0 && (
             <Button
               variant="secondary"
@@ -142,7 +142,7 @@ export default function ItemPage() {
               }
             >
               {' '}
-              Export to Excel
+              Export To Excel
             </Button>
           )}
         </div>
@@ -158,8 +158,8 @@ export default function ItemPage() {
                 <Th>Type</Th>
                 <Th className="text-right">Qty</Th>
                 <Th>Branch</Th>
-                <Th>Supplier or department</Th>
-                <Th className="text-right">Branch stock</Th>
+                <Th>Supplier Or Department</Th>
+                <Th className="text-right">Branch Stock</Th>
                 <Th>By</Th>
               </tr>
             </thead>
@@ -195,7 +195,7 @@ export default function ItemPage() {
       </div>
       <ConfirmDialog
         open={del}
-        title="Delete item"
+        title="Delete Item"
         confirmLabel="Delete"
         tone="danger"
         busy={busy}

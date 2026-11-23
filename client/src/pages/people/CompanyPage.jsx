@@ -49,7 +49,7 @@ export default function CompanyPage() {
               {!c.isActive && <Badge>Inactive</Badge>}
               <ButtonLink to={`/people/companies/${c.id}/employees`}> Employees</ButtonLink>
               {can(me, 'people.edit') && (
-                <ButtonLink to={`/people/companies/${c.id}/employees/new`}> Add employee</ButtonLink>
+                <ButtonLink to={`/people/companies/${c.id}/employees/new`}> Add Employee</ButtonLink>
               )}
               {can(me, 'people.org') && <ButtonLink to="/people/companies/manage"> Manage</ButtonLink>}
             </div>
@@ -58,15 +58,15 @@ export default function CompanyPage() {
       </div>
 
       <Stats>
-        <Stat label="Active staff" value={c.headcount} to={`/people/companies/${c.id}/employees`} />
+        <Stat label="Active Staff" value={c.headcount} to={`/people/companies/${c.id}/employees`} />
         <Stat label="Departments" value={c.departments.length} />
         <Stat
-          label="On probation"
+          label="On Probation"
           value={c.onProbation}
           to={`/people/companies/${c.id}/employees?filter=probation`}
         />
         <Stat
-          label="Contracts ending in 60 days"
+          label="Contracts Ending In 60 Days"
           value={c.contractsEnding}
           to={`/people/companies/${c.id}/employees?filter=contractEnding`}
         />
@@ -87,17 +87,17 @@ export default function CompanyPage() {
         </>
       ) : (
         <div className="grid-2">
-          <Section title="Employment type">
+          <Section title="Employment Type">
             <TypeDonutChart byType={c.byType} />
           </Section>
-          <Section title="Length of service">
+          <Section title="Length Of Service">
             <ServiceChart
               bands={[
-                { key: 'lt1', label: 'Under 1 year', count: c.serviceBands.lt1 },
-                { key: 'y1to2', label: '1 to 2 years', count: c.serviceBands.y1to2 },
-                { key: 'y2to5', label: '2 to 5 years', count: c.serviceBands.y2to5 },
-                { key: 'y5to10', label: '5 to 10 years', count: c.serviceBands.y5to10 },
-                { key: 'gt10', label: 'Over 10 years', count: c.serviceBands.gt10 },
+                { key: 'lt1', label: 'Under 1 Year', count: c.serviceBands.lt1 },
+                { key: 'y1to2', label: '1 To 2 Years', count: c.serviceBands.y1to2 },
+                { key: 'y2to5', label: '2 To 5 Years', count: c.serviceBands.y2to5 },
+                { key: 'y5to10', label: '5 To 10 Years', count: c.serviceBands.y5to10 },
+                { key: 'gt10', label: 'Over 10 Years', count: c.serviceBands.gt10 },
               ]}
             />
           </Section>

@@ -29,7 +29,7 @@ export function LogOutButton({ icon = false }) {
         <button
           type="button"
           onClick={() => setAsking(true)}
-          title="Log out"
+          title="Log Out"
           aria-label="Log out"
           className="flex size-7 shrink-0 items-center justify-center rounded-sm text-muted transition-colors hover:bg-[#fdecec] hover:text-danger"
         >
@@ -41,13 +41,13 @@ export function LogOutButton({ icon = false }) {
           onClick={() => setAsking(true)}
           className="inline-flex h-9 items-center gap-1.5 rounded-sm border border-[#efc4c4] bg-white px-4 text-[0.875rem] font-medium text-danger transition-colors hover:border-danger hover:bg-[#fdecec]"
         >
-          <LogOut className="size-3.5" aria-hidden /> Log out
+          <LogOut className="size-3.5" aria-hidden /> Log Out
         </button>
       )}
       <ConfirmDialog
         open={asking}
-        title="Log out"
-        confirmLabel="Log out"
+        title="Log Out"
+        confirmLabel="Log Out"
         tone="danger"
         busy={busy}
         onConfirm={logOut}

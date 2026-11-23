@@ -4,22 +4,22 @@ import { Trail } from '../../layouts/LeaveTrail.jsx';
 import { api } from '../../lib/api.js';
 
 /*
- * Where you are in Employee management (D60): Employee management › Company overview › Altus
+ * Where you are in Employee Management (D60): Employee management › Company overview › Altus
  * Financial Services Limited. Worked out from the address; names come from the same queries the
  * pages use, so they are usually already loaded. Shows nothing outside /people.
  */
 
-const ROOT = { label: 'Employee management', to: '/people' };
+const ROOT = { label: 'Employee Management', to: '/people' };
 const SECTIONS = {
   employees: { label: 'Employees', to: '/people/employees' },
-  companies: { label: 'Company overview', to: '/people/companies' },
-  departments: { label: 'Department overview', to: '/people/departments' },
+  companies: { label: 'Company Overview', to: '/people/companies' },
+  departments: { label: 'Department Overview', to: '/people/departments' },
   reports: { label: 'Reports', to: '/people/reports' },
   branches: { label: 'Branches', to: '/people/branches' },
   users: { label: 'Users', to: '/people/users' },
   roles: { label: 'Roles', to: '/people/roles' },
   positions: { label: 'Positions', to: '/people/positions' },
-  audit: { label: 'Audit trail', to: '/people/audit' },
+  audit: { label: 'Audit Trail', to: '/people/audit' },
 };
 const FIXED = {
   'employees/new': 'Add employee',
@@ -99,7 +99,7 @@ export default function PeopleTrail() {
 
   const trail = [ROOT];
   if (!section) trail.push({ label: 'Home' });
-  else if (section === 'import') trail.push(SECTIONS.employees, { label: 'Import employees' });
+  else if (section === 'import') trail.push(SECTIONS.employees, { label: 'Import Employees' });
   else if (section === 'reports') {
     trail.push(reportTitle ? SECTIONS.reports : { label: 'Reports' });
     if (reportTitle) trail.push({ label: reportTitle });
@@ -110,7 +110,7 @@ export default function PeopleTrail() {
     if (!subId) trail.push({ label: 'Employees' });
     else {
       trail.push({ label: 'Employees', to: `/people/${section}/${rest}/employees` });
-      trail.push({ label: subId === 'new' ? 'Add employee' : employeeName });
+      trail.push({ label: subId === 'new' ? 'Add Employee' : employeeName });
     }
   } else {
     const s = SECTIONS[section];

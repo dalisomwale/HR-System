@@ -81,8 +81,8 @@ export async function alertIfCrossed(trx, { item, before, after, levelBefore, le
         : `${item.name} has fallen to its reorder level or below.`,
       rows: [
         ['Item', item.name],
-        ['In stock', `${units(after)} across all branches`],
-        ['Reorder level', units(level)],
+        ['In Stock', `${units(after)} across all branches`],
+        ['Reorder Level', units(level)],
       ],
       action: 'Raise a requisition or receive stock so it does not run out.',
       app: 'inventory',

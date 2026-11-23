@@ -18,15 +18,15 @@ export const NETWORK_TONE = { AIRTEL: 'danger', MTN: 'pending' };
 export const KIND = { DEPOSIT: 'Deposit', WITHDRAWAL: 'Withdrawal' };
 export const TXN_STATUS = {
   POSTED: ['Recorded', 'ok'],
-  REVERSAL_PENDING: ['Reversal asked', 'pending'],
+  REVERSAL_PENDING: ['Reversal Asked', 'pending'],
   REVERSED: ['Reversed', 'neutral'],
 };
 export const VARIANCE_STATUS = {
-  OPEN: ['To resolve', 'pending'],
-  PENDING_DIRECTOR: ['With the director', 'pending'],
+  OPEN: ['To Resolve', 'pending'],
+  PENDING_DIRECTOR: ['With The Director', 'pending'],
   EXPLAINED: ['Explained', 'ok'],
   RECOVERED: ['Recovered', 'ok'],
-  WRITTEN_OFF: ['Written off', 'neutral'],
+  WRITTEN_OFF: ['Written Off', 'neutral'],
 };
 export const DAYS = [
   ['MON', 'Monday'],

@@ -2,13 +2,13 @@ import { formatDate } from './format.js';
 
 export const STATUS_LABELS = {
   DRAFT: 'Draft',
-  PENDING_MANAGER_APPROVAL: 'With manager',
-  PENDING_EMPLOYEE_ACCEPTANCE: 'With employee',
+  PENDING_MANAGER_APPROVAL: 'With Manager',
+  PENDING_EMPLOYEE_ACCEPTANCE: 'With Employee',
   PENDING_HR_APPROVAL: 'With HR',
-  RETURNED_FOR_CORRECTION: 'Returned to you',
+  RETURNED_FOR_CORRECTION: 'Returned To You',
   APPROVED: 'Approved',
-  REJECTED_BY_MANAGER: 'Rejected by manager',
-  REJECTED_BY_HR: 'Rejected by HR',
+  REJECTED_BY_MANAGER: 'Rejected By Manager',
+  REJECTED_BY_HR: 'Rejected By HR',
   WITHDRAWN: 'Withdrawn',
   CANCELLED: 'Cancelled',
 };
@@ -40,10 +40,10 @@ export const STATUS_TONES = {
 
 export const CHANGE_LABELS = {
   CANCEL: 'Cancellation',
-  AMEND: 'Change of dates',
-  PLANS_CHANGED: 'Plans changed',
-  RECALLED_BY_MANAGEMENT: 'Recalled by management',
-  EARLY_RETURN_BY_CHOICE: 'Returning early by choice',
+  AMEND: 'Change Of Dates',
+  PLANS_CHANGED: 'Plans Changed',
+  RECALLED_BY_MANAGEMENT: 'Recalled By Management',
+  EARLY_RETURN_BY_CHOICE: 'Returning Early By Choice',
 };
 
 export const ACTION_LABELS = {
@@ -51,10 +51,10 @@ export const ACTION_LABELS = {
   RESUBMIT: 'Resubmitted',
   APPROVE: 'Approved',
   REJECT: 'Rejected',
-  RETURN: 'Returned for correction',
+  RETURN: 'Returned For Correction',
   WITHDRAW: 'Withdrawn',
-  TRANSFER: 'Transferred with different dates',
-  ACCEPT: 'Offered dates accepted',
+  TRANSFER: 'Transferred With Different Dates',
+  ACCEPT: 'Offered Dates Accepted',
   ROUTE: 'Routed',
   ESCALATE: 'Escalated',
 };

@@ -103,7 +103,7 @@ export function FloatDailyPage() {
   return (
     <div>
       <PageHeader
-        title="AMS daily reports"
+        title="AMS Daily Reports"
         description="Each branch's day, from opening to closing. Sent automatically when a store closes."
         actions={
           <Button
@@ -112,16 +112,16 @@ export function FloatDailyPage() {
               downloadFile(`/api/float/daily?${qs}&format=xlsx`).catch((e) => setError(e.message))
             }
           >
-            Export to Excel
+            Export To Excel
           </Button>
         }
       />
       <div className="mb-4 grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-[10rem_minmax(0,1fr)_8rem_minmax(0,1fr)_minmax(0,1.4fr)]">
         <Field id="dr-period" label="Show">
           <Select id="dr-period" value={f.period} onChange={set('period')}>
-            <option value="DAY">A day</option>
-            <option value="WEEK">A week of the month</option>
-            <option value="MONTH">A month</option>
+            <option value="DAY">A Day</option>
+            <option value="WEEK">A Week Of The Month</option>
+            <option value="MONTH">A Month</option>
           </Select>
         </Field>
         {f.period === 'DAY' ? (
@@ -149,7 +149,7 @@ export function FloatDailyPage() {
         {me.data?.rights.viewAll || me.data?.rights.admin ? (
           <Field id="dr-branch" label="Branch">
             <Select id="dr-branch" value={f.branch} onChange={set('branch')}>
-              <option value="">All branches</option>
+              <option value="">All Branches</option>
               {(branches.data?.items ?? []).map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -174,7 +174,7 @@ export function FloatDailyPage() {
       {d && (
         <div className="stack">
           {d.unsigned.length > 0 && (
-            <Notice tone="pending" title="Days not yet reconciled and signed off">
+            <Notice tone="pending" title="Days Not Yet Reconciled And Signed Off">
               {d.unsigned.map((x) => (
                 <button
                   key={x}
@@ -189,7 +189,7 @@ export function FloatDailyPage() {
           )}
           {f.period === 'DAY' && d.canSignOff && !d.signed[f.day] && d.rows.length > 0 && (
             <Section
-              title={`Reconcile and sign off ${formatDate(f.day)}`}
+              title={`Reconcile And Sign Off ${formatDate(f.day)}`}
               className="border-brand ring-1 ring-brand"
             >
               <div className="space-y-3">
@@ -201,29 +201,29 @@ export function FloatDailyPage() {
                   <Textarea id="dy-c" rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
                 </Field>
                 <Button busy={busy} onClick={() => sign(f.day)}>
-                  Sign off {formatDate(f.day)}
+                  Sign Off {formatDate(f.day)}
                 </Button>
               </div>
             </Section>
           )}
           {f.period === 'DAY' && d.signed[f.day] && (
-            <Notice tone="ok" title={`Signed off by ${d.signed[f.day].by}`}>
+            <Notice tone="ok" title={`Signed Off By ${d.signed[f.day].by}`}>
               {formatDateTime(d.signed[f.day].at)}
               {d.signed[f.day].comment ? `: “${d.signed[f.day].comment}”` : ''}
             </Notice>
           )}
           <KpiRow cols={4}>
-            <Kpi label="Number of deposits" value={dash(t.deposits.count)} small />
+            <Kpi label="Number Of Deposits" value={dash(t.deposits.count)} small />
             <Kpi label="Deposits" value={dash(t.deposits.amount, money)} small />
-            <Kpi label="Number of withdrawals" value={dash(t.withdrawals.count)} small />
+            <Kpi label="Number Of Withdrawals" value={dash(t.withdrawals.count)} small />
             <Kpi label="Withdrawals" value={dash(t.withdrawals.amount, money)} small />
           </KpiRow>
           <KpiRow cols={4}>
-            <Kpi label="Closing cash" value={dash(t.cash, money)} small />
-            <Kpi label="Closing Airtel Money float" value={dash(t.airtel, money)} small />
-            <Kpi label="Closing MTN MoMo float" value={dash(t.mtn, money)} small />
+            <Kpi label="Closing Cash" value={dash(t.cash, money)} small />
+            <Kpi label="Closing Airtel Money Float" value={dash(t.airtel, money)} small />
+            <Kpi label="Closing MTN MoMo Float" value={dash(t.mtn, money)} small />
             <Kpi
-              label="Daily commission"
+              label="Daily Commission"
               value={dash(t.commission, money)}
               note={t.deficit ? `Deficits ${money(t.deficit)}` : undefined}
               tone={t.deficit ? 'bad' : undefined}
@@ -235,7 +235,7 @@ export function FloatDailyPage() {
               <EmptyState title="No reports for this period." />
             </div>
           ) : (
-            <Table title={`AMS daily ${from} to ${to}`} tools={false}>
+            <Table title={`AMS Daily ${from} to ${to}`} tools={false}>
               <thead>
                 <tr>
                   <Th>Date</Th>
@@ -246,16 +246,16 @@ export function FloatDailyPage() {
                   <Th className="text-right">Deposits</Th>
                   <Th className="text-right">No. of withdrawals</Th>
                   <Th className="text-right">Withdrawals</Th>
-                  <Th className="text-right">Opening cash</Th>
-                  <Th className="text-right">Opening float</Th>
-                  <Th className="text-right">Closing cash</Th>
-                  <Th className="text-right">Closing float</Th>
-                  <Th className="text-right">Float transfers</Th>
-                  <Th className="text-right">Cash to finance</Th>
+                  <Th className="text-right">Opening Cash</Th>
+                  <Th className="text-right">Opening Float</Th>
+                  <Th className="text-right">Closing Cash</Th>
+                  <Th className="text-right">Closing Float</Th>
+                  <Th className="text-right">Float Transfers</Th>
+                  <Th className="text-right">Cash To Finance</Th>
                   <Th className="text-right">Daytime</Th>
                   <Th className="text-right">Evening</Th>
                   <Th className="text-right">Total</Th>
-                  <Th className="text-right">Turned down</Th>
+                  <Th className="text-right">Turned Down</Th>
                   <Th className="text-right">Commission</Th>
                   <Th className="text-right">Deficit</Th>
                 </tr>
@@ -277,7 +277,7 @@ export function FloatDailyPage() {
                       {r.signedOut ? (
                         timeOf(r.signedOutAt)
                       ) : r.closePending ? (
-                        <Badge tone="pending">To confirm</Badge>
+                        <Badge tone="pending">To Confirm</Badge>
                       ) : r.tradingDay ? (
                         <Badge tone="pending">Open</Badge>
                       ) : (
@@ -347,12 +347,12 @@ export function FloatBranchesPage() {
   return (
     <div>
       <PageHeader
-        title="AMS branches"
+        title="AMS Branches"
         description="Each AMS branch has a Cash, an Airtel Money and an MTN MoMo account. Staff record at the branch on their employee record."
         actions={
           d.canEdit &&
           d.configured &&
-          editing !== 'new' && <Button onClick={() => setEditing('new')}>Add branch</Button>
+          editing !== 'new' && <Button onClick={() => setEditing('new')}>Add Branch</Button>
         }
       />
       <div className="stack">
@@ -383,12 +383,12 @@ export function FloatBranchesPage() {
             <EmptyState title="No AMS branches yet." />
           </div>
         ) : (
-          <Table title="AMS branches">
+          <Table title="AMS Branches">
             <thead>
               <tr>
                 <Th>Branch</Th>
                 <Th>Location</Th>
-                <Th>Days and hours</Th>
+                <Th>Days And Hours</Th>
                 <Th className="text-right">Cash</Th>
                 <Th className="text-right">Airtel Money</Th>
                 <Th className="text-right">MTN MoMo</Th>
@@ -461,7 +461,7 @@ export function FloatBranchesPage() {
           <Link to="/people/employees" className="text-brand hover:underline">
             Employee management
           </Link>
-          , then give them the “AMS Branch Staff” role under Users.
+          , then give them the “Branch Staff” role under Users.
         </p>
       </div>
     </div>
@@ -537,11 +537,11 @@ function BranchForm({ branch, onDone, onCancel }) {
   const toggleNetwork = (k) =>
     setV({ ...v, networks: v.networks.includes(k) ? v.networks.filter((x) => x !== k) : [...v.networks, k] });
   return (
-    <Section title={branch ? `Change ${branch.name}` : 'Add AMS branch'}>
+    <Section title={branch ? `Change ${branch.name}` : 'Add AMS Branch'}>
       <form onSubmit={save} className="stack">
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="form-row">
-          <Field id="br-name" label="Branch name">
+          <Field id="br-name" label="Branch Name">
             <Input
               id="br-name"
               required
@@ -570,7 +570,7 @@ function BranchForm({ branch, onDone, onCancel }) {
           )}
         </div>
         <div>
-          <p className="mb-2 text-sm font-semibold">Networks this branch uses</p>
+          <p className="mb-2 text-sm font-semibold">Networks This Branch Uses</p>
           <div className="flex flex-wrap gap-4">
             {['AIRTEL', 'MTN'].map((k) => (
               <label key={k} className="flex items-center gap-2 text-sm">
@@ -589,7 +589,7 @@ function BranchForm({ branch, onDone, onCancel }) {
           )}
         </div>
         <div>
-          <p className="mb-2 text-sm font-semibold">Working days and hours</p>
+          <p className="mb-2 text-sm font-semibold">Working Days And Hours</p>
           <div className="mb-3 flex flex-wrap gap-3">
             {DAYS.map(([k, l]) => (
               <label key={k} className="flex items-center gap-2 text-sm">
@@ -610,7 +610,7 @@ function BranchForm({ branch, onDone, onCancel }) {
             ))}
           </div>
           <div className="form-row">
-            <Field id="bf-open" label="Opens at">
+            <Field id="bf-open" label="Opens At">
               <Input
                 id="bf-open"
                 type="time"
@@ -618,7 +618,7 @@ function BranchForm({ branch, onDone, onCancel }) {
                 onChange={(e) => setHours({ opensAt: e.target.value })}
               />
             </Field>
-            <Field id="bf-close" label="Closes at" hint="Staff are reminded to close the store at this time.">
+            <Field id="bf-close" label="Closes At" hint="Staff are reminded to close the store at this time.">
               <Input
                 id="bf-close"
                 type="time"
@@ -626,7 +626,7 @@ function BranchForm({ branch, onDone, onCancel }) {
                 onChange={(e) => setHours({ closesAt: e.target.value })}
               />
             </Field>
-            <Field id="bf-eve" label="Evening transactions from">
+            <Field id="bf-eve" label="Evening Transactions From">
               <Input
                 id="bf-eve"
                 type="time"
@@ -637,7 +637,7 @@ function BranchForm({ branch, onDone, onCancel }) {
           </div>
         </div>
         <div>
-          <p className="mb-2 text-sm font-semibold">Opening balances</p>
+          <p className="mb-2 text-sm font-semibold">Opening Balances</p>
           <div className="form-row">
             {used.map((k) => (
               <Field
@@ -660,7 +660,7 @@ function BranchForm({ branch, onDone, onCancel }) {
           </div>
         </div>
         <div>
-          <p className="mb-2 text-sm font-semibold">Minimum balances (low-float warning below these)</p>
+          <p className="mb-2 text-sm font-semibold">Minimum Balances (Low-float Warning Below These)</p>
           <div className="form-row">
             {used.map((k) => (
               <Field key={k} id={`mn-${k}`} label={`${ACCOUNT[k]} (K)`}>
@@ -682,7 +682,7 @@ function BranchForm({ branch, onDone, onCancel }) {
             busy={busy}
             disabled={v.networks.length === 0 || hours.workingDays.length === 0}
           >
-            {branch ? 'Save changes' : 'Add branch'}
+            {branch ? 'Save Changes' : 'Add Branch'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
@@ -723,10 +723,10 @@ export function FloatSettingsPage() {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="AMS settings"
+        title="AMS Settings"
         actions={
           <Button busy={busy} onClick={save}>
-            Save changes
+            Save Changes
           </Button>
         }
       />
@@ -735,7 +735,7 @@ export function FloatSettingsPage() {
         <Section title="Company" description="AMS cash and float applies to this company only">
           <Field id="st-co" label="Company">
             <Select id="st-co" value={v.companyId} onChange={set('companyId')}>
-              <option value="">Choose the company</option>
+              <option value="">Choose The Company</option>
               {v.companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -745,12 +745,12 @@ export function FloatSettingsPage() {
           </Field>
         </Section>
         <Section
-          title="Defaults for new branches, and the daily report"
+          title="Defaults For New Branches, And The Daily Report"
           description="Each branch has its own days and hours, set on the branch's page. These are what a new branch starts with."
         >
           <div className="stack">
             <div>
-              <p className="mb-2 text-sm font-semibold">Trading days</p>
+              <p className="mb-2 text-sm font-semibold">Trading Days</p>
               <div className="flex flex-wrap gap-3">
                 {DAYS.map(([k, l]) => (
                   <label key={k} className="flex items-center gap-2 text-sm">
@@ -773,13 +773,13 @@ export function FloatSettingsPage() {
               </div>
             </div>
             <div className="form-row">
-              <Field id="st-ds" label="Opens at">
+              <Field id="st-ds" label="Opens At">
                 <Input id="st-ds" type="time" value={v.dayStart} onChange={set('dayStart')} />
               </Field>
-              <Field id="st-ev" label="Evening transactions from" hint="Counted separately in the report.">
+              <Field id="st-ev" label="Evening Transactions From" hint="Counted separately in the report.">
                 <Input id="st-ev" type="time" value={v.eveningFrom} onChange={set('eveningFrom')} />
               </Field>
-              <Field id="st-ct" label="Closes at" hint="Branches not signed out by then are reminded.">
+              <Field id="st-ct" label="Closes At" hint="Branches not signed out by then are reminded.">
                 <Input
                   id="st-ct"
                   type="time"
@@ -789,7 +789,7 @@ export function FloatSettingsPage() {
               </Field>
               <Field
                 id="st-rt"
-                label="Daily report time"
+                label="Daily Report Time"
                 hint="Sent to managers and directors on trading days."
               >
                 <Input id="st-rt" type="time" value={v.reportTime} onChange={set('reportTime')} />
@@ -801,7 +801,7 @@ export function FloatSettingsPage() {
           <div className="form-row">
             <Field
               id="st-tol"
-              label="Count difference allowed (K)"
+              label="Count Difference Allowed (K)"
               hint="Smaller differences are not recorded as surplus or deficit."
             >
               <Input
@@ -812,7 +812,7 @@ export function FloatSettingsPage() {
                 onChange={set('cashTolerance')}
               />
             </Field>
-            <Field id="st-large" label="Large transaction from (K)" hint="Flagged for a manager to review.">
+            <Field id="st-large" label="Large Transaction From (K)" hint="Flagged for a manager to review.">
               <Input
                 id="st-large"
                 type="number"
@@ -821,7 +821,7 @@ export function FloatSettingsPage() {
                 onChange={set('largeAmount')}
               />
             </Field>
-            <Field id="st-dir" label="Director approves write-offs above (K)">
+            <Field id="st-dir" label="Director Approves Write-offs Above (K)">
               <Input
                 id="st-dir"
                 type="number"
@@ -830,7 +830,7 @@ export function FloatSettingsPage() {
                 onChange={set('directorLimit')}
               />
             </Field>
-            <Field id="st-dup" label="Warn of a repeat within (minutes)">
+            <Field id="st-dup" label="Warn Of A Repeat Within (Minutes)">
               <Input
                 id="st-dup"
                 type="number"
@@ -849,9 +849,9 @@ export function FloatSettingsPage() {
 
 // ── Phone sign-in for AMS branch staff (D119) ──────────────────────────────────────────────────
 const PHONE_STATUS = {
-  NOT_SET_UP: ['Not set up', 'neutral'],
-  CODE_GIVEN: ['Code given', 'pending'],
-  CODE_EXPIRED: ['Code expired', 'danger'],
+  NOT_SET_UP: ['Not Set Up', 'neutral'],
+  CODE_GIVEN: ['Code Given', 'pending'],
+  CODE_EXPIRED: ['Code Expired', 'danger'],
   ACTIVE: ['Active', 'ok'],
   LOCKED: ['Locked', 'danger'],
 };
@@ -887,7 +887,10 @@ export function CodeShare({ given, onDone }) {
     ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     ref.current?.focus();
   }, [given.code]);
-  const first = String(given.name ?? '').trim().split(/\s+/)[0] || 'there';
+  const first =
+    String(given.name ?? '')
+      .trim()
+      .split(/\s+/)[0] || 'there';
   const digits = String(given.phone ?? '').replace(/[^\d+]/g, '');
   const link = `${window.location.origin}/sign-in${digits ? `?phone=${encodeURIComponent(digits)}` : ''}`;
   const spaced = `${given.code.slice(0, 4)} ${given.code.slice(4)}`;
@@ -905,7 +908,7 @@ export function CodeShare({ given, onDone }) {
   const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   const share = async () => {
     try {
-      await navigator.share({ title: 'Altus sign-in code', text: message });
+      await navigator.share({ title: 'Altus Sign-in Code', text: message });
     } catch {
       // Closed the share sheet: nothing to do.
     }
@@ -917,17 +920,20 @@ export function CodeShare({ given, onDone }) {
       role="status"
       className="rounded-lg border-2 border-emerald-600/40 bg-emerald-50/60 p-4 outline-none dark:bg-emerald-950/20"
     >
-      <p className="text-[0.95rem] font-semibold">Sign-in code for {given.name}</p>
+      <p className="text-[0.95rem] font-semibold">Sign-in Code For {given.name}</p>
       <p className="mt-1 text-[0.85rem] text-muted">
         Share it with {first} only. It is shown here once: if it is lost, give a new code.
       </p>
-      <p className="my-3 font-mono text-3xl font-bold tracking-[0.25em]" aria-label={`Code ${given.code.split('').join(' ')}`}>
+      <p
+        className="my-3 font-mono text-3xl font-bold tracking-[0.25em]"
+        aria-label={`Code ${given.code.split('').join(' ')}`}
+      >
         {spaced}
       </p>
       <dl className="mb-3 grid gap-x-4 gap-y-1 text-[0.85rem] sm:grid-cols-[auto_1fr]">
-        <dt className="text-muted">Phone number</dt>
+        <dt className="text-muted">Phone Number</dt>
         <dd>{given.phone}</dd>
-        <dt className="text-muted">Sign-in page</dt>
+        <dt className="text-muted">Sign-in Page</dt>
         <dd className="break-all">{link}</dd>
         <dt className="text-muted">Expires</dt>
         <dd>{formatDateTime(given.expiresAt)}</dd>
@@ -939,16 +945,28 @@ export function CodeShare({ given, onDone }) {
       <div className="flex flex-wrap gap-2">
         {canShare && (
           <Button size="sm" onClick={share}>
-            <Share2 className="size-4" aria-hidden /> Share message
+            <Share2 className="size-4" aria-hidden /> Share Message
           </Button>
         )}
-        <Button size="sm" variant={canShare ? 'secondary' : 'primary'} onClick={() => copy('message', message)}>
-          {copied === 'message' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-          {copied === 'message' ? 'Message copied' : 'Copy message'}
+        <Button
+          size="sm"
+          variant={canShare ? 'secondary' : 'primary'}
+          onClick={() => copy('message', message)}
+        >
+          {copied === 'message' ? (
+            <Check className="size-4" aria-hidden />
+          ) : (
+            <Copy className="size-4" aria-hidden />
+          )}
+          {copied === 'message' ? 'Message Copied' : 'Copy Message'}
         </Button>
         <Button size="sm" variant="secondary" onClick={() => copy('code', given.code)}>
-          {copied === 'code' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-          {copied === 'code' ? 'Code copied' : 'Copy code'}
+          {copied === 'code' ? (
+            <Check className="size-4" aria-hidden />
+          ) : (
+            <Copy className="size-4" aria-hidden />
+          )}
+          {copied === 'code' ? 'Code Copied' : 'Copy Code'}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>
           Done
@@ -982,7 +1000,7 @@ export function FloatPhoneAccessPage() {
   return (
     <div>
       <PageHeader
-        title="Phone sign-in"
+        title="Phone Sign-in"
         description="AMS branch staff sign in with their phone number and a 6-digit PIN. Set each one up here: a one-time code appears for you to share with them. They sign in with it once, then choose their PIN."
       />
       <div className="stack">
@@ -994,19 +1012,19 @@ export function FloatPhoneAccessPage() {
           (q.data.items.length === 0 ? (
             <div className="card p-0">
               <EmptyState title="No AMS branch staff yet.">
-                Post staff to an AMS branch on their employee record in Employee management.
+                Post staff to an AMS branch on their employee record in Employee Management.
               </EmptyState>
             </div>
           ) : (
-            <Table title="Phone sign-in">
+            <Table title="Phone Sign-in">
               <thead>
                 <tr>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Branch</Th>
-                  <Th>Phone number</Th>
+                  <Th>Phone Number</Th>
                   <Th>Status</Th>
-                  <Th>Last sign-in</Th>
+                  <Th>Last Sign-in</Th>
                   <Th>
                     <span className="sr-only">Actions</span>
                   </Th>
@@ -1050,10 +1068,10 @@ export function FloatPhoneAccessPage() {
                             onClick={() => act(p.id, 'code')}
                           >
                             {p.status === 'NOT_SET_UP'
-                              ? 'Set up'
+                              ? 'Set Up'
                               : p.status === 'LOCKED'
-                                ? 'Unlock: new code'
-                                : 'New code'}
+                                ? 'Unlock: New Code'
+                                : 'New Code'}
                           </Button>
                         )}
                         {p.status !== 'NOT_SET_UP' && (
@@ -1063,7 +1081,7 @@ export function FloatPhoneAccessPage() {
                             busy={busy === `${p.id}off`}
                             onClick={() => act(p.id, 'off')}
                           >
-                            Turn off
+                            Turn Off
                           </Button>
                         )}
                       </div>
@@ -1109,7 +1127,7 @@ export function FloatBranchAdminPage() {
             <Badge tone={b.isActive ? 'ok' : 'neutral'}>{b.isActive ? 'Open' : 'Closed'}</Badge>
             {!editing && listed && (
               <Button variant="secondary" onClick={() => setEditing(true)}>
-                Change details, networks or balances
+                Change Details, Networks Or Balances
               </Button>
             )}
           </>
@@ -1153,7 +1171,7 @@ function HoursForm({ branch, onDone }) {
   };
   return (
     <Section
-      title="Working days and hours"
+      title="Working Days And Hours"
       description="Staff are reminded to sign out at the closing time on trading days. Transactions after the evening time are counted as evening transactions in the daily report."
     >
       <div className="stack">
@@ -1178,7 +1196,7 @@ function HoursForm({ branch, onDone }) {
           ))}
         </div>
         <div className="form-row">
-          <Field id="bh-open" label="Opens at">
+          <Field id="bh-open" label="Opens At">
             <Input
               id="bh-open"
               type="time"
@@ -1186,7 +1204,7 @@ function HoursForm({ branch, onDone }) {
               onChange={(e) => setV({ ...v, opensAt: e.target.value })}
             />
           </Field>
-          <Field id="bh-close" label="Closes at">
+          <Field id="bh-close" label="Closes At">
             <Input
               id="bh-close"
               type="time"
@@ -1194,7 +1212,7 @@ function HoursForm({ branch, onDone }) {
               onChange={(e) => setV({ ...v, closesAt: e.target.value })}
             />
           </Field>
-          <Field id="bh-eve" label="Evening transactions from">
+          <Field id="bh-eve" label="Evening Transactions From">
             <Input
               id="bh-eve"
               type="time"
@@ -1206,7 +1224,7 @@ function HoursForm({ branch, onDone }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div>
           <Button busy={busy} disabled={!changed} onClick={save}>
-            Save days and hours
+            Save Days And Hours
           </Button>
         </div>
       </div>
@@ -1254,11 +1272,11 @@ function BranchStaff({ branch, onDone }) {
           <Table title={`${branch.name} staff`} tools={false}>
             <thead>
               <tr>
-                <Th>First name</Th>
-                <Th>Last name</Th>
-                <Th>Phone number</Th>
-                <Th>Inventory role</Th>
-                <Th>Phone sign-in</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
+                <Th>Phone Number</Th>
+                <Th>Inventory Role</Th>
+                <Th>Phone Sign-in</Th>
                 <Th>
                   <span className="sr-only">Actions</span>
                 </Th>
@@ -1298,14 +1316,14 @@ function BranchStaff({ branch, onDone }) {
                           onClick={() => code(p)}
                         >
                           {p.phoneSignIn === 'NOT_SET_UP'
-                            ? 'Set up phone sign-in'
+                            ? 'Set Up Phone Sign-in'
                             : p.phoneSignIn === 'LOCKED'
-                              ? 'Unlock: new code'
-                              : 'New code'}
+                              ? 'Unlock: New Code'
+                              : 'New Code'}
                         </Button>
                       )}
                       <Button size="sm" variant="danger" onClick={() => setRemoving(p)}>
-                        Take off branch
+                        Take Off Branch
                       </Button>
                     </div>
                   </Td>
@@ -1318,11 +1336,11 @@ function BranchStaff({ branch, onDone }) {
           <div className="min-w-64 flex-1">
             <Field
               id="bs-add"
-              label="Add someone to this branch"
+              label="Add Someone To This Branch"
               hint="Altus Money Solutions staff. Their branch is set on their employee record."
             >
               <Select id="bs-add" value={adding} onChange={(e) => setAdding(e.target.value)}>
-                <option value="">Choose a member of staff</option>
+                <option value="">Choose A Member Of Staff</option>
                 {branch.candidates.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.firstName} {c.lastName}
@@ -1339,17 +1357,17 @@ function BranchStaff({ branch, onDone }) {
               checked={giveRole}
               onChange={(e) => setGiveRole(e.target.checked)}
             />
-            Give them the AMS Branch Staff role
+            Give Them The Branch Staff Role
           </label>
           <Button busy={busy === 'add'} disabled={!adding} onClick={add}>
-            Add to branch
+            Add To Branch
           </Button>
         </div>
       </div>
       <ConfirmDialog
         open={Boolean(removing)}
-        title="Take off this branch"
-        confirmLabel="Take off branch"
+        title="Take Off This Branch"
+        confirmLabel="Take Off Branch"
         tone="danger"
         busy={busy === 'remove'}
         onConfirm={() =>
@@ -1362,7 +1380,7 @@ function BranchStaff({ branch, onDone }) {
         onCancel={() => setRemoving(null)}
       >
         {removing?.firstName} {removing?.lastName} will no longer be posted to {branch.name}. Their phone
-        sign-in ends and the AMS Branch Staff role is removed.
+        sign-in ends and the Branch Staff role is removed.
       </ConfirmDialog>
     </Section>
   );

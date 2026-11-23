@@ -465,7 +465,7 @@ export function LoadError({ error, onRetry }) {
       <p>{error?.message}</p>
       {onRetry && (
         <button type="button" onClick={onRetry} className="mt-1 font-semibold underline">
-          Try again
+          Try Again
         </button>
       )}
     </Notice>
@@ -494,7 +494,7 @@ export function PeriodFilter({ value, onChange }) {
     <details ref={ref} className="period-filter">
       <summary
         className="period-btn"
-        title="Filter by time period"
+        title="Filter By Time Period"
         aria-label={`Filter by time period: ${label}`}
       >
         <Filter aria-hidden />
@@ -593,7 +593,7 @@ export function Table({ children, stack = true, tools = true, title, onExport })
           {exportError && <span className="text-[0.8rem] text-danger">{exportError}</span>}
           <button type="button" className="btn-excel" onClick={doExport}>
             <FileSpreadsheet aria-hidden />
-            Export to Excel
+            Export To Excel
           </button>
         </div>
       )}

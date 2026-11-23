@@ -255,7 +255,7 @@ export async function validateImport(db, csvText) {
         else branchId = b.id;
       } else if (companyKey !== null) {
         errors.push(
-          `branch ${raw.branch_name}: the company is new in this file, so add its branches in Employee management first`,
+          `branch ${raw.branch_name}: the company is new in this file, so add its branches in Employee Management first`,
         );
       }
     }

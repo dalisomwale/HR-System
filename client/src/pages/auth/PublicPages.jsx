@@ -55,7 +55,7 @@ export function SignInPage() {
   const error = SIGN_IN_ERRORS[code];
 
   return (
-    <AuthLayout title="Altus Group HR System" sub="Sign in with your Microsoft 365 account">
+    <AuthLayout title="Altus Group HR System" sub="Sign In With Your Microsoft 365 Account">
       {error && (
         <div className="mb-4">
           <Notice tone={code === 'session_ended' ? 'neutral' : 'danger'}>{error}</Notice>
@@ -63,14 +63,14 @@ export function SignInPage() {
       )}
       <div>
         {status.isPending ? (
-          <Loading label="Checking sign-in" />
+          <Loading label="Checking Sign-in" />
         ) : status.data?.signInAvailable ? (
           // Full-page navigation: the server redirects to Microsoft.
           <a href="/api/auth/login" className={SUBMIT}>
             Sign in with Microsoft
           </a>
         ) : (
-          <Notice tone="pending" title="Sign-in is not available">
+          <Notice tone="pending" title="Sign-in Is Not Available">
             Microsoft sign-in has not been set up on this server yet. Contact IT.
           </Notice>
         )}
@@ -129,7 +129,7 @@ function PhoneSignIn() {
       {step === 'LOGIN' ? (
         <>
           <label htmlFor="ph-number" className="mb-1 block text-[0.85rem] text-muted">
-            Phone number
+            Phone Number
           </label>
           <input
             id="ph-number"
@@ -177,7 +177,7 @@ function PhoneSignIn() {
             required
           />
           <label htmlFor="ph-new2" className="mb-1 block text-[0.85rem] text-muted">
-            Type it again
+            Type It Again
           </label>
           <input
             id="ph-new2"
@@ -193,7 +193,7 @@ function PhoneSignIn() {
         </>
       )}
       <button type="submit" className={SUBMIT} disabled={busy}>
-        {busy ? 'Please wait…' : step === 'LOGIN' ? 'Sign in with phone' : 'Save PIN and sign in'}
+        {busy ? 'Please Wait…' : step === 'LOGIN' ? 'Sign In With Phone' : 'Save PIN And Sign In'}
       </button>
     </form>
   );
@@ -203,7 +203,7 @@ export function AccessNotConfiguredPage() {
   const [params] = useSearchParams();
   const inactive = params.get('reason') === 'inactive';
   return (
-    <AuthLayout title={inactive ? 'Your access has ended' : 'No employee record found'}>
+    <AuthLayout title={inactive ? 'Your Access Has Ended' : 'No Employee Record Found'}>
       <Notice tone={inactive ? 'danger' : 'pending'}>
         {inactive
           ? 'Your employee record is inactive, so you cannot sign in. If this is wrong, contact HR.'
@@ -221,7 +221,7 @@ export function AccessNotConfiguredPage() {
 
 export function SignedOutPage() {
   return (
-    <AuthLayout title="You have signed out" sub="Close this window if you are on a shared computer.">
+    <AuthLayout title="You Have Signed Out" sub="Close this window if you are on a shared computer.">
       <a href="/sign-in" className={SUBMIT}>
         Sign in again
       </a>

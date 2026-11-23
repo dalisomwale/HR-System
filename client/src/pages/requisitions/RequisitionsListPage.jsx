@@ -45,7 +45,7 @@ export default function RequisitionsListPage() {
         actions={
           rq.data?.canRaise && (
             <ButtonLink to="/requisitions/requests/new" variant="primary">
-              Raise a requisition
+              Raise A Requisition
             </ButtonLink>
           )
         }
@@ -59,7 +59,7 @@ export default function RequisitionsListPage() {
               tabs={d.tabs}
               active={d.tab}
               onChange={(id) => set('tab', id)}
-              label="Requisitions by stage"
+              label="Requisitions By Stage"
             />
             {d.companies.length > 1 && (
               <div className="mb-4 w-64">
@@ -67,7 +67,7 @@ export default function RequisitionsListPage() {
                   Company
                 </label>
                 <Select id="rq-company" value={companyId} onChange={(e) => set('companyId', e.target.value)}>
-                  <option value="">All companies</option>
+                  <option value="">All Companies</option>
                   {d.companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -137,7 +137,7 @@ export default function RequisitionsListPage() {
                           variant={r.yourTurn ? 'primary' : 'secondary'}
                           className="h-8 px-2.5"
                         >
-                          {r.yourTurn ? 'Take action' : 'Open'}
+                          {r.yourTurn ? 'Take Action' : 'Open'}
                         </ButtonLink>
                       </Td>
                     </tr>

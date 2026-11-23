@@ -72,25 +72,25 @@ import { ROLE_LABELS, fullName } from '../lib/format.js';
 
 const MY_WORK = [
   { to: '/home', label: 'Home', icon: House },
-  { to: '/leave', label: 'My leave', icon: CalendarCheck, end: true },
-  { to: '/leave/balances', label: 'My balances', icon: Scale },
-  { to: '/leave/apply', label: 'Apply for leave', icon: CalendarPlus },
+  { to: '/leave', label: 'My Leave', icon: CalendarCheck, end: true },
+  { to: '/leave/balances', label: 'My Balances', icon: Scale },
+  { to: '/leave/apply', label: 'Apply For Leave', icon: CalendarPlus },
   { to: '/notifications', label: 'Notifications', icon: Bell, count: 'unread' },
 ];
 const MANAGER = [
-  { to: '/team', label: 'Departmental overview', icon: UsersRound, end: true },
+  { to: '/team', label: 'Departmental Overview', icon: UsersRound, end: true },
   { to: '/team/members', label: 'Members', icon: Users, managersOnly: true },
   { to: '/approvals', label: 'Approvals', icon: ClipboardCheck },
   { to: '/delegation', label: 'Delegation', icon: UserCheck },
 ];
 // HR: each item shows when the person's Leave management role includes it (D108).
 const HR = [
-  { to: '/hr', label: 'HR overview', icon: LayoutGrid, end: true, perm: 'leave.overview' },
-  { to: '/hr/approvals', label: 'HR approvals', icon: ShieldCheck, perm: 'leave.approve_final' },
-  { to: '/admin/leave-types', label: 'Leave types', icon: ListChecks, perm: 'leave.types' },
+  { to: '/hr', label: 'HR Overview', icon: LayoutGrid, end: true, perm: 'leave.overview' },
+  { to: '/hr/approvals', label: 'HR Approvals', icon: ShieldCheck, perm: 'leave.approve_final' },
+  { to: '/admin/leave-types', label: 'Leave Types', icon: ListChecks, perm: 'leave.types' },
   { to: '/admin/delegations', label: 'Delegations', icon: UserCheck, perm: 'leave.delegations' },
-  { to: '/admin/holidays', label: 'Public holidays', icon: CalendarDays, perm: 'leave.calendar' },
-  { to: '/admin/schedules', label: 'Working schedules', icon: Clock, perm: 'leave.calendar' },
+  { to: '/admin/holidays', label: 'Public Holidays', icon: CalendarDays, perm: 'leave.calendar' },
+  { to: '/admin/schedules', label: 'Working Schedules', icon: Clock, perm: 'leave.calendar' },
 ];
 // Employee management (D52): the central employee record, its own menu.
 // Employee management (D52, D55): its own menu, in segments.
@@ -98,7 +98,7 @@ const PEOPLE = [
   { to: '/people', label: 'Home', icon: House, end: true },
   // Not lit up on the add form, which has its own item.
   { to: '/people/employees', label: 'Employees', icon: Users, except: '/people/employees/new' },
-  { to: '/people/employees/new', label: 'Add employee', icon: UserPlus, perm: 'people.edit' },
+  { to: '/people/employees/new', label: 'Add Employee', icon: UserPlus, perm: 'people.edit' },
 ];
 
 // Side menu, as in the Altus Inventory System: an orange bar marks the page you are on.
@@ -330,8 +330,8 @@ function OrganisationNav({ user, onNavigate }) {
 const LEAVE_ADMIN = [
   { to: '/admin/users', label: 'Users', icon: Users, perm: 'leave.users' },
   { to: '/admin/roles', label: 'Roles', icon: KeyRound, perm: 'leave.roles' },
-  { to: '/admin/audit', label: 'Audit trail', icon: History, perm: 'leave.audit' },
-  { to: '/admin/settings', label: 'Workflow settings', icon: Settings2, perm: 'leave.settings' },
+  { to: '/admin/audit', label: 'Audit Trail', icon: History, perm: 'leave.audit' },
+  { to: '/admin/settings', label: 'Workflow Settings', icon: Settings2, perm: 'leave.settings' },
   { to: '/admin/emails', label: 'Emails', icon: Mail, perm: 'leave.emails' },
   { to: '/admin/notifications', label: 'Notifications', icon: BellRing, perm: 'leave.notifications' },
 ];
@@ -339,7 +339,7 @@ const PEOPLE_ADMIN = [
   { to: '/people/users', label: 'Users', icon: Users, perm: 'people.users' },
   { to: '/people/roles', label: 'Roles', icon: KeyRound, perm: 'people.roles' },
   { to: '/people/positions', label: 'Positions', icon: UserCog, perm: 'people.positions' },
-  { to: '/people/audit', label: 'Audit trail', icon: History, perm: 'people.audit' },
+  { to: '/people/audit', label: 'Audit Trail', icon: History, perm: 'people.audit' },
 ];
 
 /** The items a person's role includes (items without `perm` are for everyone). */
@@ -447,14 +447,14 @@ function RequisitionsNav({ onNavigate }) {
       ? [
           {
             to: '/requisitions/stock',
-            label: a.stockDepartment ? 'Department stock' : 'Manage stock',
+            label: a.stockDepartment ? 'Department Stock' : 'Manage Stock',
             icon: Boxes,
             except: '/requisitions/stock/new',
           },
         ]
       : []),
-    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive stock', icon: PackagePlus }] : []),
-    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue stock', icon: PackageMinus }] : []),
+    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
+    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
     {
       to: '/requisitions/requests',
       label: 'Requisitions',
@@ -463,7 +463,7 @@ function RequisitionsNav({ onNavigate }) {
       except: '/requisitions/requests/new',
     },
     ...(a.canRaise
-      ? [{ to: '/requisitions/requests/new', label: 'Raise a requisition', icon: FilePlus2 }]
+      ? [{ to: '/requisitions/requests/new', label: 'Raise A Requisition', icon: FilePlus2 }]
       : []),
     ...(a.stock || a.categoriesManage
       ? [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]
@@ -478,11 +478,11 @@ function RequisitionsNav({ onNavigate }) {
   const admin = [
     ...(a.usersAdmin ? [{ to: '/requisitions/users', label: 'Users', icon: Users }] : []),
     ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
-    ...(a.auditAdmin ? [{ to: '/requisitions/audit', label: 'Audit trail', icon: History }] : []),
+    ...(a.auditAdmin ? [{ to: '/requisitions/audit', label: 'Audit Trail', icon: History }] : []),
     ...(a.orgAdmin
-      ? [{ to: '/requisitions/settings', label: 'Requisition departments', icon: Building2 }]
+      ? [{ to: '/requisitions/settings', label: 'Requisition Departments', icon: Building2 }]
       : []),
-    ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock alerts', icon: BellRing }] : []),
+    ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock Alerts', icon: BellRing }] : []),
   ];
   return (
     <>
@@ -521,8 +521,8 @@ function FloatNav({ user, onNavigate }) {
       : []),
     ...(fl.record || fl.supervise || fl.admin
       ? [
-          { to: '/float/branch', label: 'Branch: open and close', icon: Banknote, end: true },
-          { to: '/float/record', label: 'Record a transaction', icon: Smartphone },
+          { to: '/float/branch', label: 'Branch: Open And Close', icon: Banknote, end: true },
+          { to: '/float/record', label: 'Record A Transaction', icon: Smartphone },
         ]
       : []),
     ...(fl.supervise || fl.director
@@ -532,19 +532,19 @@ function FloatNav({ user, onNavigate }) {
   ];
   const records = [
     ...(fl.viewAll || fl.record || fl.supervise
-      ? [{ to: '/float/daily', label: 'Daily reports', icon: FileSpreadsheet, count: 'days' }]
+      ? [{ to: '/float/daily', label: 'Daily Reports', icon: FileSpreadsheet, count: 'days' }]
       : []),
     ...(fl.viewAll || fl.record
       ? [{ to: '/float/transactions', label: 'Transactions', icon: ListOrdered }]
       : []),
     ...(fl.viewAll || fl.supervise || fl.shortages
-      ? [{ to: '/float/variances', label: 'Surplus and deficit', icon: Calculator }]
+      ? [{ to: '/float/variances', label: 'Surplus And Deficit', icon: Calculator }]
       : []),
   ];
   const admin = [
     { to: '/float/users', label: 'Users', icon: Users, perm: 'float.users' },
     { to: '/float/roles', label: 'Roles', icon: KeyRound, perm: 'float.roles' },
-    { to: '/float/audit', label: 'Audit trail', icon: History, perm: 'float.audit' },
+    { to: '/float/audit', label: 'Audit Trail', icon: History, perm: 'float.audit' },
     {
       to: '/float/branches',
       label: 'Branches',
@@ -552,7 +552,7 @@ function FloatNav({ user, onNavigate }) {
       perm: 'float.admin',
       except: '/float/branches/',
     },
-    { to: '/float/phone-access', label: 'Phone sign-in', icon: Smartphone, perm: 'float.admin' },
+    { to: '/float/phone-access', label: 'Phone Sign-in', icon: Smartphone, perm: 'float.admin' },
     { to: '/float/settings', label: 'Settings', icon: SlidersHorizontal, perm: 'float.admin' },
   ];
   const counts = { approvals: c.approvals ?? 0, requisitions: c.requisitions ?? 0, days: c.daysToSign ?? 0 };
@@ -576,14 +576,14 @@ function RecruitmentNav({ user, onNavigate }) {
       ? [
           {
             to: '/recruitment/requests',
-            label: 'Hiring requests',
+            label: 'Hiring Requests',
             icon: ClipboardList,
             count: 'requests',
             except: '/recruitment/requests/new',
           },
         ]
       : []),
-    ...(a.raise ? [{ to: '/recruitment/requests/new', label: 'Request a hire', icon: FilePlus2 }] : []),
+    ...(a.raise ? [{ to: '/recruitment/requests/new', label: 'Request A Hire', icon: FilePlus2 }] : []),
     ...(a.view || c.myVacancies > 0
       ? [
           {
@@ -596,20 +596,20 @@ function RecruitmentNav({ user, onNavigate }) {
       : []),
   ];
   const mine = [
-    { to: '/recruitment/jobs', label: 'Open positions', icon: Briefcase },
-    { to: '/recruitment/applications', label: 'My applications', icon: FileText },
-    { to: '/recruitment/interviews', label: 'My interviews', icon: CalendarClock, count: 'feedback' },
+    { to: '/recruitment/jobs', label: 'Open Positions', icon: Briefcase },
+    { to: '/recruitment/applications', label: 'My Applications', icon: FileText },
+    { to: '/recruitment/interviews', label: 'My Interviews', icon: CalendarClock, count: 'feedback' },
   ];
   const admin = [
     { to: '/recruitment/users', label: 'Users', icon: Users, perm: 'recruitment.users' },
     { to: '/recruitment/roles', label: 'Roles', icon: KeyRound, perm: 'recruitment.roles' },
-    { to: '/recruitment/audit', label: 'Audit trail', icon: History, perm: 'recruitment.audit' },
+    { to: '/recruitment/audit', label: 'Audit Trail', icon: History, perm: 'recruitment.audit' },
   ];
   const counts = { requests: (c.toReview ?? 0) + (c.toApprove ?? 0), feedback: c.feedbackDue ?? 0 };
   return (
     <>
       <NavGroup title="Hiring" items={hiring} counts={counts} onNavigate={onNavigate} />
-      <NavGroup title="My recruitment" items={mine} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="My Recruitment" items={mine} counts={counts} onNavigate={onNavigate} />
       <NavGroup title="Admin" items={allowed(user, admin)} onNavigate={onNavigate} />
     </>
   );
@@ -622,19 +622,19 @@ function PerformanceNav({ user, onNavigate }) {
   const c = a.counts ?? {};
   const work = [
     { to: '/performance', label: 'Dashboard', icon: LayoutGrid, end: true },
-    { to: '/performance/mine', label: 'My appraisals', icon: Target, count: 'mine' },
+    { to: '/performance/mine', label: 'My Appraisals', icon: Target, count: 'mine' },
     ...(a.isManager || a.viewAll
       ? [
           {
             to: '/performance/team',
-            label: a.isManager ? 'My team' : 'Appraisals',
+            label: a.isManager ? 'My Team' : 'Appraisals',
             icon: UsersRound,
             count: 'team',
           },
         ]
       : []),
     ...(a.isManager || a.probation || c.probation > 0
-      ? [{ to: '/performance/probation', label: 'Probation reviews', icon: UserCheck, count: 'probation' }]
+      ? [{ to: '/performance/probation', label: 'Probation Reviews', icon: UserCheck, count: 'probation' }]
       : []),
   ];
   const hr =
@@ -642,7 +642,7 @@ function PerformanceNav({ user, onNavigate }) {
       ? [
           {
             to: '/performance/cycles',
-            label: 'Review cycles',
+            label: 'Review Cycles',
             icon: CalendarRange,
             except: '/performance/cycles/new',
           },
@@ -651,7 +651,7 @@ function PerformanceNav({ user, onNavigate }) {
   const admin = [
     { to: '/performance/users', label: 'Users', icon: Users, perm: 'performance.users' },
     { to: '/performance/roles', label: 'Roles', icon: KeyRound, perm: 'performance.roles' },
-    { to: '/performance/audit', label: 'Audit trail', icon: History, perm: 'performance.audit' },
+    { to: '/performance/audit', label: 'Audit Trail', icon: History, perm: 'performance.audit' },
   ];
   const counts = { mine: c.mine ?? 0, team: (c.team ?? 0) + (c.signoff ?? 0), probation: c.probation ?? 0 };
   return (
@@ -666,14 +666,14 @@ function PerformanceNav({ user, onNavigate }) {
 /** The leave system's menu: what each person does, from their role in it (D108). */
 function LeaveNav({ user, counts, onNavigate }) {
   const hr = allowed(user, HR).map((i) =>
-    i.to === '/hr' && !can(user, 'leave.approve_final') ? { ...i, label: 'Group overview' } : i,
+    i.to === '/hr' && !can(user, 'leave.approve_final') ? { ...i, label: 'Group Overview' } : i,
   );
   return (
     <>
-      <NavGroup title="My work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
+      <NavGroup title="My Work" items={MY_WORK} counts={counts} onNavigate={onNavigate} />
       {(user.isManager || user.isDelegate || hasRole(user, 'HR_ADMIN')) && (
         <NavGroup
-          title="Department manager"
+          title="Department Manager"
           items={MANAGER.filter((i) => !i.managersOnly || user.isManager)}
           onNavigate={onNavigate}
         />
@@ -857,7 +857,7 @@ export default function AppShell() {
             onClick={close}
             className="flex min-w-0 flex-1 items-center gap-[9px] rounded-sm"
             aria-label={`${fullName(user)}, ${roleText}. My profile`}
-            title="My profile"
+            title="My Profile"
           >
             <UserAvatar person={user} />
             <span className="min-w-0 flex-1 leading-snug">

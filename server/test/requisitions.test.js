@@ -276,7 +276,7 @@ describe('Requisitions: the workflow', () => {
     expect(list.items.map((r) => r.id)).toEqual([id]);
     expect(list.items[0]).toMatchObject({
       yourTurn: true,
-      statusLabel: 'Waiting for Director approval',
+      statusLabel: 'Waiting For Director Approval',
       raisedBy: expect.stringContaining('manager'),
     });
     expect((await as(people.director).get('/api/requisitions/me')).body.waiting).toBe(1);
@@ -492,7 +492,7 @@ describe('Stock threshold alerts (D111)', () => {
         .first();
       expect(mail.subject).toBe('HP 305A toner is running low - Altus Group Inventory');
       expect(mail.body_text).toMatch(/Inventory System/);
-      expect(mail.body_text).toMatch(/Reorder level: 3/);
+      expect(mail.body_text).toMatch(/Reorder Level: 3/);
       // 3 -> 2: still low, no second alert. People without a stock keeper's role are not told.
       expect((await issueOf(item, 1)).status).toBe(201);
       expect(await alertsFor(ids.storekeeper, 'STOCK_LOW')).toHaveLength(1);

@@ -5,24 +5,24 @@ import { Trail } from './LeaveTrail.jsx';
 
 /* Where you are in the Inventory System (D105, D107): Inventory System › Manage stock › A4 paper ream. */
 
-const ROOT = { label: 'Inventory system', to: '/requisitions' };
+const ROOT = { label: 'Inventory System', to: '/requisitions' };
 const PAGES = {
   '/requisitions': ['Dashboard'],
   '/requisitions/requests': ['Requisitions'],
   '/requisitions/requests/new': ['Requisitions', 'Raise a requisition'],
-  '/requisitions/stock': ['Manage stock'],
+  '/requisitions/stock': ['Manage Stock'],
   '/requisitions/stock/new': ['Manage stock', 'Add item'],
-  '/requisitions/receive': ['Receive stock'],
-  '/requisitions/issue': ['Issue stock'],
+  '/requisitions/receive': ['Receive Stock'],
+  '/requisitions/issue': ['Issue Stock'],
   '/requisitions/transactions': ['Transactions'],
-  '/requisitions/reports': ['Monthly reports'],
+  '/requisitions/reports': ['Monthly Reports'],
   '/requisitions/categories': ['Categories'],
-  '/requisitions/settings': ['Requisition departments'],
+  '/requisitions/settings': ['Requisition Departments'],
   '/requisitions/suppliers': ['Suppliers'],
   '/requisitions/users': ['Users'],
   '/requisitions/roles': ['Roles'],
-  '/requisitions/alerts': ['Stock alerts'],
-  '/requisitions/audit': ['Audit trail'],
+  '/requisitions/alerts': ['Stock Alerts'],
+  '/requisitions/audit': ['Audit Trail'],
 };
 const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };
 
@@ -45,7 +45,7 @@ export default function RequisitionsTrail() {
   if (reqId) {
     trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
   } else if (itemId) {
-    trail.push({ label: 'Manage stock', to: PARENT['Manage stock'] });
+    trail.push({ label: 'Manage Stock', to: PARENT['Manage stock'] });
     if (editing)
       trail.push({ label: item.data?.name ?? '…', to: `/requisitions/stock/${itemId}` }, { label: 'Edit' });
     else trail.push({ label: item.data?.name ?? '…' });

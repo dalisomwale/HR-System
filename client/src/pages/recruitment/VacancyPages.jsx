@@ -52,7 +52,7 @@ export function VacanciesPage() {
         actions={
           q.data?.canManage && (
             <ButtonLink to="/recruitment/vacancies/new" variant="primary">
-              Open vacancy
+              Open Vacancy
             </ButtonLink>
           )
         }
@@ -91,9 +91,9 @@ export function VacanciesPage() {
                 <Th>Department</Th>
                 <Th className="text-right">Positions</Th>
                 <Th className="text-right">Candidates</Th>
-                <Th className="text-right">In progress</Th>
-                <Th>Closing date</Th>
-                <Th>Hiring manager</Th>
+                <Th className="text-right">In Progress</Th>
+                <Th>Closing Date</Th>
+                <Th>Hiring Manager</Th>
                 <Th>Status</Th>
               </tr>
             </thead>
@@ -208,16 +208,16 @@ export function VacancyFormPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title={id ? `Change ${e.reference}` : 'Open vacancy'}
+        title={id ? `Change ${e.reference}` : 'Open Vacancy'}
         description={r ? `From hiring request ${r.reference}, approved.` : undefined}
       />
       <form onSubmit={save} className="card stack">
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="form-row">
-          <Field id="v-title" label="Position (job title)">
+          <Field id="v-title" label="Position (Job Title)">
             <Input id="v-title" required value={val.jobTitle} onChange={set('jobTitle')} />
           </Field>
-          <Field id="v-positions" label="How many people">
+          <Field id="v-positions" label="How Many People">
             <Input
               id="v-positions"
               type="number"
@@ -236,7 +236,7 @@ export function VacancyFormPage() {
               value={val.companyId}
               onChange={(ev) => setV({ ...val, companyId: ev.target.value, departmentId: '', branchId: '' })}
             >
-              <option value="">Choose a company</option>
+              <option value="">Choose A Company</option>
               {o.companies.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -246,7 +246,7 @@ export function VacancyFormPage() {
           </Field>
           <Field id="v-dept" label="Department">
             <Select id="v-dept" required value={val.departmentId} onChange={set('departmentId')}>
-              <option value="">Choose a department</option>
+              <option value="">Choose A Department</option>
               {departments.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name}
@@ -256,7 +256,7 @@ export function VacancyFormPage() {
           </Field>
           <Field id="v-branch" label="Branch" optional>
             <Select id="v-branch" value={val.branchId} onChange={set('branchId')}>
-              <option value="">Not set</option>
+              <option value="">Not Set</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.name}
@@ -266,7 +266,7 @@ export function VacancyFormPage() {
           </Field>
         </div>
         <div className="form-row">
-          <Field id="v-type" label="Employment type">
+          <Field id="v-type" label="Employment Type">
             <Select id="v-type" value={val.employmentType} onChange={set('employmentType')}>
               {EMPLOYMENT_TYPES.map(([k, l]) => (
                 <option key={k} value={k}>
@@ -275,12 +275,12 @@ export function VacancyFormPage() {
               ))}
             </Select>
           </Field>
-          <Field id="v-close" label="Closing date" optional>
+          <Field id="v-close" label="Closing Date" optional>
             <Input id="v-close" type="date" value={val.closingDate ?? ''} onChange={set('closingDate')} />
           </Field>
           <Field
             id="v-manager"
-            label="Hiring manager"
+            label="Hiring Manager"
             hint="Sees the candidates and gives interview feedback."
             optional
           >
@@ -295,7 +295,7 @@ export function VacancyFormPage() {
             </Select>
           </Field>
         </div>
-        <Field id="v-desc" label="About the role" optional>
+        <Field id="v-desc" label="About The Role" optional>
           <Textarea id="v-desc" rows={5} value={val.description ?? ''} onChange={set('description')} />
         </Field>
         <Field id="v-req" label="Requirements" optional>
@@ -309,7 +309,7 @@ export function VacancyFormPage() {
               checked={val.isInternal}
               onChange={(ev) => setV({ ...val, isInternal: ev.target.checked })}
             />
-            Show it to staff under Open positions, so they can apply
+            Show it to staff under Open Positions, so they can apply
           </label>
           {id && (
             <Field id="v-st" label="Status">
@@ -325,7 +325,7 @@ export function VacancyFormPage() {
         </div>
         <div className="form-actions">
           <Button type="submit" busy={busy}>
-            {id ? 'Save changes' : 'Open vacancy'}
+            {id ? 'Save Changes' : 'Open Vacancy'}
           </Button>
           <ButtonLink to={id ? `/recruitment/vacancies/${id}` : '/recruitment/vacancies'}>Cancel</ButtonLink>
         </div>
@@ -351,7 +351,7 @@ export function VacancyPage() {
   const open = !['CLOSED', 'FILLED'].includes(v.status);
   const count = (stages) => v.items.filter((c) => stages.includes(c.stage)).length;
   const tabs = [
-    { id: 'active', label: 'In progress', count: count(ACTIVE_STAGES) },
+    { id: 'active', label: 'In Progress', count: count(ACTIVE_STAGES) },
     ...STAGES.map(([k, l]) => ({ id: k, label: l, count: count([k]) })).filter((t) => t.count > 0),
     { id: 'all', label: 'All', count: v.items.length },
   ];
@@ -367,7 +367,7 @@ export function VacancyPage() {
           <>
             <Badge tone={tone}>{label}</Badge>
             {v.canManage && <ButtonLink to={`/recruitment/vacancies/${v.id}/edit`}>Change</ButtonLink>}
-            {v.canManage && open && !adding && <Button onClick={() => setAdding(true)}>Add candidate</Button>}
+            {v.canManage && open && !adding && <Button onClick={() => setAdding(true)}>Add Candidate</Button>}
           </>
         }
       />
@@ -384,7 +384,7 @@ export function VacancyPage() {
         )}
         <div>
           <Tabs
-            label="Candidates by stage"
+            label="Candidates By Stage"
             tabs={tabs}
             active={tabs.some((t) => t.id === tab) ? tab : 'active'}
             onChange={setTab}
@@ -397,8 +397,8 @@ export function VacancyPage() {
             <Table title={`Candidates ${v.reference}`}>
               <thead>
                 <tr>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Email</Th>
                   <Th>Phone</Th>
                   <Th>Source</Th>
@@ -450,16 +450,16 @@ export function VacancyPage() {
           <Details
             items={[
               ['Position', v.jobTitle],
-              ['How many', String(v.positions)],
+              ['How Many', String(v.positions)],
               ['Company', v.company],
               ['Department', v.department],
               ['Branch', v.branch],
-              ['Employment type', EMPLOYMENT_LABEL[v.employmentType]],
-              ['Closing date', v.closingDate && formatDate(v.closingDate)],
-              ['Hiring manager', v.hiringManager?.name],
-              ['Shown to staff', v.isInternal ? 'Yes, under Open positions' : 'No'],
+              ['Employment Type', EMPLOYMENT_LABEL[v.employmentType]],
+              ['Closing Date', v.closingDate && formatDate(v.closingDate)],
+              ['Hiring Manager', v.hiringManager?.name],
+              ['Shown To Staff', v.isInternal ? 'Yes, under Open Positions' : 'No'],
               [
-                'Hiring request',
+                'Hiring Request',
                 v.hiringRequest && (
                   <Link
                     key="hr"
@@ -471,7 +471,7 @@ export function VacancyPage() {
                 ),
               ],
               [
-                'About the role',
+                'About The Role',
                 v.description && (
                   <span key="d" className="whitespace-pre-line">
                     {v.description}
@@ -521,14 +521,14 @@ export function CandidateForm({ vacancyId, candidate, onDone, onCancel }) {
     }
   };
   return (
-    <Section title={candidate ? 'Change details' : 'Add candidate'}>
+    <Section title={candidate ? 'Change Details' : 'Add Candidate'}>
       <form onSubmit={save} className="stack">
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="form-row">
-          <Field id="c-first" label="First name">
+          <Field id="c-first" label="First Name">
             <Input id="c-first" required value={v.firstName} onChange={set('firstName')} />
           </Field>
-          <Field id="c-last" label="Last name">
+          <Field id="c-last" label="Last Name">
             <Input id="c-last" required value={v.lastName} onChange={set('lastName')} />
           </Field>
         </div>
@@ -540,7 +540,7 @@ export function CandidateForm({ vacancyId, candidate, onDone, onCancel }) {
             <Input id="c-phone" value={v.phone ?? ''} onChange={set('phone')} />
           </Field>
           {candidate?.source !== 'INTERNAL' && (
-            <Field id="c-source" label="Where they came from">
+            <Field id="c-source" label="Where They Came From">
               <Select id="c-source" value={v.source} onChange={set('source')}>
                 {SOURCES.map(([k, l]) => (
                   <option key={k} value={k}>
@@ -562,7 +562,7 @@ export function CandidateForm({ vacancyId, candidate, onDone, onCancel }) {
         {!candidate && <p className="text-sm text-muted">Add their CV on the candidate’s page once saved.</p>}
         <div className="form-actions">
           <Button type="submit" busy={busy}>
-            {candidate ? 'Save changes' : 'Add candidate'}
+            {candidate ? 'Save Changes' : 'Add Candidate'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

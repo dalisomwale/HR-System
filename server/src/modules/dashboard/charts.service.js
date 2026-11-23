@@ -109,7 +109,7 @@ export async function requestOutcomes(db, scope, year) {
     { key: 'approved', label: 'Approved', count: n('APPROVED') },
     {
       key: 'waiting',
-      label: 'Waiting for a decision',
+      label: 'Waiting For A Decision',
       count: n(
         'PENDING_MANAGER_APPROVAL',
         'PENDING_HR_APPROVAL',
@@ -118,7 +118,7 @@ export async function requestOutcomes(db, scope, year) {
       ),
     },
     { key: 'rejected', label: 'Rejected', count: n('REJECTED_BY_MANAGER', 'REJECTED_BY_HR') },
-    { key: 'withdrawn', label: 'Withdrawn or cancelled', count: n('WITHDRAWN', 'CANCELLED') },
+    { key: 'withdrawn', label: 'Withdrawn Or Cancelled', count: n('WITHDRAWN', 'CANCELLED') },
   ];
 }
 

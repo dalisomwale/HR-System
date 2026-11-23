@@ -29,8 +29,8 @@ export default function ApplyPage() {
   };
   return (
     <div className="max-w-6xl">
-      <PageHeader title="Apply for leave" />
-      <LeaveForm submitLabel="Submit request" onSubmit={submit} />
+      <PageHeader title="Apply For Leave" />
+      <LeaveForm submitLabel="Submit Request" onSubmit={submit} />
     </div>
   );
 }

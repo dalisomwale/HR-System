@@ -93,7 +93,7 @@ export default function DirectoryPage() {
             <>
               <ButtonLink to={`${base}/employees/new?mode=import`}> Import</ButtonLink>
               <ButtonLink to={`${base}/employees/new`} variant="primary">
-                Add employee
+                Add Employee
               </ButtonLink>
             </>
           )
@@ -126,14 +126,14 @@ export default function DirectoryPage() {
             value={filters.companyId}
             onChange={(e) => update({ companyId: e.target.value, departmentId: '' })}
           >
-            <option value="">All companies</option>
+            <option value="">All Companies</option>
             {org.data?.companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
             {(org.data?.employeesWithoutCompany || filters.companyId === 'none') && (
-              <option value="none">No company set</option>
+              <option value="none">No Company Set</option>
             )}
           </Select>
         )}
@@ -144,7 +144,7 @@ export default function DirectoryPage() {
             value={filters.departmentId}
             onChange={(e) => update({ departmentId: e.target.value })}
           >
-            <option value="">All departments</option>
+            <option value="">All Departments</option>
             <DepartmentOptions departments={departmentChoices} />
           </Select>
         )}
@@ -154,7 +154,7 @@ export default function DirectoryPage() {
           value={filters.employmentType}
           onChange={(e) => update({ employmentType: e.target.value })}
         >
-          <option value="">All types</option>
+          <option value="">All Types</option>
           {Object.entries(EMPLOYMENT_TYPES).map(([k, v]) => (
             <option key={k} value={k}>
               {v}
@@ -203,10 +203,10 @@ export default function DirectoryPage() {
                 canEdit && (
                   <>
                     <ButtonLink to={`${base}/employees/new?mode=import`}>
-                      Import from a spreadsheet
+                      Import From A Spreadsheet
                     </ButtonLink>
                     <ButtonLink to={`${base}/employees/new`} variant="primary">
-                      Add employee
+                      Add Employee
                     </ButtonLink>
                   </>
                 )
@@ -233,12 +233,12 @@ export default function DirectoryPage() {
           >
             <thead>
               <tr>
-                <Th>First name</Th>
-                <Th>Last name</Th>
-                <Th>Job title</Th>
+                <Th>First Name</Th>
+                <Th>Last Name</Th>
+                <Th>Job Title</Th>
                 <Th>Type</Th>
                 <Th>Department</Th>
-                <Th>Line manager</Th>
+                <Th>Line Manager</Th>
                 <Th>Company</Th>
                 <Th>Branch</Th>
                 <Th>Started</Th>

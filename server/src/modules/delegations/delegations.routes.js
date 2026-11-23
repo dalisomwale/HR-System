@@ -135,7 +135,7 @@ async function createDelegation(db, { delegatorId, delegateId, startDate, endDat
         heading: 'Covering leave approvals',
         intro: `You have been asked to approve leave for ${whose}'s team while they are away.`,
         rows: [
-          ['Covering for', whose],
+          ['Covering For', whose],
           ['From', dayText(startDate)],
           ['To', dayText(endDate)],
           ...(reason ? [['Reason', reason]] : []),
@@ -171,7 +171,7 @@ async function revokeDelegation(db, id, actor, audit) {
         heading: 'Cover revoked',
         intro: `You no longer approve leave for ${whose}'s team.`,
         rows: [
-          ['Was covering for', whose],
+          ['Was Covering For', whose],
           ['Dates', `${dayText(d.start_date)} to ${dayText(d.end_date)}`],
         ],
       },

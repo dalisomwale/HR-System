@@ -86,7 +86,7 @@ export default function CandidatePage() {
         <div className="grid min-w-0 gap-4">
           {c.stage === 'HIRED' && c.hiredEmployeeId && (
             <Notice tone="ok" title="Hired">
-              Their record is in Employee management.{' '}
+              Their record is in Employee Management.{' '}
               <Link to={`/people/employees/${c.hiredEmployeeId}`} className="font-medium underline">
                 Open the employee record
               </Link>
@@ -117,12 +117,12 @@ export default function CandidatePage() {
                   ['Name', c.name],
                   ['Email', c.email],
                   ['Phone', c.phone],
-                  ['Where they came from', SOURCE_LABEL[c.source]],
+                  ['Where They Came From', SOURCE_LABEL[c.source]],
                   ['Applied', formatDateTime(c.appliedAt)],
                   [
                     'Offer',
                     c.offer &&
-                      `Start ${formatDate(c.offer.startDate)} · ${{ PENDING: 'Waiting for their answer', ACCEPTED: 'Accepted', DECLINED: 'Declined' }[c.offer.status]}${c.offer.notes ? ` · ${c.offer.notes}` : ''}`,
+                      `Start ${formatDate(c.offer.startDate)} · ${{ PENDING: 'Waiting For Their Answer', ACCEPTED: 'Accepted', DECLINED: 'Declined' }[c.offer.status]}${c.offer.notes ? ` · ${c.offer.notes}` : ''}`,
                   ],
                   [
                     'Notes',
@@ -188,11 +188,11 @@ function StageForm({ candidate: c, onDone }) {
   const { busy, error, run } = useAct(onDone);
   const choices = STAGES.filter(([k]) => !['HIRED', 'OFFER', c.stage].includes(k));
   return (
-    <Section title="Move to another stage" className="border-brand ring-1 ring-brand">
+    <Section title="Move To Another Stage" className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
         <Field id="s-stage" label="Stage">
           <Select id="s-stage" value={stage} onChange={(e) => setStage(e.target.value)}>
-            <option value="">Choose a stage</option>
+            <option value="">Choose A Stage</option>
             {choices.map(([k, l]) => (
               <option key={k} value={k}>
                 {l}
@@ -225,7 +225,7 @@ function StageForm({ candidate: c, onDone }) {
             ).then((ok) => ok && (setStage(''), setComment('')))
           }
         >
-          {stage === 'REJECTED' ? 'Mark not successful' : 'Move'}
+          {stage === 'REJECTED' ? 'Mark Not Successful' : 'Move'}
         </Button>
       </div>
     </Section>
@@ -241,14 +241,14 @@ function OfferForm({ candidate: c, onDone }) {
   const { busy, error, run } = useAct(onDone);
   const set = (k) => (e) => setV({ ...v, [k]: e.target.value });
   return (
-    <Section title={c.offer ? 'Offer' : 'Make an offer'}>
+    <Section title={c.offer ? 'Offer' : 'Make An Offer'}>
       <div className="space-y-3">
-        <Field id="o-start" label="Start date">
+        <Field id="o-start" label="Start Date">
           <Input id="o-start" type="date" value={v.startDate} onChange={set('startDate')} />
         </Field>
-        <Field id="o-status" label="Their answer">
+        <Field id="o-status" label="Their Answer">
           <Select id="o-status" value={v.status} onChange={set('status')}>
-            <option value="PENDING">Waiting for their answer</option>
+            <option value="PENDING">Waiting For Their Answer</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="DECLINED">Declined</option>
           </Select>
@@ -267,7 +267,7 @@ function OfferForm({ candidate: c, onDone }) {
             )
           }
         >
-          Save offer
+          Save Offer
         </Button>
       </div>
     </Section>
@@ -303,7 +303,7 @@ function HireForm({ candidate: c, onDone }) {
   const set = (k) => (e) => setV({ ...val, [k]: e.target.value });
   return (
     <Section
-      title={c.internal ? 'Appoint to the position' : 'Hire'}
+      title={c.internal ? 'Appoint To The Position' : 'Hire'}
       className="border-brand ring-1 ring-brand"
     >
       <form
@@ -323,20 +323,20 @@ function HireForm({ candidate: c, onDone }) {
       >
         <p className="text-sm">
           {c.internal
-            ? 'They accepted the offer. Appointing them updates their record in Employee management.'
-            : 'They accepted the offer. Hiring adds them to Employee management, on probation until the date below.'}
+            ? 'They accepted the offer. Appointing them updates their record in Employee Management.'
+            : 'They accepted the offer. Hiring adds them to Employee Management, on probation until the date below.'}
         </p>
         {!c.internal && (
           <div className="form-row">
-            <Field id="x-number" label="Employee number">
+            <Field id="x-number" label="Employee Number">
               <Input id="x-number" required value={val.employeeNumber} onChange={set('employeeNumber')} />
             </Field>
-            <Field id="x-email" label="Work email" optional hint="They sign in with it.">
+            <Field id="x-email" label="Work Email" optional hint="They sign in with it.">
               <Input id="x-email" type="email" value={val.email} onChange={set('email')} />
             </Field>
           </div>
         )}
-        <Field id="x-title" label="Job title">
+        <Field id="x-title" label="Job Title">
           <Input id="x-title" required value={val.jobTitle} onChange={set('jobTitle')} />
         </Field>
         <Field id="x-dept" label="Department">
@@ -363,7 +363,7 @@ function HireForm({ candidate: c, onDone }) {
         </Field>
         <Field id="x-branch" label="Branch" optional>
           <Select id="x-branch" value={val.branchId} onChange={set('branchId')}>
-            <option value="">Not set</option>
+            <option value="">Not Set</option>
             {o.branches
               .filter((b) => String(b.companyId) === val.companyId)
               .map((b) => (
@@ -373,7 +373,7 @@ function HireForm({ candidate: c, onDone }) {
               ))}
           </Select>
         </Field>
-        <Field id="x-manager" label="Line manager" optional>
+        <Field id="x-manager" label="Line Manager" optional>
           <Select id="x-manager" value={val.lineManagerId} onChange={set('lineManagerId')}>
             <option value="">None</option>
             {o.employees.map((p) => (
@@ -385,7 +385,7 @@ function HireForm({ candidate: c, onDone }) {
         </Field>
         <div className="form-row">
           {!c.internal && (
-            <Field id="x-start" label="Start date">
+            <Field id="x-start" label="Start Date">
               <Input
                 id="x-start"
                 type="date"
@@ -401,7 +401,7 @@ function HireForm({ candidate: c, onDone }) {
               />
             </Field>
           )}
-          <Field id="x-type" label="Employment type">
+          <Field id="x-type" label="Employment Type">
             <Select id="x-type" value={val.employmentType} onChange={set('employmentType')}>
               {EMPLOYMENT_TYPES.map(([k, l]) => (
                 <option key={k} value={k}>
@@ -412,7 +412,7 @@ function HireForm({ candidate: c, onDone }) {
           </Field>
         </div>
         <div className="form-row">
-          <Field id="x-probation" label="Probation ends" optional>
+          <Field id="x-probation" label="Probation Ends" optional>
             <Input
               id="x-probation"
               type="date"
@@ -421,7 +421,7 @@ function HireForm({ candidate: c, onDone }) {
             />
           </Field>
           {val.employmentType !== 'PERMANENT' && (
-            <Field id="x-contract" label="Contract ends" optional>
+            <Field id="x-contract" label="Contract Ends" optional>
               <Input
                 id="x-contract"
                 type="date"
@@ -433,7 +433,7 @@ function HireForm({ candidate: c, onDone }) {
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
         <Button type="submit" busy={busy}>
-          {c.internal ? 'Appoint' : 'Hire and add to Employee management'}
+          {c.internal ? 'Appoint' : 'Hire And Add To Employee Management'}
         </Button>
       </form>
     </Section>
@@ -473,7 +473,7 @@ function Files({ candidate: c, onDone }) {
     }
   };
   return (
-    <Section title="CV and documents">
+    <Section title="CV And Documents">
       {c.files.length === 0 ? (
         <p className="muted-text">No CV yet.</p>
       ) : (
@@ -513,7 +513,7 @@ function Files({ candidate: c, onDone }) {
           <Field id="f-kind" label="Type">
             <Select id="f-kind" value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="cv">CV</option>
-              <option value="other">Other document</option>
+              <option value="other">Other Document</option>
             </Select>
           </Field>
           <input
@@ -524,7 +524,7 @@ function Files({ candidate: c, onDone }) {
             onChange={(e) => upload(e.target.files?.[0])}
           />
           <Button variant="secondary" busy={busy === 'upload'} onClick={() => input.current?.click()}>
-            Upload a file
+            Upload A File
           </Button>
           <span className="text-xs text-muted">PDF, Word (.docx), JPEG or PNG</span>
         </div>
@@ -549,7 +549,7 @@ function Interviews({ candidate: c, onDone }) {
         ACTIVE_STAGES.includes(c.stage) &&
         !scheduling && (
           <Button size="sm" variant="secondary" onClick={() => setScheduling(true)}>
-            Schedule interview
+            Schedule Interview
           </Button>
         )
       }
@@ -577,7 +577,7 @@ function Interviews({ candidate: c, onDone }) {
                 </span>
                 <span className="flex items-center gap-2">
                   <Badge tone={{ SCHEDULED: 'pending', DONE: 'ok', CANCELLED: 'neutral' }[i.status]}>
-                    {{ SCHEDULED: 'Scheduled', DONE: 'Feedback in', CANCELLED: 'Cancelled' }[i.status]}
+                    {{ SCHEDULED: 'Scheduled', DONE: 'Feedback In', CANCELLED: 'Cancelled' }[i.status]}
                   </Badge>
                   {c.can.manage && i.status === 'SCHEDULED' && (
                     <Button
@@ -663,7 +663,7 @@ function ScheduleForm({ candidate: c, onDone, onCancel }) {
             setPick('');
           }}
         >
-          <option value="">Add someone to the panel</option>
+          <option value="">Add Someone To The Panel</option>
           {people
             .filter((p) => !v.panel.includes(p.id) && p.id !== c.employeeId)
             .map((p) => (
@@ -681,7 +681,7 @@ function ScheduleForm({ candidate: c, onDone, onCancel }) {
               <button
                 type="button"
                 className="pill pill-brand"
-                title="Remove from the panel"
+                title="Remove From The Panel"
                 onClick={() => setV({ ...v, panel: v.panel.filter((x) => x !== pid) })}
               >
                 {people.find((p) => p.id === pid)?.name} ×
@@ -690,7 +690,7 @@ function ScheduleForm({ candidate: c, onDone, onCancel }) {
           ))}
         </ul>
       )}
-      <Field id="i-notes" label="Notes for the panel" optional>
+      <Field id="i-notes" label="Notes For The Panel" optional>
         <Textarea
           id="i-notes"
           rows={2}
@@ -714,7 +714,7 @@ function ScheduleForm({ candidate: c, onDone, onCancel }) {
             )
           }
         >
-          Schedule and tell the panel
+          Schedule And Tell The Panel
         </Button>
         <Button variant="secondary" onClick={onCancel}>
           Cancel
@@ -728,7 +728,7 @@ function FeedbackForm({ interview: i, onDone }) {
   const [v, setV] = useState({ rating: '', recommendation: '', comments: '' });
   const { busy, error, run } = useAct(onDone);
   return (
-    <Section title="Your interview feedback" className="border-brand ring-1 ring-brand">
+    <Section title="Your Interview Feedback" className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
         <p className="text-sm">
           Interview on {whenText(i.scheduledAt)}
@@ -758,7 +758,7 @@ function FeedbackForm({ interview: i, onDone }) {
               <option value="">Choose</option>
               <option value="HIRE">Hire</option>
               <option value="MAYBE">Maybe</option>
-              <option value="NO_HIRE">Do not hire</option>
+              <option value="NO_HIRE">Do Not Hire</option>
             </Select>
           </Field>
         </div>
@@ -784,7 +784,7 @@ function FeedbackForm({ interview: i, onDone }) {
             )
           }
         >
-          Send feedback
+          Send Feedback
         </Button>
       </div>
     </Section>

@@ -31,9 +31,9 @@ export default function SuppliersPage() {
               <tr>
                 <Th>Supplier</Th>
                 <Th className="text-right">Deliveries</Th>
-                <Th className="text-right">Units delivered</Th>
-                <Th className="text-right">Value delivered</Th>
-                <Th>Last delivery</Th>
+                <Th className="text-right">Units Delivered</Th>
+                <Th className="text-right">Value Delivered</Th>
+                <Th>Last Delivery</Th>
               </tr>
             </thead>
             <tbody>

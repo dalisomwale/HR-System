@@ -19,7 +19,7 @@ export default function HrOverviewPage() {
   return (
     <div className="stack">
       <PageHeader
-        title={can(me, 'leave.approve_final') ? 'HR overview' : 'Group overview'}
+        title={can(me, 'leave.approve_final') ? 'HR Overview' : 'Group Overview'}
         actions={
           companies.length > 0 && (
             <Select
@@ -59,33 +59,33 @@ function Body({ d }) {
   return (
     <>
       <Stats cols={3} color>
-        <Stat label="Waiting for HR" value={d.awaitingHr.length} to={approvals} />
+        <Stat label="Waiting For HR" value={d.awaitingHr.length} to={approvals} />
         <Stat label="Overdue" value={ex.overdue} tone="danger" />
-        <Stat label="On leave today" value={d.onLeave.length} />
+        <Stat label="On Leave Today" value={d.onLeave.length} />
       </Stats>
 
       <div className="grid-2">
-        <Section title={`Requests for ${d.charts.year}`} description="Where each request stands now">
+        <Section title={`Requests For ${d.charts.year}`} description="Where each request stands now">
           <OutcomesDonut outcomes={d.charts.outcomes} />
         </Section>
-        <Section title={`Days taken by leave type, ${d.charts.year}`} description="Approved days">
+        <Section title={`Days Taken By Leave Type, ${d.charts.year}`} description="Approved days">
           <TypeDonut
-            label={`Approved days by leave type, ${d.charts.year}`}
+            label={`Approved Days By Leave Type, ${d.charts.year}`}
             empty={`No approved leave yet in ${d.charts.year}.`}
             items={d.charts.byType}
           />
         </Section>
       </div>
 
-      <Section title="Who is off in the next 30 days">
+      <Section title="Who Is Off In The Next 30 Days">
         <PeopleOffChart daily={d.charts.offDaily} />
       </Section>
 
-      <Section title={`Leave taken by month, ${d.charts.year}`} description="Approved days by leave type">
+      <Section title={`Leave Taken By Month, ${d.charts.year}`} description="Approved days by leave type">
         <LeaveTypeChart byType={d.charts.monthlyByType} year={d.charts.year} />
       </Section>
 
-      <Section title="Waiting for final approval">
+      <Section title="Waiting For Final Approval">
         <RequestList
           items={d.awaitingHr}
           yourTurn={approvals ? 'PENDING_HR_APPROVAL' : undefined}
@@ -96,7 +96,7 @@ function Body({ d }) {
         />
       </Section>
 
-      <Section title="On leave today">
+      <Section title="On Leave Today">
         <RequestList
           items={d.onLeave}
           showEmployee
@@ -106,14 +106,14 @@ function Body({ d }) {
       </Section>
 
       {!d.companyId && d.utilisation.companies.length > 1 && (
-        <Section title={`Annual leave taken by company, ${d.utilisation.year}`}>
+        <Section title={`Annual Leave Taken By Company, ${d.utilisation.year}`}>
           <Table>
             <thead>
               <tr>
                 <Th>Company</Th>
                 <Th className="text-right">Staff</Th>
-                <Th className="text-right">Days approved</Th>
-                <Th className="text-right">Per person</Th>
+                <Th className="text-right">Days Approved</Th>
+                <Th className="text-right">Per Person</Th>
               </tr>
             </thead>
             <tbody>
@@ -130,7 +130,7 @@ function Body({ d }) {
         </Section>
       )}
 
-      <Section title={`Annual leave taken by department, ${d.utilisation.year}`}>
+      <Section title={`Annual Leave Taken By Department, ${d.utilisation.year}`}>
         {d.utilisation.rows.length === 0 ? (
           <p className="muted-text">No active employees.</p>
         ) : (
@@ -154,8 +154,8 @@ function Body({ d }) {
                 <tr>
                   <Th>Department</Th>
                   <Th className="text-right">Staff</Th>
-                  <Th className="text-right">Days approved</Th>
-                  <Th className="text-right">Per person</Th>
+                  <Th className="text-right">Days Approved</Th>
+                  <Th className="text-right">Per Person</Th>
                 </tr>
               </thead>
               <tbody>

@@ -144,7 +144,7 @@ describe('balance ledger', () => {
       amount: 5,
       entry_type: 'OPENING',
       source_type: 'OPENING',
-      reason: 'Opening balance',
+      reason: 'Opening Balance',
     });
     await expect(db('balance_ledger').where({ id }).update({ amount: 50 })).rejects.toThrow(/append-only/);
     await expect(db('balance_ledger').where({ id }).del()).rejects.toThrow(/append-only/);

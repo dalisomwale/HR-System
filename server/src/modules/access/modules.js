@@ -30,10 +30,10 @@ const ADMIN_AREAS = (prefix) => [
   },
   {
     key: 'audit',
-    label: 'Audit trail',
+    label: 'Audit Trail',
     hint: 'Every change made in this module',
     levels: [
-      ['No access', "Can't open the Audit trail.", []],
+      ['No access', "Can't open the Audit Trail.", []],
       ['View', 'See who changed what and when, and export it to Excel.', [`${prefix}audit`]],
     ],
   },
@@ -42,7 +42,7 @@ const ADMIN_AREAS = (prefix) => [
 const LEAVE_AREAS = [
   {
     key: 'approvals',
-    label: 'HR approvals',
+    label: 'HR Approvals',
     hint: 'The final decision on leave',
     levels: [
       ['No access', 'Approves only as a line manager or delegate.', []],
@@ -55,7 +55,7 @@ const LEAVE_AREAS = [
   },
   {
     key: 'requests',
-    label: 'Leave requests',
+    label: 'Leave Requests',
     hint: 'Whose requests they can open',
     levels: [
       ['Own and their team', 'Their own requests, and their team’s as a manager or delegate.', []],
@@ -73,7 +73,7 @@ const LEAVE_AREAS = [
   },
   {
     key: 'overview',
-    label: 'Group overview',
+    label: 'Group Overview',
     hint: 'Group-wide dashboards and reports',
     levels: [
       ['No access', 'Sees only their own and their team’s figures.', []],
@@ -91,10 +91,10 @@ const LEAVE_AREAS = [
   },
   {
     key: 'types',
-    label: 'Leave types',
+    label: 'Leave Types',
     hint: 'Leave types, rules and balance jobs',
     levels: [
-      ['No access', "Can't open Leave types.", []],
+      ['No access', "Can't open Leave Types.", []],
       ['Manage', 'Add and change leave types and their rules, and run the balance jobs.', ['leave.types']],
     ],
   },
@@ -118,10 +118,10 @@ const LEAVE_AREAS = [
   },
   {
     key: 'settings',
-    label: 'Workflow settings',
+    label: 'Workflow Settings',
     hint: 'How the leave workflow behaves',
     levels: [
-      ['No access', "Can't open Workflow settings.", []],
+      ['No access', "Can't open Workflow Settings.", []],
       ['Manage', 'Change and confirm the workflow settings.', ['leave.settings']],
     ],
   },
@@ -156,7 +156,7 @@ const PEOPLE_AREAS = [
     label: 'Employees',
     hint: 'Employee records',
     levels: [
-      ['No access', "Can't open Employee management.", []],
+      ['No access', "Can't open Employee Management.", []],
       [
         'View',
         'See every employee record, company and department, the dashboards and the reports.',
@@ -184,7 +184,7 @@ const PEOPLE_AREAS = [
   },
   {
     key: 'positions',
-    label: 'Positions & accounts',
+    label: 'Positions & Accounts',
     hint: 'Positions and Microsoft accounts',
     levels: [
       ['No access', "Can't change positions or Microsoft accounts.", []],
@@ -286,7 +286,7 @@ const INVENTORY_AREAS = [
   },
   {
     key: 'reports',
-    label: 'Monthly reports',
+    label: 'Monthly Reports',
     hint: 'Monthly stock reports and category activity',
     levels: [
       ['No access', "Can't open Monthly Reports.", []],
@@ -299,7 +299,7 @@ const INVENTORY_AREAS = [
   },
   {
     key: 'scope',
-    label: 'Department limit',
+    label: 'Department Limit',
     hint: 'Whose stock, transactions and reports they see',
     levels: [
       [
@@ -316,23 +316,23 @@ const INVENTORY_AREAS = [
   },
   {
     key: 'organisation',
-    label: 'Requisition departments',
+    label: 'Requisition Departments',
     hint: 'Which departments do the IT, Accounts and Stores steps',
     levels: [
       ['No access', "Can't change the requisition departments.", []],
       [
         'Manage',
-        'Choose the IT, Accounts and Stores departments. Companies, branches and departments are kept in Employee management.',
+        'Choose the IT, Accounts and Stores departments. Companies, branches and departments are kept in Employee Management.',
         ['admin.org'],
       ],
     ],
   },
   {
     key: 'alerts',
-    label: 'Stock alerts',
+    label: 'Stock Alerts',
     hint: 'Who gets the low-stock emails',
     levels: [
-      ['No access', "Can't open Stock alerts.", []],
+      ['No access', "Can't open Stock Alerts.", []],
       [
         'Manage',
         'Choose which stock keepers get the low-stock and out-of-stock alerts and the daily reorder summary.',
@@ -346,7 +346,7 @@ const INVENTORY_AREAS = [
 const RECRUITMENT_AREAS = [
   {
     key: 'requests',
-    label: 'Hiring requests',
+    label: 'Hiring Requests',
     hint: 'Asking for, checking and approving new positions',
     multi: true,
     levels: [
@@ -366,7 +366,7 @@ const RECRUITMENT_AREAS = [
   },
   {
     key: 'vacancies',
-    label: 'Vacancies & candidates',
+    label: 'Vacancies & Candidates',
     hint: 'Running vacancies, candidates and interviews',
     levels: [
       [
@@ -382,7 +382,7 @@ const RECRUITMENT_AREAS = [
       ],
       [
         'Manage & hire',
-        'Everything in Manage, plus hire a candidate who accepted an offer, which adds them to Employee management.',
+        'Everything in Manage, plus hire a candidate who accepted an offer, which adds them to Employee Management.',
         ['recruitment.view', 'recruitment.manage', 'recruitment.hire'],
       ],
     ],
@@ -407,10 +407,10 @@ const PERFORMANCE_AREAS = [
   },
   {
     key: 'cycles',
-    label: 'Review cycles',
+    label: 'Review Cycles',
     hint: 'Starting the year and moving it on',
     levels: [
-      ['No access', "Can't open Review cycles.", []],
+      ['No access', "Can't open Review Cycles.", []],
       [
         'Manage',
         'Start a review cycle, which gives every employee an appraisal, and move it from goal setting to mid-year, year end and closed.',
@@ -420,7 +420,7 @@ const PERFORMANCE_AREAS = [
   },
   {
     key: 'probation',
-    label: 'Probation reviews',
+    label: 'Probation Reviews',
     hint: 'Confirming staff at the end of probation',
     levels: [
       ['Their team only', 'Complete the probation reviews of the people who report to them.', []],
@@ -439,7 +439,7 @@ const FLOAT_AREAS = [
   // Cash and float for Altus Money Solutions (D117, D121).
   {
     key: 'float',
-    label: 'AMS cash and float',
+    label: 'AMS Cash And Float',
     hint: 'Deposits, withdrawals and float at the AMS branches',
     levels: [
       ['No access', "Can't open AMS cash and float.", []],
@@ -467,7 +467,7 @@ const FLOAT_AREAS = [
   },
   {
     key: 'float_director',
-    label: 'AMS director approvals',
+    label: 'AMS Director Approvals',
     hint: 'Write-offs above the limit',
     levels: [
       ['No access', 'No director approvals.', []],
@@ -480,7 +480,7 @@ const FLOAT_AREAS = [
   },
   {
     key: 'float_shortages',
-    label: 'AMS staff shortages',
+    label: 'AMS Staff Shortages',
     hint: 'For HR follow-up',
     levels: [
       ['No access', "Can't see shortages by member of staff.", []],
@@ -489,7 +489,7 @@ const FLOAT_AREAS = [
   },
   {
     key: 'float_admin',
-    label: 'AMS set-up',
+    label: 'AMS Set-up',
     hint: 'Branches, accounts, the week, limits and commission',
     levels: [
       ['No access', "Can't change the AMS set-up.", []],
@@ -504,12 +504,12 @@ const FLOAT_AREAS = [
 ];
 
 export const MODULES = {
-  leave: { key: 'leave', label: 'Leave management', areas: LEAVE_AREAS },
-  people: { key: 'people', label: 'Employee management', areas: PEOPLE_AREAS },
-  inventory: { key: 'inventory', label: 'Inventory system', areas: INVENTORY_AREAS },
-  recruitment: { key: 'recruitment', label: 'Recruitment management', areas: RECRUITMENT_AREAS },
-  performance: { key: 'performance', label: 'Performance management', areas: PERFORMANCE_AREAS },
-  float: { key: 'float', label: 'Float system', areas: FLOAT_AREAS },
+  leave: { key: 'leave', label: 'Leave Management', areas: LEAVE_AREAS },
+  people: { key: 'people', label: 'Employee Management', areas: PEOPLE_AREAS },
+  inventory: { key: 'inventory', label: 'Inventory System', areas: INVENTORY_AREAS },
+  recruitment: { key: 'recruitment', label: 'Recruitment Management', areas: RECRUITMENT_AREAS },
+  performance: { key: 'performance', label: 'Performance Management', areas: PERFORMANCE_AREAS },
+  float: { key: 'float', label: 'Float System', areas: FLOAT_AREAS },
 };
 export const MODULE_KEYS = Object.keys(MODULES);
 

@@ -27,28 +27,28 @@ export default function RecruitmentHomePage() {
     a.review && {
       to: '/recruitment/requests?status=PENDING_REVIEW',
       icon: ClipboardCheck,
-      title: `Hiring requests to check (${c.toReview})`,
+      title: `Hiring Requests To Check (${c.toReview})`,
       desc: 'Send them to a director, or turn them down',
       tone: 'issue',
     },
     a.approve && {
       to: '/recruitment/requests?status=PENDING_APPROVAL',
       icon: ClipboardCheck,
-      title: `Hiring requests to approve (${c.toApprove})`,
+      title: `Hiring Requests To Approve (${c.toApprove})`,
       desc: 'Approve or reject new positions',
       tone: 'issue',
     },
     c.feedbackDue > 0 && {
       to: '/recruitment/interviews',
       icon: CalendarClock,
-      title: `Interview feedback due (${c.feedbackDue})`,
+      title: `Interview Feedback Due (${c.feedbackDue})`,
       desc: 'Give your rating and recommendation',
       tone: 'request',
     },
     a.raise && {
       to: '/recruitment/requests/new',
       icon: FilePlus2,
-      title: 'Request a hire',
+      title: 'Request A Hire',
       desc: 'Ask for a new or replacement position',
       tone: 'receive',
     },
@@ -62,14 +62,14 @@ export default function RecruitmentHomePage() {
     {
       to: '/recruitment/jobs',
       icon: Briefcase,
-      title: 'Open positions',
+      title: 'Open Positions',
       desc: 'Positions you can apply for',
       tone: 'reports',
     },
     {
       to: '/recruitment/applications',
       icon: FileText,
-      title: 'My applications',
+      title: 'My Applications',
       desc: 'Where your applications stand',
       tone: 'reports',
     },
@@ -81,10 +81,10 @@ export default function RecruitmentHomePage() {
       <div className="stack">
         {s && (a.view || c.myVacancies > 0) && (
           <Stats>
-            <Stat label="Open vacancies" value={s.openVacancies} to="/recruitment/vacancies?status=OPEN" />
-            <Stat label="Candidates in progress" value={s.activeCandidates} to="/recruitment/vacancies" />
-            <Stat label="Interviews in the next 7 days" value={s.interviewsThisWeek} />
-            <Stat label="Hired this year" value={s.hiredThisYear} />
+            <Stat label="Open Vacancies" value={s.openVacancies} to="/recruitment/vacancies?status=OPEN" />
+            <Stat label="Candidates In Progress" value={s.activeCandidates} to="/recruitment/vacancies" />
+            <Stat label="Interviews In The Next 7 Days" value={s.interviewsThisWeek} />
+            <Stat label="Hired This Year" value={s.hiredThisYear} />
           </Stats>
         )}
         <ActionTiles>
@@ -94,7 +94,7 @@ export default function RecruitmentHomePage() {
         </ActionTiles>
         {s && (a.view || c.myVacancies > 0) && (
           <Section
-            title="Candidates by stage"
+            title="Candidates By Stage"
             description={s.seesAll ? 'Open vacancies across the group' : 'The vacancies you are hiring for'}
           >
             <BarList

@@ -49,7 +49,7 @@ export function ProbationListPage() {
   return (
     <div>
       <PageHeader
-        title="Probation reviews"
+        title="Probation Reviews"
         description="Reviews start by themselves 30 days before probation ends. The manager recommends; HR decides, and the employee record is updated."
       />
       {msg && (
@@ -66,13 +66,13 @@ export function ProbationListPage() {
               <EmptyState title="No probation reviews." />
             </div>
           ) : (
-            <Table title="Probation reviews">
+            <Table title="Probation Reviews">
               <thead>
                 <tr>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Department</Th>
-                  <Th>Probation ends</Th>
+                  <Th>Probation Ends</Th>
                   <Th>Manager</Th>
                   <Th>Recommendation</Th>
                   <Th>Status</Th>
@@ -118,16 +118,16 @@ export function ProbationListPage() {
           )}
           {q.data.notStarted.length > 0 && (
             <Section
-              title="Probation ending, no review yet"
+              title="Probation Ending, No Review Yet"
               description="They are started automatically 30 days before the end date; start one sooner here."
             >
-              <Table title="Probation not started" tools={false}>
+              <Table title="Probation Not Started" tools={false}>
                 <thead>
                   <tr>
-                    <Th>First name</Th>
-                    <Th>Last name</Th>
+                    <Th>First Name</Th>
+                    <Th>Last Name</Th>
                     <Th>Department</Th>
-                    <Th>Probation ends</Th>
+                    <Th>Probation Ends</Th>
                     <Th>
                       <span className="sr-only">Action</span>
                     </Th>
@@ -142,7 +142,7 @@ export function ProbationListPage() {
                       <Td>{formatDate(e.probationEndDate)}</Td>
                       <Td>
                         <Button size="sm" variant="secondary" busy={busy === e.id} onClick={() => start(e)}>
-                          Start review
+                          Start Review
                         </Button>
                       </Td>
                     </tr>
@@ -175,7 +175,7 @@ export function ProbationReviewPage() {
   return (
     <div>
       <PageHeader
-        title={`Probation review · ${p.employee.name}`}
+        title={`Probation Review · ${p.employee.name}`}
         description={[
           p.employee.jobTitle,
           p.employee.department,
@@ -186,7 +186,7 @@ export function ProbationReviewPage() {
         actions={
           <Badge tone={acting ? 'pending' : PROBATION_STATUS[p.status][1]}>
             {acting
-              ? 'Your turn'
+              ? 'Your Turn'
               : p.status === 'COMPLETED'
                 ? OUTCOME[p.decision][0]
                 : PROBATION_STATUS[p.status][0]}
@@ -211,7 +211,7 @@ export function ProbationReviewPage() {
               title={`Decision: ${OUTCOME[p.decision][0]}`}
             >
               {p.decision === 'EXTEND' && `Probation extended until ${formatDate(p.extendedTo)}. `}
-              {p.decision === 'NOT_CONFIRM' && 'Process their exit in Employee management. '}
+              {p.decision === 'NOT_CONFIRM' && 'Process their exit in Employee Management. '}
               By {p.decidedBy}, {formatDateTime(p.decidedAt)}.{p.hrComment ? ` “${p.hrComment}”` : ''}
             </Notice>
           )}
@@ -219,16 +219,16 @@ export function ProbationReviewPage() {
             <Details
               items={[
                 ['Name', p.employee.name],
-                ['Job title', p.employee.jobTitle],
+                ['Job Title', p.employee.jobTitle],
                 ['Department', p.employee.department],
                 ['Started', p.employee.startDate && formatDate(p.employee.startDate)],
-                ['Probation ends', formatDate(p.probationEndDate)],
+                ['Probation Ends', formatDate(p.probationEndDate)],
                 ['Manager', p.manager?.name ?? 'None recorded (HR completes the review)'],
               ]}
             />
           </Section>
           {p.recommendation && (
-            <Section title="Manager’s review">
+            <Section title="Manager’s Review">
               <Details
                 items={[
                   ...PROBATION_CRITERIA.map(([k, l]) => [
@@ -289,7 +289,7 @@ function ManagerForm({ review: p, onDone }) {
   };
   const ready = PROBATION_CRITERIA.every(([k]) => v[k]) && v.comment.trim() && v.recommendation;
   return (
-    <Section title="Your review" className="border-brand ring-1 ring-brand">
+    <Section title="Your Review" className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
         {PROBATION_CRITERIA.map(([k, l]) => (
           <Field key={k} id={`pr-${k}`} label={l}>
@@ -317,7 +317,7 @@ function ManagerForm({ review: p, onDone }) {
           </Select>
         </Field>
         {v.recommendation === 'EXTEND' && (
-          <Field id="pr-ext" label="Extend until">
+          <Field id="pr-ext" label="Extend Until">
             <Input
               id="pr-ext"
               type="date"
@@ -329,7 +329,7 @@ function ManagerForm({ review: p, onDone }) {
         )}
         {error && <Notice tone="danger">{error}</Notice>}
         <Button busy={busy} disabled={!ready} onClick={send}>
-          Send to HR
+          Send To HR
         </Button>
       </div>
     </Section>
@@ -362,7 +362,7 @@ function DecideForm({ review: p, onDone }) {
     }
   };
   return (
-    <Section title="HR decision" className="border-brand ring-1 ring-brand">
+    <Section title="HR Decision" className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
         <p className="text-sm">
           The manager recommends: <span className="font-semibold">{OUTCOME[p.recommendation][0]}</span>.
@@ -378,7 +378,7 @@ function DecideForm({ review: p, onDone }) {
           </Select>
         </Field>
         {v.decision === 'EXTEND' && (
-          <Field id="pd-ext" label="Extend until">
+          <Field id="pd-ext" label="Extend Until">
             <Input
               id="pd-ext"
               type="date"
@@ -401,7 +401,7 @@ function DecideForm({ review: p, onDone }) {
         </Field>
         {error && <Notice tone="danger">{error}</Notice>}
         <Button busy={busy} variant={v.decision === 'NOT_CONFIRM' ? 'danger' : 'primary'} onClick={send}>
-          Make decision
+          Make Decision
         </Button>
       </div>
     </Section>

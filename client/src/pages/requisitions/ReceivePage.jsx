@@ -48,7 +48,7 @@ export default function ReceivePage() {
   };
   return (
     <div>
-      <PageHeader title="Receive stock" description="Record a delivery at a branch." />
+      <PageHeader title="Receive Stock" description="Record a delivery at a branch." />
       {requisitionId && !form.data.requisition && !done && (
         <div className="mb-4">
           <Notice tone="pending">
@@ -97,7 +97,7 @@ export default function ReceivePage() {
         </div>
       )}
       <div className="mt-8">
-        <RecentMovements type="received" title="Recent deliveries" />
+        <RecentMovements type="received" title="Recent Deliveries" />
       </div>
     </div>
   );
@@ -113,9 +113,9 @@ function defaultBranch(branches, r) {
 function BranchField({ id, branches, value, onChange }) {
   if (branches.length === 1) return null;
   return (
-    <Field id={id} label="Receiving at branch">
+    <Field id={id} label="Receiving At Branch">
       <Select id={id} value={value} onChange={onChange}>
-        <option value="">Choose a branch</option>
+        <option value="">Choose A Branch</option>
         {branches.map((b) => (
           <option key={b.id} value={b.id}>
             {b.company} › {b.name}
@@ -181,7 +181,7 @@ function NewItemForm({ opts, branches, r, onDone }) {
   );
   const cat = opts.categories.find((c) => String(c.id) === v.categoryId)?.name;
   return (
-    <Section title="Receive new item" description="For something that isn't in stock yet.">
+    <Section title="Receive New Item" description="For something that isn't in stock yet.">
       <form
         noValidate
         onSubmit={(e) => {
@@ -203,7 +203,7 @@ function NewItemForm({ opts, branches, r, onDone }) {
         </div>
         <Field id="n-cat" label="Category">
           <Select id="n-cat" value={v.categoryId} onChange={set('categoryId')}>
-            <option value="">Choose a category</option>
+            <option value="">Choose A Category</option>
             {opts.categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -211,7 +211,7 @@ function NewItemForm({ opts, branches, r, onDone }) {
             ))}
           </Select>
         </Field>
-        <Field id="n-name" label="Item name">
+        <Field id="n-name" label="Item Name">
           <Input
             id="n-name"
             value={v.name}
@@ -232,10 +232,10 @@ function NewItemForm({ opts, branches, r, onDone }) {
         <Field id="n-supplier" label="Supplier">
           <Input id="n-supplier" value={v.supplier} onChange={set('supplier')} maxLength={200} />
         </Field>
-        <Field id="n-qty" label="Quantity received">
+        <Field id="n-qty" label="Quantity Received">
           <Input id="n-qty" type="number" min="1" step="1" value={v.quantity} onChange={set('quantity')} />
         </Field>
-        <Field id="n-price" label="Unit price (K)">
+        <Field id="n-price" label="Unit Price (K)">
           <Input
             id="n-price"
             type="number"
@@ -246,7 +246,7 @@ function NewItemForm({ opts, branches, r, onDone }) {
             placeholder="0.00"
           />
         </Field>
-        <Field id="n-reorder" label="Reorder level" hint="Alert threshold for low stock.">
+        <Field id="n-reorder" label="Reorder Level" hint="Alert threshold for low stock.">
           <Input
             id="n-reorder"
             type="number"
@@ -256,7 +256,7 @@ function NewItemForm({ opts, branches, r, onDone }) {
             onChange={set('reorderLevel')}
           />
         </Field>
-        <Field id="n-date" label="Date received">
+        <Field id="n-date" label="Date Received">
           <Input
             id="n-date"
             type="date"
@@ -271,13 +271,13 @@ function NewItemForm({ opts, branches, r, onDone }) {
           </div>
         )}
         <div className="sm:col-span-2">
-          <Button type="submit">Receive new item</Button>
+          <Button type="submit">Receive New Item</Button>
         </div>
       </form>
       <ConfirmDialog
         open={s.open}
-        title="Receive new item"
-        confirmLabel="Receive new item"
+        title="Receive New Item"
+        confirmLabel="Receive New Item"
         busy={s.busy}
         onConfirm={s.go}
         onCancel={() => s.setOpen(false)}
@@ -338,7 +338,7 @@ function ExistingForm({ form, branches, r, onDone }) {
     onDone,
   );
   return (
-    <Section title="Receive existing item" description="For something already in stock.">
+    <Section title="Receive Existing Item" description="For something already in stock.">
       <form
         noValidate
         onSubmit={(e) => {
@@ -364,7 +364,7 @@ function ExistingForm({ form, branches, r, onDone }) {
           hint={form.items.length ? undefined : 'No items yet. Add one with Receive new item.'}
         >
           <Select id="e-item" value={v.itemId} onChange={set('itemId')}>
-            <option value="">Choose an item</option>
+            <option value="">Choose An Item</option>
             {groups.map(([cat, items]) => (
               <optgroup key={cat} label={cat}>
                 {items.map((i) => (
@@ -376,7 +376,7 @@ function ExistingForm({ form, branches, r, onDone }) {
             ))}
           </Select>
         </Field>
-        <Field id="e-avail" label="Available at this branch">
+        <Field id="e-avail" label="Available At This Branch">
           <Input id="e-avail" value={available} readOnly tabIndex={-1} className="bg-canvas" />
         </Field>
         <Field id="e-supplier" label="Supplier">
@@ -390,10 +390,10 @@ function ExistingForm({ form, branches, r, onDone }) {
             maxLength={200}
           />
         </Field>
-        <Field id="e-qty" label="Quantity received">
+        <Field id="e-qty" label="Quantity Received">
           <Input id="e-qty" type="number" min="1" step="1" value={v.quantity} onChange={set('quantity')} />
         </Field>
-        <Field id="e-price" label="Unit price (K)">
+        <Field id="e-price" label="Unit Price (K)">
           <Input
             id="e-price"
             type="number"
@@ -404,7 +404,7 @@ function ExistingForm({ form, branches, r, onDone }) {
             placeholder="0.00"
           />
         </Field>
-        <Field id="e-reorder" label="Reorder level" hint="You'll be warned when stock falls to this level.">
+        <Field id="e-reorder" label="Reorder Level" hint="You'll be warned when stock falls to this level.">
           <Input
             id="e-reorder"
             type="number"
@@ -414,7 +414,7 @@ function ExistingForm({ form, branches, r, onDone }) {
             onChange={set('reorderLevel')}
           />
         </Field>
-        <Field id="e-date" label="Date received">
+        <Field id="e-date" label="Date Received">
           <Input
             id="e-date"
             type="date"
@@ -429,13 +429,13 @@ function ExistingForm({ form, branches, r, onDone }) {
           </div>
         )}
         <div className="sm:col-span-2">
-          <Button type="submit">Receive stock</Button>
+          <Button type="submit">Receive Stock</Button>
         </div>
       </form>
       <ConfirmDialog
         open={s.open}
-        title="Receive stock"
-        confirmLabel="Receive stock"
+        title="Receive Stock"
+        confirmLabel="Receive Stock"
         busy={s.busy}
         onConfirm={s.go}
         onCancel={() => s.setOpen(false)}

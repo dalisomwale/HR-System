@@ -49,20 +49,20 @@ export default function RequisitionsHomePage() {
       <div className="stack">
         {d?.scope === 'all' && (
           <Stats>
-            <Stat label="Stock value" value={kwachaWhole(d.stockValue)} to="/requisitions/stock?sort=value" />
+            <Stat label="Stock Value" value={kwachaWhole(d.stockValue)} to="/requisitions/stock?sort=value" />
             <Stat
-              label="Issued, last 30 days (units)"
+              label="Issued, Last 30 Days (Units)"
               value={units(d.issued.current)}
               to="/requisitions/transactions"
             />
             <Stat
-              label="Need reordering"
+              label="Need Reordering"
               value={d.needReordering}
               tone="danger"
               to="/requisitions/stock?status=low"
             />
             <Stat
-              label="Requisitions waiting for you"
+              label="Requisitions Waiting For You"
               value={a.waiting}
               to="/requisitions/requests?tab=mine"
             />
@@ -71,14 +71,14 @@ export default function RequisitionsHomePage() {
         {d?.scope === 'department' && (
           <Stats>
             <Stat
-              label={`Issued to ${d.department ?? 'your department'}, last 30 days`}
+              label={`Issued To ${d.department ?? 'your department'}, Last 30 Days`}
               value={units(d.issued.current)}
               to="/requisitions/stock"
             />
-            <Stat label="Value issued, last 30 days" value={kwachaWhole(d.valueIssued)} />
-            <Stat label="Items your department uses" value={units(d.itemsUsed)} />
+            <Stat label="Value Issued, Last 30 Days" value={kwachaWhole(d.valueIssued)} />
+            <Stat label="Items Your Department Uses" value={units(d.itemsUsed)} />
             <Stat
-              label="Requisitions waiting for you"
+              label="Requisitions Waiting For You"
               value={a.waiting}
               to="/requisitions/requests?tab=mine"
             />
@@ -87,7 +87,7 @@ export default function RequisitionsHomePage() {
         {!a.stock && (
           <Stats cols={3}>
             <Stat
-              label="Requisitions waiting for you"
+              label="Requisitions Waiting For You"
               value={a.waiting}
               to="/requisitions/requests?tab=mine"
             />
@@ -100,7 +100,7 @@ export default function RequisitionsHomePage() {
             <ActionTile
               to="/requisitions/receive"
               icon={PackagePlus}
-              title="Receive stock"
+              title="Receive Stock"
               desc="Record a delivery"
               tone="receive"
             />
@@ -109,7 +109,7 @@ export default function RequisitionsHomePage() {
             <ActionTile
               to="/requisitions/issue"
               icon={PackageMinus}
-              title="Issue stock"
+              title="Issue Stock"
               desc="Give items to a department"
               tone="issue"
             />
@@ -118,7 +118,7 @@ export default function RequisitionsHomePage() {
             <ActionTile
               to="/requisitions/stock"
               icon={Boxes}
-              title={a.stockDepartment ? 'Stock' : 'Manage stock'}
+              title={a.stockDepartment ? 'Stock' : 'Manage Stock'}
               desc={a.stockDepartment ? "Your department's items" : 'All items and levels'}
               tone="stock"
             />
@@ -127,7 +127,7 @@ export default function RequisitionsHomePage() {
             <ActionTile
               to="/requisitions/requests/new"
               icon={FilePlus2}
-              title="Raise a requisition"
+              title="Raise A Requisition"
               desc="Ask for something to be bought"
               tone="request"
             />
@@ -144,7 +144,7 @@ export default function RequisitionsHomePage() {
             <ActionTile
               to="/requisitions/reports"
               icon={FileBarChart}
-              title="Monthly reports"
+              title="Monthly Reports"
               desc="View and export to Excel"
               tone="reports"
             />
@@ -152,7 +152,7 @@ export default function RequisitionsHomePage() {
         </ActionTiles>
 
         <Section
-          title="Waiting for you"
+          title="Waiting For You"
           actions={
             <Link to="/requisitions/requests" className="card-link">
               All requisitions
@@ -194,11 +194,11 @@ export default function RequisitionsHomePage() {
         {d?.scope === 'all' && (
           <>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-              <Section title="Stock movement, last 8 weeks" description="Units received and issued each week">
+              <Section title="Stock Movement, Last 8 Weeks" description="Units received and issued each week">
                 <div className="space-y-3">
                   <Legend items={MOVEMENT} />
                   <ColumnChart
-                    label="Units received and issued per week"
+                    label="Units Received And Issued Per Week"
                     series={MOVEMENT}
                     grouped
                     whole
@@ -207,16 +207,16 @@ export default function RequisitionsHomePage() {
                     data={d.weeks.map((w) => ({
                       key: w.week,
                       tick: weekFmt.format(new Date(`${w.week}T12:00:00Z`)),
-                      title: `Week of ${weekFmt.format(new Date(`${w.week}T12:00:00Z`))}`,
+                      title: `Week Of ${weekFmt.format(new Date(`${w.week}T12:00:00Z`))}`,
                       received: w.received,
                       issued: w.issued,
                     }))}
                   />
                 </div>
               </Section>
-              <Section title="Stock health" description="Items by stock level">
+              <Section title="Stock Health" description="Items by stock level">
                 <Donut
-                  label="Items by stock level"
+                  label="Items By Stock Level"
                   centre={units(d.items)}
                   centreLabel="items"
                   unit="items"
@@ -230,14 +230,14 @@ export default function RequisitionsHomePage() {
               </Section>
             </div>
             <div className="grid-2">
-              <Section title="Issued by category, last 30 days" description="Units">
+              <Section title="Issued By Category, Last 30 Days" description="Units">
                 <BarList
                   items={d.byCategoryIssued.map((r) => ({ key: r.label, label: r.label, value: r.value }))}
                   format={units}
                   empty="Nothing issued in the last 30 days."
                 />
               </Section>
-              <Section title="Where the stock value sits" description="By category">
+              <Section title="Where The Stock Value Sits" description="By category">
                 <BarList
                   items={d.valueByCategory.map((r) => ({ key: r.label, label: r.label, value: r.value }))}
                   format={kwachaWhole}
@@ -247,7 +247,7 @@ export default function RequisitionsHomePage() {
               </Section>
             </div>
             <Section
-              title={`Running low: ${d.needReordering} ${d.needReordering === 1 ? 'item' : 'items'}`}
+              title={`Running Low: ${d.needReordering} ${d.needReordering === 1 ? 'item' : 'items'}`}
               description="Days left is based on how much was issued in the last 30 days."
             >
               {d.runningLow.length === 0 ? (
@@ -258,11 +258,11 @@ export default function RequisitionsHomePage() {
                     <tr>
                       <Th>Item</Th>
                       <Th>Category</Th>
-                      <Th className="text-right">In stock</Th>
-                      <Th className="text-right">Reorder at</Th>
-                      <Th className="text-right">Used per week</Th>
-                      <Th>Days left</Th>
-                      <Th className="text-right">Suggested order</Th>
+                      <Th className="text-right">In Stock</Th>
+                      <Th className="text-right">Reorder At</Th>
+                      <Th className="text-right">Used Per Week</Th>
+                      <Th>Days Left</Th>
+                      <Th className="text-right">Suggested Order</Th>
                       <Th>
                         <span className="sr-only">Action</span>
                       </Th>
@@ -317,14 +317,14 @@ export default function RequisitionsHomePage() {
         )}
         {d?.scope === 'department' && (
           <div className="grid-2">
-            <Section title="Issued by category, last 30 days" description="Units">
+            <Section title="Issued By Category, Last 30 Days" description="Units">
               <BarList
                 items={d.byCategoryIssued.map((r) => ({ key: r.label, label: r.label, value: r.value }))}
                 format={units}
                 empty="Nothing issued to your department in the last 30 days."
               />
             </Section>
-            <Section title="Most issued, last 30 days" description="Units">
+            <Section title="Most Issued, Last 30 Days" description="Units">
               <BarList
                 items={d.topIssued.map((r) => ({ key: r.label, label: r.label, value: r.value }))}
                 format={units}

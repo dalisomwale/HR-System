@@ -54,37 +54,37 @@ export function nextStep(status, phase) {
   if (phase === 'CLOSED' || phase === 'DRAFT') return null;
   switch (status) {
     case 'GOALS_DRAFT':
-      return { who: 'EMPLOYEE', label: 'Set goals' };
+      return { who: 'EMPLOYEE', label: 'Set Goals' };
     case 'GOALS_SUBMITTED':
-      return { who: 'MANAGER', label: 'Agree goals' };
+      return { who: 'MANAGER', label: 'Agree Goals' };
     case 'GOALS_AGREED':
-      if (phase === 'MID_YEAR') return { who: 'EMPLOYEE', label: 'Mid-year self-review' };
-      if (phase === 'YEAR_END') return { who: 'EMPLOYEE', label: 'Year-end self-assessment' };
+      if (phase === 'MID_YEAR') return { who: 'EMPLOYEE', label: 'Mid-year Self-review' };
+      if (phase === 'YEAR_END') return { who: 'EMPLOYEE', label: 'Year-end Self-assessment' };
       return null;
     case 'MID_SELF_DONE':
       return phase === 'YEAR_END'
-        ? { who: 'EMPLOYEE', label: 'Year-end self-assessment' }
-        : { who: 'MANAGER', label: 'Mid-year review' };
+        ? { who: 'EMPLOYEE', label: 'Year-end Self-assessment' }
+        : { who: 'MANAGER', label: 'Mid-year Review' };
     case 'MID_DONE':
-      return phase === 'YEAR_END' ? { who: 'EMPLOYEE', label: 'Year-end self-assessment' } : null;
+      return phase === 'YEAR_END' ? { who: 'EMPLOYEE', label: 'Year-end Self-assessment' } : null;
     case 'FINAL_SELF_DONE':
-      return { who: 'MANAGER', label: 'Year-end appraisal' };
+      return { who: 'MANAGER', label: 'Year-end Appraisal' };
     case 'FINAL_MANAGER_DONE':
-      return { who: 'HR', label: 'HR sign-off' };
+      return { who: 'HR', label: 'HR Sign-off' };
     default:
       return null;
   }
 }
 
 export const STATUS_LABEL = {
-  GOALS_DRAFT: 'Setting goals',
-  GOALS_SUBMITTED: 'Goals with the manager',
-  GOALS_AGREED: 'Goals agreed',
-  MID_SELF_DONE: 'Mid-year: with the manager',
-  MID_DONE: 'Mid-year done',
-  FINAL_SELF_DONE: 'Year end: with the manager',
-  FINAL_MANAGER_DONE: 'Waiting for HR sign-off',
-  SIGNED_OFF: 'Signed off',
+  GOALS_DRAFT: 'Setting Goals',
+  GOALS_SUBMITTED: 'Goals With The Manager',
+  GOALS_AGREED: 'Goals Agreed',
+  MID_SELF_DONE: 'Mid-year: With The Manager',
+  MID_DONE: 'Mid-year Done',
+  FINAL_SELF_DONE: 'Year End: With The Manager',
+  FINAL_MANAGER_DONE: 'Waiting For HR Sign-off',
+  SIGNED_OFF: 'Signed Off',
 };
 
 const goalSchema = z.object({
@@ -373,7 +373,7 @@ export function performanceRoutes({ db }) {
               subject: `${what[0]}: ${c.name}`,
               heading: what[0],
               intro: `The ${c.name} review cycle has moved to ${what[0].toLowerCase()}. Please ${what[1]}.`,
-              rows: due ? [['Due by', due]] : [],
+              rows: due ? [['Due By', due]] : [],
               action: 'Open your appraisal in the performance system.',
             },
           });
@@ -729,7 +729,7 @@ export function performanceRoutes({ db }) {
           intro,
           rows: [
             ['Employee', who],
-            ['Review cycle', a.cycle_name],
+            ['Review Cycle', a.cycle_name],
           ],
           action: 'Open the appraisal in the performance system.',
         },
@@ -1044,7 +1044,7 @@ export function performanceRoutes({ db }) {
             subject: `Probation decision: ${who}`,
             heading: 'Probation decision needed',
             intro: `${who}’s manager has completed their probation review.`,
-            rows: [['Probation ends', p.probation_end_date]],
+            rows: [['Probation Ends', p.probation_end_date]],
             action: 'Please make the final decision in the performance system.',
           },
         });

@@ -95,7 +95,7 @@ export default function EmployeePanel({ employeeId, onClose, onSaved, base = '/p
                     }}
                   >
                     {' '}
-                    Edit details
+                    Edit Details
                   </Button>
                 )}
                 <Link

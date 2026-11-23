@@ -37,9 +37,9 @@ import {
 
 const QUICK = [50, 100, 200, 500, 1000];
 const TURN_DOWN = [
-  ['NO_FLOAT', 'No float'],
-  ['NO_CASH', 'No cash'],
-  ['NETWORK_DOWN', 'Network down'],
+  ['NO_FLOAT', 'No Float'],
+  ['NO_CASH', 'No Cash'],
+  ['NETWORK_DOWN', 'Network Down'],
   ['OTHER', 'Other'],
 ];
 
@@ -78,7 +78,7 @@ export function BranchPicker({ branches, value, onChange }) {
   if (!branches?.length) return null;
   return (
     <div className="mb-4 max-w-sm">
-      <Field id="work-branch" label="Branch you are working on">
+      <Field id="work-branch" label="Branch You Are Working On">
         <Select id="work-branch" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
           {branches.map((b) => (
             <option key={b.id} value={b.id}>
@@ -138,7 +138,7 @@ function OpenStore({ data, onDone }) {
   const valid = Object.values(v).every((x) => x !== '' && Number(x) >= 0);
   return (
     <Section
-      title="Open the store"
+      title="Open The Store"
       description={
         data.previousClose
           ? `Filled in from the closing on ${data.previousClose.date}. Count and correct anything that is different.`
@@ -168,7 +168,7 @@ function OpenStore({ data, onDone }) {
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
         <Button className="min-h-12 text-base" busy={busy} disabled={!valid} onClick={open}>
-          Open store
+          Open Store
         </Button>
       </div>
     </Section>
@@ -223,7 +223,7 @@ export function FloatRecordPage() {
   if (today.isPending) return <Loading />;
   if (today.isError) {
     return (
-      <Notice tone="pending" title="No AMS branch to work on">
+      <Notice tone="pending" title="No AMS Branch To Work On">
         {today.error.message}
       </Notice>
     );
@@ -233,7 +233,7 @@ export function FloatRecordPage() {
   if (today.data && !today.data.opened) {
     return (
       <div className="max-w-2xl">
-        <PageHeader title="Record a transaction" description={branch.name} />
+        <PageHeader title="Record A Transaction" description={branch.name} />
         {picker}
         <OpenStore
           data={today.data}
@@ -248,14 +248,14 @@ export function FloatRecordPage() {
   if (today.data.opened?.pending) {
     return (
       <div className="max-w-2xl">
-        <PageHeader title="Record a transaction" description={branch.name} />
+        <PageHeader title="Record A Transaction" description={branch.name} />
         {picker}
         {msg && (
           <div className="mb-4">
             <Notice tone={msg.tone}>{msg.text}</Notice>
           </div>
         )}
-        <Notice tone="pending" title="Waiting for the Operations Officer">
+        <Notice tone="pending" title="Waiting For The Operations Officer">
           Your opening figures have been sent. You can record transactions once the Operations Officer
           confirms them.
         </Notice>
@@ -265,9 +265,9 @@ export function FloatRecordPage() {
   if (today.data?.closed) {
     return (
       <div className="max-w-2xl">
-        <PageHeader title="Record a transaction" description={branch.name} />
+        <PageHeader title="Record A Transaction" description={branch.name} />
         {picker}
-        <Notice tone="neutral" title="The store is closed for today">
+        <Notice tone="neutral" title="The Store Is Closed For Today">
           The day's transactions are closed and the daily report has been sent. Open the store again on the
           next working day.
         </Notice>
@@ -323,7 +323,7 @@ export function FloatRecordPage() {
       : `${big} border-rule bg-white text-ink hover:border-brand`;
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Record a transaction" description={branch.name} />
+      <PageHeader title="Record A Transaction" description={branch.name} />
       {picker}
       <div className="stack">
         {today.data && <Balances accounts={today.data.accounts} />}
@@ -403,7 +403,7 @@ export function FloatRecordPage() {
             </Button>
             {last && (
               <Button variant="secondary" className="min-h-12" busy={busy} onClick={() => save(false, last)}>
-                <Repeat aria-hidden /> Repeat last
+                <Repeat aria-hidden /> Repeat Last
               </Button>
             )}
           </div>
@@ -418,7 +418,7 @@ export function FloatRecordPage() {
       <ConfirmDialog
         open={Boolean(dup)}
         title="Same transaction again?"
-        confirmLabel="Record it again"
+        confirmLabel="Record It Again"
         busy={busy}
         onConfirm={() => save(true, dup)}
         onCancel={() => setDup(false)}
@@ -490,15 +490,15 @@ export function FloatBranchPage() {
                 Record a transaction
               </Link>
               <Button variant="secondary" onClick={() => setPanel('COLLECT')}>
-                Cash to finance
+                Cash To Finance
               </Button>
               <Button variant="secondary" onClick={() => setPanel('HANDOVER')}>
-                Hand over
+                Hand Over
               </Button>
               <Link to="/float/requisitions" className="btn">
                 Raise a requisition
               </Link>
-              <Button onClick={() => setPanel('CLOSE')}>Close store</Button>
+              <Button onClick={() => setPanel('CLOSE')}>Close Store</Button>
             </>
           )
         }
@@ -508,18 +508,18 @@ export function FloatBranchPage() {
         {msg && <Notice tone={msg.tone}>{msg.text}</Notice>}
         {d.canRecord && !d.opened && !d.closed && <OpenStore data={d} onDone={refresh} />}
         {d.opened?.pending && (
-          <Notice tone="pending" title="Opening waiting for the Operations Officer">
+          <Notice tone="pending" title="Opening Waiting For The Operations Officer">
             Recording starts once the Operations Officer confirms the opening figures.
           </Notice>
         )}
         {d.closed &&
           (d.closePending ? (
-            <Notice tone="pending" title="Closing waiting for the Operations Officer">
+            <Notice tone="pending" title="Closing Waiting For The Operations Officer">
               The day's transactions are closed. The daily report goes out once the Operations Officer
               confirms the closing figures.
             </Notice>
           ) : (
-            <Notice tone="neutral" title="Store closed">
+            <Notice tone="neutral" title="Store Closed">
               The day's transactions are closed and the daily report has gone to the Operations Officer, the
               managers, the directors and the System Admin.
             </Notice>
@@ -542,12 +542,12 @@ export function FloatBranchPage() {
           ))}
         </div>
         {d.movements.length > 0 && (
-          <Section title="Top-ups and transfers">
+          <Section title="Top-ups And Transfers">
             <ul className="divide-y divide-rule text-sm">
               {d.movements.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
-                    {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash to finance' }[m.kind]} ·{' '}
+                    {{ TOPUP: 'Top-up', TRANSFER: 'Transfer', COLLECTION: 'Cash To Finance' }[m.kind]} ·{' '}
                     {ACCOUNT[m.toAccount]} {money(m.amount)}
                     {m.reason && <span className="block text-xs text-muted">{m.reason}</span>}
                   </span>
@@ -560,9 +560,9 @@ export function FloatBranchPage() {
                   >
                     {
                       {
-                        PENDING: 'Waiting for a manager',
+                        PENDING: 'Waiting For A Manager',
                         APPROVED: 'Approved',
-                        REJECTED: 'Not approved',
+                        REJECTED: 'Not Approved',
                         CANCELLED: 'Cancelled',
                       }[m.status]
                     }
@@ -585,7 +585,7 @@ export function FloatBranchPage() {
                 <Th>Type</Th>
                 <Th className="text-right">Amount</Th>
                 <Th>Reference</Th>
-                <Th>Recorded by</Th>
+                <Th>Recorded By</Th>
                 <Th>Status</Th>
                 <Th>
                   <span className="sr-only">Action</span>
@@ -622,11 +622,11 @@ export function FloatBranchPage() {
           </Table>
         )}
         {d.counts.length > 0 && (
-          <Section title="Counts today">
+          <Section title="Counts Today">
             <ul className="text-sm">
               {d.counts.map((c) => (
                 <li key={c.id}>
-                  {{ OPEN: 'Store opened', CLOSE: 'Store closed' }[c.kind] ?? `Handover to ${c.handedTo}`} by{' '}
+                  {{ OPEN: 'Store Opened', CLOSE: 'Store Closed' }[c.kind] ?? `Handover to ${c.handedTo}`} by{' '}
                   {c.by} at {timeOf(c.at)}
                 </li>
               ))}
@@ -636,8 +636,8 @@ export function FloatBranchPage() {
       </div>
       <ConfirmDialog
         open={Boolean(reversing)}
-        title="Reverse this transaction"
-        confirmLabel="Ask to reverse"
+        title="Reverse This Transaction"
+        confirmLabel="Ask To Reverse"
         busy={busy}
         onConfirm={reverse}
         onCancel={() => setReversing(null)}
@@ -703,8 +703,8 @@ function CountForm({ data, kind, onDone, onCancel }) {
   };
   if (result && result.length === 0 && kind === 'CLOSE') {
     return (
-      <Section title="Store closed" className="border-brand ring-1 ring-brand">
-        <Notice tone="pending" title="Sent to the Operations Officer">
+      <Section title="Store Closed" className="border-brand ring-1 ring-brand">
+        <Notice tone="pending" title="Sent To The Operations Officer">
           The day's transactions are closed. Your closing figures have gone to the Operations Officer; the
           daily report goes out once they confirm them.
         </Notice>
@@ -718,7 +718,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
     const off = result.filter((r) => r.recorded);
     return (
       <Section
-        title={kind === 'CLOSE' ? 'Store closed' : 'Handed over'}
+        title={kind === 'CLOSE' ? 'Store Closed' : 'Handed Over'}
         className="border-brand ring-1 ring-brand"
       >
         <ul className="mb-3 space-y-1 text-sm">
@@ -730,7 +730,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
               ) : (
                 <Badge tone={r.recorded ? (r.difference > 0 ? 'pending' : 'danger') : 'neutral'}>
                   {r.difference > 0 ? 'Surplus' : 'Deficit'} {signed(r.difference)}
-                  {r.recorded ? '' : ' (within tolerance)'}
+                  {r.recorded ? '' : ' (Within Tolerance)'}
                 </Badge>
               )}
             </li>
@@ -741,7 +741,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
           The balances now match what you counted.
         </p>
         {report && (
-          <Notice tone="ok" title="Store closed and the daily report sent">
+          <Notice tone="ok" title="Store Closed And The Daily Report Sent">
             Opened {report.openedAt ? timeOf(report.openedAt) : '—'}, closed {timeOf(report.signedOutAt)}.
             Deposits {report.deposits.count} ({money(report.deposits.amount)}), withdrawals{' '}
             {report.withdrawals.count} ({money(report.withdrawals.amount)}). Closing cash {money(report.cash)}
@@ -756,12 +756,12 @@ function CountForm({ data, kind, onDone, onCancel }) {
   }
   return (
     <Section
-      title={kind === 'CLOSE' ? 'Close the store' : 'Hand over'}
+      title={kind === 'CLOSE' ? 'Close The Store' : 'Hand Over'}
       className="border-brand ring-1 ring-brand"
     >
       <div className="stack">
         {kind === 'HANDOVER' && (
-          <Field id="ho-to" label="Handing over to">
+          <Field id="ho-to" label="Handing Over To">
             <Select id="ho-to" value={handedTo} onChange={(e) => setHandedTo(e.target.value)}>
               <option value="">Choose</option>
               {data.staff.map((s) => (
@@ -797,7 +797,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
                 checked={byNotes}
                 onChange={(e) => setByNotes(e.target.checked)}
               />
-              Count it note by note
+              Count It Note By Note
             </label>
           </div>
           {byNotes && (
@@ -822,7 +822,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
             <Field
               key={k}
               id={`ph-${k}`}
-              label={`${kind === 'CLOSE' ? 'Closing ' : ''}${ACCOUNT[k]} float on the phone (K)`}
+              label={`${kind === 'CLOSE' ? 'Closing ' : ''}${ACCOUNT[k]} Float On The Phone (K)`}
               hint={`The books say ${money(expected[k] ?? 0)}.`}
             >
               <Input
@@ -838,7 +838,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
           ))}
         </div>
         {kind === 'CLOSE' && (
-          <Field id="ct-comm" label="Today's commission (K)" optional hint="As shown on the phones.">
+          <Field id="ct-comm" label="Today's Commission (K)" optional hint="As shown on the phones.">
             <Input
               id="ct-comm"
               type="number"
@@ -856,7 +856,7 @@ function CountForm({ data, kind, onDone, onCancel }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy} disabled={kind === 'HANDOVER' && !handedTo} onClick={send}>
-            {kind === 'CLOSE' ? 'Close store and send the report' : 'Hand over'}
+            {kind === 'CLOSE' ? 'Close Store And Send The Report' : 'Hand Over'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel
@@ -889,7 +889,7 @@ function CollectionForm({ branchId, onDone, onCancel }) {
     }
   };
   return (
-    <Section title="Cash retired to finance" className="border-brand ring-1 ring-brand">
+    <Section title="Cash Retired To Finance" className="border-brand ring-1 ring-brand">
       <div className="stack">
         <div className="form-row">
           <Field id="cc-amount" label="Amount (K)">
@@ -902,14 +902,14 @@ function CollectionForm({ branchId, onDone, onCancel }) {
               onChange={(e) => setAmount(e.target.value)}
             />
           </Field>
-          <Field id="cc-by" label="Collected by" optional>
+          <Field id="cc-by" label="Collected By" optional>
             <Input id="cc-by" value={by} onChange={(e) => setBy(e.target.value)} />
           </Field>
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy} disabled={!(Number(amount) > 0)} onClick={send}>
-            Record cash to finance
+            Record Cash To Finance
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

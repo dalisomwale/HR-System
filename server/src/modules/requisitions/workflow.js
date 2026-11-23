@@ -14,15 +14,15 @@ import { notify } from '../notifications/notify.service.js';
  */
 
 export const STAGES = {
-  QUOTES_IT: { label: 'Waiting for IT quotations', who: 'IT' },
-  QUOTES_DEPT: { label: 'Waiting for quotations', who: 'Department' },
-  RETURNED: { label: 'Returned to department', who: 'Department' },
-  DIRECTOR: { label: 'Waiting for Director approval', who: 'Director' },
+  QUOTES_IT: { label: 'Waiting For IT Quotations', who: 'IT' },
+  QUOTES_DEPT: { label: 'Waiting For Quotations', who: 'Department' },
+  RETURNED: { label: 'Returned To Department', who: 'Department' },
+  DIRECTOR: { label: 'Waiting For Director Approval', who: 'Director' },
   ACCOUNTS: { label: 'With Accounts', who: 'Accounts' },
   ACCOUNTS_MANAGER: { label: 'With Accounts Manager', who: 'Accounts Manager' },
-  CFO: { label: 'With CFO for final approval', who: 'CFO' },
-  PAY: { label: 'Approved, waiting for payment', who: 'Accounts' },
-  PAID: { label: 'Paid, waiting for delivery', who: 'Stores' },
+  CFO: { label: 'With CFO For Final Approval', who: 'CFO' },
+  PAY: { label: 'Approved, Waiting For Payment', who: 'Accounts' },
+  PAID: { label: 'Paid, Waiting For Delivery', who: 'Stores' },
   RECEIVED: { label: 'Received', who: '' },
   CANCELLED: { label: 'Cancelled', who: '' },
 };
@@ -40,22 +40,22 @@ export const OPEN = [
 export const ORDER = [...OPEN, 'RECEIVED', 'CANCELLED'];
 
 export const ACTIONS = {
-  RAISED: 'Raised the requisition',
-  DOCS_ADDED: 'Attached supporting documents',
-  QUOTE_ADDED: 'Attached a quotation',
-  QUOTE_REMOVED: 'Removed a quotation',
-  TO_DIRECTOR: 'Sent to the Director',
-  RESUBMITTED: 'Resubmitted to the Director',
-  BACK_TO_IT: 'Asked IT for new quotations',
+  RAISED: 'Raised The Requisition',
+  DOCS_ADDED: 'Attached Supporting Documents',
+  QUOTE_ADDED: 'Attached A Quotation',
+  QUOTE_REMOVED: 'Removed A Quotation',
+  TO_DIRECTOR: 'Sent To The Director',
+  RESUBMITTED: 'Resubmitted To The Director',
+  BACK_TO_IT: 'Asked IT For New Quotations',
   APPROVED: 'Approved',
-  REJECTED: 'Rejected and returned to the department',
-  TO_AM: 'Sent to the Accounts Manager',
-  AM_APPROVED: 'Approved and sent to the CFO',
-  AM_REJECTED: 'Sent back to Accounts',
-  CFO_APPROVED: 'Gave final approval',
-  CFO_REJECTED: 'Sent back to the Accounts Manager',
-  POP_SENT: 'Attached the proof of payment',
-  RECEIVED: 'Received into stock',
+  REJECTED: 'Rejected And Returned To The Department',
+  TO_AM: 'Sent To The Accounts Manager',
+  AM_APPROVED: 'Approved And Sent To The CFO',
+  AM_REJECTED: 'Sent Back To Accounts',
+  CFO_APPROVED: 'Gave Final Approval',
+  CFO_REJECTED: 'Sent Back To The Accounts Manager',
+  POP_SENT: 'Attached The Proof Of Payment',
+  RECEIVED: 'Received Into Stock',
   CANCELLED: 'Cancelled',
 };
 
@@ -134,7 +134,7 @@ const STAGE_RIGHTS = {
 };
 
 /**
- * The people whose turn it is at `status`, all active employees in Employee management. Someone
+ * The people whose turn it is at `status`, all active employees in Employee Management. Someone
  * with an inventory role acts by that role alone; everyone else by their HR roles and
  * departments (D105), as in access.js.
  */

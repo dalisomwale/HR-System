@@ -212,8 +212,8 @@ describe('employee overview', () => {
     expect(o.contract).toMatchObject({ type: 'FIXED_TERM', daysLeft: 40 });
     expect(o.monthly).toHaveLength(12);
     const done = o.completeness.filter((c) => c.done).map((c) => c.label);
-    expect(done).toEqual(expect.arrayContaining(['Work email', 'Employment type', 'Contract end date']));
-    expect(done).not.toContain('Line manager');
+    expect(done).toEqual(expect.arrayContaining(['Work Email', 'Employment Type', 'Contract End Date']));
+    expect(done).not.toContain('Line Manager');
     const staff = await fixtureEmployee(db);
     const s = await signIn(app, entra, { oid: staff.oid });
     expect((await s.agent.get(`/api/people/employees/${id}/overview`)).status).toBe(403);

@@ -42,9 +42,9 @@ export default function BranchesPage() {
       <PeopleTrail />
       <PageHeader
         title="Branches"
-        description="The places each company works from. Stock is received at and issued from a branch in the Inventory system."
+        description="The places each company works from. Stock is received at and issued from a branch in the Inventory System."
         actions={
-          canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add branch</Button>
+          canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add Branch</Button>
         }
       />
       {msg && (
@@ -76,8 +76,8 @@ export default function BranchesPage() {
                 <Th>Branch</Th>
                 <Th>Company</Th>
                 <Th>Location</Th>
-                <Th className="text-right">Units held</Th>
-                <Th className="text-right">Stock value</Th>
+                <Th className="text-right">Units Held</Th>
+                <Th className="text-right">Stock Value</Th>
                 <Th>Status</Th>
                 <Th>
                   <span className="sr-only">Actions</span>
@@ -151,11 +151,11 @@ function BranchForm({ branch, companies, onDone, onCancel }) {
     }
   };
   return (
-    <Section title={branch ? `Edit ${branch.name}` : 'Add branch'}>
+    <Section title={branch ? `Edit ${branch.name}` : 'Add Branch'}>
       <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-3">
         <Field id="b-co" label="Company">
           <Select id="b-co" value={v.companyId} onChange={set('companyId')}>
-            <option value="">Choose a company</option>
+            <option value="">Choose A Company</option>
             {companies.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -163,7 +163,7 @@ function BranchForm({ branch, companies, onDone, onCancel }) {
             ))}
           </Select>
         </Field>
-        <Field id="b-name" label="Branch name">
+        <Field id="b-name" label="Branch Name">
           <Input
             id="b-name"
             value={v.name}
@@ -199,7 +199,7 @@ function BranchForm({ branch, companies, onDone, onCancel }) {
         )}
         <div className="flex gap-2 sm:col-span-3">
           <Button type="submit" busy={busy}>
-            {branch ? 'Save' : 'Add branch'}
+            {branch ? 'Save' : 'Add Branch'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

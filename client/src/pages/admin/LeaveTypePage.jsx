@@ -48,7 +48,7 @@ export default function LeaveTypePage() {
           <span className="flex flex-wrap items-center gap-2">
             {t.name}
             {t.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}
-            {p?.requiresHrConfirmation && <Badge tone="pending">Awaiting review</Badge>}
+            {p?.requiresHrConfirmation && <Badge tone="pending">Awaiting Review</Badge>}
             {t.isConfidential && <Badge tone="brand">Confidential</Badge>}
           </span>
         }
@@ -60,7 +60,7 @@ export default function LeaveTypePage() {
               busy={toggle.isPending}
               onClick={() => toggle.mutate(t)}
             >
-              {t.isActive ? 'Deactivate' : 'Review done – activate'}
+              {t.isActive ? 'Deactivate' : 'Review Done – Activate'}
             </Button>
           )
         }
@@ -73,10 +73,10 @@ export default function LeaveTypePage() {
 
       <div className="stack">
         <Stats>
-          <Stat label={`Waiting for a decision, ${t.usage.year}`} value={t.usage.pending} />
-          <Stat label={`Approved requests, ${t.usage.year}`} value={t.usage.approved} />
-          <Stat label={`Days approved, ${t.usage.year}`} value={t.usage.approvedDays} />
-          <Stat label="On this leave today" value={t.usage.onLeaveToday} />
+          <Stat label={`Waiting For A Decision, ${t.usage.year}`} value={t.usage.pending} />
+          <Stat label={`Approved Requests, ${t.usage.year}`} value={t.usage.approved} />
+          <Stat label={`Days Approved, ${t.usage.year}`} value={t.usage.approvedDays} />
+          <Stat label="On This Leave Today" value={t.usage.onLeaveToday} />
         </Stats>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -93,9 +93,9 @@ export default function LeaveTypePage() {
               <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-1.5 text-sm">
                 <dt className="text-muted">Code</dt>
                 <dd>{t.code}</dd>
-                <dt className="text-muted">Policy reference</dt>
+                <dt className="text-muted">Policy Reference</dt>
                 <dd>{p?.sourceReference ?? '—'}</dd>
-                <dt className="text-muted">Who can use it</dt>
+                <dt className="text-muted">Who Can Use It</dt>
                 <dd>
                   {p?.extraRules?.eligibleSex === 'FEMALE'
                     ? 'Female employees'
@@ -106,11 +106,11 @@ export default function LeaveTypePage() {
                 </dd>
                 <dt className="text-muted">Reasons</dt>
                 <dd>{t.isConfidential ? 'HR only (confidential)' : 'Manager and HR'}</dd>
-                <dt className="text-muted">Requests ever</dt>
+                <dt className="text-muted">Requests Ever</dt>
                 <dd>{t.requests}</dd>
               </dl>
             </Section>
-            <Section title="Change history">
+            <Section title="Change History">
               {t.history.length === 0 ? (
                 <p className="muted-text">No changes recorded.</p>
               ) : (
@@ -147,7 +147,7 @@ function RulesSection({ type: t }) {
       actions={
         !changing && (
           <Button variant="secondary" onClick={() => setChanging(true)}>
-            Change rules
+            Change Rules
           </Button>
         )
       }
@@ -178,9 +178,9 @@ function VersionsSection({ versions }) {
           <thead>
             <tr>
               <Th>Version</Th>
-              <Th>In force</Th>
+              <Th>In Force</Th>
               <Th>Confirmed</Th>
-              <Th>Why it changed</Th>
+              <Th>Why It Changed</Th>
             </tr>
           </thead>
           <tbody>
@@ -192,7 +192,7 @@ function VersionsSection({ versions }) {
                 </Td>
                 <Td>
                   {v.awaitingReview ? (
-                    <Badge tone="pending">Awaiting review</Badge>
+                    <Badge tone="pending">Awaiting Review</Badge>
                   ) : (
                     <>
                       {v.confirmedBy ?? '—'}

@@ -601,7 +601,7 @@ describe('leave types and balance jobs', () => {
     expect(res.body.versions[0]).toMatchObject({ note: 'HR confirmed 25 days a year, accrued monthly.' });
     expect(res.body.versions[0].confirmedBy).toBeTruthy();
     expect(res.body.usage).toMatchObject({ pending: 0, approved: 0, onLeaveToday: 0 });
-    expect(res.body.history[0]).toMatchObject({ action: 'Rules changed' });
+    expect(res.body.history[0]).toMatchObject({ action: 'Rules Changed' });
     expect((await as(admin).get('/api/admin/leave-types/999999')).status).toBe(404);
     expect((await as(emp).get(`/api/admin/leave-types/${ids.ANNUAL}`)).status).toBe(403);
   });

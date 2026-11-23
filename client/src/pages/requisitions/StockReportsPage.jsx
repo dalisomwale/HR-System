@@ -20,10 +20,10 @@ import { Stat, Stats } from '../home/dashboard-ui.jsx';
 import { kwacha, kwachaWhole, today, units } from './rq.js';
 
 const VIEWS = [
-  { id: 'category', label: 'By category' },
-  { id: 'company', label: 'By company' },
-  { id: 'branch', label: 'By branch' },
-  { id: 'department', label: 'By department' },
+  { id: 'category', label: 'By Category' },
+  { id: 'company', label: 'By Company' },
+  { id: 'branch', label: 'By Branch' },
+  { id: 'department', label: 'By Department' },
 ];
 const NAMES = { category: 'Category', company: 'Company', branch: 'Branch', department: 'Department' };
 const sum = (rows, k) => rows.reduce((s, r) => s + (Number(r[k]) || 0), 0);
@@ -57,8 +57,8 @@ export default function StockReportsPage() {
       <PageHeader
         title={
           d?.scoped
-            ? `Monthly report${d.selected ? ` — ${d.selected.name}` : ''}`
-            : `Monthly report ${NAMES[by].toLowerCase() === 'category' ? 'by category' : `by ${NAMES[by].toLowerCase()}`}${d?.selected ? ` — ${d.selected.name}` : ''}`
+            ? `Monthly Report${d.selected ? ` — ${d.selected.name}` : ''}`
+            : `Monthly Report ${NAMES[by].toLowerCase() === 'category' ? 'by category' : `by ${NAMES[by].toLowerCase()}`}${d?.selected ? ` — ${d.selected.name}` : ''}`
         }
         description={
           issue
@@ -67,7 +67,7 @@ export default function StockReportsPage() {
         }
       />
       {!d?.scoped && (
-        <Tabs tabs={VIEWS} active={by} onChange={(v) => set({ by: v, id: '' })} label="Report views" />
+        <Tabs tabs={VIEWS} active={by} onChange={(v) => set({ by: v, id: '' })} label="Report Views" />
       )}
       <div className="mb-4 flex flex-wrap items-end gap-3">
         <div className="w-48">
@@ -104,16 +104,16 @@ export default function StockReportsPage() {
                   label={d.selected ? 'Items' : 'Departments'}
                   value={units(d.selected ? d.rows.length : d.groups.length)}
                 />
-                <Stat label="Units issued" value={units(sum(kpiRows, 'units'))} />
-                <Stat label="Value issued" value={kwachaWhole(sum(kpiRows, 'value'))} />
-                <Stat label="Times issued" value={units(sum(kpiRows, 'times'))} />
+                <Stat label="Units Issued" value={units(sum(kpiRows, 'units'))} />
+                <Stat label="Value Issued" value={kwachaWhole(sum(kpiRows, 'value'))} />
+                <Stat label="Times Issued" value={units(sum(kpiRows, 'times'))} />
               </>
             ) : (
               <>
                 <Stat label="Received" value={units(sum(kpiRows, 'received'))} />
                 <Stat label="Issued" value={units(sum(kpiRows, 'issued'))} />
-                <Stat label="Closing stock" value={units(sum(kpiRows, 'closing'))} />
-                <Stat label="Closing value" value={kwachaWhole(sum(kpiRows, 'value'))} />
+                <Stat label="Closing Stock" value={units(sum(kpiRows, 'closing'))} />
+                <Stat label="Closing Value" value={kwachaWhole(sum(kpiRows, 'value'))} />
               </>
             )}
           </Stats>
@@ -132,9 +132,9 @@ export default function StockReportsPage() {
                       <Th className="text-right">Items</Th>
                       {issue ? (
                         <>
-                          <Th className="text-right">Units issued</Th>
-                          <Th className="text-right">Value issued</Th>
-                          <Th className="text-right">Times issued</Th>
+                          <Th className="text-right">Units Issued</Th>
+                          <Th className="text-right">Value Issued</Th>
+                          <Th className="text-right">Times Issued</Th>
                         </>
                       ) : (
                         <>
@@ -142,8 +142,8 @@ export default function StockReportsPage() {
                           <Th className="text-right">Received</Th>
                           <Th className="text-right">Issued</Th>
                           <Th className="text-right">Closing</Th>
-                          <Th className="text-right">Closing value</Th>
-                          {d.by === 'category' && <Th className="text-right">Low or out</Th>}
+                          <Th className="text-right">Closing Value</Th>
+                          {d.by === 'category' && <Th className="text-right">Low Or Out</Th>}
                         </>
                       )}
                     </tr>
@@ -190,7 +190,7 @@ export default function StockReportsPage() {
           )}
 
           {(d.selected || d.by === 'category') && d.rows.length > 0 && (
-            <Section title={d.selected ? `By item — ${d.selected.name}` : 'By item'}>
+            <Section title={d.selected ? `By Item — ${d.selected.name}` : 'By Item'}>
               <Table onExport={() => exportIt('items')}>
                 <thead>
                   <tr>
@@ -198,10 +198,10 @@ export default function StockReportsPage() {
                     <Th>Category</Th>
                     {issue ? (
                       <>
-                        <Th className="text-right">Units issued</Th>
-                        <Th className="text-right">Unit price</Th>
-                        <Th className="text-right">Value issued</Th>
-                        <Th className="text-right">Times issued</Th>
+                        <Th className="text-right">Units Issued</Th>
+                        <Th className="text-right">Unit Price</Th>
+                        <Th className="text-right">Value Issued</Th>
+                        <Th className="text-right">Times Issued</Th>
                       </>
                     ) : (
                       <>
@@ -210,7 +210,7 @@ export default function StockReportsPage() {
                         <Th className="text-right">Issued</Th>
                         <Th className="text-right">Closing</Th>
                         {d.by === 'category' && <Th>Status</Th>}
-                        <Th className="text-right">Closing value</Th>
+                        <Th className="text-right">Closing Value</Th>
                       </>
                     )}
                   </tr>

@@ -40,9 +40,9 @@ const actionSchema = z.object({
 });
 
 const TABS = {
-  mine: { label: 'Waiting for me' },
+  mine: { label: 'Waiting For Me' },
   progress: {
-    label: 'In progress',
+    label: 'In Progress',
     where: (q) => q.whereNotIn('r.status', ['PAID', 'RECEIVED', 'CANCELLED']),
   },
   paid: { label: 'Paid', where: (q) => q.where('r.status', 'PAID') },
@@ -255,7 +255,7 @@ export function requisitionRoutes({ db, config, logger }) {
           .first('d.id', 'd.name', 'd.company_id');
         if (!dept) {
           throw badRequest(
-            'Your department is not set or has been closed in Employee management, so you cannot raise a requisition.',
+            'Your department is not set or has been closed in Employee Management, so you cannot raise a requisition.',
           );
         }
         companyId = dept.company_id;

@@ -351,25 +351,25 @@ export function stockRoutes({ db }) {
           ? [
               { key: 'name', label: 'Item' },
               { key: 'category', label: 'Category' },
-              { key: 'issuedToDepartment', label: 'Issued to department', type: 'number' },
-              { key: 'unitPrice', label: 'Unit price (K)', type: 'number' },
+              { key: 'issuedToDepartment', label: 'Issued To Department', type: 'number' },
+              { key: 'unitPrice', label: 'Unit Price (K)', type: 'number' },
               { key: 'value', label: 'Value (K)', type: 'number' },
-              { key: 'lastIssued', label: 'Last issued', type: 'date' },
+              { key: 'lastIssued', label: 'Last Issued', type: 'date' },
             ]
           : [
               { key: 'name', label: 'Item' },
               { key: 'description', label: 'Description' },
               { key: 'category', label: 'Category' },
-              { key: 'initial', label: 'Initial stock', type: 'number' },
-              { key: 'quantity', label: 'In stock', type: 'number' },
+              { key: 'initial', label: 'Initial Stock', type: 'number' },
+              { key: 'quantity', label: 'In Stock', type: 'number' },
               ...(departmentId
-                ? [{ key: 'issuedToDepartment', label: 'Issued to department', type: 'number' }]
+                ? [{ key: 'issuedToDepartment', label: 'Issued To Department', type: 'number' }]
                 : []),
-              { key: 'reorderLevel', label: 'Reorder at', type: 'number' },
+              { key: 'reorderLevel', label: 'Reorder At', type: 'number' },
               { key: 'stateName', label: 'Status' },
-              { key: 'unitPrice', label: 'Unit price (K)', type: 'number' },
+              { key: 'unitPrice', label: 'Unit Price (K)', type: 'number' },
               { key: 'value', label: 'Value (K)', type: 'number' },
-              { key: 'createdAt', label: 'Date added', type: 'date' },
+              { key: 'createdAt', label: 'Date Added', type: 'date' },
             ];
         const iso = (d) => (d ? new Date(d).toISOString().slice(0, 10) : '');
         return sendXlsx(
@@ -1083,14 +1083,14 @@ export function stockRoutes({ db }) {
           `Transactions ${date ?? 'latest'}`,
           [
             { key: 'type', label: 'Type' },
-            { key: 'time', label: 'Date and time' },
+            { key: 'time', label: 'Date And Time' },
             { key: 'item', label: 'Item' },
             { key: 'category', label: 'Category' },
             { key: 'branch', label: 'Branch' },
             { key: 'quantity', label: 'Qty', type: 'number' },
             { key: 'by', label: 'By' },
-            { key: 'party', label: 'Supplier / issued to' },
-            { key: 'recipient', label: 'Received by' },
+            { key: 'party', label: 'Supplier / Issued To' },
+            { key: 'recipient', label: 'Received By' },
             { key: 'purpose', label: 'Purpose' },
           ],
           rows.map((r) => ({ ...r, time: new Date(r.at).toISOString().replace('T', ' ').slice(0, 16) })),
@@ -1328,10 +1328,10 @@ export function stockRoutes({ db }) {
             ? [
                 { key: 'name', label: 'Item' },
                 { key: 'category', label: 'Category' },
-                { key: 'units', label: 'Units issued', type: 'number' },
-                { key: 'unitPrice', label: 'Unit price (K)', type: 'number' },
-                { key: 'value', label: 'Value issued (K)', type: 'number' },
-                { key: 'times', label: 'Times issued', type: 'number' },
+                { key: 'units', label: 'Units Issued', type: 'number' },
+                { key: 'unitPrice', label: 'Unit Price (K)', type: 'number' },
+                { key: 'value', label: 'Value Issued (K)', type: 'number' },
+                { key: 'times', label: 'Times Issued', type: 'number' },
               ]
             : [
                 { key: 'name', label: 'Item' },
@@ -1339,28 +1339,28 @@ export function stockRoutes({ db }) {
                 ...stockCols,
                 ...(by === 'category'
                   ? [
-                      { key: 'reorderLevel', label: 'Reorder at', type: 'number' },
+                      { key: 'reorderLevel', label: 'Reorder At', type: 'number' },
                       { key: 'status', label: 'Status' },
                     ]
                   : []),
-                { key: 'unitPrice', label: 'Unit price (K)', type: 'number' },
-                { key: 'value', label: 'Closing value (K)', type: 'number' },
+                { key: 'unitPrice', label: 'Unit Price (K)', type: 'number' },
+                { key: 'value', label: 'Closing Value (K)', type: 'number' },
               ]
           : isIssue
             ? [
                 { key: 'name', label: 'Department' },
                 { key: 'sub', label: 'Company' },
                 { key: 'items', label: 'Items', type: 'number' },
-                { key: 'units', label: 'Units issued', type: 'number' },
-                { key: 'value', label: 'Value issued (K)', type: 'number' },
-                { key: 'times', label: 'Times issued', type: 'number' },
+                { key: 'units', label: 'Units Issued', type: 'number' },
+                { key: 'value', label: 'Value Issued (K)', type: 'number' },
+                { key: 'times', label: 'Times Issued', type: 'number' },
               ]
             : [
                 { key: 'name', label: by[0].toUpperCase() + by.slice(1) },
                 ...(by === 'branch' ? [{ key: 'sub', label: 'Company' }] : []),
                 { key: 'items', label: 'Items', type: 'number' },
                 ...stockCols,
-                { key: 'value', label: 'Closing value (K)', type: 'number' },
+                { key: 'value', label: 'Closing Value (K)', type: 'number' },
               ];
         const data = itemsPart ? rows : list;
         return sendXlsx(
@@ -1493,7 +1493,7 @@ export function stockRoutes({ db }) {
     }),
   );
 
-  // Branches are kept in Employee management with companies and departments (D109).
+  // Branches are kept in Employee Management with companies and departments (D109).
 
   // ── Which departments are IT, Accounts and Stores ──────────────────────────────────────────
   router.get(

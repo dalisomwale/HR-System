@@ -167,7 +167,7 @@ export function leaveTypeRoutes({ db }) {
       const LABEL = {
         LEAVE_TYPE_ACTIVATED: 'Activated',
         LEAVE_TYPE_DEACTIVATED: 'Deactivated',
-        LEAVE_POLICY_CHANGED: 'Rules changed',
+        LEAVE_POLICY_CHANGED: 'Rules Changed',
       };
       res.json({
         ...base,

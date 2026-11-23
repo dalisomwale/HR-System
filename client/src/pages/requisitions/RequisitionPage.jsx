@@ -74,7 +74,7 @@ export default function RequisitionPage() {
             {open && <span>since {formatDateTime(r.stageAt)}</span>}
           </p>
         </div>
-        <ButtonLink to="/requisitions/requests">All requisitions</ButtonLink>
+        <ButtonLink to="/requisitions/requests">All Requisitions</ButtonLink>
       </div>
 
       {flash && (
@@ -121,7 +121,7 @@ export default function RequisitionPage() {
       )}
       {r.rejection && r.status === 'CANCELLED' && (
         <div className="mb-4">
-          <Notice tone="neutral" title={`Cancelled by ${r.rejection.by}`}>
+          <Notice tone="neutral" title={`Cancelled By ${r.rejection.by}`}>
             {r.rejection.note}
           </Notice>
         </div>
@@ -130,7 +130,7 @@ export default function RequisitionPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="stack">
           {anyAction ? (
-            <Section title="Your action">
+            <Section title="Your Action">
               <YourAction r={r} onDone={done} />
             </Section>
           ) : (
@@ -151,14 +151,14 @@ export default function RequisitionPage() {
           </Section>
 
           {(r.docs.length > 0 || c.addDoc) && (
-            <Section title="Supporting documents" description="Added by the department">
+            <Section title="Supporting Documents" description="Added by the department">
               {r.docs.length > 0 ? <FileList files={r.docs} /> : <p className="muted-text">None yet.</p>}
               {c.addDoc && r.docs.length < 5 && <UploadDoc r={r} onDone={done} />}
             </Section>
           )}
 
           {r.pops.length > 0 && (
-            <Section title="Proof of payment">
+            <Section title="Proof Of Payment">
               <FileList files={r.pops} />
             </Section>
           )}
@@ -176,13 +176,13 @@ export default function RequisitionPage() {
                 ['Company', r.company?.name],
                 ['Department', r.department?.name],
                 ['IT-related', r.isIt ? 'Yes' : 'No'],
-                ['Raised by', r.raisedBy],
-                ['Raised on', formatDate(lusakaDate(r.createdAt))],
+                ['Raised By', r.raisedBy],
+                ['Raised On', formatDate(lusakaDate(r.createdAt))],
                 ['Reason', r.reason],
                 ...(r.approvedQuote
                   ? [
                       [
-                        'Approved quotation',
+                        'Approved Quotation',
                         `${r.approvedQuote.supplier} · ${kwacha(r.approvedQuote.amount)}`,
                       ],
                     ]
@@ -190,7 +190,7 @@ export default function RequisitionPage() {
                 ...(r.itemId
                   ? [
                       [
-                        'Stock item',
+                        'Stock Item',
                         <Link
                           key="i"
                           to={`/requisitions/stock/${r.itemId}`}
@@ -365,7 +365,7 @@ function YourAction({ r, onDone }) {
           <ActionButton
             r={r}
             action="TO_DIRECTOR"
-            label={r.status === 'RETURNED' ? 'Resubmit to Director' : 'Send to Director'}
+            label={r.status === 'RETURNED' ? 'Resubmit To Director' : 'Send To Director'}
             note="Note for the Director"
             placeholder={r.status === 'RETURNED' ? 'What you changed' : ''}
             confirm={`Send ${r.ref} with ${r.quotes.length} ${r.quotes.length === 1 ? 'quotation' : 'quotations'} to the Director?`}
@@ -382,7 +382,7 @@ function YourAction({ r, onDone }) {
         key="it"
         r={r}
         action="BACK_TO_IT"
-        label="Ask IT for new quotations"
+        label="Ask IT For New Quotations"
         variant="secondary"
         confirm={`Send ${r.ref} back to IT for new quotations?`}
         success={`${r.ref} sent back to IT for new quotations.`}
@@ -445,7 +445,7 @@ function YourAction({ r, onDone }) {
         key="am"
         r={r}
         action="TO_AM"
-        label="Send to Accounts Manager"
+        label="Send To Accounts Manager"
         note="Payment details"
         placeholder="e.g. payment method, account, invoice number"
         confirm={`Send ${r.ref} to the Accounts Manager?`}
@@ -460,7 +460,7 @@ function YourAction({ r, onDone }) {
         <ActionButton
           r={r}
           action="AM_APPROVE"
-          label="Approve and send to CFO"
+          label="Approve And Send To CFO"
           note="Note"
           confirm={`Approve ${r.ref} and send it to the CFO?`}
           success={`${r.ref} sent to the CFO for final approval.`}
@@ -470,7 +470,7 @@ function YourAction({ r, onDone }) {
         <ActionButton
           r={r}
           action="AM_REJECT"
-          label="Send back to Accounts"
+          label="Send Back To Accounts"
           variant="danger"
           note="Reason"
           noteRequired
@@ -488,7 +488,7 @@ function YourAction({ r, onDone }) {
         <ActionButton
           r={r}
           action="CFO_APPROVE"
-          label="Give final approval"
+          label="Give Final Approval"
           note="Note"
           confirm={`Give final approval to pay for ${r.ref}?`}
           success={`${r.ref} approved for payment. Accounts can now pay and attach the proof of payment.`}
@@ -498,7 +498,7 @@ function YourAction({ r, onDone }) {
         <ActionButton
           r={r}
           action="CFO_REJECT"
-          label="Send back to Accounts Manager"
+          label="Send Back To Accounts Manager"
           variant="danger"
           note="Reason"
           noteRequired
@@ -516,7 +516,7 @@ function YourAction({ r, onDone }) {
       <div key="recv">
         <p className="mb-3 text-sm text-muted">When the items arrive, receive them into stock.</p>
         <ButtonLink to={`/requisitions/receive?requisition=${r.id}`} variant="primary">
-          Receive into stock
+          Receive Into Stock
         </ButtonLink>
       </div>,
     );
@@ -549,7 +549,7 @@ function ProofOfPayment({ r, onDone }) {
   };
   return (
     <div className="space-y-3">
-      <Field id="pop-file" label="Proof of payment" hint="PDF, image, Word or Excel, up to 10 MB.">
+      <Field id="pop-file" label="Proof Of Payment" hint="PDF, image, Word or Excel, up to 10 MB.">
         <input
           id="pop-file"
           type="file"
@@ -569,12 +569,12 @@ function ProofOfPayment({ r, onDone }) {
       </Field>
       {error && <Notice tone="danger">{error}</Notice>}
       <Button disabled={!file} onClick={() => setOpen(true)}>
-        Send proof of payment
+        Send Proof Of Payment
       </Button>
       <ConfirmDialog
         open={open}
-        title="Send proof of payment"
-        confirmLabel="Send proof of payment"
+        title="Send Proof Of Payment"
+        confirmLabel="Send Proof Of Payment"
         busy={busy}
         onConfirm={go}
         onCancel={() => setOpen(false)}
@@ -640,7 +640,7 @@ function Quotes({ r, onDone }) {
       {r.can.addQuote && <AddQuote r={r} onDone={onDone} />}
       <ConfirmDialog
         open={Boolean(remove)}
-        title="Remove quotation"
+        title="Remove Quotation"
         confirmLabel="Remove"
         tone="danger"
         busy={busy}
@@ -706,7 +706,7 @@ function AddQuote({ r, onDone }) {
             placeholder="0.00"
           />
         </Field>
-        <Field id="q-file" label="Quotation file">
+        <Field id="q-file" label="Quotation File">
           <input
             ref={input}
             id="q-file"
@@ -723,7 +723,7 @@ function AddQuote({ r, onDone }) {
         </div>
       )}
       <Button type="submit" className="mt-4" busy={busy}>
-        Attach quotation
+        Attach Quotation
       </Button>
     </form>
   );
@@ -763,7 +763,7 @@ function UploadDoc({ r, onDone }) {
         </div>
       )}
       <Button variant="secondary" busy={busy} onClick={() => input.current?.click()}>
-        Attach a document
+        Attach A Document
       </Button>
     </div>
   );
@@ -778,13 +778,13 @@ function CancelBox({ r, onDone }) {
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
       <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-danger">
-        Cancel this requisition
+        Cancel This Requisition
       </summary>
       <div className="border-t border-rule p-4">
         <ActionButton
           r={r}
           action="CANCEL"
-          label="Cancel requisition"
+          label="Cancel Requisition"
           variant="danger"
           note="Reason"
           noteRequired

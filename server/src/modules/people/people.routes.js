@@ -67,17 +67,17 @@ export function peopleRoutes({ db }) {
     '/employees/export',
     asyncHandler(async (req, res) => {
       const { items } = await listEmployees(db, req.query, { page: 1, pageSize: 100000, offset: 0 });
-      const TYPES = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term contract', TEMPORARY: 'Temporary' };
+      const TYPES = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term Contract', TEMPORARY: 'Temporary' };
       const columns = [
-        { key: 'employeeNumber', label: 'Employee number' },
-        { key: 'firstName', label: 'First name' },
-        { key: 'lastName', label: 'Last name' },
-        { key: 'jobTitle', label: 'Job title' },
-        { key: 'type', label: 'Employment type' },
-        { key: 'email', label: 'Work email' },
-        { key: 'phone', label: 'Phone number' },
+        { key: 'employeeNumber', label: 'Employee Number' },
+        { key: 'firstName', label: 'First Name' },
+        { key: 'lastName', label: 'Last Name' },
+        { key: 'jobTitle', label: 'Job Title' },
+        { key: 'type', label: 'Employment Type' },
+        { key: 'email', label: 'Work Email' },
+        { key: 'phone', label: 'Phone Number' },
         { key: 'department', label: 'Department' },
-        { key: 'lineManager', label: 'Line manager' },
+        { key: 'lineManager', label: 'Line Manager' },
         { key: 'company', label: 'Company' },
         { key: 'branch', label: 'Branch' },
         { key: 'started', label: 'Started', type: 'date' },

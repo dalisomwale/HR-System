@@ -41,7 +41,7 @@ export default function PeopleDashboardPage() {
     <div className="stack">
       <PeopleTrail />
       <PageHeader
-        title="Employee management"
+        title="Employee Management"
         actions={
           <div className="flex flex-wrap gap-2">
             {companies.length > 1 && (
@@ -63,7 +63,7 @@ export default function PeopleDashboardPage() {
             )}
             {can(me, 'people.edit') && (
               <ButtonLink to="/people/employees/new" variant="primary">
-                Add employee
+                Add Employee
               </ButtonLink>
             )}
           </div>
@@ -104,31 +104,31 @@ function Body({ d, companyId }) {
   return (
     <>
       <Stats color>
-        <Stat label="Active staff" value={d.headcount} to={`/people/employees${qs({ companyId })}`} />
-        <Stat label="Starting in the next 30 days" value={d.counts.startingSoon} to={link('startingSoon')} />
-        <Stat label="Leaving in the next 30 days" value={d.counts.leavingSoon} to={link('leavingSoon')} />
+        <Stat label="Active Staff" value={d.headcount} to={`/people/employees${qs({ companyId })}`} />
+        <Stat label="Starting In The Next 30 Days" value={d.counts.startingSoon} to={link('startingSoon')} />
+        <Stat label="Leaving In The Next 30 Days" value={d.counts.leavingSoon} to={link('leavingSoon')} />
         <Stat
-          label="Contracts ending in 60 days"
+          label="Contracts Ending In 60 Days"
           value={d.counts.contractsEnding}
           to={link('contractEnding')}
         />
       </Stats>
 
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        <Section title="Staff by employment type">
+        <Section title="Staff By Employment Type">
           <Donut
-            label="Active staff by employment type"
+            label="Active Staff By Employment Type"
             unit="people"
             empty="No active staff yet."
             segments={typeSegments}
           />
         </Section>
-        <Section title="Staff by gender">
+        <Section title="Staff By Gender">
           <GenderDonutChart bySex={d.bySex} />
         </Section>
         {/* Altus Group: staff by company. One company: staff by department (D90). */}
         {companyId ? (
-          <Section title="Staff by department">
+          <Section title="Staff By Department">
             <BarList
               empty="No active staff yet."
               format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
@@ -140,7 +140,7 @@ function Body({ d, companyId }) {
             />
           </Section>
         ) : (
-          <Section title="Staff by company">
+          <Section title="Staff By Company">
             <BarList
               empty="No active staff yet."
               format={(n) => `${n} ${n === 1 ? 'person' : 'people'}`}
@@ -157,10 +157,10 @@ function Body({ d, companyId }) {
 
       {companyId ? (
         <div className="grid gap-4 xl:grid-cols-3">
-          <Section title="Staff over the last 12 months" className="xl:col-span-2">
+          <Section title="Staff Over The Last 12 Months" className="xl:col-span-2">
             <HeadcountTrend trend={d.headcountTrend} />
           </Section>
-          <Section title="Length of service">
+          <Section title="Length Of Service">
             <ServiceChart bands={d.serviceBands} />
           </Section>
         </div>
@@ -168,19 +168,19 @@ function Body({ d, companyId }) {
 
       <div className={companyId ? '' : 'grid gap-4 xl:grid-cols-3'}>
         {!companyId && (
-          <Section title="Length of service">
+          <Section title="Length Of Service">
             <ServiceChart bands={d.serviceBands} />
           </Section>
         )}
         <Section
-          title={`Joiners and leavers, ${d.year}`}
+          title={`Joiners And Leavers, ${d.year}`}
           description="By start date and leaving date"
           className={companyId ? undefined : 'xl:col-span-2'}
         >
           <div className="space-y-3">
             <Legend items={series} />
             <ColumnChart
-              label={`Joiners and leavers by month, ${d.year}`}
+              label={`Joiners And Leavers By Month, ${d.year}`}
               unit="people"
               whole
               grouped
@@ -199,14 +199,14 @@ function Body({ d, companyId }) {
 
       <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <PeopleList
-          title="Contracts ending soon"
+          title="Contracts Ending Soon"
           items={d.contractsEnding}
           empty="No contracts end in the next 60 days."
           when={(p) => `Ends ${formatDate(p.contractEndDate)}`}
           more={d.contractsEnding.length > 0 && link('contractEnding')}
         />
         <PeopleList
-          title="Probation ending"
+          title="Probation Ending"
           items={d.probationDue}
           empty="No probation ends in the next 30 days."
           when={(p) =>
@@ -215,7 +215,7 @@ function Body({ d, companyId }) {
           more={d.probationDue.length > 0 && link('probation')}
         />
         <PeopleList
-          title="Starting and leaving"
+          title="Starting And Leaving"
           items={[
             ...d.startingSoon.map((p) => ({ ...p, kind: 'start' })),
             ...d.leavingSoon.map((p) => ({ ...p, kind: 'leave' })),
@@ -229,7 +229,7 @@ function Body({ d, companyId }) {
 
       {companyId && (
         <Section
-          title="Recent changes"
+          title="Recent Changes"
           actions={
             <Link to={`/people/employees${qs({ companyId })}`} className="card-link">
               All employees

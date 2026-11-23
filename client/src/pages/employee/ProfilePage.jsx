@@ -29,7 +29,7 @@ import { Balances, YearSelect } from '../leave/MyLeavePage.jsx';
 /*
  * The My profile application. Employment details are kept by HR and shown read-only;
  * the person keeps their own personal details up to date (D48). The tabs match the employee
- * record HR sees in Employee management (D70).
+ * record HR sees in Employee Management (D70).
  */
 
 export const PERSONAL_FIELDS = [
@@ -43,9 +43,9 @@ export const PERSONAL_FIELDS = [
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
-  { id: 'personal', label: 'Personal details' },
-  { id: 'kin', label: 'Next of kin' },
-  { id: 'job', label: 'Job details' },
+  { id: 'personal', label: 'Personal Details' },
+  { id: 'kin', label: 'Next Of Kin' },
+  { id: 'job', label: 'Job Details' },
   { id: 'leave', label: 'Leave' },
   { id: 'attendance', label: 'Attendance' },
 ];
@@ -71,11 +71,11 @@ export default function ProfilePage() {
       ) : (
         <div>
           <Trail
-            items={[{ label: 'My profile', to: '/profile' }, { label: TABS.find((t) => t.id === tab).label }]}
+            items={[{ label: 'My Profile', to: '/profile' }, { label: TABS.find((t) => t.id === tab).label }]}
           />
           <ProfileHeader person={p} />
 
-          <Tabs label="My profile" active={tab} onChange={setTab} tabs={TABS} />
+          <Tabs label="My Profile" active={tab} onChange={setTab} tabs={TABS} />
 
           {tab === 'overview' && (
             <div id="panel-overview" role="tabpanel">
@@ -85,7 +85,7 @@ export default function ProfilePage() {
           {tab === 'personal' && (
             <div id="panel-personal" role="tabpanel">
               <PersonalDetails
-                title="Personal details"
+                title="Personal Details"
                 note="Keep these up to date. HR uses them to reach you."
                 fields={CONTACT}
                 personal={p.personal}
@@ -96,7 +96,7 @@ export default function ProfilePage() {
           {tab === 'kin' && (
             <div id="panel-kin" role="tabpanel">
               <PersonalDetails
-                title="Next of kin"
+                title="Next Of Kin"
                 note="Who to contact in an emergency."
                 fields={KIN}
                 personal={p.personal}
@@ -105,19 +105,19 @@ export default function ProfilePage() {
           )}
           {tab === 'job' && (
             <div id="panel-job" role="tabpanel">
-              <Section title="Job details" description="Kept by HR. Ask HR if something is wrong.">
+              <Section title="Job Details" description="Kept by HR. Ask HR if something is wrong.">
                 <Details
                   items={[
-                    ['Employee number', p.employeeNumber],
-                    ['Job title', p.jobTitle],
+                    ['Employee Number', p.employeeNumber],
+                    ['Job Title', p.jobTitle],
                     ['Company', p.company],
                     ['Branch', p.branch],
                     ['Department', p.department],
-                    ['Line manager', p.lineManager],
-                    ['Work email', p.email],
-                    ['Start date', formatDate(p.employmentStartDate)],
-                    ['Employment type', EMPLOYMENT_TYPES[p.employmentType]],
-                    ['Contract end date', p.contractEndDate && formatDate(p.contractEndDate)],
+                    ['Line Manager', p.lineManager],
+                    ['Work Email', p.email],
+                    ['Start Date', formatDate(p.employmentStartDate)],
+                    ['Employment Type', EMPLOYMENT_TYPES[p.employmentType]],
+                    ['Contract End Date', p.contractEndDate && formatDate(p.contractEndDate)],
                     [
                       'Probation',
                       p.probationStatus &&
@@ -128,9 +128,9 @@ export default function ProfilePage() {
                           .filter(Boolean)
                           .join(', '),
                     ],
-                    ['Working schedule', p.workSchedule ?? 'Group default'],
+                    ['Working Schedule', p.workSchedule ?? 'Group default'],
                     [
-                      'System access',
+                      'System Access',
                       p.roles.length ? p.roles.map((r) => ROLE_LABELS[r]).join(', ') : 'Employee',
                     ],
                   ]}
@@ -141,12 +141,12 @@ export default function ProfilePage() {
           {tab === 'leave' && (
             <div id="panel-leave" role="tabpanel">
               <Section
-                title={`Leave balances, ${year}`}
+                title={`Leave Balances, ${year}`}
                 actions={
                   <div className="flex flex-wrap items-center gap-2">
                     <YearSelect year={year} setYear={setYear} />
                     <ButtonLink to="/leave/apply" variant="primary">
-                      Apply for leave
+                      Apply For Leave
                     </ButtonLink>
                   </div>
                 }
@@ -260,7 +260,7 @@ function PersonalDetails({ title, note, fields, personal }) {
           )}
           <div className="flex gap-3 sm:col-span-2">
             <Button type="submit" busy={isSubmitting} disabled={!isDirty}>
-              Save changes
+              Save Changes
             </Button>
             <Button variant="secondary" onClick={() => setEditing(false)} disabled={isSubmitting}>
               Cancel
@@ -310,7 +310,7 @@ function ChangePin() {
   return (
     <div className="mt-4">
       <Section
-        title="Phone sign-in PIN"
+        title="Phone Sign-in PIN"
         description="You sign in with your phone number and this 6-digit PIN."
       >
         <form onSubmit={save} className="stack max-w-md">

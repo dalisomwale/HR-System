@@ -86,17 +86,17 @@ function Body({ d }) {
         <Table>
           <thead>
             <tr>
-              <Th>First name</Th>
-              <Th>Last name</Th>
-              <Th>Job title</Th>
+              <Th>First Name</Th>
+              <Th>Last Name</Th>
+              <Th>Job Title</Th>
               <Th>Branch</Th>
-              <Th>Employee number</Th>
+              <Th>Employee Number</Th>
               <Th>Contact</Th>
               <Th>Today</Th>
-              <Th className="text-right">Annual leave available</Th>
-              <Th className="text-right">Taken in {d.year}</Th>
-              <Th className="text-right">Pending requests</Th>
-              <Th>Next leave</Th>
+              <Th className="text-right">Annual Leave Available</Th>
+              <Th className="text-right">Taken In {d.year}</Th>
+              <Th className="text-right">Pending Requests</Th>
+              <Th>Next Leave</Th>
             </tr>
           </thead>
           <tbody>
@@ -125,11 +125,11 @@ function Body({ d }) {
                 <Td>
                   {m.today.onLeave ? (
                     <>
-                      <Badge tone="pending">{m.today.halfDay ? 'Half day leave' : 'On leave'}</Badge>
+                      <Badge tone="pending">{m.today.halfDay ? 'Half Day Leave' : 'On Leave'}</Badge>
                       <p className="mt-0.5 text-xs text-muted">Until {formatDate(m.today.until)}</p>
                     </>
                   ) : (
-                    <Badge tone="ok">At work</Badge>
+                    <Badge tone="ok">At Work</Badge>
                   )}
                 </Td>
                 <Td className="text-right">{m.annual ? days(m.annual.available) : '—'}</Td>

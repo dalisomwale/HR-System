@@ -2,17 +2,17 @@ import { useParams } from 'react-router';
 import { Badge } from '../../components/ui.jsx';
 import { formatDate } from '../../lib/format.js';
 
-/** Shared labels and small pieces for the Employee management module (D52). */
+/** Shared labels and small pieces for the Employee Management module (D52). */
 
 export const EMPLOYMENT_TYPES = {
   PERMANENT: 'Permanent',
-  FIXED_TERM: 'Fixed-term contract',
+  FIXED_TERM: 'Fixed-term Contract',
   TEMPORARY: 'Temporary',
 };
 
 export const PROBATION = {
-  ON_PROBATION: 'On probation',
-  EXTENDED: 'Probation extended',
+  ON_PROBATION: 'On Probation',
+  EXTENDED: 'Probation Extended',
   CONFIRMED: 'Confirmed',
 };
 
@@ -86,7 +86,7 @@ export function StatusBadge({ e }) {
   if (e.employmentEndDate && e.employmentEndDate >= t)
     return <Badge tone="neutral">Leaving {formatDate(e.employmentEndDate)}</Badge>;
   if (e.contractEndDate && e.contractEndDate >= t && e.contractEndDate <= inDays(60))
-    return <Badge tone="pending">Contract ends {formatDate(e.contractEndDate)}</Badge>;
+    return <Badge tone="pending">Contract Ends {formatDate(e.contractEndDate)}</Badge>;
   if (e.probationStatus === 'ON_PROBATION' || e.probationStatus === 'EXTENDED')
     return <Badge tone="brand">{PROBATION[e.probationStatus]}</Badge>;
   return <Badge tone="ok">Active</Badge>;
@@ -151,7 +151,7 @@ export function useEmployeeBase() {
 }
 
 /**
- * The person at the top of an employee record and of My profile, centred under a navy band (D77).
+ * The person at the top of an employee record and of My Profile, centred under a navy band (D77).
  * `person` has firstName, lastName, jobTitle, department, company, employeeNumber and the fields
  * StatusBadge reads; `action` is an optional button shown on the band.
  */

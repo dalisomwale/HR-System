@@ -107,7 +107,7 @@ export default function RaisePage() {
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title="Raise a requisition"
+        title="Raise A Requisition"
         description="Ask for something to be bought for your department."
       />
       <form
@@ -133,7 +133,7 @@ export default function RaisePage() {
                   value={v.companyId}
                   onChange={(e) => setV((x) => ({ ...x, companyId: e.target.value, departmentId: '' }))}
                 >
-                  <option value="">Choose a company</option>
+                  <option value="">Choose A Company</option>
                   {o.companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -154,10 +154,10 @@ export default function RaisePage() {
                 >
                   <option value="">
                     {!companyId
-                      ? 'Choose the company first'
+                      ? 'Choose The Company First'
                       : depts.length
-                        ? 'Choose a department'
-                        : 'No departments in this company'}
+                        ? 'Choose A Department'
+                        : 'No Departments In This Company'}
                   </option>
                   {depts.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -184,7 +184,7 @@ export default function RaisePage() {
             </Field>
             <Field id="rq-category" label="Category">
               <Select id="rq-category" value={v.categoryId} onChange={set('categoryId')}>
-                <option value="">Choose a category</option>
+                <option value="">Choose A Category</option>
                 {o.categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -205,7 +205,7 @@ export default function RaisePage() {
             </Field>
             <Field
               id="rq-files"
-              label="Supporting documents"
+              label="Supporting Documents"
               optional
               hint={
                 v.isIt
@@ -254,14 +254,14 @@ export default function RaisePage() {
             </div>
           )}
           <div className="mt-5">
-            <Button type="submit">Raise requisition</Button>
+            <Button type="submit">Raise Requisition</Button>
           </div>
         </Section>
       </form>
       <ConfirmDialog
         open={confirm}
-        title="Raise requisition"
-        confirmLabel="Raise requisition"
+        title="Raise Requisition"
+        confirmLabel="Raise Requisition"
         busy={busy}
         onConfirm={submit}
         onCancel={() => setConfirm(false)}

@@ -61,7 +61,7 @@ export default function CompaniesPage() {
       <PeopleTrail />
       <PageHeader title="Companies" />
       <div className="grid gap-4">
-        <Section title={editingId ? 'Edit company' : 'Add a company'}>
+        <Section title={editingId ? 'Edit Company' : 'Add A Company'}>
           <form
             className="grid gap-4 sm:grid-cols-[8rem_1fr_auto] sm:items-end"
             onSubmit={(e) => {
@@ -78,7 +78,7 @@ export default function CompaniesPage() {
                 required
               />
             </Field>
-            <Field id="coName" label="Registered name">
+            <Field id="coName" label="Registered Name">
               <Input
                 id="coName"
                 value={form.name}
@@ -89,7 +89,7 @@ export default function CompaniesPage() {
             </Field>
             <div className="flex gap-2">
               <Button type="submit" busy={save.isPending}>
-                {editingId ? 'Save' : 'Add company'}
+                {editingId ? 'Save' : 'Add Company'}
               </Button>
               {editingId && (
                 <Button
@@ -115,7 +115,7 @@ export default function CompaniesPage() {
         ) : (
           <>
             {list.data.activeWithoutCompany > 0 && (
-              <Notice tone="pending" title="Staff without a company">
+              <Notice tone="pending" title="Staff Without A Company">
                 {list.data.activeWithoutCompany} active employee
                 {list.data.activeWithoutCompany === 1 ? ' has' : 's have'} no company.{' '}
                 <Link to="/people/employees?companyId=none" className="underline">
@@ -136,7 +136,7 @@ export default function CompaniesPage() {
                       <Th>Code</Th>
                       <Th>Name</Th>
                       <Th className="text-right">Departments</Th>
-                      <Th className="text-right">Active staff</Th>
+                      <Th className="text-right">Active Staff</Th>
                       <Th>Status</Th>
                       <Th>
                         <span className="sr-only">Actions</span>

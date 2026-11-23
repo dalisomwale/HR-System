@@ -72,7 +72,7 @@ export default function EmailsPage() {
                 )
               }
             >
-              Send me a test email
+              Send Me A Test Email
             </Button>
           )
         }
@@ -97,8 +97,8 @@ export default function EmailsPage() {
             setPage(1);
           }}
         >
-          <option value="">All statuses</option>
-          <option value="PROBLEMS">Failed (needs attention)</option>
+          <option value="">All Statuses</option>
+          <option value="PROBLEMS">Failed (Needs Attention)</option>
           {Object.entries(STATUS).map(([k, [, label]]) => (
             <option key={k} value={k}>
               {label}

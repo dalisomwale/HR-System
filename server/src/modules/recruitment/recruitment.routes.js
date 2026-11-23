@@ -31,7 +31,7 @@ import { candidateFileType, readStored, storeFile } from './files.js';
  *   Hiring request   a manager asks for a position for their own team (or anyone with "Raise for
  *                    any department"); HR checks it and sends it to a director, who approves or
  *                    rejects it. Turned down at either step with a reason.
- *   Vacancy          opened by HR from an approved request; shown to staff under Open positions
+ *   Vacancy          opened by HR from an approved request; shown to staff under Open Positions
  *                    when it is internal.
  *   Candidate        recorded by HR (CV from email, an agency, a walk-in) or applying from inside;
  *                    moves Applied → Screening → Shortlisted → Interview → Offer → Hired, or
@@ -64,7 +64,7 @@ const STAGE_LABEL = {
   INTERVIEW: 'Interview',
   OFFER: 'Offer',
   HIRED: 'Hired',
-  REJECTED: 'Not successful',
+  REJECTED: 'Not Successful',
   WITHDRAWN: 'Withdrawn',
 };
 const MAX_FILES = 10;
@@ -649,7 +649,7 @@ export function recruitmentRoutes({ db, config, logger }) {
               rows: [
                 ['Reference', reference],
                 ['Position', input.jobTitle],
-                ['Closing date', input.closingDate ?? 'Not set'],
+                ['Closing Date', input.closingDate ?? 'Not set'],
               ],
               action: 'You can follow its candidates and give interview feedback in the recruitment system.',
             },
@@ -1066,7 +1066,7 @@ export function recruitmentRoutes({ db, config, logger }) {
     }),
   );
 
-  // Hire: a new employee in Employee management, or an internal applicant's record moved to the
+  // Hire: a new employee in Employee Management, or an internal applicant's record moved to the
   // new position. The vacancy is marked filled once all its positions are.
   const hireSchema = z.object({
     employeeNumber: z.string().trim().max(30).optional(),
@@ -1175,7 +1175,7 @@ export function recruitmentRoutes({ db, config, logger }) {
               rows: [
                 ['Position', input.jobTitle],
                 ['Starts', input.employmentStartDate],
-                ...(input.probationEndDate ? [['Probation ends', input.probationEndDate]] : []),
+                ...(input.probationEndDate ? [['Probation Ends', input.probationEndDate]] : []),
               ],
             },
           });
@@ -1575,7 +1575,7 @@ export function recruitmentRoutes({ db, config, logger }) {
           recipients: [req.user.id],
           event: 'APPLICATION_SUBMITTED',
           title: `Application sent: ${v.job_title}`,
-          body: 'HR has your application. You can add your CV on My applications.',
+          body: 'HR has your application. You can add your CV on My Applications.',
           link: '/recruitment/applications',
           entityType: 'candidate',
           entityId: newId,
@@ -1596,12 +1596,12 @@ export function recruitmentRoutes({ db, config, logger }) {
   // What an applicant sees of their own applications: where it stands, never notes or feedback.
   const APPLICANT_STATUS = {
     APPLIED: 'Received',
-    SCREENING: 'Being considered',
-    SHORTLISTED: 'Being considered',
+    SCREENING: 'Being Considered',
+    SHORTLISTED: 'Being Considered',
     INTERVIEW: 'Interview',
     OFFER: 'Offer',
     HIRED: 'Successful',
-    REJECTED: 'Not successful',
+    REJECTED: 'Not Successful',
     WITHDRAWN: 'Withdrawn',
   };
   router.get(

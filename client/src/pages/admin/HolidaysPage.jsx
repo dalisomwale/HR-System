@@ -53,7 +53,7 @@ export default function HolidaysPage() {
   return (
     <div className="max-w-5xl">
       <PageHeader
-        title="Public holidays"
+        title="Public Holidays"
         actions={
           <Select
             aria-label="Year"
@@ -70,7 +70,7 @@ export default function HolidaysPage() {
         }
       />
       <div className="grid gap-4">
-        <Section title={editingId ? 'Edit holiday' : 'Add a holiday'}>
+        <Section title={editingId ? 'Edit Holiday' : 'Add A Holiday'}>
           <form
             className="grid gap-4 sm:grid-cols-[11rem_1fr_1fr]"
             onSubmit={(e) => {
@@ -127,7 +127,7 @@ export default function HolidaysPage() {
                   onChange={(e) => setForm({ ...form, substitutesForId: e.target.value })}
                   required
                 >
-                  <option value="">Choose the original holiday</option>
+                  <option value="">Choose The Original Holiday</option>
                   {originals.map((h) => (
                     <option key={h.id} value={h.id}>
                       {h.name}, {formatDate(h.holidayDate)}
@@ -138,7 +138,7 @@ export default function HolidaysPage() {
             </div>
             <div className="flex gap-2 sm:col-span-3">
               <Button type="submit" busy={save.isPending}>
-                {editingId ? 'Save' : 'Add holiday'}
+                {editingId ? 'Save' : 'Add Holiday'}
               </Button>
               {editingId && (
                 <Button
@@ -167,7 +167,7 @@ export default function HolidaysPage() {
           <LoadError error={list.error} onRetry={() => list.refetch()} />
         ) : list.data.items.length === 0 ? (
           <div className="card p-0">
-            <EmptyState title={`No public holidays recorded for ${year}.`}>
+            <EmptyState title={`No Public Holidays Recorded For ${year}.`}>
               Add each gazetted holiday for the year. Leave calculations for {year} use this list.
             </EmptyState>
           </div>

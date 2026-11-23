@@ -37,7 +37,7 @@ const HELP = {
   resubmission_routing: 'Where a corrected request goes after HR sends it back.',
   handover_signoff_by: 'The policy says handovers are signed off by the Head of Department.',
   weekend_holiday_substitution:
-    'When a public holiday falls on a weekend, any substitute day is added under Public holidays.',
+    'When a public holiday falls on a weekend, any substitute day is added under Public Holidays.',
   overdue_manager_working_days: 'After this, the request is flagged as overdue for the manager.',
   overdue_hr_working_days: 'After this, the request is flagged as overdue for HR.',
   uncommunicated_decision_escalation_days: 'Undecided requests are escalated, never approved automatically.',
@@ -77,12 +77,12 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl">
-      <PageHeader title="Workflow settings" />
+      <PageHeader title="Workflow Settings" />
       {toConfirm.length > 0 && (
         <div className="mb-8">
           <Notice
             tone="pending"
-            title={`${toConfirm.length} setting${toConfirm.length === 1 ? '' : 's'} need HR confirmation`}
+            title={`${toConfirm.length} setting${toConfirm.length === 1 ? '' : 's'} Need HR Confirmation`}
           >
             Check each against the leave policy and confirm.
           </Notice>
@@ -91,11 +91,11 @@ export default function SettingsPage() {
       )}
       {rest.length > 0 && (
         <>
-          <h2 className="mb-3 font-head text-base font-semibold text-ink">Confirmed settings</h2>
+          <h2 className="mb-3 font-head text-base font-semibold text-ink">Confirmed Settings</h2>
           <SettingsList items={rest} />
         </>
       )}
-      <h2 className="mt-[22px] mb-3 font-head text-base font-semibold text-ink">Fixed by policy</h2>
+      <h2 className="mt-[22px] mb-3 font-head text-base font-semibold text-ink">Fixed By Policy</h2>
       <ul className="divide-y divide-rule rounded-md border border-rule bg-white shadow-card text-sm">
         {fixed.map((s) => (
           <li key={s.key} className="flex justify-between gap-4 px-4 py-3">
@@ -177,7 +177,7 @@ function SettingRow({ setting: s }) {
             busy={save.isPending}
             onClick={() => save.mutate()}
           >
-            {changed ? 'Save and confirm' : 'Confirm'}
+            {changed ? 'Save And Confirm' : 'Confirm'}
           </Button>
         ) : (
           <>

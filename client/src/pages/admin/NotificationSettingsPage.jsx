@@ -66,10 +66,10 @@ export default function NotificationSettingsPage() {
         actions={
           <>
             <Button variant="secondary" onClick={reset}>
-              Restore defaults
+              Restore Defaults
             </Button>
             <Button onClick={save} busy={busy} disabled={!changed}>
-              Save changes
+              Save Changes
             </Button>
           </>
         }
@@ -107,7 +107,7 @@ export default function NotificationSettingsPage() {
                             {i.label}
                             {i.required && (
                               <span className="ml-2 align-middle">
-                                <Badge tone="brand">Always sent</Badge>
+                                <Badge tone="brand">Always Sent</Badge>
                               </span>
                             )}
                           </div>

@@ -109,7 +109,7 @@ function RqGate({ need, children }) {
   if (!rq.data || (need && !need(rq.data))) {
     return (
       <div className="max-w-xl">
-        <h1 className="text-[1.3rem] leading-snug">You don't have access to this page</h1>
+        <h1 className="text-[1.3rem] leading-snug">You Don't Have Access To This Page</h1>
         <p className="mt-2 text-sm text-muted">
           The inventory system is open to the people who take part in it.{' '}
           <Link to="/" className="text-brand underline">
@@ -139,7 +139,7 @@ function FloatGate({ check, children }) {
   if (!Object.values(r).some(Boolean) || (check && !check(r))) {
     return (
       <div className="max-w-xl">
-        <h1 className="text-[1.3rem] leading-snug">You don't have access to this page</h1>
+        <h1 className="text-[1.3rem] leading-snug">You Don't Have Access To This Page</h1>
         <p className="mt-2 text-sm text-muted">
           The Float system is open to the people who take part in it.{' '}
           <Link to="/" className="text-brand underline">
@@ -153,7 +153,7 @@ function FloatGate({ check, children }) {
 }
 const floatPage = (el, check) => <FloatGate check={check}>{el}</FloatGate>;
 
-/** Links to the Float system from when it was part of the Inventory system. */
+/** Links to the Float System from when it was part of the Inventory System. */
 function ToFloat() {
   const { pathname, search } = useLocation();
   return <Navigate to={`${pathname.replace(/^\/requisitions\/float/, '/float')}${search}`} replace />;
@@ -162,7 +162,7 @@ function ToFloat() {
 function NotFound() {
   return (
     <div className="max-w-xl">
-      <h1 className="text-[1.3rem] leading-snug">Page not found</h1>
+      <h1 className="text-[1.3rem] leading-snug">Page Not Found</h1>
       <p className="mt-2 text-sm text-muted">
         The address may be mistyped, or the page has moved.{' '}
         <Link to="/home" className="text-brand underline">

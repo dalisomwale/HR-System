@@ -67,7 +67,7 @@ export default function AccessRolesPage({ module, base }) {
             .
           </>
         }
-        actions={editing !== 'new' && <Button onClick={() => setEditing('new')}>Add role</Button>}
+        actions={editing !== 'new' && <Button onClick={() => setEditing('new')}>Add Role</Button>}
       />
       {msg && (
         <div className="mb-4">
@@ -104,7 +104,7 @@ export default function AccessRolesPage({ module, base }) {
               <tr key={r.id}>
                 <Td>
                   <span className="font-semibold">{r.name}</span>{' '}
-                  {r.isSystem && <Badge tone="brand">Full access</Badge>}
+                  {r.isSystem && <Badge tone="brand">Full Access</Badge>}
                   {r.description && <p className="text-[0.82rem] text-muted">{r.description}</p>}
                 </Td>
                 <Td>
@@ -140,7 +140,7 @@ export default function AccessRolesPage({ module, base }) {
                       <button
                         type="button"
                         className="btn btn-icon btn-danger-outline"
-                        title={r.users > 0 ? "Can't delete: people have this role" : 'Delete'}
+                        title={r.users > 0 ? "Can't Delete: People Have This Role" : 'Delete'}
                         aria-label={
                           r.users > 0 ? `Can't delete ${r.name}: people have this role` : `Delete ${r.name}`
                         }
@@ -159,7 +159,7 @@ export default function AccessRolesPage({ module, base }) {
       )}
       <ConfirmDialog
         open={!!deleting}
-        title="Delete role"
+        title="Delete Role"
         confirmLabel="Delete"
         tone="danger"
         busy={busy}
@@ -219,7 +219,7 @@ function RoleForm({ module, role, areas, onDone, onCancel }) {
     }
   };
   return (
-    <Section title={role ? `Edit ${role.name}` : 'Add role'}>
+    <Section title={role ? `Edit ${role.name}` : 'Add Role'}>
       <form onSubmit={save} noValidate>
         {error && (
           <div className="mb-4">
@@ -243,10 +243,10 @@ function RoleForm({ module, role, areas, onDone, onCancel }) {
           <p className="section-divider mb-0 border-0 pb-0">Access levels</p>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => all(true)}>
-              Full access
+              Full Access
             </Button>
             <Button variant="secondary" size="sm" onClick={() => all(false)}>
-              No access
+              No Access
             </Button>
           </div>
         </div>
@@ -284,7 +284,7 @@ function RoleForm({ module, role, areas, onDone, onCancel }) {
         </div>
         <div className="form-actions">
           <Button type="submit" busy={busy} disabled={name.trim().length < 2}>
-            {role ? 'Save changes' : 'Add role'}
+            {role ? 'Save Changes' : 'Add Role'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

@@ -43,7 +43,7 @@ export default function IssuePage() {
   return (
     <div>
       <PageHeader
-        title="Issue stock"
+        title="Issue Stock"
         description="Give items to a department. Stock comes out of the branch you choose."
       />
       {msg && (
@@ -57,9 +57,9 @@ export default function IssuePage() {
         </Notice>
       ) : (
         <>
-          <Section title="Select item">
+          <Section title="Select Item">
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field id="is-co" label="Issuing from company">
+              <Field id="is-co" label="Issuing From Company">
                 <Select
                   id="is-co"
                   value={co}
@@ -85,7 +85,7 @@ export default function IssuePage() {
                     setItemId('');
                   }}
                 >
-                  <option value="">All categories</option>
+                  <option value="">All Categories</option>
                   {opts.data.categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -95,7 +95,7 @@ export default function IssuePage() {
               </Field>
               <Field
                 id="is-item"
-                label="Item in stock"
+                label="Item In Stock"
                 hint={
                   avail.isSuccess && items.length === 0
                     ? `Nothing in stock in this company${categoryId ? ' in this category' : ''}.`
@@ -103,10 +103,10 @@ export default function IssuePage() {
                 }
               >
                 <Select id="is-item" value={itemId} onChange={(e) => setItemId(e.target.value)}>
-                  <option value="">Choose an item</option>
+                  <option value="">Choose An Item</option>
                   {items.map((i) => (
                     <option key={i.id} value={i.id}>
-                      {i.name} (available: {units(i.available)})
+                      {i.name} (Available: {units(i.available)})
                     </option>
                   ))}
                 </Select>
@@ -136,7 +136,7 @@ export default function IssuePage() {
         </>
       )}
       <div className="mt-8">
-        <RecentMovements type="issued" title="Recently issued" />
+        <RecentMovements type="issued" title="Recently Issued" />
       </div>
     </div>
   );
@@ -208,7 +208,7 @@ function IssueForm({ item, companyId, departments, onDone }) {
         }}
         className="grid gap-4 sm:grid-cols-2"
       >
-        <Field id="if-branch" label="Issue from branch">
+        <Field id="if-branch" label="Issue From Branch">
           <Select
             id="if-branch"
             value={v.branchId}
@@ -217,14 +217,14 @@ function IssueForm({ item, companyId, departments, onDone }) {
           >
             {item.branches.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name} ({units(b.quantity)} in stock)
+                {b.name} ({units(b.quantity)} In Stock)
               </option>
             ))}
           </Select>
         </Field>
         <Field
           id="if-qty"
-          label="Quantity to issue"
+          label="Quantity To Issue"
           hint={
             q > 0 && q <= max ? `${branch?.name} will have ${units(max - q)} left.` : `Up to ${units(max)}.`
           }
@@ -241,7 +241,7 @@ function IssueForm({ item, companyId, departments, onDone }) {
         </Field>
         <Field id="if-dept" label="Department">
           <Select id="if-dept" value={v.departmentId} onChange={set('departmentId')}>
-            <option value="">Choose a department</option>
+            <option value="">Choose A Department</option>
             {groups.map((g) => (
               <optgroup key={g.company} label={g.company}>
                 {g.items.map((d) => (
@@ -253,7 +253,7 @@ function IssueForm({ item, companyId, departments, onDone }) {
             ))}
           </Select>
         </Field>
-        <Field id="if-recipient" label="Person receiving">
+        <Field id="if-recipient" label="Person Receiving">
           <Input
             id="if-recipient"
             value={v.recipient}
@@ -262,7 +262,7 @@ function IssueForm({ item, companyId, departments, onDone }) {
             placeholder="Full name, e.g. Mary Phiri"
           />
         </Field>
-        <Field id="if-date" label="Date issued">
+        <Field id="if-date" label="Date Issued">
           <Input id="if-date" type="date" max={today()} value={v.dateIssued} onChange={set('dateIssued')} />
         </Field>
         <Field id="if-purpose" label="Purpose" optional>
@@ -274,13 +274,13 @@ function IssueForm({ item, companyId, departments, onDone }) {
           </div>
         )}
         <div className="sm:col-span-2">
-          <Button type="submit">Issue stock</Button>
+          <Button type="submit">Issue Stock</Button>
         </div>
       </form>
       <ConfirmDialog
         open={open}
-        title="Issue stock"
-        confirmLabel="Issue stock"
+        title="Issue Stock"
+        confirmLabel="Issue Stock"
         busy={busy}
         onConfirm={go}
         onCancel={() => setOpen(false)}

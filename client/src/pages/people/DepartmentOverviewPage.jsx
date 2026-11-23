@@ -44,7 +44,7 @@ export default function DepartmentOverviewPage() {
     <div className="max-w-7xl space-y-6">
       <PeopleTrail />
       <PageHeader
-        title="Department overview"
+        title="Department Overview"
         description="Every department compared on the same figures"
         actions={
           <div className="flex flex-wrap gap-2">
@@ -66,7 +66,7 @@ export default function DepartmentOverviewPage() {
               </Select>
             )}
             {can(me, 'people.org') && (
-              <ButtonLink to="/people/departments/manage"> Manage departments</ButtonLink>
+              <ButtonLink to="/people/departments/manage"> Manage Departments</ButtonLink>
             )}
           </div>
         }
@@ -115,7 +115,7 @@ export function DepartmentTable({ departments, year, companyId }) {
   const d = { year };
   return (
     <Section
-      title="Department figures"
+      title="Department Figures"
       description={`Joined and left are for ${d.year}; contracts ending are the next 60 days`}
     >
       <Table>
@@ -123,14 +123,14 @@ export function DepartmentTable({ departments, year, companyId }) {
           <tr>
             <Th>Department</Th>
             <Th className="text-right">Staff</Th>
-            <Th>Employment type</Th>
+            <Th>Employment Type</Th>
             <Th className="text-right">Managers</Th>
-            <Th className="text-right">On probation</Th>
-            <Th className="text-right">Contracts ending</Th>
+            <Th className="text-right">On Probation</Th>
+            <Th className="text-right">Contracts Ending</Th>
             <Th className="text-right">Joined</Th>
             <Th className="text-right">Left</Th>
-            <Th className="text-right">Average service</Th>
-            <Th className="text-right">No manager</Th>
+            <Th className="text-right">Average Service</Th>
+            <Th className="text-right">No Manager</Th>
           </tr>
         </thead>
         <tbody>
@@ -196,15 +196,15 @@ export function DepartmentStatistics({ departments, year, companyId, genderByDep
   const scope = companyId ? 'This company' : 'Altus Group';
   return (
     <div className="grid-2">
-      <Section title="Employment type by department" description="Active staff, largest departments">
-        <TypesByGroup groups={groups} label="Active staff in each department by employment type" />
+      <Section title="Employment Type By Department" description="Active staff, largest departments">
+        <TypesByGroup groups={groups} label="Active Staff In Each Department By Employment Type" />
       </Section>
-      <Section title="Employment type" description={scope}>
+      <Section title="Employment Type" description={scope}>
         <TypeDonutChart byType={sumTypes(departments)} />
       </Section>
       {genderByDepartment && (
-        <Section title="Gender by department" description="Active staff, largest departments">
-          <GenderByGroup groups={groups} label="Active staff in each department by gender" />
+        <Section title="Gender By Department" description="Active staff, largest departments">
+          <GenderByGroup groups={groups} label="Active Staff In Each Department By Gender" />
         </Section>
       )}
       <Section title="Gender" description={scope}>
@@ -212,20 +212,20 @@ export function DepartmentStatistics({ departments, year, companyId, genderByDep
       </Section>
       {genderByDepartment ? (
         <>
-          <Section title={`Joined and left in ${year}`} description="By department">
-            <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
+          <Section title={`Joined And Left In ${year}`} description="By department">
+            <MovesByGroup groups={groups} label={`Joined And Left In ${year} By Department`} />
           </Section>
-          <Section title="Length of service" description={scope}>
+          <Section title="Length Of Service" description={scope}>
             <ServiceChart bands={sumBands(departments)} />
           </Section>
         </>
       ) : (
         <>
-          <Section title="Length of service" description={scope}>
+          <Section title="Length Of Service" description={scope}>
             <ServiceChart bands={sumBands(departments)} />
           </Section>
-          <Section title={`Joined and left in ${year}`} description="By department" className="lg:col-span-2">
-            <MovesByGroup groups={groups} label={`Joined and left in ${year} by department`} />
+          <Section title={`Joined And Left In ${year}`} description="By department" className="lg:col-span-2">
+            <MovesByGroup groups={groups} label={`Joined And Left In ${year} By Department`} />
           </Section>
         </>
       )}

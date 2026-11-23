@@ -25,7 +25,7 @@ export default function MyLeavePage() {
   const [year, setYear] = useState(thisYear);
   return (
     <div className="stack">
-      <PageHeader title="My leave" />
+      <PageHeader title="My Leave" />
       <MyLeaveTop />
       <Requests year={year} setYear={setYear} />
       <RecentActivity />
@@ -49,7 +49,7 @@ function useSummary() {
 function MyLeaveTop() {
   const q = useSummary();
   return (
-    <Section title="Active leave">
+    <Section title="Active Leave">
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -102,7 +102,7 @@ function ActiveLeave({ r }) {
 function RecentActivity() {
   const q = useSummary();
   return (
-    <Section title="Recent activity">
+    <Section title="Recent Activity">
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -119,7 +119,7 @@ export function MyBalancesPage() {
   const [year, setYear] = useState(thisYear);
   return (
     <div className="stack">
-      <PageHeader title="My balances" actions={<YearSelect year={year} setYear={setYear} />} />
+      <PageHeader title="My Balances" actions={<YearSelect year={year} setYear={setYear} />} />
       <Balances year={year} bare />
     </div>
   );
@@ -140,7 +140,7 @@ export function YearSelect({ year, setYear }) {
 export function BalanceCards({ items, showPending = true }) {
   if (!items.length) {
     return (
-      <EmptyState title="No leave types are active yet">
+      <EmptyState title="No Leave Types Are Active Yet">
         HR activates leave types after reviewing the policy settings.
       </EmptyState>
     );
@@ -150,10 +150,10 @@ export function BalanceCards({ items, showPending = true }) {
     <Table>
       <thead>
         <tr>
-          <Th>Leave type</Th>
+          <Th>Leave Type</Th>
           <Th>Allowance</Th>
           <Th className="text-right">Taken</Th>
-          {showPending && <Th className="text-right">Awaiting approval</Th>}
+          {showPending && <Th className="text-right">Awaiting Approval</Th>}
           <Th className="text-right">Available</Th>
         </tr>
       </thead>
@@ -259,7 +259,7 @@ function Requests({ year, setYear }) {
       </div>
       {items.length === 0 ? (
         <div className="card p-0">
-          <EmptyState title={`No requests in ${year}`} />
+          <EmptyState title={`No Requests In ${year}`} />
         </div>
       ) : (
         <RequestTable items={items} />
@@ -274,9 +274,9 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
       <thead>
         <tr>
           <Th>Reference</Th>
-          {showEmployee && <Th>First name</Th>}
-          {showEmployee && <Th>Last name</Th>}
-          <Th>Leave type</Th>
+          {showEmployee && <Th>First Name</Th>}
+          {showEmployee && <Th>Last Name</Th>}
+          <Th>Leave Type</Th>
           <Th>Dates</Th>
           <Th className="text-right">Days</Th>
           <Th>Status</Th>
@@ -317,7 +317,7 @@ export function RequestTable({ items, showEmployee = false, yourTurn }) {
               )}
               {r.isOwn && (
                 <span className="ml-1">
-                  <Badge tone="brand">Your own</Badge>
+                  <Badge tone="brand">Your Own</Badge>
                 </span>
               )}
             </Td>

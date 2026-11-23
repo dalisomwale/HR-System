@@ -52,7 +52,7 @@ export default function SchedulesPage() {
 
   return (
     <div className="max-w-5xl">
-      <PageHeader title="Working schedules" />
+      <PageHeader title="Working Schedules" />
       <div className="grid gap-4">
         {list.isPending ? (
           <Loading />
@@ -79,7 +79,7 @@ export default function SchedulesPage() {
                 <tr key={s.id}>
                   <Td>
                     <span className="font-medium">{s.name}</span>{' '}
-                    {s.isCompanyDefault && <Badge tone="brand">Group default</Badge>}
+                    {s.isCompanyDefault && <Badge tone="brand">Group Default</Badge>}
                   </Td>
                   {DAYS.map(([d]) => (
                     <Td key={d} className={s.days[d] === 0 ? 'text-center text-muted' : 'text-center'}>
@@ -106,7 +106,7 @@ export default function SchedulesPage() {
           </Table>
         )}
 
-        <Section title={editingId ? 'Edit schedule' : 'Add a schedule'}>
+        <Section title={editingId ? 'Edit Schedule' : 'Add A Schedule'}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -123,7 +123,7 @@ export default function SchedulesPage() {
               />
             </Field>
             <fieldset>
-              <legend className="mb-1 text-sm font-medium">Working days</legend>
+              <legend className="mb-1 text-sm font-medium">Working Days</legend>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-7">
                 {DAYS.map(([d, l]) => (
                   <label key={d} className="text-xs text-muted">
@@ -150,12 +150,12 @@ export default function SchedulesPage() {
                 checked={form.isCompanyDefault}
                 onChange={(e) => setForm({ ...form, isCompanyDefault: e.target.checked })}
               />
-              Group default
+              Group Default
             </label>
             {save.isError && <Notice tone="danger">{save.error.message}</Notice>}
             <div className="flex gap-2">
               <Button type="submit" busy={save.isPending}>
-                {editingId ? 'Save' : 'Add schedule'}
+                {editingId ? 'Save' : 'Add Schedule'}
               </Button>
               {editingId && (
                 <Button

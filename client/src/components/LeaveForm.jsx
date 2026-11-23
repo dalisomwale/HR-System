@@ -186,7 +186,7 @@ export function LeaveForm({
 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <Section title="Request details">
+      <Section title="Request Details">
         {available.length === 0 ? (
           <Notice tone="pending" title="No leave types are available yet.">
             HR is still reviewing the leave policy settings. Leave types appear here once HR has activated
@@ -196,7 +196,7 @@ export function LeaveForm({
           <form onSubmit={handleSubmit(send)} noValidate className="grid gap-4 sm:grid-cols-2">
             <Field
               id="leaveTypeId"
-              label="Leave type"
+              label="Leave Type"
               error={err('leaveTypeId')}
               className="sm:col-span-2"
               hint={type?.description}
@@ -211,7 +211,7 @@ export function LeaveForm({
                 {available.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
-                    {t.notAvailableReason ? ' (not available to you)' : ''}
+                    {t.notAvailableReason ? ' (Not Available To You)' : ''}
                   </option>
                 ))}
               </Select>
@@ -223,7 +223,7 @@ export function LeaveForm({
             )}
 
             {type?.eventRequired && (
-              <Field id="eventDate" label="Date of birth" error={err('eventDate')} className="sm:col-span-2">
+              <Field id="eventDate" label="Date Of Birth" error={err('eventDate')} className="sm:col-span-2">
                 <Input
                   id="eventDate"
                   type="date"
@@ -234,7 +234,7 @@ export function LeaveForm({
               </Field>
             )}
 
-            <Field id="startDate" label="First day" error={err('startDate')}>
+            <Field id="startDate" label="First Day" error={err('startDate')}>
               <Input
                 id="startDate"
                 type="date"
@@ -242,7 +242,7 @@ export function LeaveForm({
                 {...register('startDate', { required: 'Enter the first day.' })}
               />
             </Field>
-            <Field id="endDate" label="Last day" error={err('endDate')}>
+            <Field id="endDate" label="Last Day" error={err('endDate')}>
               <Input
                 id="endDate"
                 type="date"
@@ -255,7 +255,7 @@ export function LeaveForm({
             {type?.multipleBirthAllowed && (
               <label className="flex items-center gap-2 text-sm sm:col-span-2">
                 <input type="checkbox" className="size-4" {...register('multipleBirth')} />
-                Multiple birth (twins or more) – longer leave applies
+                Multiple Birth (Twins Or More) – Longer Leave Applies
               </label>
             )}
 
@@ -292,7 +292,7 @@ export function LeaveForm({
                 invalid={!!err('handoverContactId')}
                 {...register('handoverContactId')}
               >
-                <option value="">Not arranged</option>
+                <option value="">Not Arranged</option>
                 {colleagues.data.items.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.label}
@@ -420,7 +420,7 @@ function PreviewPanel({ canPreview, preview }) {
             </div>
           ))}
           {p.errors.length > 0 && (
-            <Notice tone="danger" title="This request cannot be submitted yet">
+            <Notice tone="danger" title="This Request Cannot Be Submitted Yet">
               <ul className="list-disc space-y-0.5 pl-4">
                 {p.errors.map((e) => (
                   <li key={`${e.field}-${e.message}`}>{e.message}</li>
@@ -519,7 +519,7 @@ function AttachmentPicker({ files, onChange, type }) {
       />
       <Button variant="secondary" className="mt-3" onClick={() => input.current?.click()}>
         {' '}
-        {files.length ? 'Add another file' : 'Attach files'}
+        {files.length ? 'Add Another File' : 'Attach Files'}
       </Button>
     </div>
   );

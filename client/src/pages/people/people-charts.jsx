@@ -48,7 +48,7 @@ export function HeadcountTrend({ trend }) {
         title:
           i === trend.length - 1
             ? `Today (${LONG[t.month - 1]} ${t.year})`
-            : `End of ${LONG[t.month - 1]} ${t.year}`,
+            : `End Of ${LONG[t.month - 1]} ${t.year}`,
         headcount: t.headcount,
       }))}
     />
@@ -60,7 +60,7 @@ export function ServiceChart({ bands }) {
   return (
     <div className="space-y-2">
       <ColumnChart
-        label="Active staff by length of service"
+        label="Active Staff By Length Of Service"
         unit="people"
         whole
         empty="No active staff yet."

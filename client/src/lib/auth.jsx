@@ -25,7 +25,7 @@ export function useMe() {
 export function RequireAuth({ children }) {
   const me = useMe();
   const location = useLocation();
-  if (me.isPending) return <Loading label="Checking your sign-in" />;
+  if (me.isPending) return <Loading label="Checking Your Sign-in" />;
   if (me.isError) {
     return (
       <div className="mx-auto max-w-lg p-8">
@@ -47,7 +47,7 @@ export function RequirePerm({ perm, children }) {
   if (!can(me.data, perm)) {
     return (
       <div className="max-w-xl">
-        <h1 className="page-title">You don’t have access to this page</h1>
+        <h1 className="page-title">You Don’t Have Access To This Page</h1>
         <p className="mt-2 text-[0.9rem] text-muted">
           Your role doesn’t include it. If you need access, ask whoever manages Users in this module to change
           your role.

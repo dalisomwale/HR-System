@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 
-/* Shared by the Recruitment management pages (D114). */
+/* Shared by the Recruitment Management pages (D114). */
 
 export const useRc = () =>
   useQuery({ queryKey: ['rc-me'], queryFn: () => api.get('/api/recruitment/me'), staleTime: 30_000 });
@@ -14,14 +14,14 @@ export const useRcOptions = () =>
 
 export const REQUEST_STATUS = {
   PENDING_REVIEW: ['With HR', 'pending'],
-  PENDING_APPROVAL: ['With a director', 'pending'],
+  PENDING_APPROVAL: ['With A Director', 'pending'],
   APPROVED: ['Approved', 'ok'],
-  REJECTED: ['Not approved', 'danger'],
+  REJECTED: ['Not Approved', 'danger'],
   CANCELLED: ['Cancelled', 'neutral'],
 };
 export const VACANCY_STATUS = {
   OPEN: ['Open', 'ok'],
-  ON_HOLD: ['On hold', 'pending'],
+  ON_HOLD: ['On Hold', 'pending'],
   CLOSED: ['Closed', 'neutral'],
   FILLED: ['Filled', 'brand'],
 };
@@ -32,7 +32,7 @@ export const STAGES = [
   ['INTERVIEW', 'Interview'],
   ['OFFER', 'Offer'],
   ['HIRED', 'Hired'],
-  ['REJECTED', 'Not successful'],
+  ['REJECTED', 'Not Successful'],
   ['WITHDRAWN', 'Withdrawn'],
 ];
 export const STAGE_LABEL = Object.fromEntries(STAGES);
@@ -49,7 +49,7 @@ export const STAGE_TONE = {
 export const ACTIVE_STAGES = ['APPLIED', 'SCREENING', 'SHORTLISTED', 'INTERVIEW', 'OFFER'];
 export const EMPLOYMENT_TYPES = [
   ['PERMANENT', 'Permanent'],
-  ['FIXED_TERM', 'Fixed term'],
+  ['FIXED_TERM', 'Fixed Term'],
   ['TEMPORARY', 'Temporary'],
 ];
 export const EMPLOYMENT_LABEL = Object.fromEntries(EMPLOYMENT_TYPES);
@@ -60,11 +60,11 @@ export const SOURCES = [
   ['REFERRAL', 'Referral'],
   ['OTHER', 'Other'],
 ];
-export const SOURCE_LABEL = { ...Object.fromEntries(SOURCES), INTERNAL: 'Internal applicant' };
+export const SOURCE_LABEL = { ...Object.fromEntries(SOURCES), INTERNAL: 'Internal Applicant' };
 export const RECOMMENDATION = {
   HIRE: ['Hire', 'ok'],
   MAYBE: ['Maybe', 'pending'],
-  NO_HIRE: ['Do not hire', 'danger'],
+  NO_HIRE: ['Do Not Hire', 'danger'],
 };
 
 /** 'YYYY-MM-DDTHH:mm' as "1 Dec 2026, 10:00". */

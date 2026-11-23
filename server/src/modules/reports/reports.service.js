@@ -28,27 +28,27 @@ const STATUS = [
   'CANCELLED',
 ];
 const STATUS_LABEL = {
-  PENDING_MANAGER_APPROVAL: 'With manager',
-  PENDING_EMPLOYEE_ACCEPTANCE: 'Dates offered to employee',
+  PENDING_MANAGER_APPROVAL: 'With Manager',
+  PENDING_EMPLOYEE_ACCEPTANCE: 'Dates Offered To Employee',
   PENDING_HR_APPROVAL: 'With HR',
-  RETURNED_FOR_CORRECTION: 'Returned for correction',
+  RETURNED_FOR_CORRECTION: 'Returned For Correction',
   APPROVED: 'Approved',
-  REJECTED_BY_MANAGER: 'Rejected by manager',
-  REJECTED_BY_HR: 'Rejected by HR',
+  REJECTED_BY_MANAGER: 'Rejected By Manager',
+  REJECTED_BY_HR: 'Rejected By HR',
   WITHDRAWN: 'Withdrawn',
   CANCELLED: 'Cancelled',
 };
 const ENTRY_LABEL = {
-  OPENING: 'Opening balance',
+  OPENING: 'Opening Balance',
   ENTITLEMENT: 'Entitlement',
   ACCRUAL: 'Accrual',
-  DEDUCTION: 'Leave taken',
+  DEDUCTION: 'Leave Taken',
   REVERSAL: 'Returned',
-  CARRY_FORWARD_IN: 'Carried forward',
-  CARRY_FORWARD_EXPIRY: 'Carry-forward expired',
+  CARRY_FORWARD_IN: 'Carried Forward',
+  CARRY_FORWARD_EXPIRY: 'Carry-forward Expired',
   ADJUSTMENT: 'Adjustment',
   RESERVATION: 'Reserved',
-  RESERVATION_RELEASE: 'Reservation released',
+  RESERVATION_RELEASE: 'Reservation Released',
 };
 
 export const filterSchema = z.object({
@@ -131,9 +131,9 @@ function requestBase(db) {
 }
 
 const PERSON_COLS = [
-  { key: 'employeeNumber', label: 'Employee number', type: 'text' },
-  { key: 'firstName', label: 'First name', type: 'text' },
-  { key: 'lastName', label: 'Last name', type: 'text' },
+  { key: 'employeeNumber', label: 'Employee Number', type: 'text' },
+  { key: 'firstName', label: 'First Name', type: 'text' },
+  { key: 'lastName', label: 'Last Name', type: 'text' },
   { key: 'company', label: 'Company', type: 'text' },
   { key: 'department', label: 'Department', type: 'text' },
 ];
@@ -220,14 +220,14 @@ export const REPORTS = [
     columns: [
       { key: 'reference', label: 'Reference', type: 'text' },
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'start', label: 'First day', type: 'date' },
-      { key: 'end', label: 'Last day', type: 'date' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'start', label: 'First Day', type: 'date' },
+      { key: 'end', label: 'Last Day', type: 'date' },
       { key: 'days', label: 'Days', type: 'number' },
       { key: 'status', label: 'Status', type: 'text' },
       { key: 'submitted', label: 'Submitted', type: 'text' },
-      { key: 'managerDecided', label: 'Manager decided', type: 'text' },
-      { key: 'hrDecided', label: 'HR decided', type: 'text' },
+      { key: 'managerDecided', label: 'Manager Decided', type: 'text' },
+      { key: 'hrDecided', label: 'HR Decided', type: 'text' },
       { key: 'overdue', label: 'Overdue', type: 'text' },
     ],
     async run(db, scope, f) {
@@ -262,7 +262,7 @@ export const REPORTS = [
     levels: ['HR', 'MANAGER'],
     filters: ['from', 'to', 'company', 'department', 'leaveType'],
     columns: [
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
       { key: 'status', label: 'Status', type: 'text' },
       { key: 'requests', label: 'Requests', type: 'number' },
       { key: 'days', label: 'Days', type: 'number' },
@@ -302,8 +302,8 @@ export const REPORTS = [
     filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'days', label: 'Days taken', type: 'number' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'days', label: 'Days Taken', type: 'number' },
     ],
     async run(db, scope, f) {
       const { from, to } = yearRange(f);
@@ -353,9 +353,9 @@ export const REPORTS = [
     filters: ['from', 'to', 'company', 'leaveType'],
     columns: [
       { key: 'company', label: 'Company', type: 'text' },
-      { key: 'headcount', label: 'Active staff', type: 'number' },
-      { key: 'days', label: 'Days taken', type: 'number' },
-      { key: 'perPerson', label: 'Days per person', type: 'number' },
+      { key: 'headcount', label: 'Active Staff', type: 'number' },
+      { key: 'days', label: 'Days Taken', type: 'number' },
+      { key: 'perPerson', label: 'Days Per Person', type: 'number' },
     ],
     async run(db, scope, f) {
       return utilisation(db, scope, f, false);
@@ -371,9 +371,9 @@ export const REPORTS = [
     columns: [
       { key: 'company', label: 'Company', type: 'text' },
       { key: 'department', label: 'Department', type: 'text' },
-      { key: 'headcount', label: 'Active staff', type: 'number' },
-      { key: 'days', label: 'Days taken', type: 'number' },
-      { key: 'perPerson', label: 'Days per person', type: 'number' },
+      { key: 'headcount', label: 'Active Staff', type: 'number' },
+      { key: 'days', label: 'Days Taken', type: 'number' },
+      { key: 'perPerson', label: 'Days Per Person', type: 'number' },
     ],
     async run(db, scope, f) {
       return utilisation(db, scope, f, true);
@@ -391,14 +391,14 @@ export const REPORTS = [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
       { key: 'opening', label: 'Opening', type: 'number' },
-      { key: 'carried', label: 'Carried forward', type: 'number' },
-      { key: 'accrued', label: 'Accrued / granted', type: 'number' },
+      { key: 'carried', label: 'Carried Forward', type: 'number' },
+      { key: 'accrued', label: 'Accrued / Granted', type: 'number' },
       { key: 'taken', label: 'Taken', type: 'number' },
       { key: 'adjustments', label: 'Adjustments', type: 'number' },
       { key: 'expired', label: 'Expired', type: 'number' },
       { key: 'balance', label: 'Balance', type: 'number' },
-      { key: 'pending', label: 'Awaiting approval', type: 'number' },
-      { key: 'available', label: 'Available to request', type: 'number' },
+      { key: 'pending', label: 'Awaiting Approval', type: 'number' },
+      { key: 'available', label: 'Available To Request', type: 'number' },
     ],
     async run(db, scope, f) {
       const year = yearOf(f);
@@ -451,18 +451,18 @@ export const REPORTS = [
     filters: ['employee', 'company', 'department'],
     columns: [
       ...PERSON_COLS,
-      { key: 'jobTitle', label: 'Job title', type: 'text' },
-      { key: 'email', label: 'Work email', type: 'text' },
-      { key: 'mobile', label: 'Mobile number', type: 'text' },
-      { key: 'reportsTo', label: 'Reports to', type: 'text' },
-      { key: 'startDate', label: 'Start date', type: 'date' },
+      { key: 'jobTitle', label: 'Job Title', type: 'text' },
+      { key: 'email', label: 'Work Email', type: 'text' },
+      { key: 'mobile', label: 'Mobile Number', type: 'text' },
+      { key: 'reportsTo', label: 'Reports To', type: 'text' },
+      { key: 'startDate', label: 'Start Date', type: 'date' },
       { key: 'today', label: 'Today', type: 'text' },
-      { key: 'available', label: 'Annual leave available', type: 'number' },
-      { key: 'taken', label: 'Days taken this year', type: 'number' },
-      { key: 'pending', label: 'Pending requests', type: 'number' },
-      { key: 'nextStart', label: 'Next leave first day', type: 'date' },
-      { key: 'nextEnd', label: 'Next leave last day', type: 'date' },
-      { key: 'nextDays', label: 'Next leave days', type: 'number' },
+      { key: 'available', label: 'Annual Leave Available', type: 'number' },
+      { key: 'taken', label: 'Days Taken This Year', type: 'number' },
+      { key: 'pending', label: 'Pending Requests', type: 'number' },
+      { key: 'nextStart', label: 'Next Leave First Day', type: 'date' },
+      { key: 'nextEnd', label: 'Next Leave Last Day', type: 'date' },
+      { key: 'nextDays', label: 'Next Leave Days', type: 'number' },
     ],
     async run(db, scope, f) {
       const narrow = (q) => {
@@ -514,9 +514,9 @@ export const REPORTS = [
     filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'start', label: 'First day', type: 'date' },
-      { key: 'end', label: 'Last day', type: 'date' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'start', label: 'First Day', type: 'date' },
+      { key: 'end', label: 'Last Day', type: 'date' },
       { key: 'days', label: 'Days', type: 'number' },
       { key: 'status', label: 'Status', type: 'text' },
       { key: 'reference', label: 'Reference', type: 'text' },
@@ -552,8 +552,8 @@ export const REPORTS = [
     columns: [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
-      { key: 'carried', label: 'Carried in', type: 'number' },
-      { key: 'usedByDeadline', label: 'Used by deadline', type: 'number' },
+      { key: 'carried', label: 'Carried In', type: 'number' },
+      { key: 'usedByDeadline', label: 'Used By Deadline', type: 'number' },
       { key: 'unused', label: 'Unused', type: 'number' },
       { key: 'expired', label: 'Expired', type: 'number' },
       { key: 'deadline', label: 'Deadline', type: 'date' },
@@ -627,12 +627,12 @@ export const REPORTS = [
     columns: [
       { key: 'at', label: 'Recorded', type: 'text' },
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'year', label: 'Leave year', type: 'number' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'year', label: 'Leave Year', type: 'number' },
       { key: 'entryType', label: 'Entry', type: 'text' },
       { key: 'amount', label: 'Days', type: 'number' },
       { key: 'reason', label: 'Reason', type: 'text' },
-      { key: 'by', label: 'Recorded by', type: 'text' },
+      { key: 'by', label: 'Recorded By', type: 'text' },
     ],
     async run(db, scope, f) {
       const { from, to } = yearRange(f);
@@ -687,7 +687,7 @@ export const REPORTS = [
       { key: 'approved', label: 'Approved', type: 'number' },
       { key: 'rejected', label: 'Rejected', type: 'number' },
       { key: 'returned', label: 'Returned', type: 'number' },
-      { key: 'avgDays', label: 'Average days to decide', type: 'number' },
+      { key: 'avgDays', label: 'Average Days To Decide', type: 'number' },
     ],
     async run(db, scope, f) {
       const { from, to } = yearRange(f);
@@ -747,12 +747,12 @@ export const REPORTS = [
     columns: [
       { key: 'reference', label: 'Reference', type: 'text' },
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'start', label: 'First day', type: 'date' },
-      { key: 'stage', label: 'Waiting for', type: 'text' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'start', label: 'First Day', type: 'date' },
+      { key: 'stage', label: 'Waiting For', type: 'text' },
       { key: 'approver', label: 'Manager', type: 'text' },
-      { key: 'since', label: 'Waiting since', type: 'date' },
-      { key: 'workingDays', label: 'Working days waiting', type: 'number' },
+      { key: 'since', label: 'Waiting Since', type: 'date' },
+      { key: 'workingDays', label: 'Working Days Waiting', type: 'number' },
       { key: 'overdue', label: 'Overdue', type: 'text' },
     ],
     async run(db, scope, f) {
@@ -796,10 +796,10 @@ export const REPORTS = [
     filters: ['from', 'to', 'employee', 'company', 'department', 'leaveType'],
     columns: [
       ...PERSON_COLS,
-      { key: 'leaveType', label: 'Leave type', type: 'text' },
-      { key: 'start', label: 'First day', type: 'date' },
-      { key: 'end', label: 'Last day', type: 'date' },
-      { key: 'daysInRange', label: 'Days in period', type: 'number' },
+      { key: 'leaveType', label: 'Leave Type', type: 'text' },
+      { key: 'start', label: 'First Day', type: 'date' },
+      { key: 'end', label: 'Last Day', type: 'date' },
+      { key: 'daysInRange', label: 'Days In Period', type: 'number' },
       { key: 'reference', label: 'Reference', type: 'text' },
     ],
     async run(db, scope, f) {
@@ -868,10 +868,10 @@ export const REPORTS = [
     columns: [
       ...PERSON_COLS,
       { key: 'year', label: 'Year', type: 'number' },
-      { key: 'longest', label: 'Longest block (working days)', type: 'number' },
-      { key: 'blockStart', label: 'Block from', type: 'date' },
-      { key: 'blockEnd', label: 'Block to', type: 'date' },
-      { key: 'totalTaken', label: 'Annual leave taken', type: 'number' },
+      { key: 'longest', label: 'Longest Block (Working Days)', type: 'number' },
+      { key: 'blockStart', label: 'Block From', type: 'date' },
+      { key: 'blockEnd', label: 'Block To', type: 'date' },
+      { key: 'totalTaken', label: 'Annual Leave Taken', type: 'number' },
       { key: 'target', label: 'Target', type: 'number' },
     ],
     async run(db, scope, f) {

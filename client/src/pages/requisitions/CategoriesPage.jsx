@@ -54,7 +54,7 @@ export default function CategoriesPage() {
         title="Categories"
         description="How stock items are grouped."
         actions={
-          canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add category</Button>
+          canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add Category</Button>
         }
       />
       {msg && (
@@ -80,8 +80,8 @@ export default function CategoriesPage() {
               <tr>
                 <Th>Category</Th>
                 <Th className="text-right">Items</Th>
-                <Th className="text-right">Units in stock</Th>
-                <Th className="text-right">Stock value</Th>
+                <Th className="text-right">Units In Stock</Th>
+                <Th className="text-right">Stock Value</Th>
                 {canEdit && (
                   <Th>
                     <span className="sr-only">Actions</span>
@@ -124,7 +124,7 @@ export default function CategoriesPage() {
                         <button
                           type="button"
                           disabled={!c.canDelete}
-                          title={c.canDelete ? undefined : "Can't delete: it has items or requisitions"}
+                          title={c.canDelete ? undefined : "Can't Delete: It Has Items Or Requisitions"}
                           onClick={() => setDel(c)}
                           className="rounded-sm p-1.5 text-muted hover:bg-danger-bg hover:text-danger disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
                           aria-label={
@@ -145,7 +145,7 @@ export default function CategoriesPage() {
         ))}
       <ConfirmDialog
         open={Boolean(del)}
-        title="Delete category"
+        title="Delete Category"
         confirmLabel="Delete"
         tone="danger"
         busy={busy}
@@ -179,9 +179,9 @@ function CategoryForm({ category, onDone, onCancel }) {
     }
   };
   return (
-    <Section title={category ? `Edit ${category.name}` : 'Add category'} className="border-0">
+    <Section title={category ? `Edit ${category.name}` : 'Add Category'} className="border-0">
       <form onSubmit={save} noValidate className="grid gap-4 sm:grid-cols-2">
-        <Field id={`c-name-${category?.id ?? 'new'}`} label="Category name">
+        <Field id={`c-name-${category?.id ?? 'new'}`} label="Category Name">
           <Input
             id={`c-name-${category?.id ?? 'new'}`}
             value={name}
@@ -204,7 +204,7 @@ function CategoryForm({ category, onDone, onCancel }) {
         )}
         <div className="flex gap-2 sm:col-span-2">
           <Button type="submit" busy={busy}>
-            {category ? 'Save' : 'Add category'}
+            {category ? 'Save' : 'Add Category'}
           </Button>
           <Button variant="secondary" onClick={onCancel}>
             Cancel

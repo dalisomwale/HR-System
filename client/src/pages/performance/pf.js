@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api.js';
 
-/* Shared by the Performance management pages (D115). */
+/* Shared by the Performance Management pages (D115). */
 
 export const usePf = () =>
   useQuery({ queryKey: ['pf-me'], queryFn: () => api.get('/api/performance/me'), staleTime: 30_000 });
@@ -16,10 +16,10 @@ export const RATINGS = [
 export const RATING_LABEL = Object.fromEntries(RATINGS);
 
 export const PHASE = {
-  DRAFT: ['Not started', 'neutral'],
-  GOAL_SETTING: ['Goal setting', 'brand'],
+  DRAFT: ['Not Started', 'neutral'],
+  GOAL_SETTING: ['Goal Setting', 'brand'],
   MID_YEAR: ['Mid-year', 'brand'],
-  YEAR_END: ['Year end', 'pending'],
+  YEAR_END: ['Year End', 'pending'],
   CLOSED: ['Closed', 'neutral'],
 };
 export const NEXT_PHASE = {
@@ -30,23 +30,23 @@ export const NEXT_PHASE = {
 };
 
 export const STATUS = {
-  GOALS_DRAFT: ['Setting goals', 'neutral'],
-  GOALS_SUBMITTED: ['Goals with the manager', 'pending'],
-  GOALS_AGREED: ['Goals agreed', 'brand'],
-  MID_SELF_DONE: ['Mid-year: with the manager', 'pending'],
-  MID_DONE: ['Mid-year done', 'brand'],
-  FINAL_SELF_DONE: ['Year end: with the manager', 'pending'],
-  FINAL_MANAGER_DONE: ['Waiting for HR sign-off', 'pending'],
-  SIGNED_OFF: ['Signed off', 'ok'],
+  GOALS_DRAFT: ['Setting Goals', 'neutral'],
+  GOALS_SUBMITTED: ['Goals With The Manager', 'pending'],
+  GOALS_AGREED: ['Goals Agreed', 'brand'],
+  MID_SELF_DONE: ['Mid-year: With The Manager', 'pending'],
+  MID_DONE: ['Mid-year Done', 'brand'],
+  FINAL_SELF_DONE: ['Year End: With The Manager', 'pending'],
+  FINAL_MANAGER_DONE: ['Waiting For HR Sign-off', 'pending'],
+  SIGNED_OFF: ['Signed Off', 'ok'],
 };
 
 export const OUTCOME = {
   CONFIRM: ['Confirm', 'ok'],
-  EXTEND: ['Extend probation', 'pending'],
-  NOT_CONFIRM: ['Do not confirm', 'danger'],
+  EXTEND: ['Extend Probation', 'pending'],
+  NOT_CONFIRM: ['Do Not Confirm', 'danger'],
 };
 export const PROBATION_STATUS = {
-  PENDING_MANAGER: ['With the manager', 'pending'],
+  PENDING_MANAGER: ['With The Manager', 'pending'],
   PENDING_HR: ['With HR', 'pending'],
   COMPLETED: ['Decided', 'ok'],
 };

@@ -5,15 +5,15 @@ import { api } from '../../lib/api.js';
 import { PERIOD_LABELS, days } from '../../lib/leave.js';
 import { Button, Field, Input, Notice, Select, Textarea, applyServerErrors } from '../../components/ui.jsx';
 
-/* Shared by the Leave types list and a leave type's own page. */
+/* Shared by the Leave Types list and a leave type's own page. */
 
 export const ACCRUAL = {
-  NONE: 'No accrual',
-  ANNUAL_GRANT: 'Granted at the start of the year',
-  FIXED_MONTHLY: 'Fixed amount each month',
-  ENTITLEMENT_DIV_12: 'Entitlement ÷ 12 each month',
+  NONE: 'No Accrual',
+  ANNUAL_GRANT: 'Granted At The Start Of The Year',
+  FIXED_MONTHLY: 'Fixed Amount Each Month',
+  ENTITLEMENT_DIV_12: 'Entitlement ÷ 12 Each Month',
 };
-export const NOTICE = { NONE: 'Not enforced', WARN_WITH_REASON: 'Warn and ask for a reason', BLOCK: 'Block' };
+export const NOTICE = { NONE: 'Not Enforced', WARN_WITH_REASON: 'Warn And Ask For A Reason', BLOCK: 'Block' };
 
 export function allowance(p) {
   if (p.consumesBalance) return `${p.entitlementDays != null ? days(p.entitlementDays) : 'Not set'} a year`;
@@ -26,7 +26,7 @@ export function allowance(p) {
 export function summary(p) {
   const rows = [
     ['Paid', p.isPaid ? 'Yes' : 'No'],
-    ['Counted in', p.dayBasis === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days'],
+    ['Counted In', p.dayBasis === 'CALENDAR_DAYS' ? 'Calendar days' : 'Working days'],
     ['Allowance', p.consumesBalance ? `Balance: ${allowance(p)}` : allowance(p)],
   ];
   if (p.consumesBalance) {
@@ -37,19 +37,19 @@ export function summary(p) {
       }`,
     ]);
     rows.push([
-      'Carry forward',
+      'Carry Forward',
       p.carryForwardMaxDays != null
         ? `Up to ${days(p.carryForwardMaxDays)}${p.carryForwardExpiryMonth ? `, use by ${p.carryForwardExpiryDay}/${p.carryForwardExpiryMonth}` : ''}`
         : 'None',
     ]);
   }
-  if (p.maxSingleDurationDays != null) rows.push(['Longest request', days(p.maxSingleDurationDays)]);
-  if (p.minServiceMonths) rows.push(['Service needed', `${p.minServiceMonths} months`]);
+  if (p.maxSingleDurationDays != null) rows.push(['Longest Request', days(p.maxSingleDurationDays)]);
+  if (p.minServiceMonths) rows.push(['Service Needed', `${p.minServiceMonths} months`]);
   rows.push([
     'Notice',
     p.minNoticeDays ? `${p.minNoticeDays} days (${NOTICE[p.noticeEnforcement]})` : 'None',
   ]);
-  rows.push(['Half days', p.allowHalfDay ? 'Allowed' : 'Not allowed']);
+  rows.push(['Half Days', p.allowHalfDay ? 'Allowed' : 'Not allowed']);
   rows.push([
     'Back-dating',
     p.allowBackdate
@@ -158,7 +158,7 @@ export function PolicyForm({ type: t, onDone }) {
         New rules apply to requests starting on or after the date you choose. Requests already made keep the
         rules they were made under.
       </p>
-      <Field id={`${t.id}-effectiveFrom`} label="Rules apply from" error={err('effectiveFrom')}>
+      <Field id={`${t.id}-effectiveFrom`} label="Rules Apply From" error={err('effectiveFrom')}>
         <Input
           id={`${t.id}-effectiveFrom`}
           type="date"
@@ -166,10 +166,10 @@ export function PolicyForm({ type: t, onDone }) {
           {...register('effectiveFrom', { required: 'Required' })}
         />
       </Field>
-      <Field id={`${t.id}-dayBasis`} label="Counted in">
+      <Field id={`${t.id}-dayBasis`} label="Counted In">
         <Select id={`${t.id}-dayBasis`} {...register('dayBasis')}>
-          <option value="WORKING_DAYS">Working days</option>
-          <option value="CALENDAR_DAYS">Calendar days</option>
+          <option value="WORKING_DAYS">Working Days</option>
+          <option value="CALENDAR_DAYS">Calendar Days</option>
         </Select>
       </Field>
       {num('entitlementDays', 'Allowance (days)')}
@@ -186,19 +186,19 @@ export function PolicyForm({ type: t, onDone }) {
             </Select>
           </Field>
           {watch('accrualMethod') === 'FIXED_MONTHLY' && num('accrualMonthlyAmount', 'Days per month')}
-          <Field id={`${t.id}-accrualRounding`} label="Accrual rounding">
+          <Field id={`${t.id}-accrualRounding`} label="Accrual Rounding">
             <Select id={`${t.id}-accrualRounding`} {...register('accrualRounding')}>
               <option value="NONE">None</option>
-              <option value="NEAREST_HALF">Nearest half day</option>
-              <option value="NEAREST_TENTH">Nearest tenth</option>
-              <option value="DOWN_HALF">Down to half day</option>
+              <option value="NEAREST_HALF">Nearest Half Day</option>
+              <option value="NEAREST_TENTH">Nearest Tenth</option>
+              <option value="DOWN_HALF">Down To Half Day</option>
             </Select>
           </Field>
           {num('carryForwardMaxDays', 'Carry forward limit (days)')}
         </>
       )}
       {num('minNoticeDays', 'Notice (days)')}
-      <Field id={`${t.id}-noticeEnforcement`} label="If notice is short">
+      <Field id={`${t.id}-noticeEnforcement`} label="If Notice Is Short">
         <Select id={`${t.id}-noticeEnforcement`} {...register('noticeEnforcement')}>
           {Object.entries(NOTICE).map(([k, v]) => (
             <option key={k} value={k}>
@@ -217,7 +217,7 @@ export function PolicyForm({ type: t, onDone }) {
         {check('sensitiveAllowed', 'Can be marked sensitive')}
         {p.consumesBalance && check('accrualConfirmed', 'Accrual rule confirmed by HR')}
       </div>
-      <Field id={`${t.id}-documentDescription`} label="Document needed" className="sm:col-span-3">
+      <Field id={`${t.id}-documentDescription`} label="Document Needed" className="sm:col-span-3">
         <Input id={`${t.id}-documentDescription`} {...register('documentDescription')} />
       </Field>
       <Field id={`${t.id}-note`} label="Why is this changing?" error={err('note')} className="sm:col-span-3">
@@ -235,7 +235,7 @@ export function PolicyForm({ type: t, onDone }) {
       )}
       <div className="flex gap-2 sm:col-span-3">
         <Button type="submit" busy={isSubmitting}>
-          Save new version
+          Save New Version
         </Button>
         <Button variant="secondary" onClick={onDone}>
           Cancel

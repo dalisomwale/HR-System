@@ -108,7 +108,7 @@ export default function DepartmentPage() {
                     }}
                   >
                     {' '}
-                    Add employee
+                    Add Employee
                   </Button>
                   <Button
                     variant={panel === 'edit' ? 'primary' : 'secondary'}
@@ -116,7 +116,7 @@ export default function DepartmentPage() {
                     onClick={() => setPanel(panel === 'edit' ? null : 'edit')}
                   >
                     {' '}
-                    Edit department
+                    Edit Department
                   </Button>
                 </>
               )}
@@ -126,7 +126,7 @@ export default function DepartmentPage() {
       </div>
 
       {added && (
-        <Notice tone="ok" title={`${added.name} was added to ${d.name}.`}>
+        <Notice tone="ok" title={`${added.name} Was Added To ${d.name}.`}>
           <Link to={`/people/employees/${added.id}`} className="underline">
             Open their record
           </Link>
@@ -135,7 +135,7 @@ export default function DepartmentPage() {
       {panel === 'add' && (
         <EmployeeForm
           isNew
-          title={`Add an employee to ${d.name}`}
+          title={`Add An Employee To ${d.name}`}
           defaults={{
             departmentId: String(d.id),
             companyId: d.companyId ? String(d.companyId) : '',
@@ -167,28 +167,28 @@ export default function DepartmentPage() {
       {panel !== 'edit' && (
         <>
           <Stats>
-            <Stat label="Active staff" value={d.headcount} to={`/people/departments/${d.id}/employees`} />
+            <Stat label="Active Staff" value={d.headcount} to={`/people/departments/${d.id}/employees`} />
             <Stat label="Managers" value={d.managers} />
             <Stat
-              label="On probation"
+              label="On Probation"
               value={d.onProbation}
               to={`/people/departments/${d.id}/employees?filter=probation`}
             />
             <Stat
-              label="Contracts ending in 60 days"
+              label="Contracts Ending In 60 Days"
               value={d.contractsEnding}
               to={`/people/departments/${d.id}/employees?filter=contractEnding`}
             />
           </Stats>
 
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            <Section title="Employment type">
+            <Section title="Employment Type">
               <TypeDonutChart byType={d.byType} />
             </Section>
             <Section title="Gender">
               <GenderDonutChart bySex={d.bySex} />
             </Section>
-            <Section title="Length of service">
+            <Section title="Length Of Service">
               <ServiceChart
                 bands={BANDS.map(([key, label]) => ({ key, label, count: d.serviceBands[key] }))}
               />
@@ -212,13 +212,13 @@ export default function DepartmentPage() {
                 <thead>
                   <tr>
                     <Th className="text-right">#</Th>
-                    <Th>First name</Th>
-                    <Th>Last name</Th>
-                    <Th>Department name</Th>
+                    <Th>First Name</Th>
+                    <Th>Last Name</Th>
+                    <Th>Department Name</Th>
                     <Th>Branch</Th>
-                    <Th>Job title</Th>
+                    <Th>Job Title</Th>
                     <Th>Email</Th>
-                    <Th>Line manager</Th>
+                    <Th>Line Manager</Th>
                     <Th>Type</Th>
                     <Th>Started</Th>
                     <Th>Status</Th>
@@ -346,7 +346,7 @@ function EditDepartment({ d, onDone, onCancel }) {
         </Field>
         <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
           <Button type="submit" busy={save.isPending}>
-            Save changes
+            Save Changes
           </Button>
           <Button variant="secondary" onClick={onCancel} disabled={save.isPending}>
             Cancel

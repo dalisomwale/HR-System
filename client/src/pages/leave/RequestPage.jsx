@@ -80,9 +80,9 @@ export default function RequestPage() {
         actions={
           <Badge tone={STATUS_TONES[r.status]}>
             {can.managerDecide || can.hrDecide
-              ? 'Awaiting your approval'
+              ? 'Awaiting Your Approval'
               : can.accept
-                ? 'Awaiting your acceptance'
+                ? 'Awaiting Your Acceptance'
                 : STATUS_LABELS[r.status]}
           </Badge>
         }
@@ -100,7 +100,7 @@ export default function RequestPage() {
           </Notice>
           {location.state.uploadFailed?.length > 0 && (
             <div className="mt-3">
-              <Notice tone="danger" title="Some documents could not be attached">
+              <Notice tone="danger" title="Some Documents Could Not Be Attached">
                 <ul className="list-disc pl-4">
                   {location.state.uploadFailed.map((f) => (
                     <li key={f}>{f}</li>
@@ -118,7 +118,7 @@ export default function RequestPage() {
       ) : (
         <>
           <Tabs
-            label="Request sections"
+            label="Request Sections"
             active={tabs.some((t) => t.id === tab) ? tab : 'request'}
             onChange={setTab}
             tabs={tabs}
@@ -147,12 +147,12 @@ export default function RequestPage() {
                       <ChangeDecisionPanel request={r} change={openChange} stage="hr" />
                     )}
                     {can.resubmit && (
-                      <Section title="Returned for correction">
+                      <Section title="Returned For Correction">
                         <p className="mb-3 text-sm">
                           HR returned this request. Read their comment under Approval, correct the details and
                           send it again.
                         </p>
-                        <Button onClick={() => setEditing(true)}>Correct and resubmit</Button>
+                        <Button onClick={() => setEditing(true)}>Correct And Resubmit</Button>
                       </Section>
                     )}
                     {can.accept && <OfferPanel request={r} />}
@@ -162,7 +162,7 @@ export default function RequestPage() {
                   {r.offer && (
                     <Notice
                       tone="pending"
-                      title={can.accept ? 'Your manager offered different dates' : 'Different dates offered'}
+                      title={can.accept ? 'Your Manager Offered Different Dates' : 'Different Dates Offered'}
                     >
                       <OfferSummary request={r} />
                       {can.accept && (
@@ -172,14 +172,14 @@ export default function RequestPage() {
                             className="font-medium underline"
                             onClick={() => setTab('action')}
                           >
-                            Accept or withdraw
+                            Accept Or Withdraw
                           </button>
                         </p>
                       )}
                     </Notice>
                   )}
                   {openChange && !can.changeManagerDecide && !can.changeHrDecide && (
-                    <Notice tone="pending" title="Cancellation in progress">
+                    <Notice tone="pending" title="Cancellation In Progress">
                       {CHANGE_LABELS[openChange.reasonType]} –{' '}
                       {STATUS_LABELS[openChange.status].toLowerCase()}.
                     </Notice>
@@ -190,10 +190,10 @@ export default function RequestPage() {
                       items={[
                         ['Employee', `${r.employee.name} (${r.employee.employeeNumber})`],
                         ['Department', r.employee.department],
-                        ['Leave type', r.leaveType.name],
+                        ['Leave Type', r.leaveType.name],
                         ['Dates', dateRange(r)],
-                        ['Days charged', days(r.chargeableDays)],
-                        ...(r.eventDate ? [['Date of birth', formatDate(r.eventDate)]] : []),
+                        ['Days Charged', days(r.chargeableDays)],
+                        ...(r.eventDate ? [['Date Of Birth', formatDate(r.eventDate)]] : []),
                         ...(r.multipleBirth ? [['Multiple birth', 'Yes']] : []),
                         [
                           'Reason',
@@ -204,13 +204,13 @@ export default function RequestPage() {
                           ),
                         ],
                         ...(r.noticeShortfallReason
-                          ? [['Short notice reason', r.noticeShortfallReason]]
+                          ? [['Short Notice Reason', r.noticeShortfallReason]]
                           : []),
                         ['Covering', r.handoverContact],
                         // Requests made before the handover sheet (D99) kept written notes.
-                        ...(r.handoverNotes ? [['Handover notes', r.handoverNotes]] : []),
+                        ...(r.handoverNotes ? [['Handover Notes', r.handoverNotes]] : []),
                         [
-                          'Handover sheet',
+                          'Handover Sheet',
                           handoverSheet ? (
                             handoverSheet.restricted ? (
                               <span className="font-normal text-muted">Visible to HR only</span>
@@ -318,7 +318,7 @@ function DecisionPanel({ request: r, stage }) {
     });
   };
   return (
-    <Section title={isHr ? 'HR decision' : 'Your decision'} className="border-brand ring-1 ring-brand">
+    <Section title={isHr ? 'HR Decision' : 'Your Decision'} className="border-brand ring-1 ring-brand">
       <div className="space-y-3">
         <p className="text-sm">
           This request is waiting for your decision. Approve it
@@ -356,7 +356,7 @@ function DecisionPanel({ request: r, stage }) {
               disabled={!!busy}
               onClick={() => decide('RETURN')}
             >
-              Return for correction
+              Return For Correction
             </Button>
           )}
           {!isHr && (
@@ -405,10 +405,10 @@ function TransferForm({ request: r, onCancel }) {
       <p className="text-sm sm:col-span-2">
         Asked for: <span className="font-medium">{dateRange(r)}</span> ({days(r.chargeableDays)})
       </p>
-      <Field id="tStart" label="First day">
+      <Field id="tStart" label="First Day">
         <Input id="tStart" type="date" value={v.startDate} onChange={set('startDate')} />
       </Field>
-      <Field id="tEnd" label="Last day">
+      <Field id="tEnd" label="Last Day">
         <Input id="tEnd" type="date" value={v.endDate} onChange={set('endDate')} />
       </Field>
       <Field id="tComment" label="Reason" error={missing} className="sm:col-span-2">
@@ -421,7 +421,7 @@ function TransferForm({ request: r, onCancel }) {
       )}
       <div className="flex gap-2 sm:col-span-2">
         <Button busy={busy === 'TRANSFER'} disabled={!!busy} onClick={send}>
-          Send to employee
+          Send To Employee
         </Button>
         <Button variant="secondary" disabled={!!busy} onClick={onCancel}>
           Cancel
@@ -461,7 +461,7 @@ function OfferPanel({ request: r }) {
     run('WITHDRAW', `/api/leave/requests/${r.id}/withdraw`, { comment: reason.trim(), version: r.version });
   };
   return (
-    <Section title="Offered dates">
+    <Section title="Offered Dates">
       <div className="space-y-4 text-sm">
         <OfferSummary request={r} />
         <div>
@@ -470,12 +470,12 @@ function OfferPanel({ request: r }) {
             disabled={!!busy}
             onClick={() => run('ACCEPT', `/api/leave/requests/${r.id}/accept`, { version: r.version })}
           >
-            Accept these dates
+            Accept These Dates
           </Button>
           <p className="mt-1 text-xs text-muted">It goes back to your manager for approval, then to HR.</p>
         </div>
         <div className="border-t border-rule pt-4">
-          <Field id="withdrawReason" label="Reason for withdrawing" error={missing}>
+          <Field id="withdrawReason" label="Reason For Withdrawing" error={missing}>
             <Textarea
               id="withdrawReason"
               rows={2}
@@ -491,7 +491,7 @@ function OfferPanel({ request: r }) {
             disabled={!!busy}
             onClick={withdraw}
           >
-            Withdraw request
+            Withdraw Request
           </Button>
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
@@ -515,7 +515,7 @@ function ChangeDecisionPanel({ request: r, change, stage }) {
   };
   return (
     <Section
-      title={stage === 'hr' ? 'HR decision: cancellation' : 'Your decision: cancellation'}
+      title={stage === 'hr' ? 'HR Decision: Cancellation' : 'Your Decision: Cancellation'}
       description={`${change.reference} · ${CHANGE_LABELS[change.reasonType]}`}
       className="border-brand ring-1 ring-brand"
     >
@@ -538,7 +538,7 @@ function ChangeDecisionPanel({ request: r, change, stage }) {
         {error && <Notice tone="danger">{error}</Notice>}
         <div className="flex gap-2">
           <Button busy={busy === 'APPROVE'} disabled={!!busy} onClick={() => decide('APPROVE')}>
-            Approve cancellation
+            Approve Cancellation
           </Button>
           <Button
             variant="danger"
@@ -571,15 +571,15 @@ function WithdrawPanel({ request: r }) {
             busy={!!busy}
             onClick={() => run('WITHDRAW', `/api/leave/requests/${r.id}/withdraw`, { version: r.version })}
           >
-            Yes, withdraw it
+            Yes, Withdraw It
           </Button>
           <Button variant="secondary" onClick={() => setConfirming(false)}>
-            Keep it
+            Keep It
           </Button>
         </div>
       ) : (
         <Button variant="secondary" onClick={() => setConfirming(true)}>
-          Withdraw request
+          Withdraw Request
         </Button>
       )}
     </Section>
@@ -603,7 +603,7 @@ function CancelPanel({ request: r }) {
     if (out) setOpen(false);
   };
   return (
-    <Section title={r.started ? 'Return early' : 'Cancel approved leave'}>
+    <Section title={r.started ? 'Return Early' : 'Cancel Approved Leave'}>
       <p className="mb-3 text-sm text-muted">
         {r.started
           ? 'Your leave has started. Days are returned only if management recalled you.'
@@ -638,7 +638,7 @@ function CancelPanel({ request: r }) {
           </Field>
           <div className="flex gap-2">
             <Button busy={!!busy} onClick={submit}>
-              Send for approval
+              Send For Approval
             </Button>
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Back
@@ -647,7 +647,7 @@ function CancelPanel({ request: r }) {
         </div>
       ) : (
         <Button variant="secondary" onClick={() => setOpen(true)}>
-          {r.started ? 'Request early return' : 'Request cancellation'}
+          {r.started ? 'Request Early Return' : 'Request Cancellation'}
         </Button>
       )}
     </Section>
@@ -688,7 +688,7 @@ function ResubmitForm({ request: r, onDone }) {
       initial={initial}
       lockType
       hasHandoverSheet={hasSheet}
-      submitLabel="Resubmit request"
+      submitLabel="Resubmit Request"
       onSubmit={submit}
       onCancel={onDone}
     />
@@ -744,9 +744,9 @@ function Approval({ request: r }) {
                 {d ? (
                   <Badge tone={DECISION_TONES[d.action]}>{ACTION_LABELS[d.action]}</Badge>
                 ) : s.waiting ? (
-                  <Badge tone="pending">Waiting for a decision</Badge>
+                  <Badge tone="pending">Waiting For A Decision</Badge>
                 ) : (
-                  <Badge tone="neutral">{finished ? 'Not needed' : 'Not yet'}</Badge>
+                  <Badge tone="neutral">{finished ? 'Not Needed' : 'Not Yet'}</Badge>
                 )}
               </div>
               {d ? (
@@ -802,7 +802,7 @@ function History({ items }) {
 
 function Changes({ items }) {
   return (
-    <Section title="Cancellation requests">
+    <Section title="Cancellation Requests">
       <ul className="space-y-4 text-sm">
         {items.map((c) => (
           <li key={c.id}>
@@ -833,7 +833,7 @@ function DayBreakdown({ items }) {
   if (!items.length) return null;
   return (
     <Section
-      title="Day by day"
+      title="Day By Day"
       actions={
         <Button variant="ghost" onClick={() => setOpen((o) => !o)}>
           {open ? 'Hide' : 'Show'}

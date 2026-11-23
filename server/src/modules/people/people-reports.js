@@ -17,8 +17,8 @@ export const peopleFilterSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional().catch(undefined),
 });
 
-const TYPE = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term contract', TEMPORARY: 'Temporary' };
-const PROBATION = { ON_PROBATION: 'On probation', EXTENDED: 'Probation extended', CONFIRMED: 'Confirmed' };
+const TYPE = { PERMANENT: 'Permanent', FIXED_TERM: 'Fixed-term Contract', TEMPORARY: 'Temporary' };
+const PROBATION = { ON_PROBATION: 'On Probation', EXTENDED: 'Probation Extended', CONFIRMED: 'Confirmed' };
 const FIELD = {
   employeeNumber: 'Employee number',
   firstName: 'First name',
@@ -39,10 +39,10 @@ const FIELD = {
   payGrade: 'Pay grade',
 };
 const EVENT = {
-  CREATED: 'Record created',
+  CREATED: 'Record Created',
   UPDATED: 'Changed',
-  DEACTIVATED: 'Marked as left',
-  REACTIVATED: 'Made active again',
+  DEACTIVATED: 'Marked As Left',
+  REACTIVATED: 'Made Active Again',
 };
 
 const stamp = new Intl.DateTimeFormat('en-GB', {
@@ -92,10 +92,10 @@ function staff(db, f) {
 }
 
 const PERSON = [
-  { key: 'number', label: 'Employee number', type: 'text' },
-  { key: 'firstName', label: 'First name', type: 'text' },
-  { key: 'lastName', label: 'Last name', type: 'text' },
-  { key: 'jobTitle', label: 'Job title', type: 'text' },
+  { key: 'number', label: 'Employee Number', type: 'text' },
+  { key: 'firstName', label: 'First Name', type: 'text' },
+  { key: 'lastName', label: 'Last Name', type: 'text' },
+  { key: 'jobTitle', label: 'Job Title', type: 'text' },
   { key: 'company', label: 'Company', type: 'text' },
   { key: 'department', label: 'Department', type: 'text' },
 ];
@@ -116,13 +116,13 @@ export const PEOPLE_REPORTS = [
     filters: ['company', 'department'],
     columns: [
       ...PERSON,
-      { key: 'manager', label: 'Line manager', type: 'text' },
-      { key: 'type', label: 'Employment type', type: 'text' },
-      { key: 'start', label: 'Start date', type: 'date' },
-      { key: 'contractEnd', label: 'Contract end', type: 'date' },
+      { key: 'manager', label: 'Line Manager', type: 'text' },
+      { key: 'type', label: 'Employment Type', type: 'text' },
+      { key: 'start', label: 'Start Date', type: 'date' },
+      { key: 'contractEnd', label: 'Contract End', type: 'date' },
       { key: 'probation', label: 'Probation', type: 'text' },
-      { key: 'payGrade', label: 'Pay grade', type: 'text' },
-      { key: 'email', label: 'Work email', type: 'text' },
+      { key: 'payGrade', label: 'Pay Grade', type: 'text' },
+      { key: 'email', label: 'Work Email', type: 'text' },
       { key: 'mobile', label: 'Mobile', type: 'text' },
     ],
     async run(db, f) {
@@ -151,11 +151,11 @@ export const PEOPLE_REPORTS = [
       { key: 'permanent', label: 'Permanent', type: 'number' },
       { key: 'fixed', label: 'Fixed-term', type: 'number' },
       { key: 'temporary', label: 'Temporary', type: 'number' },
-      { key: 'notRecorded', label: 'Type not recorded', type: 'number' },
-      { key: 'probation', label: 'On probation', type: 'number' },
+      { key: 'notRecorded', label: 'Type Not Recorded', type: 'number' },
+      { key: 'probation', label: 'On Probation', type: 'number' },
       { key: 'female', label: 'Female', type: 'number' },
       { key: 'male', label: 'Male', type: 'number' },
-      { key: 'sexNotRecorded', label: 'Sex not recorded', type: 'number' },
+      { key: 'sexNotRecorded', label: 'Sex Not Recorded', type: 'number' },
     ],
     async run(db, f) {
       const rows = await staff(db, { companyId: f.companyId }).where('e.status', 'ACTIVE');
@@ -195,10 +195,10 @@ export const PEOPLE_REPORTS = [
     description: 'Everyone who started or left in the year.',
     filters: ['year', 'company', 'department'],
     columns: [
-      { key: 'event', label: 'Joined or left', type: 'text' },
+      { key: 'event', label: 'Joined Or Left', type: 'text' },
       { key: 'date', label: 'Date', type: 'date' },
       ...PERSON,
-      { key: 'type', label: 'Employment type', type: 'text' },
+      { key: 'type', label: 'Employment Type', type: 'text' },
     ],
     async run(db, f) {
       const y = yearOf(f);
@@ -229,9 +229,9 @@ export const PEOPLE_REPORTS = [
     filters: ['from', 'to', 'company', 'department'],
     columns: [
       ...PERSON,
-      { key: 'type', label: 'Employment type', type: 'text' },
-      { key: 'contractEnd', label: 'Contract end', type: 'date' },
-      { key: 'manager', label: 'Line manager', type: 'text' },
+      { key: 'type', label: 'Employment Type', type: 'text' },
+      { key: 'contractEnd', label: 'Contract End', type: 'date' },
+      { key: 'manager', label: 'Line Manager', type: 'text' },
     ],
     async run(db, f) {
       const today = todayInLusaka();
@@ -256,9 +256,9 @@ export const PEOPLE_REPORTS = [
     columns: [
       ...PERSON,
       { key: 'status', label: 'Probation', type: 'text' },
-      { key: 'ends', label: 'Probation end', type: 'date' },
-      { key: 'start', label: 'Start date', type: 'date' },
-      { key: 'manager', label: 'Line manager', type: 'text' },
+      { key: 'ends', label: 'Probation End', type: 'date' },
+      { key: 'start', label: 'Start Date', type: 'date' },
+      { key: 'manager', label: 'Line Manager', type: 'text' },
     ],
     async run(db, f) {
       const rows = await staff(db, f)
@@ -282,7 +282,7 @@ export const PEOPLE_REPORTS = [
     filters: ['company', 'department'],
     columns: [
       ...PERSON,
-      { key: 'start', label: 'Start date', type: 'date' },
+      { key: 'start', label: 'Start Date', type: 'date' },
       { key: 'service', label: 'Service', type: 'text' },
       { key: 'years', label: 'Years', type: 'number' },
     ],

@@ -4,12 +4,12 @@ import { api } from '../lib/api.js';
 import { can, useMe } from '../lib/auth.jsx';
 
 /*
- * Where you are in Leave management (D68), the same way as in Employee management:
+ * Where you are in Leave Management (D68), the same way as in Employee Management:
  * Leave management › Leave types › Annual leave. Worked out from the address; names come from
  * the queries the pages already use.
  */
 
-const ROOT = { label: 'Leave management', to: '/home' };
+const ROOT = { label: 'Leave Management', to: '/home' };
 const PAGES = {
   '/home': 'Home',
   '/leave': 'My leave',
@@ -58,22 +58,22 @@ export default function LeaveTrail() {
 
   const trail = [ROOT];
   if (pathname === '/hr') {
-    trail.push({ label: can(me, 'leave.approve_final') ? 'HR overview' : 'Group overview' });
+    trail.push({ label: can(me, 'leave.approve_final') ? 'HR Overview' : 'Group Overview' });
   } else if (requestId) {
     // A request sits under the place it is usually reached from: your own leave, or the
     // approvals of whoever is looking at it.
     const r = request.data;
     const own = r && r.employee?.id === me?.id;
     const parent = own
-      ? { label: 'My leave', to: '/leave' }
+      ? { label: 'My Leave', to: '/leave' }
       : can(me, 'leave.approve_final')
-        ? { label: 'HR approvals', to: '/hr/approvals' }
+        ? { label: 'HR Approvals', to: '/hr/approvals' }
         : me?.isManager || me?.isDelegate
           ? { label: 'Approvals', to: '/approvals' }
-          : { label: 'Group overview', to: '/hr' };
-    trail.push(parent, { label: r ? (r.reference ?? 'Draft request') : '…' });
+          : { label: 'Group Overview', to: '/hr' };
+    trail.push(parent, { label: r ? (r.reference ?? 'Draft Request') : '…' });
   } else if (leaveTypeId) {
-    trail.push({ label: 'Leave types', to: '/admin/leave-types' }, { label: leaveType.data?.name ?? '…' });
+    trail.push({ label: 'Leave Types', to: '/admin/leave-types' }, { label: leaveType.data?.name ?? '…' });
   } else if (pathname === '/reports') {
     const items = reports.data?.items ?? [];
     const chosen = items.find((x) => x.id === search.get('report')) ?? items[0];

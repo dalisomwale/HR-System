@@ -63,7 +63,7 @@ export default function RequisitionSettingsPage() {
   return (
     <div className="max-w-4xl">
       <PageHeader
-        title="Requisition departments"
+        title="Requisition Departments"
         description="Choose the departments that do the IT, Accounts and Stores steps. Each department serves its own company; a company with none is served by all the departments with that step."
       />
       <div className="stack">

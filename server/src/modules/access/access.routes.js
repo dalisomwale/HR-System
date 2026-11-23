@@ -7,7 +7,7 @@ import { badRequest, conflict, forbidden, notFound } from '../../utils/errors.js
 import { MODULES, allPermissions, levelsFromPerms, levelsSummary, permsForLevels } from './modules.js';
 
 /*
- * Users, Roles and the Audit trail of every module (D108), in the inventory system's format:
+ * Users, Roles and the Audit Trail of every module (D108), in the inventory system's format:
  *   /api/access/:module/roles      roles with an access level per area
  *   /api/access/:module/users      employees given a role in the module
  *   /api/access/:module/audit      every change made in the module

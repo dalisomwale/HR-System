@@ -27,8 +27,8 @@ function MovementTable({ items, showStock = true, onExport }) {
           <Th>Item</Th>
           <Th className="text-right">Qty</Th>
           <Th>Branch</Th>
-          <Th>Supplier or department</Th>
-          {showStock && <Th className="text-right">Branch stock</Th>}
+          <Th>Supplier Or Department</Th>
+          {showStock && <Th className="text-right">Branch Stock</Th>}
           <Th>By</Th>
         </tr>
       </thead>
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
               Type
             </label>
             <Select id="t-type" value={type} onChange={(e) => set('type', e.target.value)}>
-              <option value="">Received and issued</option>
+              <option value="">Received And Issued</option>
               <option value="received">Received</option>
               <option value="issued">Issued</option>
             </Select>
@@ -149,7 +149,7 @@ export default function TransactionsPage() {
             Category
           </label>
           <Select id="t-cat" value={categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-            <option value="">All categories</option>
+            <option value="">All Categories</option>
             {(opts.data?.categories ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}

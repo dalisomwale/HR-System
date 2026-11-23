@@ -31,7 +31,7 @@ const emailType = (r) =>
 const rows = (r, status) => [
   ['Reference', r.reference],
   ['Employee', `${r.first_name} ${r.last_name}`],
-  ['Leave type', emailType(r)],
+  ['Leave Type', emailType(r)],
   ['Dates', dates(r)],
   ['Days', daysText(r.chargeable_days)],
   ...(status ? [['Status', status]] : []),
@@ -170,8 +170,8 @@ export async function leaveRequestEvent(
         intro: 'Your manager has transferred your leave request back to you with different dates.',
         rows: [
           ['Reference', r.reference],
-          ['Leave type', emailType(r)],
-          ['You asked for', `${dates(r)} (${daysText(r.chargeable_days)})`],
+          ['Leave Type', emailType(r)],
+          ['You Asked For', `${dates(r)} (${daysText(r.chargeable_days)})`],
           ['Offered', `${dates(offer)} (${daysText(r.offered_chargeable_days)})`],
           ['Status', 'Waiting for your answer'],
         ],

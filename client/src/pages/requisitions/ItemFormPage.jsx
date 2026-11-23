@@ -95,11 +95,11 @@ export default function ItemFormPage() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={isNew ? 'Add item' : `Edit ${item.data.name}`} />
+      <PageHeader title={isNew ? 'Add Item' : `Edit ${item.data.name}`} />
       <form onSubmit={save} noValidate>
         <Section>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id="i-name" label="Item name">
+            <Field id="i-name" label="Item Name">
               <Input
                 id="i-name"
                 value={v.name}
@@ -110,7 +110,7 @@ export default function ItemFormPage() {
             </Field>
             <Field id="i-cat" label="Category">
               <Select id="i-cat" value={v.categoryId} onChange={set('categoryId')}>
-                <option value="">Choose a category</option>
+                <option value="">Choose A Category</option>
                 {opts.data.categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -129,7 +129,7 @@ export default function ItemFormPage() {
             </Field>
             <Field
               id="i-price"
-              label="Unit price (K)"
+              label="Unit Price (K)"
               hint={locked ? 'Set by deliveries now that the item has stock history.' : undefined}
             >
               <Input
@@ -145,7 +145,7 @@ export default function ItemFormPage() {
             </Field>
             <Field
               id="i-reorder"
-              label="Reorder level"
+              label="Reorder Level"
               hint="You'll be warned when stock falls to this level."
             >
               <Input
@@ -159,7 +159,7 @@ export default function ItemFormPage() {
             </Field>
             {isNew && (
               <>
-                <Field id="i-open" label="Opening stock" optional>
+                <Field id="i-open" label="Opening Stock" optional>
                   <Input
                     id="i-open"
                     type="number"
@@ -170,14 +170,14 @@ export default function ItemFormPage() {
                     placeholder="0"
                   />
                 </Field>
-                <Field id="i-branch" label="Held at branch" optional={!(Number(v.openingQuantity) > 0)}>
+                <Field id="i-branch" label="Held At Branch" optional={!(Number(v.openingQuantity) > 0)}>
                   <Select
                     id="i-branch"
                     value={v.branchId}
                     onChange={set('branchId')}
                     disabled={!(Number(v.openingQuantity) > 0)}
                   >
-                    <option value="">{branches.length ? 'Choose a branch' : 'No branches yet'}</option>
+                    <option value="">{branches.length ? 'Choose A Branch' : 'No Branches Yet'}</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.company} › {b.name}
@@ -204,7 +204,7 @@ export default function ItemFormPage() {
           )}
           <div className="mt-5 flex gap-2">
             <Button type="submit" busy={busy}>
-              {isNew ? 'Add item' : 'Save changes'}
+              {isNew ? 'Add Item' : 'Save Changes'}
             </Button>
             <ButtonLink to={isNew ? '/requisitions/stock' : `/requisitions/stock/${id}`}>Cancel</ButtonLink>
           </div>

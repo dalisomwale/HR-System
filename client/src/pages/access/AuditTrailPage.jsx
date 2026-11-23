@@ -20,38 +20,38 @@ import {
 
 // Plain-language names for audit actions; anything else is shown tidied up.
 const ACTION_LABELS = {
-  BOOTSTRAP_ADMIN_CREATED: 'First administrator created',
-  SIGN_IN: 'Signed in',
-  SIGN_OUT: 'Signed out',
-  SIGN_IN_NOT_CONFIGURED: 'Sign-in refused: no employee record with that email',
-  SIGN_IN_REJECTED_INACTIVE: 'Sign-in refused: employee inactive',
-  SIGN_IN_REJECTED_TENANT: 'Sign-in refused: other organisation',
-  EMPLOYEE_CREATED: 'Employee created',
-  EMPLOYEE_UPDATED: 'Employee updated',
-  EMPLOYEE_DEACTIVATED: 'Employee marked as left',
-  EMPLOYEE_REACTIVATED: 'Employee made active again',
-  EMPLOYEES_IMPORTED: 'Employees imported',
-  IDENTITY_LINKED: 'Microsoft account linked',
-  IDENTITY_UNLINKED: 'Microsoft account unlinked',
-  ROLES_CHANGED: 'Positions changed',
-  DEPARTMENT_CREATED: 'Department created',
-  DEPARTMENT_UPDATED: 'Department updated',
-  HOLIDAY_CREATED: 'Public holiday added',
-  HOLIDAY_UPDATED: 'Public holiday changed',
-  HOLIDAY_DELETED: 'Public holiday deleted',
-  SCHEDULE_CREATED: 'Working schedule added',
-  SCHEDULE_UPDATED: 'Working schedule changed',
-  SETTING_CONFIRMED: 'Setting confirmed',
-  SETTING_CHANGED: 'Setting changed',
-  LEAVE_MANAGER_TRANSFERRED: 'Leave transferred with different dates',
-  LEAVE_TRANSFER_ACCEPTED: 'Offered dates accepted',
-  ROLE_ADDED: 'Role added',
-  ROLE_UPDATED: 'Role changed',
-  ROLE_DELETED: 'Role deleted',
-  USER_ADDED: 'User given a role',
-  USER_UPDATED: 'User’s role changed',
-  USER_REMOVED: 'User’s role removed',
-  REPORT_EXPORTED: 'Report exported',
+  BOOTSTRAP_ADMIN_CREATED: 'First Administrator Created',
+  SIGN_IN: 'Signed In',
+  SIGN_OUT: 'Signed Out',
+  SIGN_IN_NOT_CONFIGURED: 'Sign-in Refused: No Employee Record With That Email',
+  SIGN_IN_REJECTED_INACTIVE: 'Sign-in Refused: Employee Inactive',
+  SIGN_IN_REJECTED_TENANT: 'Sign-in Refused: Other Organisation',
+  EMPLOYEE_CREATED: 'Employee Created',
+  EMPLOYEE_UPDATED: 'Employee Updated',
+  EMPLOYEE_DEACTIVATED: 'Employee Marked As Left',
+  EMPLOYEE_REACTIVATED: 'Employee Made Active Again',
+  EMPLOYEES_IMPORTED: 'Employees Imported',
+  IDENTITY_LINKED: 'Microsoft Account Linked',
+  IDENTITY_UNLINKED: 'Microsoft Account Unlinked',
+  ROLES_CHANGED: 'Positions Changed',
+  DEPARTMENT_CREATED: 'Department Created',
+  DEPARTMENT_UPDATED: 'Department Updated',
+  HOLIDAY_CREATED: 'Public Holiday Added',
+  HOLIDAY_UPDATED: 'Public Holiday Changed',
+  HOLIDAY_DELETED: 'Public Holiday Deleted',
+  SCHEDULE_CREATED: 'Working Schedule Added',
+  SCHEDULE_UPDATED: 'Working Schedule Changed',
+  SETTING_CONFIRMED: 'Setting Confirmed',
+  SETTING_CHANGED: 'Setting Changed',
+  LEAVE_MANAGER_TRANSFERRED: 'Leave Transferred With Different Dates',
+  LEAVE_TRANSFER_ACCEPTED: 'Offered Dates Accepted',
+  ROLE_ADDED: 'Role Added',
+  ROLE_UPDATED: 'Role Changed',
+  ROLE_DELETED: 'Role Deleted',
+  USER_ADDED: 'User Given A Role',
+  USER_UPDATED: 'User’s Role Changed',
+  USER_REMOVED: 'User’s Role Removed',
+  REPORT_EXPORTED: 'Report Exported',
 };
 const tidy = (a) => a.charAt(0) + a.slice(1).toLowerCase().replace(/_/g, ' ');
 const label = (a) => ACTION_LABELS[a] ?? tidy(a);
@@ -93,12 +93,12 @@ export default function AuditTrailPage({ module, title = 'Audit trail' }) {
           setFilters({ ...draft, page: 1 });
         }}
       >
-        <Field id="au-q" label="Who or record" className="min-w-56 flex-1">
+        <Field id="au-q" label="Who Or Record" className="min-w-56 flex-1">
           <Input id="au-q" value={draft.q} onChange={set('q')} placeholder="Name or record number" />
         </Field>
         <Field id="au-action" label="Action" className="min-w-56">
           <Select id="au-action" value={draft.action} onChange={set('action')}>
-            <option value="">All actions</option>
+            <option value="">All Actions</option>
             {(q.data?.actions ?? []).map((a) => (
               <option key={a} value={a}>
                 {label(a)}

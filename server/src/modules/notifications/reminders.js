@@ -95,7 +95,7 @@ export async function escalateOverdue(db, today = todayInLusaka()) {
             ['Reference', r.reference],
             ['Employee', who],
             [
-              'Leave type',
+              'Leave Type',
               r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name,
             ],
             [
@@ -155,7 +155,7 @@ export async function remindDocumentsDue(db, today = todayInLusaka()) {
           rows: [
             ['Reference', r.reference],
             [
-              'Leave type',
+              'Leave Type',
               r.is_confidential || r.is_sensitive ? 'Leave (details in the system)' : r.type_name,
             ],
             [
@@ -221,8 +221,8 @@ export async function remindCarryForwardExpiry(db, today = todayInLusaka()) {
           heading: 'Carried-forward leave about to lapse',
           intro: `You have ${unused} days of annual leave carried over from ${year - 1} that have not been taken.`,
           rows: [
-            ['Unused carried-forward days', String(unused)],
-            ['Must be taken by', day(expiry)],
+            ['Unused Carried-forward Days', String(unused)],
+            ['Must Be Taken By', day(expiry)],
           ],
           action:
             'Days not taken by then are lost. Apply for leave in the leave system if you want to use them.',
@@ -298,10 +298,10 @@ export async function remindLeaveStarting(db, today = todayInLusaka()) {
           intro: `A reminder that your approved leave starts on ${day(r.start_date)}.`,
           rows: [
             ['Reference', r.reference],
-            ['Leave type', typeFor(r)],
+            ['Leave Type', typeFor(r)],
             ['Dates', datesOf(r)],
             ['Days', daysOf(r.chargeable_days)],
-            ['Back at work', day(back)],
+            ['Back At Work', day(back)],
           ],
           action: 'Please make sure your handover is done before you go. Enjoy your time off.',
         },
@@ -332,7 +332,7 @@ export async function remindLeaveStarting(db, today = todayInLusaka()) {
           rows: [
             ['Employee', who],
             ['Dates', datesOf(r)],
-            ['Back at work', day(back)],
+            ['Back At Work', day(back)],
           ],
         },
       }),
@@ -369,9 +369,9 @@ export async function remindBackToWork(db, today = todayInLusaka()) {
           intro: `Your leave ends ${r.end_date === today ? 'today' : `on ${day(r.end_date)}`}, and you are due back at work on ${day(back)}.`,
           rows: [
             ['Reference', r.reference],
-            ['Leave type', typeFor(r)],
+            ['Leave Type', typeFor(r)],
             ['Dates', datesOf(r)],
-            ['Back at work', day(back)],
+            ['Back At Work', day(back)],
           ],
           action:
             'If you need more time off, apply for it in the leave system before then, or speak to your manager.',
@@ -417,7 +417,7 @@ export async function remindUndecidedBeforeStart(db, today = todayInLusaka()) {
           rows: [
             ['Reference', r.reference],
             ['Employee', who],
-            ['Leave type', typeFor(r)],
+            ['Leave Type', typeFor(r)],
             ['Dates', datesOf(r)],
             ['Status', atManager ? 'Waiting for the manager' : 'Waiting for HR'],
           ],

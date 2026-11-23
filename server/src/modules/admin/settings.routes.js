@@ -12,30 +12,30 @@ export const EDITABLE_SETTINGS = {
   manager_scope: {
     schema: z.enum(['DIRECT_REPORTS', 'REPORTING_LINE']),
     options: [
-      { value: 'DIRECT_REPORTS', label: 'Direct reports only' },
-      { value: 'REPORTING_LINE', label: 'Whole reporting line' },
+      { value: 'DIRECT_REPORTS', label: 'Direct Reports Only' },
+      { value: 'REPORTING_LINE', label: 'Whole Reporting Line' },
     ],
   },
   no_manager_routing: {
     schema: z.enum(['HR_STAGE']),
-    options: [{ value: 'HR_STAGE', label: 'Go straight to HR final approval (recorded)' }],
+    options: [{ value: 'HR_STAGE', label: 'Go Straight To HR Final Approval (Recorded)' }],
   },
   resubmission_routing: {
     schema: z.enum(['MANAGER_STAGE', 'HR_STAGE']),
     options: [
-      { value: 'MANAGER_STAGE', label: 'Back to the manager' },
-      { value: 'HR_STAGE', label: 'Straight back to HR' },
+      { value: 'MANAGER_STAGE', label: 'Back To The Manager' },
+      { value: 'HR_STAGE', label: 'Straight Back To HR' },
     ],
   },
   handover_signoff_by: {
     schema: z.enum(['LINE_MANAGER']),
-    options: [{ value: 'LINE_MANAGER', label: 'Manager, at the manager approval stage' }],
+    options: [{ value: 'LINE_MANAGER', label: 'Manager, At The Manager Approval Stage' }],
   },
   weekend_holiday_substitution: {
     schema: z.enum(['UNCONFIRMED', 'MANUAL_ENTRY']),
     options: [
-      { value: 'UNCONFIRMED', label: 'Not yet confirmed' },
-      { value: 'MANUAL_ENTRY', label: 'HR enters substitute days as public holidays' },
+      { value: 'UNCONFIRMED', label: 'Not Yet Confirmed' },
+      { value: 'MANUAL_ENTRY', label: 'HR Enters Substitute Days As Public Holidays' },
     ],
   },
   overdue_manager_working_days: { schema: int(1, 30), unit: 'working days' },

@@ -64,7 +64,7 @@ export default function DepartmentsPage() {
       <PeopleTrail />
       <PageHeader title="Departments" />
       <div className="grid gap-4">
-        <Section title={editingId ? 'Edit department' : 'Add a department'}>
+        <Section title={editingId ? 'Edit Department' : 'Add A Department'}>
           <form
             className="grid gap-4 lg:grid-cols-[1fr_8rem_1fr_auto] lg:items-end sm:grid-cols-2"
             onSubmit={(e) => {
@@ -113,7 +113,7 @@ export default function DepartmentsPage() {
             </Field>
             <div className="flex gap-2">
               <Button type="submit" busy={save.isPending}>
-                {editingId ? 'Save' : 'Add department'}
+                {editingId ? 'Save' : 'Add Department'}
               </Button>
               {editingId && (
                 <Button
@@ -155,14 +155,14 @@ export default function DepartmentsPage() {
                   value={companyFilter}
                   onChange={(e) => setCompanyFilter(e.target.value)}
                 >
-                  <option value="">All companies</option>
+                  <option value="">All Companies</option>
                   {companies.data?.items.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                   {(list.data.items.some((d) => !d.companyId) || companyFilter === 'none') && (
-                    <option value="none">No company set</option>
+                    <option value="none">No Company Set</option>
                   )}
                 </Select>
               </Field>
@@ -171,8 +171,8 @@ export default function DepartmentsPage() {
               <thead>
                 <tr>
                   <Th>Company</Th>
-                  <Th>Department name</Th>
-                  <Th className="text-right">Active staff</Th>
+                  <Th>Department Name</Th>
+                  <Th className="text-right">Active Staff</Th>
                   <Th>Status</Th>
                   <Th>
                     <span className="sr-only">Actions</span>
@@ -188,7 +188,7 @@ export default function DepartmentsPage() {
                   )
                   .map((d) => (
                     <tr key={d.id}>
-                      <Td>{d.company ?? <Badge tone="pending">Not set</Badge>}</Td>
+                      <Td>{d.company ?? <Badge tone="pending">Not Set</Badge>}</Td>
                       <Td className="font-medium">{d.name}</Td>
                       <Td className="text-right">{d.activeEmployees}</Td>
                       <Td>{d.isActive ? <Badge tone="ok">Active</Badge> : <Badge>Inactive</Badge>}</Td>

@@ -15,11 +15,11 @@ const name = (f, l) => (f ? `${f} ${l}` : null);
 
 /** Length-of-service bands used by the charts. */
 export const SERVICE_BANDS = [
-  { key: 'lt1', label: 'Under 1 year', max: 12 },
-  { key: 'y1to2', label: '1 to 2 years', max: 24 },
-  { key: 'y2to5', label: '2 to 5 years', max: 60 },
-  { key: 'y5to10', label: '5 to 10 years', max: 120 },
-  { key: 'gt10', label: 'Over 10 years', max: Infinity },
+  { key: 'lt1', label: 'Under 1 Year', max: 12 },
+  { key: 'y1to2', label: '1 To 2 Years', max: 24 },
+  { key: 'y2to5', label: '2 To 5 Years', max: 60 },
+  { key: 'y5to10', label: '5 To 10 Years', max: 120 },
+  { key: 'gt10', label: 'Over 10 Years', max: Infinity },
 ];
 function monthsOfService(start, today) {
   if (!start || start > today) return null;
@@ -35,26 +35,26 @@ const CONTRACT_DAYS = 60;
 /** Quick filters on the directory, each a condition on the active staff list. */
 export const QUICK_FILTERS = {
   probation: {
-    label: 'On probation',
+    label: 'On Probation',
     apply: (q) => q.whereIn('e.probation_status', ['ON_PROBATION', 'EXTENDED']),
   },
   contractEnding: {
-    label: 'Contract ending soon',
+    label: 'Contract Ending Soon',
     apply: (q, today) => q.whereBetween('e.contract_end_date', [today, addDays(today, CONTRACT_DAYS)]),
   },
   startingSoon: {
-    label: 'Starting soon',
+    label: 'Starting Soon',
     apply: (q, today) =>
       q
         .where('e.employment_start_date', '>', today)
         .andWhere('e.employment_start_date', '<=', addDays(today, SOON_DAYS)),
   },
   leavingSoon: {
-    label: 'Leaving soon',
+    label: 'Leaving Soon',
     apply: (q, today) => q.whereBetween('e.employment_end_date', [today, addDays(today, SOON_DAYS)]),
   },
-  noManager: { label: 'No line manager', apply: (q) => q.whereNull('e.line_manager_id') },
-  notLinked: { label: 'No Microsoft account linked', apply: (q) => q.whereNull('l.id') },
+  noManager: { label: 'No Line Manager', apply: (q) => q.whereNull('e.line_manager_id') },
+  notLinked: { label: 'No Microsoft Account Linked', apply: (q) => q.whereNull('l.id') },
 };
 
 function baseList(db) {
@@ -275,7 +275,7 @@ export async function employeeHistory(db, id, limit = 200) {
   }));
 }
 
-/** Figures and lists for the Employee management dashboard, optionally for one company. */
+/** Figures and lists for the Employee Management dashboard, optionally for one company. */
 export async function peopleDashboard(db, companyId = null) {
   const today = todayInLusaka();
   const year = Number(today.slice(0, 4));
@@ -628,19 +628,19 @@ export async function employeeOverview(db, id) {
 
   // What makes a record complete, in the order HR would fill it in.
   const checks = [
-    ['Work email', !!e.email],
+    ['Work Email', !!e.email],
     ['Department', !!e.department_id],
-    ['Line manager', !!e.line_manager_id],
-    ['Employment type', !!e.employment_type],
+    ['Line Manager', !!e.line_manager_id],
+    ['Employment Type', !!e.employment_type],
     ...(e.employment_type && e.employment_type !== 'PERMANENT'
-      ? [['Contract end date', !!e.contract_end_date]]
+      ? [['Contract End Date', !!e.contract_end_date]]
       : []),
-    ['Microsoft account linked', !!link],
-    ['Mobile number', !!e.mobile_phone],
-    ['Personal email', !!e.personal_email],
-    ['Home address', !!e.home_address],
-    ['Next of kin name', !!e.emergency_contact_name],
-    ['Next of kin phone', !!e.emergency_contact_phone],
+    ['Microsoft Account Linked', !!link],
+    ['Mobile Number', !!e.mobile_phone],
+    ['Personal Email', !!e.personal_email],
+    ['Home Address', !!e.home_address],
+    ['Next Of Kin Name', !!e.emergency_contact_name],
+    ['Next Of Kin Phone', !!e.emergency_contact_phone],
   ].map(([label, done]) => ({ label, done }));
 
   return {

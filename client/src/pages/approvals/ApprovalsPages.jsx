@@ -44,11 +44,11 @@ function ChangeTable({ items }) {
       <thead>
         <tr>
           <Th>Reference</Th>
-          <Th>First name</Th>
-          <Th>Last name</Th>
+          <Th>First Name</Th>
+          <Th>Last Name</Th>
           <Th>Leave</Th>
           <Th>Reason</Th>
-          <Th className="text-right">Days returned</Th>
+          <Th className="text-right">Days Returned</Th>
           <Th>Asked</Th>
         </tr>
       </thead>
@@ -85,7 +85,7 @@ function ChangeTable({ items }) {
 const DECISION = {
   APPROVE: ['Approved', 'ok'],
   REJECT: ['Rejected', 'danger'],
-  RETURN: ['Returned for correction', 'pending'],
+  RETURN: ['Returned For Correction', 'pending'],
 };
 
 export function ManagerApprovalsPage() {
@@ -102,10 +102,10 @@ export function ManagerApprovalsPage() {
         <LoadError error={q.error} onRetry={() => q.refetch()} />
       ) : (
         <>
-          <Block title="Leave requests" count={q.data.requests.length} empty="Nothing waiting for you">
+          <Block title="Leave Requests" count={q.data.requests.length} empty="Nothing waiting for you">
             <RequestTable items={q.data.requests} showEmployee yourTurn="PENDING_MANAGER_APPROVAL" />
           </Block>
-          <Block title="Cancellation requests" count={q.data.changes.length} empty="No cancellations waiting">
+          <Block title="Cancellation Requests" count={q.data.changes.length} empty="No cancellations waiting">
             <ChangeTable items={q.data.changes} />
           </Block>
         </>
@@ -115,10 +115,10 @@ export function ManagerApprovalsPage() {
 }
 
 const GROUPS = {
-  WAITING: 'Waiting for your approval',
-  CANCELLATION: 'Cancellation requests',
-  MANAGERS: 'With managers',
-  DECIDED: 'Decided in the last 90 days',
+  WAITING: 'Waiting For Your Approval',
+  CANCELLATION: 'Cancellation Requests',
+  MANAGERS: 'With Managers',
+  DECIDED: 'Decided In The Last 90 Days',
 };
 
 /** One row shape for every kind of item on the HR approvals page. */
@@ -206,7 +206,7 @@ export function HrApprovalsPage() {
   const counts = Object.fromEntries(
     Object.keys(GROUPS).map((g) => [g, rows.filter((r) => r.group === g).length]),
   );
-  // Every leave type, in the order HR set on the Leave types page.
+  // Every leave type, in the order HR set on the Leave Types page.
   const allTypes = useQuery({
     queryKey: ['admin-leave-types'],
     queryFn: () => api.get('/api/admin/leave-types'),
@@ -229,7 +229,7 @@ export function HrApprovalsPage() {
 
   return (
     <div className="stack">
-      <PageHeader title="HR approvals" />
+      <PageHeader title="HR Approvals" />
       {q.isPending ? (
         <Loading />
       ) : q.isError ? (
@@ -273,9 +273,9 @@ export function HrApprovalsPage() {
                 />
               </div>
             </Field>
-            <Field id="hrType" label="Leave type">
+            <Field id="hrType" label="Leave Type">
               <Select id="hrType" value={leaveType} onChange={(e) => setLeaveType(e.target.value)}>
-                <option value="">All leave types</option>
+                <option value="">All Leave Types</option>
                 {types.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -326,9 +326,9 @@ export function HrApprovalsPage() {
               <thead>
                 <tr>
                   <Th>Reference</Th>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
-                  <Th>Leave type</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
+                  <Th>Leave Type</Th>
                   <Th>Dates</Th>
                   <Th className="text-right">Days</Th>
                   <Th>Status</Th>
@@ -359,7 +359,7 @@ export function HrApprovalsPage() {
                       <div className="flex flex-wrap gap-1">
                         <Badge tone={r.status.tone}>{r.status.label}</Badge>
                         {r.overdue && <Badge tone="danger">Overdue</Badge>}
-                        {r.own && <Badge tone="brand">Your own</Badge>}
+                        {r.own && <Badge tone="brand">Your Own</Badge>}
                       </div>
                       {r.status.by && <p className="mt-1 text-xs text-muted">by {r.status.by}</p>}
                       {r.note && <p className="mt-0.5 text-xs text-muted">{r.note}</p>}

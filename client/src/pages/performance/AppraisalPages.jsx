@@ -30,10 +30,10 @@ function AppraisalTable({ items, me, showEmployee = true, title }) {
     <Table title={title}>
       <thead>
         <tr>
-          {showEmployee && <Th>First name</Th>}
-          {showEmployee && <Th>Last name</Th>}
+          {showEmployee && <Th>First Name</Th>}
+          {showEmployee && <Th>Last Name</Th>}
           {showEmployee && <Th>Department</Th>}
-          <Th>Review cycle</Th>
+          <Th>Review Cycle</Th>
           <Th>Manager</Th>
           <Th>Status</Th>
           <Th>Next</Th>
@@ -87,7 +87,7 @@ export function MyAppraisalsPage() {
   });
   return (
     <div>
-      <PageHeader title="My appraisals" description="Your goals and appraisals, one for each review cycle." />
+      <PageHeader title="My Appraisals" description="Your goals and appraisals, one for each review cycle." />
       {q.isPending && <Loading />}
       {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
       {q.data &&
@@ -96,7 +96,7 @@ export function MyAppraisalsPage() {
             <EmptyState title="You have no appraisals yet." />
           </div>
         ) : (
-          <AppraisalTable items={q.data.items} me={me?.id} showEmployee={false} title="My appraisals" />
+          <AppraisalTable items={q.data.items} me={me?.id} showEmployee={false} title="My Appraisals" />
         ))}
     </div>
   );
@@ -127,7 +127,7 @@ export function TeamAppraisalsPage() {
   return (
     <div>
       <PageHeader
-        title={scope === 'all' ? 'All appraisals' : 'My team'}
+        title={scope === 'all' ? 'All Appraisals' : 'My Team'}
         description={
           scope === 'all'
             ? 'Every appraisal in the group.'
@@ -143,7 +143,7 @@ export function TeamAppraisalsPage() {
               aria-selected={scope === 'team'}
               onClick={() => set('scope', '')}
             >
-              My team
+              My Team
             </button>
             <button
               type="button"
@@ -179,7 +179,7 @@ export function TeamAppraisalsPage() {
           <AppraisalTable
             items={q.data.items}
             me={me?.id}
-            title={scope === 'all' ? 'All appraisals' : 'My team'}
+            title={scope === 'all' ? 'All Appraisals' : 'My Team'}
           />
         ))}
     </div>
@@ -235,7 +235,7 @@ export function AppraisalPage() {
           .join(' · ')}
         actions={
           <Badge tone={action ? 'pending' : STATUS[a.status][1]}>
-            {action ? 'Your turn' : STATUS[a.status][0]}
+            {action ? 'Your Turn' : STATUS[a.status][0]}
           </Badge>
         }
       />
@@ -307,7 +307,7 @@ export function AppraisalPage() {
               </Section>
             )}
             {(a.finalSelfComment || a.finalManagerComment || a.overallScore != null) && (
-              <Section title="Year end">
+              <Section title="Year End">
                 <dl className="detail-list">
                   <div>
                     <dt>{a.employee.name}</dt>
@@ -465,7 +465,7 @@ function GoalsEditor({ appraisal: a, onDone }) {
                 />
               </Field>
             </div>
-            <Field id={`g-m-${i}`} label="How it is measured" optional>
+            <Field id={`g-m-${i}`} label="How It Is Measured" optional>
               <Input id={`g-m-${i}`} value={g.measure} onChange={set(i, 'measure')} />
             </Field>
             <Field id={`g-d-${i}`} label="Details" optional>
@@ -473,7 +473,7 @@ function GoalsEditor({ appraisal: a, onDone }) {
             </Field>
             {goals.length > 1 && (
               <Button variant="ghost" size="sm" onClick={() => setGoals(goals.filter((_, j) => j !== i))}>
-                <Trash2 aria-hidden /> Remove goal
+                <Trash2 aria-hidden /> Remove Goal
               </Button>
             )}
           </div>
@@ -485,11 +485,11 @@ function GoalsEditor({ appraisal: a, onDone }) {
               variant="secondary"
               onClick={() => setGoals([...goals, { title: '', description: '', measure: '', weight: '' }])}
             >
-              <Plus aria-hidden /> Add goal
+              <Plus aria-hidden /> Add Goal
             </Button>
           )}
           <Button busy={busy} onClick={save}>
-            Save goals
+            Save Goals
           </Button>
         </div>
       </div>
@@ -563,7 +563,7 @@ function ActionBox({ appraisal: a, onDone }) {
               Write your goals for the year (save them on the left), then send them to your manager to agree.
             </p>
             <Button busy={busy === 'SUBMIT_GOALS'} onClick={() => send('SUBMIT_GOALS')}>
-              Send goals to my manager
+              Send Goals To My Manager
             </Button>
           </>
         )}
@@ -580,7 +580,7 @@ function ActionBox({ appraisal: a, onDone }) {
             {a.status === 'GOALS_SUBMITTED' && commentField('Comment', 'Required to send them back.')}
             <div className="flex flex-wrap gap-2">
               <Button busy={busy === 'AGREE_GOALS'} onClick={() => send('AGREE_GOALS')}>
-                Agree goals
+                Agree Goals
               </Button>
               {a.status === 'GOALS_SUBMITTED' && (
                 <Button
@@ -588,7 +588,7 @@ function ActionBox({ appraisal: a, onDone }) {
                   busy={busy === 'RETURN_GOALS'}
                   onClick={() => send('RETURN_GOALS')}
                 >
-                  Send back
+                  Send Back
                 </Button>
               )}
             </div>
@@ -609,7 +609,7 @@ function ActionBox({ appraisal: a, onDone }) {
             ))}
             {commentField('Overall', undefined)}
             <Button busy={busy === 'MID_SELF'} onClick={() => send('MID_SELF')}>
-              Send to my manager
+              Send To My Manager
             </Button>
           </>
         )}
@@ -618,7 +618,7 @@ function ActionBox({ appraisal: a, onDone }) {
             <p>Read the progress on the left and give your mid-year comments.</p>
             {commentField('Your comments', 'Required.')}
             <Button busy={busy === 'MID_MANAGER'} onClick={() => send('MID_MANAGER')}>
-              Complete mid-year review
+              Complete Mid-year Review
             </Button>
           </>
         )}
@@ -659,7 +659,7 @@ function ActionBox({ appraisal: a, onDone }) {
               finalManager ? 'Required.' : undefined,
             )}
             <Button busy={!!busy} onClick={() => send(finalSelf ? 'FINAL_SELF' : 'FINAL_MANAGER', 'rating')}>
-              {finalSelf ? 'Send to my manager' : 'Complete appraisal'}
+              {finalSelf ? 'Send To My Manager' : 'Complete Appraisal'}
             </Button>
           </>
         )}
@@ -671,14 +671,14 @@ function ActionBox({ appraisal: a, onDone }) {
             {commentField('Comment', 'Required to send it back.')}
             <div className="flex flex-wrap gap-2">
               <Button busy={busy === 'SIGN_OFF'} onClick={() => send('SIGN_OFF')}>
-                Sign off
+                Sign Off
               </Button>
               <Button
                 variant="secondary"
                 busy={busy === 'RETURN_TO_MANAGER'}
                 onClick={() => send('RETURN_TO_MANAGER')}
               >
-                Send back to the manager
+                Send Back To The Manager
               </Button>
             </div>
           </>

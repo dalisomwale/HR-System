@@ -29,7 +29,7 @@ const COLUMNS = [
   ['employment_start_date', 'Required. YYYY-MM-DD.'],
 ];
 
-/** Upload, check and import a CSV of employees. Also shown on Add employee (D69). */
+/** Upload, check and import a CSV of employees. Also shown on Add Employee (D69). */
 export function ImportEmployees() {
   const qc = useQueryClient();
   const [file, setFile] = useState(null);
@@ -120,7 +120,7 @@ export function ImportEmployees() {
             className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white hover:bg-brand/90 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand"
           >
             <Upload className="size-4" aria-hidden />{' '}
-            {file ? 'Choose another file' : 'Upload Excel or CSV file'}
+            {file ? 'Choose Another File' : 'Upload Excel Or CSV File'}
             <input
               id="csvFile"
               type="file"
@@ -169,8 +169,8 @@ export function ImportEmployees() {
           <Section
             title={
               ready
-                ? `All ${result.totalRows} rows are ready to import`
-                : `${result.totalRows - result.validRows} of ${result.totalRows} rows need fixing`
+                ? `All ${result.totalRows} Rows Are Ready To Import`
+                : `${result.totalRows - result.validRows} of ${result.totalRows} Rows Need Fixing`
             }
             description={
               ready
@@ -187,7 +187,7 @@ export function ImportEmployees() {
               ) : (
                 result.validRows > 0 && (
                   <Button variant="secondary" busy={commit.isPending} onClick={() => commit.mutate(true)}>
-                    Import the {result.validRows} ready {result.validRows === 1 ? 'row' : 'rows'}
+                    Import The {result.validRows} ready {result.validRows === 1 ? 'row' : 'rows'}
                   </Button>
                 )
               )
@@ -200,14 +200,14 @@ export function ImportEmployees() {
             )}
             {ready && result.newCompanies?.length > 0 && (
               <div className="mb-4">
-                <Notice tone="neutral" title="New companies will be created">
+                <Notice tone="neutral" title="New Companies Will Be Created">
                   {result.newCompanies.map((c) => `${c.name} (${c.code})`).join(', ')}
                 </Notice>
               </div>
             )}
             {ready && result.newDepartments?.length > 0 && (
               <div className="mb-4">
-                <Notice tone="neutral" title="New departments will be created">
+                <Notice tone="neutral" title="New Departments Will Be Created">
                   {result.newDepartments.map((d) => `${d.name} (${d.code}) in ${d.company}`).join(', ')}
                 </Notice>
               </div>
@@ -216,8 +216,8 @@ export function ImportEmployees() {
               <thead>
                 <tr>
                   <Th>Line</Th>
-                  <Th>First name</Th>
-                  <Th>Last name</Th>
+                  <Th>First Name</Th>
+                  <Th>Last Name</Th>
                   <Th>Result</Th>
                 </tr>
               </thead>

@@ -64,10 +64,10 @@ export default function NotificationsPage() {
               }}
             >
               <option value="">All</option>
-              <option value="1">Unread only</option>
+              <option value="1">Unread Only</option>
             </Select>
             <Button variant="secondary" busy={busy} disabled={!q.data?.unread} onClick={readAll}>
-              Mark all as read
+              Mark All As Read
             </Button>
           </>
         }

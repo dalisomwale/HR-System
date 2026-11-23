@@ -74,7 +74,7 @@ export default function StockPage() {
   return (
     <div>
       <PageHeader
-        title={scoped ? 'Department stock' : 'Stock'}
+        title={scoped ? 'Department Stock' : 'Stock'}
         description={
           scoped
             ? 'What has been issued to your department.'
@@ -83,7 +83,7 @@ export default function StockPage() {
         actions={
           stores && (
             <ButtonLink to="/requisitions/stock/new" variant="primary">
-              Add item
+              Add Item
             </ButtonLink>
           )
         }
@@ -97,9 +97,9 @@ export default function StockPage() {
         <div className="mb-5">
           <Stats>
             <Stat label="Items" value={units(d.totals.items)} />
-            <Stat label="Units in stock" value={units(d.totals.units)} />
-            <Stat label="Stock value" value={kwachaWhole(d.totals.value)} />
-            <Stat label="Below reorder or out" value={d.totals.low + d.totals.out} tone="danger" />
+            <Stat label="Units In Stock" value={units(d.totals.units)} />
+            <Stat label="Stock Value" value={kwachaWhole(d.totals.value)} />
+            <Stat label="Below Reorder Or Out" value={d.totals.low + d.totals.out} tone="danger" />
           </Stats>
         </div>
       )}
@@ -142,7 +142,7 @@ export default function StockPage() {
           {!scoped && o && (
             <Filter
               id="s-dept"
-              label="Issued to department"
+              label="Issued To Department"
               value={f.departmentId}
               onChange={(v) => set('departmentId', v)}
               all="Any department"
@@ -178,7 +178,7 @@ export default function StockPage() {
           )}
           <Filter
             id="s-sort"
-            label="Sort by"
+            label="Sort By"
             value={f.sort}
             onChange={(v) => set('sort', v)}
             all="Name"
@@ -198,7 +198,7 @@ export default function StockPage() {
           />
           {anyFilter && (
             <Button variant="secondary" onClick={() => setSearch({}, { replace: true })}>
-              Clear filters
+              Clear Filters
             </Button>
           )}
         </div>
@@ -235,18 +235,18 @@ export default function StockPage() {
                   <Th>Category</Th>
                   {scoped ? (
                     <>
-                      <Th className="text-right">Issued to department</Th>
+                      <Th className="text-right">Issued To Department</Th>
                       <Th className="text-right">Value</Th>
-                      <Th>Last issued</Th>
+                      <Th>Last Issued</Th>
                     </>
                   ) : (
                     <>
-                      <Th className="text-right">Initial stock</Th>
-                      <Th className="text-right">In stock</Th>
-                      {f.departmentId && <Th className="text-right">Issued to department</Th>}
-                      <Th className="text-right">Reorder at</Th>
+                      <Th className="text-right">Initial Stock</Th>
+                      <Th className="text-right">In Stock</Th>
+                      {f.departmentId && <Th className="text-right">Issued To Department</Th>}
+                      <Th className="text-right">Reorder At</Th>
                       <Th className="text-right">Value</Th>
-                      <Th>Date added</Th>
+                      <Th>Date Added</Th>
                     </>
                   )}
                   <Th>
@@ -321,7 +321,7 @@ export default function StockPage() {
                             <button
                               type="button"
                               disabled={!r.canDelete}
-                              title={r.canDelete ? undefined : "Can't delete: has stock history"}
+                              title={r.canDelete ? undefined : "Can't Delete: Has Stock History"}
                               onClick={() => setDel(r)}
                               className="rounded-sm p-1.5 text-muted hover:bg-danger-bg hover:text-danger disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
                               aria-label={
@@ -345,7 +345,7 @@ export default function StockPage() {
       )}
       <ConfirmDialog
         open={Boolean(del)}
-        title="Delete item"
+        title="Delete Item"
         confirmLabel="Delete"
         tone="danger"
         busy={busy}
