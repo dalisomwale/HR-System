@@ -79,6 +79,7 @@ export default function CategoriesPage() {
             <thead>
               <tr>
                 <Th>Category</Th>
+                <Th>Description</Th>
                 <Th className="text-right">Items</Th>
                 <Th className="text-right">Units In Stock</Th>
                 <Th className="text-right">Stock Value</Th>
@@ -93,7 +94,7 @@ export default function CategoriesPage() {
               {q.data.items.map((c) =>
                 editing?.id === c.id ? (
                   <tr key={c.id}>
-                    <Td className="p-0" colSpan={canEdit ? 5 : 4}>
+                    <Td className="p-0" colSpan={canEdit ? 6 : 5}>
                       <CategoryForm category={c} onDone={refresh} onCancel={() => setEditing(null)} />
                     </Td>
                   </tr>
@@ -106,8 +107,8 @@ export default function CategoriesPage() {
                       >
                         {c.name}
                       </Link>
-                      {c.description && <p className="text-xs text-muted">{c.description}</p>}
                     </Td>
+                    <Td className="text-muted">{c.description || '—'}</Td>
                     <Td className="text-right tabular-nums">{units(c.items)}</Td>
                     <Td className="text-right tabular-nums">{units(c.units)}</Td>
                     <Td className="text-right tabular-nums">{kwachaWhole(c.value)}</Td>
