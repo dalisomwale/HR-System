@@ -286,16 +286,17 @@ describe('Requisitions: the workflow', () => {
 
 describe('Stock', () => {
   async function stocked(qty = 10) {
-    const r = await as(people.storekeeper).post('/api/stock/items', {
-      name: 'A4 paper ream',
-      categoryId: cat,
-      reorderLevel: 3,
-      unitPrice: 85,
-      openingQuantity: qty,
+    const r = await as(people.storekeeper).post('/api/stock/receive', {
+      newItem: { name: 'A4 paper ream', categoryId: cat },
       branchId: branch,
+      supplier: 'Opening stock',
+      quantity: qty,
+      unitPrice: 85,
+      reorderLevel: 3,
+      dateReceived: todayInLusaka(),
     });
     expect(r.status, JSON.stringify(r.body)).toBe(201);
-    return r.body.id;
+    return r.body.itemId;
   }
 
   it('issues to a department, never more than the branch holds, and keeps branch and total in step', async () => {
@@ -351,6 +352,18 @@ describe('Stock', () => {
     ).toBe(409);
     const xlsx = await as(people.storekeeper).get('/api/stock/items?format=xlsx');
     expect(xlsx.headers['content-type']).toMatch(/spreadsheetml/);
+  });
+
+  it('adds new items only by receiving them: there is no separate Add Item', async () => {
+    const add = await as(people.storekeeper).post('/api/stock/items', {
+      name: 'Stapler',
+      categoryId: cat,
+      reorderLevel: 2,
+    });
+    expect(add.status).toBe(404);
+    const id = await stocked(4);
+    const item = (await as(people.storekeeper).get(`/api/stock/items/${id}`)).body;
+    expect(item).toMatchObject({ name: 'A4 paper ream', reorderLevel: 3 });
   });
 
   it('dashboard shows stock health and what needs reordering', async () => {
@@ -467,15 +480,16 @@ describe('Stock threshold alerts (D111)', () => {
     const { configureNotifications } = await import('../src/modules/notifications/notify.service.js');
     configureNotifications({ emailEnabled: true, appUrl: 'https://hr.example.test' });
     try {
-      const made = await as(people.storekeeper).post('/api/stock/items', {
-        name: 'HP 305A toner',
-        categoryId: cat,
-        reorderLevel: 3,
-        unitPrice: 900,
-        openingQuantity: 6,
+      const made = await as(people.storekeeper).post('/api/stock/receive', {
+        newItem: { name: 'HP 305A toner', categoryId: cat },
         branchId: branch,
+        supplier: 'Opening stock',
+        quantity: 6,
+        unitPrice: 900,
+        reorderLevel: 3,
+        dateReceived: todayInLusaka(),
       });
-      const item = made.body.id;
+      const item = made.body.itemId;
       // 6 -> 4: still above the level, no alert.
       expect((await issueOf(item, 2)).status).toBe(201);
       expect(await alertsFor(ids.storekeeper, 'STOCK_LOW')).toHaveLength(0);
@@ -509,13 +523,14 @@ describe('Stock threshold alerts (D111)', () => {
     const { sendStockDigest } = await import('../src/modules/requisitions/stock-alerts.js');
     expect(await sendStockDigest(db, '2026-11-17')).toMatchObject({ items: 0 });
     expect(await alertsFor(ids.storekeeper, 'STOCK_DIGEST')).toHaveLength(0);
-    await as(people.storekeeper).post('/api/stock/items', {
-      name: 'Stapler',
-      categoryId: cat,
-      reorderLevel: 5,
-      unitPrice: 120,
-      openingQuantity: 2,
+    await as(people.storekeeper).post('/api/stock/receive', {
+      newItem: { name: 'Stapler', categoryId: cat },
       branchId: branch,
+      supplier: 'Opening stock',
+      quantity: 2,
+      unitPrice: 120,
+      reorderLevel: 5,
+      dateReceived: todayInLusaka(),
     });
     expect(await sendStockDigest(db, '2026-11-18')).toMatchObject({ items: 1 });
     const digest = await alertsFor(ids.storekeeper, 'STOCK_DIGEST');

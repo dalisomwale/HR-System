@@ -17,17 +17,15 @@ import {
 } from '../../components/ui.jsx';
 import { errorText } from './rq.js';
 
-/** Add an item (with optional opening stock) or edit one. */
+/** Edit a stock item. New items are added by receiving them (Receive Stock › Receive New Item). */
 export default function ItemFormPage() {
   const { id } = useParams();
-  const isNew = !id;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const opts = useQuery({ queryKey: ['stock-options'], queryFn: () => api.get('/api/stock/options') });
   const item = useQuery({
     queryKey: ['stock-item', id],
     queryFn: () => api.get(`/api/stock/items/${id}`),
-    enabled: !isNew,
   });
   const [v, setV] = useState({
     name: '',
@@ -35,9 +33,6 @@ export default function ItemFormPage() {
     description: '',
     reorderLevel: '5',
     unitPrice: '',
-    openingQuantity: '',
-    branchId: '',
-    supplier: '',
   });
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -55,18 +50,14 @@ export default function ItemFormPage() {
     }
   }, [item.data]);
   const set = (k) => (e) => setV((x) => ({ ...x, [k]: e.target.value }));
-  if (opts.isPending || (!isNew && item.isPending)) return <Loading />;
+  if (opts.isPending || item.isPending) return <Loading />;
   if (opts.isError) return <LoadError error={opts.error} onRetry={opts.refetch} />;
   if (item.isError) return <LoadError error={item.error} onRetry={item.refetch} />;
-  const locked = !isNew && item.data.hasHistory;
-  const branches = opts.data.branches.filter((b) => b.isActive);
+  const locked = item.data.hasHistory;
 
   const save = async (e) => {
     e.preventDefault();
     setError(null);
-    const opening = Number(v.openingQuantity) || 0;
-    if (isNew && opening > 0 && !v.branchId)
-      return setError('Choose the branch that holds the opening stock.');
     setBusy(true);
     try {
       const body = {
@@ -75,13 +66,8 @@ export default function ItemFormPage() {
         description: v.description.trim(),
         reorderLevel: Number(v.reorderLevel),
         ...(locked ? {} : { unitPrice: Number(v.unitPrice) || 0 }),
-        ...(isNew && opening > 0
-          ? { openingQuantity: opening, branchId: Number(v.branchId), supplier: v.supplier.trim() }
-          : {}),
       };
-      const r = isNew
-        ? await api.post('/api/stock/items', body)
-        : await api.put(`/api/stock/items/${id}`, body);
+      const r = await api.put(`/api/stock/items/${id}`, body);
       qc.invalidateQueries({ queryKey: ['stock-items'] });
       qc.invalidateQueries({ queryKey: ['stock-item'] });
       navigate(`/requisitions/stock/${r.id}`);
@@ -95,7 +81,7 @@ export default function ItemFormPage() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={isNew ? 'Add Item' : `Edit ${item.data.name}`} />
+      <PageHeader title={`Edit ${item.data.name}`} />
       <form onSubmit={save} noValidate>
         <Section>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -157,45 +143,6 @@ export default function ItemFormPage() {
                 onChange={set('reorderLevel')}
               />
             </Field>
-            {isNew && (
-              <>
-                <Field id="i-open" label="Opening Stock" optional>
-                  <Input
-                    id="i-open"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={v.openingQuantity}
-                    onChange={set('openingQuantity')}
-                    placeholder="0"
-                  />
-                </Field>
-                <Field id="i-branch" label="Held At Branch" optional={!(Number(v.openingQuantity) > 0)}>
-                  <Select
-                    id="i-branch"
-                    value={v.branchId}
-                    onChange={set('branchId')}
-                    disabled={!(Number(v.openingQuantity) > 0)}
-                  >
-                    <option value="">{branches.length ? 'Choose A Branch' : 'No Branches Yet'}</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.company} › {b.name}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field id="i-supplier" label="Supplier" optional>
-                  <Input
-                    id="i-supplier"
-                    value={v.supplier}
-                    onChange={set('supplier')}
-                    maxLength={200}
-                    placeholder="Opening stock"
-                  />
-                </Field>
-              </>
-            )}
           </div>
           {error && (
             <div className="mt-4">
@@ -204,9 +151,9 @@ export default function ItemFormPage() {
           )}
           <div className="mt-5 flex gap-2">
             <Button type="submit" busy={busy}>
-              {isNew ? 'Add Item' : 'Save Changes'}
+              Save Changes
             </Button>
-            <ButtonLink to={isNew ? '/requisitions/stock' : `/requisitions/stock/${id}`}>Cancel</ButtonLink>
+            <ButtonLink to={`/requisitions/stock/${id}`}>Cancel</ButtonLink>
           </div>
         </Section>
       </form>

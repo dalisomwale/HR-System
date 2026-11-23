@@ -253,7 +253,6 @@ createRoot(document.getElementById('root')).render(
               {/* Links in notifications sent before 17 Nov 2026 went to /requisitions/42. */}
               <Route path=":id" element={<ToPeople base="/requisitions/requests" />} />
               <Route path="stock" element={rqPage(<StockPage />, (a) => a.stock)} />
-              <Route path="stock/new" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
               <Route path="stock/:id" element={rqPage(<ItemPage />, (a) => a.stock)} />
               <Route path="stock/:id/edit" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
               <Route path="receive" element={rqPage(<ReceivePage />, (a) => a.receive)} />

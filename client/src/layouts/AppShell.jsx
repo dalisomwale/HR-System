@@ -449,7 +449,6 @@ function RequisitionsNav({ onNavigate }) {
             to: '/requisitions/stock',
             label: a.stockDepartment ? 'Department Stock' : 'Manage Stock',
             icon: Boxes,
-            except: '/requisitions/stock/new',
           },
         ]
       : []),

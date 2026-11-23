@@ -11,7 +11,6 @@ const PAGES = {
   '/requisitions/requests': ['Requisitions'],
   '/requisitions/requests/new': ['Requisitions', 'Raise a requisition'],
   '/requisitions/stock': ['Manage Stock'],
-  '/requisitions/stock/new': ['Manage stock', 'Add item'],
   '/requisitions/receive': ['Receive Stock'],
   '/requisitions/issue': ['Issue Stock'],
   '/requisitions/transactions': ['Transactions'],
@@ -24,7 +23,7 @@ const PAGES = {
   '/requisitions/alerts': ['Stock Alerts'],
   '/requisitions/audit': ['Audit Trail'],
 };
-const PARENT = { Requisitions: '/requisitions/requests', 'Manage stock': '/requisitions/stock' };
+const PARENT = { Requisitions: '/requisitions/requests', 'Manage Stock': '/requisitions/stock' };
 
 export default function RequisitionsTrail() {
   const { pathname } = useLocation();
@@ -45,7 +44,7 @@ export default function RequisitionsTrail() {
   if (reqId) {
     trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
   } else if (itemId) {
-    trail.push({ label: 'Manage Stock', to: PARENT['Manage stock'] });
+    trail.push({ label: 'Manage Stock', to: PARENT['Manage Stock'] });
     if (editing)
       trail.push({ label: item.data?.name ?? '…', to: `/requisitions/stock/${itemId}` }, { label: 'Edit' });
     else trail.push({ label: item.data?.name ?? '…' });

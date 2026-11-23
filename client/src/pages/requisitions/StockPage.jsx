@@ -7,7 +7,6 @@ import { formatDate } from '../../lib/format.js';
 import {
   Badge,
   Button,
-  ButtonLink,
   ConfirmDialog,
   EmptyState,
   Input,
@@ -79,13 +78,6 @@ export default function StockPage() {
           scoped
             ? 'What has been issued to your department.'
             : 'Every item, how much is in stock and when it needs reordering.'
-        }
-        actions={
-          stores && (
-            <ButtonLink to="/requisitions/stock/new" variant="primary">
-              Add Item
-            </ButtonLink>
-          )
         }
       />
       {msg && (

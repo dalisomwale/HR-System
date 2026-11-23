@@ -529,10 +529,6 @@ export function stockRoutes({ db }) {
     description: optional(500),
     reorderLevel: count(0),
     unitPrice: money.optional(),
-    // New items only: opening stock at a branch.
-    openingQuantity: count(0).optional(),
-    branchId: z.coerce.number().int().positive().optional(),
-    supplier: optional(200),
   });
 
   async function checkCategory(trx, categoryId) {
@@ -557,49 +553,8 @@ export function stockRoutes({ db }) {
     if (dup) throw conflict(`An item in this category is already called "${name}".`);
   }
 
-  router.post(
-    '/items',
-    items,
-    asyncHandler(async (req, res) => {
-      const input = itemSchema.parse(req.body);
-      const id = await db.transaction(async (trx) => {
-        const cat = await checkCategory(trx, input.categoryId);
-        await noDuplicate(trx, cat.id, input.name);
-        const [newId] = await trx('stock_items').insert({
-          name: input.name,
-          category_id: cat.id,
-          description: input.description,
-          reorder_level: input.reorderLevel,
-          unit_price: input.unitPrice ?? 0,
-        });
-        if (input.openingQuantity) {
-          const b = await checkBranch(trx, input.branchId);
-          const [o, n] = await changeBranchStock(trx, newId, b.id, input.openingQuantity);
-          await trx('stock_receipts').insert({
-            item_id: newId,
-            branch_id: b.id,
-            supplier: input.supplier || 'Opening stock',
-            quantity: input.openingQuantity,
-            unit_price: input.unitPrice ?? 0,
-            date_received: todayInLusaka(),
-            received_by: req.user.id,
-            old_stock: o,
-            new_stock: n,
-          });
-        }
-        await writeAudit(trx, {
-          ...auditContext(req),
-          action: 'STOCK_ITEM_ADDED',
-          entityType: 'stock_item',
-          entityId: newId,
-          after: { name: input.name, category: cat.name, opening: input.openingQuantity ?? 0 },
-        });
-        return newId;
-      });
-      res.status(201).json({ id });
-    }),
-  );
-
+  // New items are added by receiving them (POST /receive with newItem); there is no separate
+  // "add item" (removed from Manage Stock, 23 Nov 2026).
   router.put(
     '/items/:id',
     items,
