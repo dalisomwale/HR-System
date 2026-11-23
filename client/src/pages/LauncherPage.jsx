@@ -23,16 +23,16 @@ import { useRq } from './requisitions/rq.js';
 const APPS = [
   {
     id: 'leave',
-    name: 'Leave management',
-    description: 'Apply, balances and approvals',
+    name: 'Leave Management',
+    description: 'Apply, Balances And Approvals',
     icon: CalendarCheck,
     to: '/home',
     everyone: true,
   },
   {
     id: 'employees',
-    name: 'Employee management',
-    description: 'Every member of staff',
+    name: 'Employee Management',
+    description: 'Every Member Of Staff',
     icon: Users,
     to: '/people',
     needs: 'people.view',
@@ -40,8 +40,8 @@ const APPS = [
   {
     // Brought in from the Altus inventory system (D105); open to everyone with a part in it.
     id: 'requisitions',
-    name: 'Inventory system',
-    description: 'Stock, requisitions and reports',
+    name: 'Inventory System',
+    description: 'Stock, Requisitions And Reports',
     icon: ShoppingCart,
     to: '/requisitions',
     requisitions: true,
@@ -49,8 +49,8 @@ const APPS = [
   {
     // AMS cash and float (D126): its own module, for those with a role in it.
     id: 'float',
-    name: 'Float system',
-    description: 'AMS branches: cash, Airtel and MTN float',
+    name: 'Float System',
+    description: 'AMS Branches: Cash, Airtel And MTN Float',
     icon: Wallet,
     to: '/float',
     needsAny: 'float.',
@@ -58,8 +58,8 @@ const APPS = [
   {
     // Live from 18 Nov 2026 (D114): everyone sees open positions and their applications.
     id: 'recruitment',
-    name: 'Recruitment management',
-    description: 'Hiring requests, vacancies and applicants',
+    name: 'Recruitment Management',
+    description: 'Hiring Requests, Vacancies And Applicants',
     icon: Briefcase,
     to: '/recruitment',
     everyone: true,
@@ -67,30 +67,30 @@ const APPS = [
   {
     // Live from 18 Nov 2026 (D115): everyone has their own appraisal.
     id: 'performance',
-    name: 'Performance management',
-    description: 'Goals, appraisals and probation',
+    name: 'Performance Management',
+    description: 'Goals, Appraisals And Probation',
     icon: TrendingUp,
     to: '/performance',
     everyone: true,
   },
   {
     id: 'shifts',
-    name: 'Shift management',
-    description: 'Rosters and attendance',
+    name: 'Shift Management',
+    description: 'Rosters And Attendance',
     icon: Clock,
     comingSoon: true,
   },
   {
     id: 'payroll',
-    name: 'Payroll management',
-    description: 'Pay runs and payslips',
+    name: 'Payroll Management',
+    description: 'Pay Runs And Payslips',
     icon: Wallet,
     comingSoon: true,
   },
   {
     id: 'profile',
-    name: 'My profile',
-    description: 'Your details',
+    name: 'My Profile',
+    description: 'Your Details',
     icon: UserRound,
     to: '/profile',
     everyone: true,
@@ -135,7 +135,7 @@ export default function LauncherPage() {
             desc={app.description}
             tone={TONES[app.id]}
             off={app.comingSoon}
-            badge={app.comingSoon ? 'Coming soon' : undefined}
+            badge={app.comingSoon ? 'Coming Soon' : undefined}
           />
         ))}
       </ActionTiles>

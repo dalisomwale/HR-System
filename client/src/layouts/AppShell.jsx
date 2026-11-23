@@ -759,16 +759,16 @@ export default function AppShell() {
         .join(', ') || 'Employee';
   const close = () => setMenuOpen(false);
   const appName = inRequisitions
-    ? 'Inventory system'
+    ? 'Inventory System'
     : inFloat
-      ? 'Float system'
+      ? 'Float System'
       : inRecruitment
-        ? 'Recruitment management'
+        ? 'Recruitment Management'
         : inPerformance
-          ? 'Performance management'
+          ? 'Performance Management'
           : inPeople
-            ? 'Employee management'
-            : 'Leave management';
+            ? 'Employee Management'
+            : 'Leave Management';
   const nav = (
     <>
       {/* The plain way back to the Altus Group applications page, at the top of the menu. */}
