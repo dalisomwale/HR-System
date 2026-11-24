@@ -37,8 +37,7 @@ import EmailsPage from './pages/admin/EmailsPage.jsx';
 import NotificationSettingsPage from './pages/admin/NotificationSettingsPage.jsx';
 import ReportsPage from './pages/reports/ReportsPage.jsx';
 import RequisitionsHomePage from './pages/requisitions/RequisitionsHomePage.jsx';
-import RequisitionsListPage from './pages/requisitions/RequisitionsListPage.jsx';
-import RaisePage from './pages/requisitions/RaisePage.jsx';
+import RaiseAndListPage from './pages/requisitions/RaiseAndListPage.jsx';
 import RequisitionPage from './pages/requisitions/RequisitionPage.jsx';
 import StockPage from './pages/requisitions/StockPage.jsx';
 import ItemPage from './pages/requisitions/ItemPage.jsx';
@@ -250,8 +249,9 @@ createRoot(document.getElementById('root')).render(
             </Route>
             <Route path="requisitions">
               <Route index element={rqPage(<RequisitionsHomePage />)} />
-              <Route path="requests" element={rqPage(<RequisitionsListPage />)} />
-              <Route path="requests/new" element={rqPage(<RaisePage />, (a) => a.canRaise)} />
+              <Route path="requests" element={rqPage(<RaiseAndListPage />)} />
+              {/* Raising is on the requisitions page now (D139); the old address still works. */}
+              <Route path="requests/new" element={<ToPeople base="/requisitions/requests" />} />
               <Route path="requests/:id" element={rqPage(<RequisitionPage />)} />
               {/* Links in notifications sent before 17 Nov 2026 went to /requisitions/42. */}
               <Route path=":id" element={<ToPeople base="/requisitions/requests" />} />

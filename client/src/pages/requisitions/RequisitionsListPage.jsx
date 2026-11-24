@@ -16,15 +16,14 @@ import {
   Td,
   Th,
 } from '../../components/ui.jsx';
-import { STATUS_TONES, lusakaDate, units, useRq } from './rq.js';
+import { STATUS_TONES, lusakaDate, units } from './rq.js';
 
 /** Every requisition the person takes part in, by stage (D105). */
-export default function RequisitionsListPage() {
+export default function RequisitionsListPage({ embedded = false }) {
   const [search, setSearch] = useSearchParams();
   const tab = search.get('tab') ?? '';
   const companyId = search.get('companyId') ?? '';
   const page = Number(search.get('page')) || 1;
-  const rq = useRq();
   const list = useQuery({
     queryKey: ['requisitions', tab, companyId, page],
     queryFn: () => api.get(`/api/requisitions${qs({ tab, companyId, page })}`),
@@ -39,17 +38,14 @@ export default function RequisitionsListPage() {
   const d = list.data;
   return (
     <div>
-      <PageHeader
-        title="Requisitions"
-        description="Everything you raise, quote for, approve, pay or receive."
-        actions={
-          rq.data?.canRaise && (
-            <ButtonLink to="/requisitions/requests/new" variant="primary">
-              Raise A Requisition
-            </ButtonLink>
-          )
-        }
-      />
+      {embedded ? (
+        <h2 className="mb-1 font-head text-base font-semibold text-ink">Requisitions</h2>
+      ) : (
+        <PageHeader
+          title="Requisitions"
+          description="Everything you raise, quote for, approve, pay or receive."
+        />
+      )}
       {list.isPending && <Loading />}
       {list.isError && <LoadError error={list.error} onRetry={list.refetch} />}
       {d && (

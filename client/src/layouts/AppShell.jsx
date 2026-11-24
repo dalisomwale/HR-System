@@ -460,16 +460,13 @@ function RequisitionsNav({ onNavigate }) {
       : []),
     ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
     ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
+    // One item for requisitions (D139): raising and the list share a page.
     {
       to: '/requisitions/requests',
-      label: 'Requisitions',
-      icon: ShoppingCart,
+      label: a.canRaise ? 'Raise A Requisition' : 'Requisitions',
+      icon: a.canRaise ? FilePlus2 : ShoppingCart,
       count: 'waiting',
-      except: '/requisitions/requests/new',
     },
-    ...(a.canRaise
-      ? [{ to: '/requisitions/requests/new', label: 'Raise A Requisition', icon: FilePlus2 }]
-      : []),
     ...(a.stock || a.categoriesManage
       ? [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]
       : []),

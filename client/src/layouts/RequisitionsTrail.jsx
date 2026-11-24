@@ -2,6 +2,7 @@ import { useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { Trail } from './LeaveTrail.jsx';
+import { useRq } from '../pages/requisitions/rq.js';
 
 /* Where you are in the Inventory System (D105, D107): Inventory System › Manage stock › A4 paper ream. */
 
@@ -9,7 +10,6 @@ const ROOT = { label: 'Inventory System', to: '/requisitions' };
 const PAGES = {
   '/requisitions': ['Dashboard'],
   '/requisitions/requests': ['Requisitions'],
-  '/requisitions/requests/new': ['Requisitions', 'Raise a requisition'],
   '/requisitions/stock': ['Manage Stock'],
   '/requisitions/receive': ['Receive Stock'],
   '/requisitions/issue': ['Issue Stock'],
@@ -27,6 +27,7 @@ const PARENT = { Requisitions: '/requisitions/requests', 'Manage Stock': '/requi
 
 export default function RequisitionsTrail() {
   const { pathname } = useLocation();
+  const rq = useRq();
   const reqId = pathname.match(/^\/requisitions\/requests\/(\d+)$/)?.[1];
   const itemId = pathname.match(/^\/requisitions\/stock\/(\d+)(\/edit)?$/)?.[1];
   const editing = /\/edit$/.test(pathname);
@@ -40,9 +41,13 @@ export default function RequisitionsTrail() {
     queryFn: () => api.get(`/api/stock/items/${itemId}`),
     enabled: !!itemId,
   });
+  // The requisitions page is named as in the menu: Raise A Requisition for those who can (D139).
+  const reqLabel = rq.data?.canRaise ? 'Raise A Requisition' : 'Requisitions';
   const trail = [ROOT];
   if (reqId) {
-    trail.push({ label: 'Requisitions', to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
+    trail.push({ label: reqLabel, to: PARENT.Requisitions }, { label: req.data?.ref ?? '…' });
+  } else if (pathname === '/requisitions/requests') {
+    trail.push({ label: reqLabel });
   } else if (itemId) {
     trail.push({ label: 'Manage Stock', to: PARENT['Manage Stock'] });
     if (editing)

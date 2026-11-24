@@ -125,7 +125,7 @@ export default function RequisitionsHomePage() {
           )}
           {a.canRaise && (
             <ActionTile
-              to="/requisitions/requests/new"
+              to="/requisitions/requests"
               icon={FilePlus2}
               title="Raise A Requisition"
               desc="Ask for something to be bought"
@@ -300,7 +300,7 @@ export default function RequisitionsHomePage() {
                         <Td className="text-right">
                           {a.canRaise && r.suggest > 0 && (
                             <Link
-                              to={`/requisitions/requests/new?${new URLSearchParams({ item: r.name, category: String(r.categoryId), qty: String(r.suggest) })}`}
+                              to={`/requisitions/requests?${new URLSearchParams({ item: r.name, category: String(r.categoryId), qty: String(r.suggest) })}`}
                               className="card-link"
                             >
                               Raise

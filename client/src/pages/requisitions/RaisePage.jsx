@@ -20,7 +20,8 @@ const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
 const MAX_FILES = 5;
 
 /** Raise a requisition (D105). Supporting files go up straight after it is created. */
-export default function RaisePage() {
+/** The raise form; `embedded` leaves the page title to the page it sits on (D139). */
+export default function RaisePage({ embedded = false }) {
   const [search] = useSearchParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -106,10 +107,12 @@ export default function RaisePage() {
 
   return (
     <div className="max-w-3xl">
-      <PageHeader
-        title="Raise A Requisition"
-        description="Ask for something to be bought for your department."
-      />
+      {!embedded && (
+        <PageHeader
+          title="Raise A Requisition"
+          description="Ask for something to be bought for your department."
+        />
+      )}
       <form
         noValidate
         onSubmit={(e) => {
