@@ -271,7 +271,18 @@ describe('Requisitions: the workflow', () => {
       'q.pdf',
     );
     await act(people.manager, id, 'TO_DIRECTOR');
-    const list = (await as(people.director).get('/api/requisitions')).body;
+    // The list opens on All, listed first (D141); Waiting For Me has the director's turn.
+    const opened = (await as(people.director).get('/api/requisitions')).body;
+    expect(opened.tab).toBe('all');
+    expect(opened.tabs.map((t) => t.id)).toEqual([
+      'all',
+      'mine',
+      'progress',
+      'paid',
+      'received',
+      'cancelled',
+    ]);
+    const list = (await as(people.director).get('/api/requisitions?tab=mine')).body;
     expect(list.tab).toBe('mine');
     expect(list.items.map((r) => r.id)).toEqual([id]);
     expect(list.items[0]).toMatchObject({

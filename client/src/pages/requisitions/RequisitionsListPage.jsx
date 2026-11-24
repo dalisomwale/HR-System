@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api, qs } from '../../lib/api.js';
@@ -21,7 +22,15 @@ import { STATUS_TONES, lusakaDate, units } from './rq.js';
 /** Every requisition the person takes part in, by stage (D105). */
 export default function RequisitionsListPage({ embedded = false }) {
   const [search, setSearch] = useSearchParams();
-  const tab = search.get('tab') ?? '';
+  // The tab lives on the page, not in the address, so a refresh opens on All (D141). A link to a
+  // tab (the dashboard's "waiting for me") still opens it; the address is then cleared of it.
+  const [tab, setTab] = useState(() => search.get('tab') ?? '');
+  useEffect(() => {
+    if (!search.has('tab')) return;
+    const next = new URLSearchParams(search);
+    next.delete('tab');
+    setSearch(next, { replace: true });
+  }, [search, setSearch]);
   const companyId = search.get('companyId') ?? '';
   const page = Number(search.get('page')) || 1;
   const list = useQuery({
@@ -29,6 +38,13 @@ export default function RequisitionsListPage({ embedded = false }) {
     queryFn: () => api.get(`/api/requisitions${qs({ tab, companyId, page })}`),
   });
   const set = (k, v) => {
+    if (k === 'tab') {
+      setTab(v);
+      const next = new URLSearchParams(search);
+      next.delete('page');
+      setSearch(next, { replace: true });
+      return;
+    }
     const next = new URLSearchParams(search);
     if (v) next.set(k, v);
     else next.delete(k);

@@ -39,7 +39,9 @@ const actionSchema = z.object({
   quoteId: z.coerce.number().int().positive().optional(),
 });
 
+// All first, and the list opens on it (D141).
 const TABS = {
+  all: { label: 'All', where: () => {} },
   mine: { label: 'Waiting For Me' },
   progress: {
     label: 'In Progress',
@@ -48,7 +50,6 @@ const TABS = {
   paid: { label: 'Paid', where: (q) => q.where('r.status', 'PAID') },
   received: { label: 'Received', where: (q) => q.where('r.status', 'RECEIVED') },
   cancelled: { label: 'Cancelled', where: (q) => q.where('r.status', 'CANCELLED') },
-  all: { label: 'All', where: () => {} },
 };
 
 const personName = (first, last, fallback) => [first, last].filter(Boolean).join(' ') || fallback || null;
@@ -181,7 +182,7 @@ export function requisitionRoutes({ db, config, logger }) {
         else t.where(q);
         counts[k] = Number((await q.count({ n: '*' }).first()).n);
       }
-      const tab = TABS[req.query.tab] ? req.query.tab : counts.mine ? 'mine' : 'progress';
+      const tab = TABS[req.query.tab] ? req.query.tab : 'all';
       const { page, pageSize, offset } = pagination(req.query, { defaultSize: 50, maxSize: 200 });
       const list = baseQuery(db).where(visible);
       if (tab === 'mine') list.where(waitingFor(c)).whereIn('r.status', OPEN);
