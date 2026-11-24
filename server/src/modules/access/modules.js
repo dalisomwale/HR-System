@@ -268,10 +268,10 @@ const INVENTORY_AREAS = [
   },
   {
     key: 'categories',
-    label: 'Categories',
+    label: 'Stock Categories',
     hint: 'Stock categories',
     levels: [
-      ['No access', "Can't open Categories.", []],
+      ['No access', "Can't open Stock Categories.", []],
       ['Manage', 'Add, rename and delete categories.', ['categories.manage']],
     ],
   },

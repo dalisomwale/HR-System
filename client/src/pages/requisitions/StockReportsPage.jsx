@@ -17,7 +17,7 @@ import {
   Th,
 } from '../../components/ui.jsx';
 import { Stat, Stats } from '../home/dashboard-ui.jsx';
-import { kwacha, kwachaWhole, today, units } from './rq.js';
+import { kwacha, kwachaWhole, today, units, useRq } from './rq.js';
 
 const VIEWS = [
   { id: 'category', label: 'By Category' },
@@ -28,8 +28,26 @@ const VIEWS = [
 const NAMES = { category: 'Category', company: 'Company', branch: 'Branch', department: 'Department' };
 const sum = (rows, k) => rows.reduce((s, r) => s + (Number(r[k]) || 0), 0);
 
-/** Monthly reports, worked out from deliveries and issues for any month (D105). */
+// Department staff's reports (D140): their own department only.
+export const DEPT_VIEWS = [
+  { id: 'department', label: 'Issued To My Department' },
+  { id: 'dept-category', label: 'By Category' },
+  { id: 'dept-items', label: 'Most Used Items' },
+  { id: 'dept-spend', label: 'Spend By Month' },
+];
+
+/** Monthly reports: the stores' four views, or a department's own reports for its staff. */
 export default function StockReportsPage() {
+  const [search] = useSearchParams();
+  const rq = useRq();
+  const by = search.get('by') ?? '';
+  if (rq.isPending) return <Loading />;
+  if (rq.data?.stockDepartment && by.startsWith('dept-')) return <DepartmentReport view={by.slice(5)} />;
+  return <MonthlyReport />;
+}
+
+/** Monthly reports, worked out from deliveries and issues for any month (D105). */
+function MonthlyReport() {
   const [search, setSearch] = useSearchParams();
   const by = search.get('by') ?? 'category';
   const month = search.get('month') ?? today().slice(0, 7);
@@ -66,7 +84,14 @@ export default function StockReportsPage() {
             : 'Opening and closing stock for the month, worked out from deliveries and issues. For the current month, closing is stock today.'
         }
       />
-      {!d?.scoped && (
+      {d?.scoped ? (
+        <Tabs
+          tabs={DEPT_VIEWS}
+          active="department"
+          onChange={(v) => set({ by: v, id: '' })}
+          label="Report Views"
+        />
+      ) : (
         <Tabs tabs={VIEWS} active={by} onChange={(v) => set({ by: v, id: '' })} label="Report Views" />
       )}
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -265,6 +290,130 @@ export default function StockReportsPage() {
             </Section>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+const monthName = (m) =>
+  new Date(`${m}-01T00:00:00`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+/** One of a department's own reports: by category, most used items or spend by month (D140). */
+function DepartmentReport({ view }) {
+  const [search, setSearch] = useSearchParams();
+  const month = search.get('month') ?? today().slice(0, 7);
+  const params = { view, month };
+  const q = useQuery({
+    queryKey: ['stock-dept-report', params],
+    queryFn: () => api.get(`/api/stock/reports/department${qs(params)}`),
+  });
+  const set = (changes) => {
+    const next = new URLSearchParams(search);
+    for (const [k, v] of Object.entries(changes)) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    setSearch(next, { replace: true });
+  };
+  const d = q.data;
+  const title = DEPT_VIEWS.find((v) => v.id === `dept-${view}`)?.label ?? 'Report';
+  const period = d
+    ? view === 'category'
+      ? monthName(d.month)
+      : `${monthName(d.from.slice(0, 7))} – ${monthName(d.month)}`
+    : '';
+  const exportIt = () => downloadFile(`/api/stock/reports/department${qs({ ...params, format: 'xlsx' })}`);
+  const totalUnits = sum(d?.rows ?? [], 'units');
+  const totalValue = sum(d?.rows ?? [], 'value');
+  return (
+    <div>
+      <PageHeader
+        title={`${title}${d?.department ? ` — ${d.department}` : ''}`}
+        description={
+          view === 'category'
+            ? 'What was issued to your department in the month, by stock category.'
+            : view === 'items'
+              ? 'The items your department used most over the last three months.'
+              : 'What was issued to your department each month over the last twelve months.'
+        }
+      />
+      <Tabs tabs={DEPT_VIEWS} active={`dept-${view}`} onChange={(v) => set({ by: v })} label="Report Views" />
+      <div className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="w-48">
+          <label htmlFor="d-month" className="mb-1 block text-sm font-medium">
+            {view === 'category' ? 'Month' : 'Up To Month'}
+          </label>
+          <Input
+            id="d-month"
+            type="month"
+            max={today().slice(0, 7)}
+            value={month}
+            onChange={(e) => set({ month: e.target.value })}
+          />
+        </div>
+        {d && <p className="pb-2 text-sm text-muted">{period}</p>}
+      </div>
+      {q.isPending && <Loading />}
+      {q.isError && <LoadError error={q.error} onRetry={q.refetch} />}
+      {d && (
+        <>
+          <Stats>
+            <Stat label="Units Issued" value={units(totalUnits)} />
+            <Stat label="Value Issued" value={kwachaWhole(totalValue)} />
+            <Stat label="Times Issued" value={units(sum(d.rows, 'times'))} />
+          </Stats>
+          {d.rows.length === 0 || (view === 'spend' && totalUnits === 0) ? (
+            <div className="card p-0">
+              <EmptyState title="Nothing was issued to your department in this period." />
+            </div>
+          ) : (
+            <Table onExport={exportIt}>
+              <thead>
+                <tr>
+                  {view === 'category' && <Th>Category</Th>}
+                  {view === 'items' && (
+                    <>
+                      <Th>Item</Th>
+                      <Th>Category</Th>
+                    </>
+                  )}
+                  {view === 'spend' && <Th>Month</Th>}
+                  {view === 'category' && <Th className="text-right">Items</Th>}
+                  <Th className="text-right">Units Issued</Th>
+                  {view === 'items' && <Th className="text-right">Average Per Month</Th>}
+                  <Th className="text-right">Value Issued</Th>
+                  <Th className="text-right">Times Issued</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {d.rows.map((r) => (
+                  <tr key={r.id ?? r.month}>
+                    {view === 'category' && <Td className="font-medium">{r.category}</Td>}
+                    {view === 'items' && (
+                      <>
+                        <Td>
+                          <Link
+                            to={`/requisitions/stock/${r.id}`}
+                            className="font-medium text-brand hover:underline"
+                          >
+                            {r.name}
+                          </Link>
+                        </Td>
+                        <Td>{r.category}</Td>
+                      </>
+                    )}
+                    {view === 'spend' && <Td className="font-medium">{monthName(r.month)}</Td>}
+                    {view === 'category' && <Td className="text-right tabular-nums">{r.items}</Td>}
+                    <Td className="text-right tabular-nums">{units(r.units)}</Td>
+                    {view === 'items' && <Td className="text-right tabular-nums">{r.perMonth}</Td>}
+                    <Td className="text-right tabular-nums">{kwacha(r.value)}</Td>
+                    <Td className="text-right tabular-nums">{r.times}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </>
       )}
     </div>
   );

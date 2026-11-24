@@ -342,6 +342,24 @@ describe('Stock', () => {
     const byDept = (await as(people.director).get('/api/stock/reports?by=department')).body;
     expect(byDept.groups[0]).toMatchObject({ name: 'Credit', units: 8, value: 680 });
 
+    // A department's own reports (D140): by category, most used items and spend by month.
+    const dr = (view) => as(people.manager).get(`/api/stock/reports/department?view=${view}`);
+    expect((await dr('category')).body).toMatchObject({
+      department: 'Credit',
+      rows: [{ category: 'Printer Consumables', items: 1, units: 8, value: 680 }],
+    });
+    expect((await dr('items')).body.rows[0]).toMatchObject({
+      name: 'A4 paper ream',
+      units: 8,
+      perMonth: 2.7,
+    });
+    const spend = (await dr('spend')).body.rows;
+    expect(spend).toHaveLength(12);
+    expect(spend.at(-1)).toMatchObject({ month: todayInLusaka().slice(0, 7), units: 8, value: 680 });
+    expect(spend.slice(0, 11).every((m) => m.units === 0)).toBe(true);
+    // Only for staff who see their own department's stock.
+    expect((await as(people.storekeeper).get('/api/stock/reports/department')).status).toBe(400);
+
     // An item with history can't be deleted.
     expect(
       (

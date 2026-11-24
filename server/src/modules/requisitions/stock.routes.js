@@ -1339,6 +1339,131 @@ export function stockRoutes({ db }) {
     }),
   );
 
+  // ── Department reports (D140) ─────────────────────────────────────────────────────────────────
+  // Vital reports for staff whose stock view is their own department: what was issued to it
+  // by category, its most used items over the last three months, and its spend by month.
+  const addMonths = (m, n) => {
+    const [y, mo] = m.split('-').map(Number);
+    const d = new Date(Date.UTC(y, mo - 1 + n, 1));
+    return d.toISOString().slice(0, 7);
+  };
+  router.get(
+    '/reports/department',
+    reports,
+    asyncHandler(async (req, res) => {
+      const dept = req.rq.stockDepartment;
+      if (!dept) throw badRequest('These reports are for staff who see their own department’s stock.');
+      const view = ['category', 'items', 'spend'].includes(req.query.view) ? req.query.view : 'category';
+      const month = monthOf(req.query.month);
+      const issues = () =>
+        db('stock_issues as s')
+          .join('stock_items as i', 'i.id', 's.item_id')
+          .join('stock_categories as c', 'c.id', 'i.category_id')
+          .where('s.department_id', dept);
+      let rows;
+      let columns;
+      let from;
+      let to;
+      if (view === 'category') {
+        from = `${month}-01`;
+        to = monthEnd(month);
+        const r = await issues()
+          .whereRaw('DATE(s.created_at) BETWEEN ? AND ?', [from, to])
+          .groupBy('c.id', 'c.name')
+          .select('c.id', 'c.name as category')
+          .countDistinct({ items: 'i.id' })
+          .sum({ units: 's.quantity' })
+          .sum({ value: db.raw('s.quantity * i.unit_price') })
+          .count({ times: '*' });
+        rows = r
+          .map((x) => ({
+            id: x.id,
+            category: x.category,
+            items: Number(x.items),
+            units: Number(x.units),
+            value: Number(x.value),
+            times: Number(x.times),
+          }))
+          .sort((a, b) => b.value - a.value);
+        columns = [
+          { key: 'category', label: 'Category' },
+          { key: 'items', label: 'Items', type: 'number' },
+          { key: 'units', label: 'Units Issued', type: 'number' },
+          { key: 'value', label: 'Value Issued (K)', type: 'number' },
+          { key: 'times', label: 'Times Issued', type: 'number' },
+        ];
+      } else if (view === 'items') {
+        // The three months up to and including the chosen month.
+        from = `${addMonths(month, -2)}-01`;
+        to = monthEnd(month);
+        const r = await issues()
+          .whereRaw('DATE(s.created_at) BETWEEN ? AND ?', [from, to])
+          .groupBy('i.id', 'i.name', 'c.name')
+          .select('i.id', 'i.name', 'c.name as category')
+          .sum({ units: 's.quantity' })
+          .sum({ value: db.raw('s.quantity * i.unit_price') })
+          .count({ times: '*' })
+          .max({ last: 's.created_at' });
+        rows = r
+          .map((x) => ({
+            id: x.id,
+            name: x.name,
+            category: x.category,
+            units: Number(x.units),
+            perMonth: Math.round((Number(x.units) / 3) * 10) / 10,
+            value: Number(x.value),
+            times: Number(x.times),
+            lastIssued: x.last,
+          }))
+          .sort((a, b) => b.units - a.units || b.value - a.value)
+          .slice(0, 20);
+        columns = [
+          { key: 'name', label: 'Item' },
+          { key: 'category', label: 'Category' },
+          { key: 'units', label: 'Units Issued', type: 'number' },
+          { key: 'perMonth', label: 'Average Per Month', type: 'number' },
+          { key: 'value', label: 'Value Issued (K)', type: 'number' },
+          { key: 'times', label: 'Times Issued', type: 'number' },
+        ];
+      } else {
+        // The twelve months up to and including the chosen month; months with nothing show 0.
+        const first = addMonths(month, -11);
+        from = `${first}-01`;
+        to = monthEnd(month);
+        const r = await issues()
+          .whereRaw('DATE(s.created_at) BETWEEN ? AND ?', [from, to])
+          .groupByRaw("DATE_FORMAT(s.created_at, '%Y-%m')")
+          .select(db.raw("DATE_FORMAT(s.created_at, '%Y-%m') as month"))
+          .sum({ units: 's.quantity' })
+          .sum({ value: db.raw('s.quantity * i.unit_price') })
+          .count({ times: '*' });
+        const byMonth = new Map(r.map((x) => [x.month, x]));
+        rows = Array.from({ length: 12 }, (_, n) => {
+          const m = addMonths(first, n);
+          const x = byMonth.get(m);
+          return {
+            month: m,
+            units: Number(x?.units ?? 0),
+            value: Number(x?.value ?? 0),
+            times: Number(x?.times ?? 0),
+          };
+        });
+        columns = [
+          { key: 'month', label: 'Month' },
+          { key: 'units', label: 'Units Issued', type: 'number' },
+          { key: 'value', label: 'Value Issued (K)', type: 'number' },
+          { key: 'times', label: 'Times Issued', type: 'number' },
+        ];
+      }
+      const [dep] = await db('departments').where({ id: dept }).select('name');
+      const title = { category: 'By Category', items: 'Most Used Items', spend: 'Spend By Month' }[view];
+      if (wantsXlsx(req)) {
+        return sendXlsx(res, `${dep?.name ?? 'Department'} ${title} ${month}`, columns, rows, title);
+      }
+      res.json({ view, month, from, to, department: dep?.name ?? null, rows });
+    }),
+  );
+
   // ── Categories ───────────────────────────────────────────────────────────────────────────────
   router.get(
     '/categories',

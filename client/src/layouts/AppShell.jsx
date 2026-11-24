@@ -400,7 +400,12 @@ function StockReportsNav({ limited, onNavigate }) {
     if (inside) setOpen(true);
   }, [inside]);
   const views = limited
-    ? [['department', 'Department']]
+    ? [
+        ['department', 'Issued To My Department'],
+        ['dept-category', 'By Category'],
+        ['dept-items', 'Most Used Items'],
+        ['dept-spend', 'Spend By Month'],
+      ]
     : [
         ['category', 'Category'],
         ['company', 'Company'],
@@ -417,7 +422,7 @@ function StockReportsNav({ limited, onNavigate }) {
         className={`${navLinkClass({ isActive: inside && !open })} w-full text-left`}
       >
         <FileBarChart aria-hidden />
-        <span className="flex-1">Monthly reports</span>
+        <span className="flex-1">Monthly Reports</span>
         <ChevronDown
           className={`size-3.5! text-muted transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden
@@ -468,8 +473,9 @@ function RequisitionsNav({ onNavigate }) {
       count: 'waiting',
     },
     ...(a.stock || a.categoriesManage
-      ? [{ to: '/requisitions/categories', label: 'Categories', icon: Tags }]
+      ? [{ to: '/requisitions/categories', label: 'Stock Categories', icon: Tags }]
       : []),
+    ...(a.stock ? [{ to: '/requisitions/suppliers', label: 'Suppliers', icon: Truck }] : []),
   ];
   const records = [
     ...(a.transactions
@@ -494,17 +500,11 @@ function RequisitionsNav({ onNavigate }) {
         onNavigate={onNavigate}
       />
       <NavGroup title="Stock" items={stock} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
-      {(records.length > 0 || a.reports || a.stock) && (
+      {(records.length > 0 || a.reports) && (
         <div>
           <p className={SECTION_LABEL}>Records</p>
           <NavItems items={records} onNavigate={onNavigate} />
           {a.reports && <StockReportsNav limited={Boolean(a.stockDepartment)} onNavigate={onNavigate} />}
-          {a.stock && (
-            <NavItems
-              items={[{ to: '/requisitions/suppliers', label: 'Suppliers', icon: Truck }]}
-              onNavigate={onNavigate}
-            />
-          )}
         </div>
       )}
       {admin.length > 0 && <NavGroup title="Admin" items={admin} onNavigate={onNavigate} />}

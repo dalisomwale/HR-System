@@ -51,7 +51,7 @@ export default function CategoriesPage() {
   return (
     <div>
       <PageHeader
-        title="Categories"
+        title="Stock Categories"
         description="How stock items are grouped."
         actions={
           canEdit && editing !== 'new' && <Button onClick={() => setEditing('new')}>Add Category</Button>
