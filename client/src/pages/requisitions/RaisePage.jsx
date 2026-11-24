@@ -206,15 +206,22 @@ export default function RaisePage({ embedded = false }) {
                 onChange={set('quantity')}
               />
             </Field>
+            <Field id="rq-reason" label="Reason">
+              <Textarea
+                id="rq-reason"
+                rows={3}
+                maxLength={500}
+                value={v.reason}
+                onChange={set('reason')}
+                placeholder="Why it is needed, e.g. toner for the Credit department printer"
+              />
+            </Field>
             <Field
               id="rq-files"
               label="Supporting Documents"
               optional
-              hint={
-                v.isIt
-                  ? 'Not needed: IT will get the quotations.'
-                  : `Specifications, photos or a quotation you already have. Up to ${MAX_FILES} files, 10 MB each.`
-              }
+              className="sm:col-span-2"
+              hint={v.isIt ? 'Not needed: IT will get the quotations.' : undefined}
             >
               <input
                 id="rq-files"
@@ -224,16 +231,6 @@ export default function RaisePage({ embedded = false }) {
                 disabled={v.isIt}
                 onChange={(e) => setFiles([...(e.target.files ?? [])])}
                 className="block w-full text-sm file:mr-3 file:rounded-md file:border file:border-rule file:bg-white file:px-3 file:py-1.5 file:text-sm file:font-medium disabled:opacity-50"
-              />
-            </Field>
-            <Field id="rq-reason" label="Reason" className="sm:col-span-2">
-              <Textarea
-                id="rq-reason"
-                rows={3}
-                maxLength={500}
-                value={v.reason}
-                onChange={set('reason')}
-                placeholder="Why it is needed, e.g. toner for the Credit department printer"
               />
             </Field>
             <label className="flex items-start gap-2.5 text-sm sm:col-span-2">
