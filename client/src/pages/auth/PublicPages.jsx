@@ -58,7 +58,7 @@ function AuthLayout({ title, sub, children }) {
               Welcome to the
               <br />
               <span
-                className="bg-clip-text font-semibold text-transparent"
+                className="inline-block bg-clip-text text-[2.25rem] font-extrabold tracking-tight text-transparent md:text-[2.75rem]"
                 style={{ backgroundImage: 'linear-gradient(90deg, #ffffff 0%, #9cecff 45%, #ffc47a 100%)' }}
               >
                 HR Desktop
