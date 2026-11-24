@@ -57,7 +57,12 @@ function AuthLayout({ title, sub, children }) {
             <h1 className="max-w-[360px] font-head text-[1.9rem] leading-[1.12] font-medium tracking-tight text-white md:text-[2.3rem]">
               Welcome to the
               <br />
-              HR Desktop
+              <span
+                className="bg-clip-text font-semibold text-transparent"
+                style={{ backgroundImage: 'linear-gradient(90deg, #ffffff 0%, #9cecff 45%, #ffc47a 100%)' }}
+              >
+                HR Desktop
+              </span>
             </h1>
           </div>
           <div className="relative mt-auto pt-8">
