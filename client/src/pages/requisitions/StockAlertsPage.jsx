@@ -74,7 +74,7 @@ export default function StockAlertsPage() {
             Who is emailed when an item falls to its reorder level or runs out, and gets the daily reorder
             summary at 07:00. Only people whose role can receive stock or manage items, or who have the System
             Admin role, are listed; change roles under{' '}
-            <Link to="/requisitions/users" className="text-brand hover:underline">
+            <Link to="/inventory/users" className="text-brand hover:underline">
               Users
             </Link>
             .

@@ -116,7 +116,7 @@ export default function RequisitionsListPage({ embedded = false }) {
                     <tr key={r.id}>
                       <Td className="whitespace-nowrap">
                         <Link
-                          to={`/requisitions/requests/${r.id}`}
+                          to={`/inventory/requests/${r.id}`}
                           className="font-medium text-brand hover:underline"
                         >
                           {r.ref}
@@ -127,7 +127,7 @@ export default function RequisitionsListPage({ embedded = false }) {
                         <p className="text-xs text-muted">{r.raisedBy ?? ''}</p>
                       </Td>
                       <Td>
-                        <Link to={`/requisitions/requests/${r.id}`} className="font-medium hover:underline">
+                        <Link to={`/inventory/requests/${r.id}`} className="font-medium hover:underline">
                           {r.itemName}
                         </Link>
                         <p className="text-xs text-muted">
@@ -145,7 +145,7 @@ export default function RequisitionsListPage({ embedded = false }) {
                       </Td>
                       <Td className="text-right">
                         <ButtonLink
-                          to={`/requisitions/requests/${r.id}`}
+                          to={`/inventory/requests/${r.id}`}
                           variant={r.yourTurn ? 'primary' : 'secondary'}
                           className="h-8 px-2.5"
                         >

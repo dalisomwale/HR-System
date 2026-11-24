@@ -35,7 +35,7 @@ export default function ItemPage() {
     setBusy(true);
     try {
       await api.del(`/api/stock/items/${it.id}`);
-      navigate('/requisitions/stock');
+      navigate('/inventory/stock');
     } catch (err) {
       setError(err.message);
       setDel(false);
@@ -54,7 +54,7 @@ export default function ItemPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {it.canEdit && <ButtonLink to={`/requisitions/stock/${it.id}/edit`}>Edit</ButtonLink>}
+          {it.canEdit && <ButtonLink to={`/inventory/stock/${it.id}/edit`}>Edit</ButtonLink>}
           {it.canEdit && (
             <Button
               variant="danger"

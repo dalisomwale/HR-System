@@ -102,7 +102,7 @@ export default function CategoriesPage() {
                   <tr key={c.id}>
                     <Td>
                       <Link
-                        to={`/requisitions/stock?categoryId=${c.id}`}
+                        to={`/inventory/stock?categoryId=${c.id}`}
                         className="font-medium text-brand hover:underline"
                       >
                         {c.name}

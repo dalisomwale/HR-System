@@ -159,6 +159,12 @@ function ToFloat() {
   return <Navigate to={`${pathname.replace(/^\/requisitions\/float/, '/float')}${search}`} replace />;
 }
 
+/** The Inventory System was at /requisitions; old links and bookmarks open the same page (D142). */
+function ToInventory() {
+  const { pathname, search } = useLocation();
+  return <Navigate to={`${pathname.replace(/^\/requisitions/, '/inventory')}${search}`} replace />;
+}
+
 function NotFound() {
   return (
     <div className="max-w-xl">
@@ -247,14 +253,14 @@ createRoot(document.getElementById('root')).render(
               />
               <Route path="audit" element={need('people.audit', <AuditTrailPage module="people" />)} />
             </Route>
-            <Route path="requisitions">
+            <Route path="inventory">
               <Route index element={rqPage(<RequisitionsHomePage />)} />
               <Route path="requests" element={rqPage(<RaiseAndListPage />)} />
               {/* Raising is on the requisitions page now (D139); the old address still works. */}
-              <Route path="requests/new" element={<ToPeople base="/requisitions/requests" />} />
+              <Route path="requests/new" element={<ToPeople base="/inventory/requests" />} />
               <Route path="requests/:id" element={rqPage(<RequisitionPage />)} />
-              {/* Links in notifications sent before 17 Nov 2026 went to /requisitions/42. */}
-              <Route path=":id" element={<ToPeople base="/requisitions/requests" />} />
+              {/* Links in notifications sent before 17 Nov 2026 went to /requisitions/42 (now /inventory/42). */}
+              <Route path=":id" element={<ToPeople base="/inventory/requests" />} />
               <Route path="stock" element={rqPage(<StockPage />, (a) => a.stock)} />
               <Route path="stock/:id" element={rqPage(<ItemPage />, (a) => a.stock)} />
               <Route path="stock/:id/edit" element={rqPage(<ItemFormPage />, (a) => a.itemsManage)} />
@@ -273,14 +279,14 @@ createRoot(document.getElementById('root')).render(
               <Route
                 path="users"
                 element={rqPage(
-                  <AccessUsersPage module="inventory" base="/requisitions" />,
+                  <AccessUsersPage module="inventory" base="/inventory" />,
                   (a) => a.usersAdmin,
                 )}
               />
               <Route
                 path="roles"
                 element={rqPage(
-                  <AccessRolesPage module="inventory" base="/requisitions" />,
+                  <AccessRolesPage module="inventory" base="/inventory" />,
                   (a) => a.rolesAdmin,
                 )}
               />
@@ -395,6 +401,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="audit" element={need('float.audit', <AuditTrailPage module="float" />)} />
             </Route>
             <Route path="requisitions/float/*" element={<ToFloat />} />
+            <Route path="requisitions/*" element={<ToInventory />} />
             <Route path="admin">
               <Route index element={<Navigate to="/people/employees" replace />} />
               <Route path="employees" element={<ToPeople base="/people/employees" />} />

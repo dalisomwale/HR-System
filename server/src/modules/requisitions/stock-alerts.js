@@ -70,7 +70,7 @@ export async function alertIfCrossed(trx, { item, before, after, levelBefore, le
     body: out
       ? 'None left across all branches.'
       : `${units(after)} left across all branches; reorder level ${units(level)}.`,
-    link: `/requisitions/stock/${item.id}`,
+    link: `/inventory/stock/${item.id}`,
     entityType: 'stock_item',
     entityId: item.id,
     email: {
@@ -119,7 +119,7 @@ export async function sendStockDigest(db, today = todayInLusaka()) {
           event: 'STOCK_DIGEST',
           title,
           body: out ? `${out} out of stock.` : 'Below the reorder level or running out within two weeks.',
-          link: '/requisitions/stock?status=low',
+          link: '/inventory/stock?status=low',
           email: {
             subject: title,
             heading: title,

@@ -40,7 +40,7 @@ function MovementTable({ items, onExport }) {
               <Badge tone={t.type === 'Received' ? 'ok' : 'brand'}>{t.type}</Badge>
             </Td>
             <Td>
-              <Link to={`/requisitions/stock/${t.itemId}`} className="font-medium text-brand hover:underline">
+              <Link to={`/inventory/stock/${t.itemId}`} className="font-medium text-brand hover:underline">
                 {t.item}
               </Link>
             </Td>

@@ -251,7 +251,7 @@ export default function StockPage() {
                   <tr key={r.id}>
                     <Td>
                       <Link
-                        to={`/requisitions/stock/${r.id}`}
+                        to={`/inventory/stock/${r.id}`}
                         className="font-medium text-brand hover:underline"
                       >
                         {r.name}
@@ -295,7 +295,7 @@ export default function StockPage() {
                     <Td className="text-right whitespace-nowrap">
                       <div className="inline-flex gap-1">
                         <Link
-                          to={`/requisitions/stock/${r.id}`}
+                          to={`/inventory/stock/${r.id}`}
                           className="rounded-sm p-1.5 text-muted hover:bg-canvas hover:text-ink"
                           aria-label={`View ${r.name}`}
                         >
@@ -304,7 +304,7 @@ export default function StockPage() {
                         {stores && (
                           <>
                             <Link
-                              to={`/requisitions/stock/${r.id}/edit`}
+                              to={`/inventory/stock/${r.id}/edit`}
                               className="rounded-sm p-1.5 text-muted hover:bg-canvas hover:text-ink"
                               aria-label={`Edit ${r.name}`}
                             >

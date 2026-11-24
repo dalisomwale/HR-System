@@ -393,7 +393,7 @@ function NavItems({ items, onNavigate, counts = {} }) {
 /** Monthly Reports opens to its four views, as on the inventory system's side menu. */
 function StockReportsNav({ limited, onNavigate }) {
   const { pathname, search } = useLocation();
-  const inside = pathname === '/requisitions/reports';
+  const inside = pathname === '/inventory/reports';
   const by = new URLSearchParams(search).get('by') ?? 'category';
   const [open, setOpen] = useState(inside);
   useEffect(() => {
@@ -433,7 +433,7 @@ function StockReportsNav({ limited, onNavigate }) {
           {views.map(([key, label]) => (
             <li key={key}>
               <Link
-                to={`/requisitions/reports?by=${key}`}
+                to={`/inventory/reports?by=${key}`}
                 onClick={onNavigate}
                 aria-current={inside && by === key ? 'page' : undefined}
                 className={subLinkClass(inside && by === key)}
@@ -457,46 +457,44 @@ function RequisitionsNav({ onNavigate }) {
     ...(a.stock
       ? [
           {
-            to: '/requisitions/stock',
+            to: '/inventory/stock',
             label: a.stockDepartment ? 'Department Stock' : 'Manage Stock',
             icon: Boxes,
           },
         ]
       : []),
-    ...(a.receive ? [{ to: '/requisitions/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
-    ...(a.issue ? [{ to: '/requisitions/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
+    ...(a.receive ? [{ to: '/inventory/receive', label: 'Receive Stock', icon: PackagePlus }] : []),
+    ...(a.issue ? [{ to: '/inventory/issue', label: 'Issue Stock', icon: PackageMinus }] : []),
     // One item for requisitions (D139): raising and the list share a page.
     {
-      to: '/requisitions/requests',
+      to: '/inventory/requests',
       label: a.canRaise ? 'Raise A Requisition' : 'Requisitions',
       icon: a.canRaise ? FilePlus2 : ShoppingCart,
       count: 'waiting',
     },
     ...(a.stock || a.categoriesManage
-      ? [{ to: '/requisitions/categories', label: 'Stock Categories', icon: Tags }]
+      ? [{ to: '/inventory/categories', label: 'Stock Categories', icon: Tags }]
       : []),
-    ...(a.stock ? [{ to: '/requisitions/suppliers', label: 'Suppliers', icon: Truck }] : []),
+    ...(a.stock ? [{ to: '/inventory/suppliers', label: 'Suppliers', icon: Truck }] : []),
   ];
   const records = [
     ...(a.transactions
-      ? [{ to: '/requisitions/transactions', label: 'Transactions', icon: ArrowLeftRight }]
+      ? [{ to: '/inventory/transactions', label: 'Transactions', icon: ArrowLeftRight }]
       : []),
   ];
   // Users, Roles and Audit trail first, as in every module (D108), then the inventory's own.
   const admin = [
-    ...(a.usersAdmin ? [{ to: '/requisitions/users', label: 'Users', icon: Users }] : []),
-    ...(a.rolesAdmin ? [{ to: '/requisitions/roles', label: 'Roles', icon: KeyRound }] : []),
-    ...(a.auditAdmin ? [{ to: '/requisitions/audit', label: 'Audit Trail', icon: History }] : []),
-    ...(a.orgAdmin
-      ? [{ to: '/requisitions/settings', label: 'Requisition Departments', icon: Building2 }]
-      : []),
-    ...(a.alertsAdmin ? [{ to: '/requisitions/alerts', label: 'Stock Alerts', icon: BellRing }] : []),
+    ...(a.usersAdmin ? [{ to: '/inventory/users', label: 'Users', icon: Users }] : []),
+    ...(a.rolesAdmin ? [{ to: '/inventory/roles', label: 'Roles', icon: KeyRound }] : []),
+    ...(a.auditAdmin ? [{ to: '/inventory/audit', label: 'Audit Trail', icon: History }] : []),
+    ...(a.orgAdmin ? [{ to: '/inventory/settings', label: 'Requisition Departments', icon: Building2 }] : []),
+    ...(a.alertsAdmin ? [{ to: '/inventory/alerts', label: 'Stock Alerts', icon: BellRing }] : []),
   ];
   return (
     <>
       <NavGroup
         title="Overview"
-        items={[{ to: '/requisitions', label: 'Dashboard', icon: LayoutGrid, end: true }]}
+        items={[{ to: '/inventory', label: 'Dashboard', icon: LayoutGrid, end: true }]}
         onNavigate={onNavigate}
       />
       <NavGroup title="Stock" items={stock} counts={{ waiting: a.waiting }} onNavigate={onNavigate} />
@@ -702,7 +700,7 @@ export default function AppShell() {
   const { data: user } = useMe();
   const { pathname } = useLocation();
   const inPeople = pathname === '/people' || pathname.startsWith('/people/');
-  const inRequisitions = pathname === '/requisitions' || pathname.startsWith('/requisitions/');
+  const inRequisitions = pathname === '/inventory' || pathname.startsWith('/inventory/');
   const inRecruitment = pathname === '/recruitment' || pathname.startsWith('/recruitment/');
   const inPerformance = pathname === '/performance' || pathname.startsWith('/performance/');
   const inFloat = pathname === '/float' || pathname.startsWith('/float/');

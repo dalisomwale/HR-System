@@ -70,7 +70,7 @@ export default function ItemFormPage() {
       const r = await api.put(`/api/stock/items/${id}`, body);
       qc.invalidateQueries({ queryKey: ['stock-items'] });
       qc.invalidateQueries({ queryKey: ['stock-item'] });
-      navigate(`/requisitions/stock/${r.id}`);
+      navigate(`/inventory/stock/${r.id}`);
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -153,7 +153,7 @@ export default function ItemFormPage() {
             <Button type="submit" busy={busy}>
               Save Changes
             </Button>
-            <ButtonLink to={`/requisitions/stock/${id}`}>Cancel</ButtonLink>
+            <ButtonLink to={`/inventory/stock/${id}`}>Cancel</ButtonLink>
           </div>
         </Section>
       </form>

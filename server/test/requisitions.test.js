@@ -528,7 +528,7 @@ describe('Stock threshold alerts (D111)', () => {
       expect(low).toHaveLength(1);
       expect(low[0]).toMatchObject({
         title: 'HP 305A toner is running low',
-        link_path: `/requisitions/stock/${item}`,
+        link_path: `/inventory/stock/${item}`,
       });
       const mail = await db('email_outbox')
         .where({ recipient_id: ids.storekeeper, event_type: 'STOCK_LOW' })

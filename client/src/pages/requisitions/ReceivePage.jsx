@@ -63,7 +63,7 @@ export default function ReceivePage() {
             title={`Receiving ${r.ref}: ${r.quantity} × ${r.itemName}${r.supplier ? ` from ${r.supplier}` : ''}`}
           >
             Check the quantity that actually arrived. Receiving it marks the requisition as received.{' '}
-            <Link to={`/requisitions/requests/${r.id}`} className="font-medium text-brand underline">
+            <Link to={`/inventory/requests/${r.id}`} className="font-medium text-brand underline">
               Open {r.ref}
             </Link>
           </Notice>

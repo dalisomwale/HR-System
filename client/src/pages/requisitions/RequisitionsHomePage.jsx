@@ -49,23 +49,19 @@ export default function RequisitionsHomePage() {
       <div className="stack">
         {d?.scope === 'all' && (
           <Stats>
-            <Stat label="Stock Value" value={kwachaWhole(d.stockValue)} to="/requisitions/stock?sort=value" />
+            <Stat label="Stock Value" value={kwachaWhole(d.stockValue)} to="/inventory/stock?sort=value" />
             <Stat
               label="Issued, Last 30 Days (Units)"
               value={units(d.issued.current)}
-              to="/requisitions/transactions"
+              to="/inventory/transactions"
             />
             <Stat
               label="Need Reordering"
               value={d.needReordering}
               tone="danger"
-              to="/requisitions/stock?status=low"
+              to="/inventory/stock?status=low"
             />
-            <Stat
-              label="Requisitions Waiting For You"
-              value={a.waiting}
-              to="/requisitions/requests?tab=mine"
-            />
+            <Stat label="Requisitions Waiting For You" value={a.waiting} to="/inventory/requests?tab=mine" />
           </Stats>
         )}
         {d?.scope === 'department' && (
@@ -73,24 +69,16 @@ export default function RequisitionsHomePage() {
             <Stat
               label={`Issued To ${d.department ?? 'your department'}, Last 30 Days`}
               value={units(d.issued.current)}
-              to="/requisitions/stock"
+              to="/inventory/stock"
             />
             <Stat label="Value Issued, Last 30 Days" value={kwachaWhole(d.valueIssued)} />
             <Stat label="Items Your Department Uses" value={units(d.itemsUsed)} />
-            <Stat
-              label="Requisitions Waiting For You"
-              value={a.waiting}
-              to="/requisitions/requests?tab=mine"
-            />
+            <Stat label="Requisitions Waiting For You" value={a.waiting} to="/inventory/requests?tab=mine" />
           </Stats>
         )}
         {!a.stock && (
           <Stats cols={3}>
-            <Stat
-              label="Requisitions Waiting For You"
-              value={a.waiting}
-              to="/requisitions/requests?tab=mine"
-            />
+            <Stat label="Requisitions Waiting For You" value={a.waiting} to="/inventory/requests?tab=mine" />
           </Stats>
         )}
 
@@ -98,7 +86,7 @@ export default function RequisitionsHomePage() {
         <ActionTiles>
           {a.receive && (
             <ActionTile
-              to="/requisitions/receive"
+              to="/inventory/receive"
               icon={PackagePlus}
               title="Receive Stock"
               desc="Record a delivery"
@@ -107,7 +95,7 @@ export default function RequisitionsHomePage() {
           )}
           {a.issue && (
             <ActionTile
-              to="/requisitions/issue"
+              to="/inventory/issue"
               icon={PackageMinus}
               title="Issue Stock"
               desc="Give items to a department"
@@ -116,7 +104,7 @@ export default function RequisitionsHomePage() {
           )}
           {a.stock && (
             <ActionTile
-              to="/requisitions/stock"
+              to="/inventory/stock"
               icon={Boxes}
               title={a.stockDepartment ? 'Stock' : 'Manage Stock'}
               desc={a.stockDepartment ? "Your department's items" : 'All items and levels'}
@@ -125,7 +113,7 @@ export default function RequisitionsHomePage() {
           )}
           {a.canRaise && (
             <ActionTile
-              to="/requisitions/requests"
+              to="/inventory/requests"
               icon={FilePlus2}
               title="Raise A Requisition"
               desc="Ask for something to be bought"
@@ -133,7 +121,7 @@ export default function RequisitionsHomePage() {
             />
           )}
           <ActionTile
-            to="/requisitions/requests"
+            to="/inventory/requests"
             icon={ShoppingCart}
             title="Requisitions"
             desc="What needs buying"
@@ -142,7 +130,7 @@ export default function RequisitionsHomePage() {
           />
           {a.reports && (
             <ActionTile
-              to="/requisitions/reports"
+              to="/inventory/reports"
               icon={FileBarChart}
               title="Monthly Reports"
               desc="View and export to Excel"
@@ -154,7 +142,7 @@ export default function RequisitionsHomePage() {
         <Section
           title="Waiting For You"
           actions={
-            <Link to="/requisitions/requests" className="card-link">
+            <Link to="/inventory/requests" className="card-link">
               All requisitions
             </Link>
           }
@@ -172,7 +160,7 @@ export default function RequisitionsHomePage() {
                 >
                   <div className="min-w-0">
                     <Link
-                      to={`/requisitions/requests/${r.id}`}
+                      to={`/inventory/requests/${r.id}`}
                       className="font-medium text-brand hover:underline"
                     >
                       {r.ref} · {r.itemName}
@@ -273,7 +261,7 @@ export default function RequisitionsHomePage() {
                       <tr key={r.id}>
                         <Td>
                           <Link
-                            to={`/requisitions/stock/${r.id}`}
+                            to={`/inventory/stock/${r.id}`}
                             className="font-medium text-brand hover:underline"
                           >
                             {r.name}
@@ -300,7 +288,7 @@ export default function RequisitionsHomePage() {
                         <Td className="text-right">
                           {a.canRaise && r.suggest > 0 && (
                             <Link
-                              to={`/requisitions/requests?${new URLSearchParams({ item: r.name, category: String(r.categoryId), qty: String(r.suggest) })}`}
+                              to={`/inventory/requests?${new URLSearchParams({ item: r.name, category: String(r.categoryId), qty: String(r.suggest) })}`}
                               className="card-link"
                             >
                               Raise

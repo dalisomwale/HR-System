@@ -74,7 +74,7 @@ export default function RequisitionPage() {
             {open && <span>since {formatDateTime(r.stageAt)}</span>}
           </p>
         </div>
-        <ButtonLink to="/requisitions/requests">All Requisitions</ButtonLink>
+        <ButtonLink to="/inventory/requests">All Requisitions</ButtonLink>
       </div>
 
       {flash && (
@@ -193,7 +193,7 @@ export default function RequisitionPage() {
                         'Stock Item',
                         <Link
                           key="i"
-                          to={`/requisitions/stock/${r.itemId}`}
+                          to={`/inventory/stock/${r.itemId}`}
                           className="text-brand hover:underline"
                         >
                           View in stock
@@ -515,7 +515,7 @@ function YourAction({ r, onDone }) {
     parts.push(
       <div key="recv">
         <p className="mb-3 text-sm text-muted">When the items arrive, receive them into stock.</p>
-        <ButtonLink to={`/requisitions/receive?requisition=${r.id}`} variant="primary">
+        <ButtonLink to={`/inventory/receive?requisition=${r.id}`} variant="primary">
           Receive Into Stock
         </ButtonLink>
       </div>,

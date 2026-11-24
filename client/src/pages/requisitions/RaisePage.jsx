@@ -93,7 +93,7 @@ export default function RaisePage({ embedded = false }) {
       }
       qc.invalidateQueries({ queryKey: ['requisitions'] });
       qc.invalidateQueries({ queryKey: ['rq-me'] });
-      navigate(`/requisitions/requests/${r.id}`, { state: { raised: r.ref, isIt: v.isIt, failed } });
+      navigate(`/inventory/requests/${r.id}`, { state: { raised: r.ref, isIt: v.isIt, failed } });
     } catch (err) {
       setError(err.message);
       setConfirm(false);

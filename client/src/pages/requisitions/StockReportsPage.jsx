@@ -245,7 +245,7 @@ function MonthlyReport() {
                     <tr key={r.id}>
                       <Td>
                         <Link
-                          to={`/requisitions/stock/${r.id}`}
+                          to={`/inventory/stock/${r.id}`}
                           className="font-medium text-brand hover:underline"
                         >
                           {r.name}
@@ -393,7 +393,7 @@ function DepartmentReport({ view }) {
                       <>
                         <Td>
                           <Link
-                            to={`/requisitions/stock/${r.id}`}
+                            to={`/inventory/stock/${r.id}`}
                             className="font-medium text-brand hover:underline"
                           >
                             {r.name}

@@ -43,7 +43,7 @@ const APPS = [
     name: 'Inventory System',
     description: 'Stock, Requisitions And Reports',
     icon: ShoppingCart,
-    to: '/requisitions',
+    to: '/inventory',
     requisitions: true,
   },
   {
